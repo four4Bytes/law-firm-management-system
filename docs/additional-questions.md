@@ -153,3 +153,94 @@
 You do not need to ask everything like a survey. A better way is to say:
 
 > “We already understood the basic flow, but we still need to clarify how your office really works so we can design the system properly. We want to ask about the people involved, the case stages, the deadlines, the payments, the documents, and the access levels.”
+
+---
+
+---
+
+## Role & Permission Clarifications
+
+- Super Admin vs. Admin/Branch Manager
+  - Can Branch Managers add/edit/delete cases?
+  - Can Branch Managers add users or edit user roles?
+  - Do Branch Managers have cross‑branch visibility or only their own branch?
+- Lawyers
+  - Can they create new cases, or only manage assigned ones?
+  - Can they upload documents?
+  - Can they view all cases in their branch, or only assigned ones?
+- Paralegals / Process Servers
+  - Can paralegals view full case details or only tasks?
+  - Can paralegals assign tasks to process servers?
+  - Do process servers have unique permissions beyond task completion?
+- Clients
+  - Confirm: no system access at all?
+
+---
+
+## Workflow & Service Clarifications
+
+- Consultation vs. Case
+  - Confirm that a case only begins if consultation is accepted.
+  - Are there different types of consultation (e.g., initial advice vs. full legal strategy)?
+- Notary
+  - What exact data fields are needed for notary services (document type, register number, seal, etc.)?
+  - Is notary always same‑day, or do some require longer processing?
+- Case Workflow
+  - Confirm the exact statuses: Consultation → Accepted → Pre‑Filing → Filing → Hearing → Closed.
+  - Are there optional statuses (e.g., Terminated, Settled)?
+  - Should the system track case history/timeline of updates?
+
+---
+
+## Data & Document Handling
+
+- What client details must be saved (ID type/number, address, contact info)?
+- What case details must be saved (case number, title, type, court info)?
+- Should documents be organized per case, per task, or per client?
+- Who can upload/delete documents?
+- Do you need document version history?
+
+---
+
+## Payment Tracking
+
+- Confirm payment structure:
+  - Fixed fee vs. per service/case?
+  - Initial + second payment only, or partial payments allowed?
+  - Should remaining balance be tracked?
+- Who records payments?
+- Do you want receipts generated in the system?
+
+---
+
+## Deadlines & Notifications
+
+- Confirm the 3‑day reminder rule.
+- Which deadlines are most critical (court filings, hearings, replies)?
+- Who should receive reminders (lawyer, paralegal, branch manager)?
+- Should reminders be via email, SMS, or both?
+- What happens if a deadline is missed?
+
+---
+
+## Multi‑Branch Support
+
+- Confirm number of branches (Tagum, Katalunan, +1).
+- Should all branches share one database?
+- Can staff from one branch view/handle cases from another?
+- Do you want branch‑specific dashboards/reports?
+
+---
+
+## Security & Technical Details
+
+- Authentication: Is Google Auth the only method, or do you want username/password too?
+- Audit logs: Should the system track who viewed/edited files?
+- Hosting preference: Cloud vs. private server vs. hybrid?
+- Backup requirements?
+
+---
+
+## UI & Aesthetic
+
+- Confirm final color scheme (gray/black/gold vs. other options).

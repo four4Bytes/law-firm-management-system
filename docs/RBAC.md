@@ -4,8 +4,6 @@
 
 Based on the interview transcript, the following roles and permissions were explicitly mentioned:
 
-The system revolved around cases basically.
-
 ---
 
 ## 1. Super Admin

@@ -1,12 +1,59 @@
+# Additional Questions
+
+## 0) Business background and organization profile
+
+- What is the name of the firm or office?
+
+- What type of legal services does the firm mainly provide?
+  - Is it notary, consultation, case only?
+  - What kind of cases?
+
+- How long has the firm been operating?
+
+- How many branches does the firm have?
+  - Does all the firm offer the same service?
+
+- Will all the branches use the system?
+
+- How many employees are in total in all branches?
+  - All these employess will use the system?
+  - How many employees are in each branch?
+  - Or they shared within branches?
+
+- Who is the branch manager in this branch?
+- Who is/are the super admin?
+
+- What other part of the current process is slow, repetitive, or confusing?
+
+- Is the system intended for internal use only?
+
+- What kind of clients does the firm usually handle?
+
+- What kinds of matters are most common?
+
+- What services are most frequently requested?
+
+- Are there any rules, policies, or workflow steps that are unique to the firm?
+
 ## 1) About the firm and its workflow
 
 - Can you walk us through how a client is handled from the moment they enter the office until the matter is finished?
+
 - What usually happens first when a client comes in?
+  - How do you decide if a client is for notary, consultation, or a full case?
+  - Do you write it? do client need to filup forms?
+  - You said the current before that you use exel,word only
+
 - Who receives or interviews the client first?
-- How do you decide if a client is for notary, consultation, or a full case?
+
 - What makes a case “accepted”?
 - What makes a case “closed” or “terminated”?
 - What are the usual stages a case goes through in your office?
+
+- Is notary recorded in the system?
+  - What are the data involved when the service is notary?
+  - Like does it involved upload documents, payments, notes, memo etc.
+  - Is notory short? and simple process? or it would take days or what?
 
 ## 2) About the people involved
 
@@ -154,9 +201,7 @@ You do not need to ask everything like a survey. A better way is to say:
 
 > “We already understood the basic flow, but we still need to clarify how your office really works so we can design the system properly. We want to ask about the people involved, the case stages, the deadlines, the payments, the documents, and the access levels.”
 
----
-
----
+# Version 2
 
 ## Role & Permission Clarifications
 
@@ -175,8 +220,6 @@ You do not need to ask everything like a survey. A better way is to say:
 - Clients
   - Confirm: no system access at all?
 
----
-
 ## Workflow & Service Clarifications
 
 - Consultation vs. Case
@@ -190,8 +233,6 @@ You do not need to ask everything like a survey. A better way is to say:
   - Are there optional statuses (e.g., Terminated, Settled)?
   - Should the system track case history/timeline of updates?
 
----
-
 ## Data & Document Handling
 
 - What client details must be saved (ID type/number, address, contact info)?
@@ -199,8 +240,6 @@ You do not need to ask everything like a survey. A better way is to say:
 - Should documents be organized per case, per task, or per client?
 - Who can upload/delete documents?
 - Do you need document version history?
-
----
 
 ## Payment Tracking
 
@@ -211,8 +250,6 @@ You do not need to ask everything like a survey. A better way is to say:
 - Who records payments?
 - Do you want receipts generated in the system?
 
----
-
 ## Deadlines & Notifications
 
 - Confirm the 3‑day reminder rule.
@@ -221,8 +258,6 @@ You do not need to ask everything like a survey. A better way is to say:
 - Should reminders be via email, SMS, or both?
 - What happens if a deadline is missed?
 
----
-
 ## Multi‑Branch Support
 
 - Confirm number of branches (Tagum, Katalunan, +1).
@@ -230,16 +265,12 @@ You do not need to ask everything like a survey. A better way is to say:
 - Can staff from one branch view/handle cases from another?
 - Do you want branch‑specific dashboards/reports?
 
----
-
 ## Security & Technical Details
 
 - Authentication: Is Google Auth the only method, or do you want username/password too?
 - Audit logs: Should the system track who viewed/edited files?
 - Hosting preference: Cloud vs. private server vs. hybrid?
 - Backup requirements?
-
----
 
 ## UI & Aesthetic
 

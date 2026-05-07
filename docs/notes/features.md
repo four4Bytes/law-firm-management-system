@@ -2,6 +2,8 @@
 
 Here are the must-have features based on the interview and the workflow analysis:
 
+Fixed Foundation for the essentials (Client Identity/Address) but a Dynamic Workspace (Lawyer’s Notes, Task lists, and Document uploads)
+
 ### 1. User authentication and role-based access
 
 The system must support login and separate permissions for:

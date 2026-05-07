@@ -1,135 +1,52 @@
-# Role-Based Access Control (RBAC)
+### 1. User Management
 
-## Confirmed Roles
-
-Based on the interview transcript, the following roles and permissions were explicitly mentioned:
-
----
-
-## 1. Super Admin
-
-> "Has full control, including the ability to add or remove users and delete information."
-
-| Permission         | Confirmed    |
-| ------------------ | ------------ |
-| Add users          | Yes          |
-| Edit users         | Yes Probably |
-| Remove users       | Yes          |
-| Delete information | Yes          |
-| Full control       | Yes          |
-
-Need confirmation:
-
-- Super admin can read/write/delete all information(this include users and cases) across all branches?
-- Can assign cases to layaws/Paralegal/Process Server?
-- What does information means? cases? client info?
-
-## 2. Admin / Branch Manager
-
-> "Similar to the Super Admin but lacks the authority to remove access. They assign cases to lawyers."
-
-| Permission                        | Confirmed         |
-| --------------------------------- | ----------------- |
-| Similar to Super Admin            | Yes               |
-| Cannot remove access              | Yes               |
-| Assign cases to lawyers           | Yes               |
-| Add/Edit/View cases within branch | Need Confirmation |
-
-Need Confirmation:
-
-- "admin branch manager actually adminapon na sila" (same)
-- Role is "similar to Super Admin" but without removal authority?
-- What is the difference between super admin and admin/branch manager?
+| Role                   | Create | Read | Update | Delete |
+| :--------------------- | :----- | :--- | :----- | :----- |
+| Super Admin            | Yes    | Yes  | Yes    | Yes    |
+| Admin (Branch Manager) | Yes    | Yes  | Yes    | No     |
+| Lawyer                 | No     | Yes  | Yes    | No     |
+| Paralegal              | No     | Yes  | No     | No     |
+| Process Server         | No     | Yes  | No     | No     |
 
 ---
 
-## 3. Lawyer
+### 2. Notary Services
 
-> "Can assign tasks to subordinates (like paralegals or process servers) and edit details related to their assigned cases."
-
-| Permission                     | Confirmed         |
-| ------------------------------ | ----------------- |
-| Assign tasks to subordinates   | Yes               |
-| Edit details of assigned cases | Yes               |
-| Create new cases               | Need Confirmation |
-| Upload documents               | Need Confirmation |
-| View payment status            | Need Confirmation |
-
-Need Confirmation:
-
-- Can read/write/delete cases assigned to them?
-- Can read all cases in thier branch? or not?
-- Only write/read access to the case they are assign in?
+| Role                   | Create | Read | Update | Delete |
+| :--------------------- | :----- | :--- | :----- | :----- |
+| Super Admin            | Yes    | Yes  | Yes    | Yes    |
+| Admin (Branch Manager) | Yes    | Yes  | Yes    | Yes    |
+| Lawyer                 | Yes    | Yes  | Yes    | Yes    |
+| Paralegal              | No     | Yes  | No     | No     |
+| Process Server         | No     | Yes  | No     | No     |
 
 ---
 
-## 4. Paralegal / Process Server
+### 3. Consultation Services
 
-> "Can add notes, memos, and deadlines to tasks assigned to them and mark tasks as pending or completed."
-
-| Permission                      | Confirmed         |
-| ------------------------------- | ----------------- |
-| Add notes to assigned tasks     | Yes               |
-| Add memos to assigned tasks     | Yes               |
-| Add deadlines to assigned tasks | Yes               |
-| Mark tasks as pending           | Yes               |
-| Mark tasks as completed         | Yes               |
-| Upload documents/attachments    | Need Confirmation |
-| View cases (vs only tasks)      | Need Confirmation |
-| Assign tasks to others          | Need Confirmation |
-
-Need Confirmation:
-
-- Interview unclear if paralegals can assign to process servers.
+| Role                   | Create | Read | Update | Delete |
+| :--------------------- | :----- | :--- | :----- | :----- |
+| Super Admin            | Yes    | Yes  | Yes    | Yes    |
+| Admin (Branch Manager) | Yes    | Yes  | Yes    | Yes    |
+| Lawyer                 | Yes    | Yes  | Yes    | yes    |
+| Paralegal              | No     | Yes  | No     | No     |
+| Process Server         | No     | Yes  | No     | No     |
 
 ---
 
-## 5. Client
+### 4. Cases
 
-> "Clients generally do not have a part in this specific legal process tracking system."
+| Role                   | Create | Read | Update                  | Delete |
+| :--------------------- | :----- | :--- | :---------------------- | :----- |
+| Super Admin            | Yes    | Yes  | Yes                     | Yes    |
+| Admin (Branch Manager) | Yes    | Yes  | Yes                     | No     |
+| Lawyer                 | Yes    | Yes  | Yes                     | No     |
+| Paralegal              | No     | Yes  | Yes (Notes/Memos/Files) | No     |
+| Process Server         | No     | Yes  | Yes (Notes/Memos/Files) | No     |
 
-| Access           | Confirmed |
-| ---------------- | --------- |
-| No system access | Yes       |
+#### Task-Specific Access
 
----
-
-## Information Needing Confirmation
-
-The following details need clarification for the second interview:
-
-### Unclear from Original Interview
-
-- The difference between Super Admin and Admin(Branch Manager)
-- The difference between Paralegal and Process Server
-
-### Permissions to Confirm
-
-- Branch Managers: Can they add/edit cases? Delete cases?
-- Branch Managers: Can they add users? Edit user roles?
-- Lawyers: Can they upload documents?
-- Lawyers: Can they create new cases or only manage assigned ones?
-- Paralegals: Can they view full case details or only task details?
-- Process Servers: Any unique permissions?
-- Cross-branch access: Can Branch Managers see other branches?
-
-### Technical Details to Confirm
-
-- Authentication: Google Auth mentioned only?
-- Audit logs: Tracking who viewed/edited files?
-
-### Features to Confirm
-
-- Multi-branch support: Confirm 3 branches (Tagum, Katalunan, +1)
-- Service types: Notary vs Consultation distinction
-- Case statuses: Consultation -> Accepted -> Pre-Filing -> Filing -> Hearing -> Closed
-- Payment tracking: First payment, second payment
-- Notifications: Email or SMS?
-- 3-day reminder rule: Confirm
-
----
-
-## Reference
-
-- See `interview-transcript.md` for translated version
-- See `interview-transicript-orig.md` for original language transcript
+- Create: Admins and Lawyers are the primary roles for creating and assigning tasks to paralegals and process servers. Paralegals may also assign specific tasks to process servers.
+- Read: All roles can see task descriptions (words) and file attachments linked to the case.
+- Update: Paralegals and Process Servers update tasks by adding notes, memos, or deadlines and marking status as "pending," "ongoing," or "completed".
+- Payment Log: All roles have read access to the payment log (client info and payment tasks), which tracks cash amounts and times. Only Admins and Lawyers typically update these status stages.

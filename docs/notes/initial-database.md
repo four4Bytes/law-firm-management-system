@@ -56,7 +56,6 @@
 | address            | text             | Client address snapshot              |
 | description_type   | text             | Document or service description      |
 | scheduled_datetime | timestamp        | Required                             |
-| status             | enum             | pending, completed, cancelled        |
 | created_by_user_id | fk -> users.id   | Required                             |
 | created_at         | timestamp        | Auto-generated                       |
 | updated_at         | timestamp        | Auto-updated                         |
@@ -178,12 +177,6 @@
 - completed
 - accepted
 - rejected
-- cancelled
-
-### Notary Status
-
-- pending
-- completed
 - cancelled
 
 ### Case Status

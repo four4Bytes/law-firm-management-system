@@ -1,10 +1,10 @@
 import LoginCard from "./_components/LoginCard/LoginCard";
+import styles from "./page.module.css";
 
 export default function LoginPage() {
   return (
-    <main>
+    <div className={styles.loginPage}>
       <LoginCard />
-      <h1>This is a login page</h1>
-    </main>
+    </div>
   );
 }

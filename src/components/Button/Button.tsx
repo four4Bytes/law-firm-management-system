@@ -1,20 +1,29 @@
 "use client";
 
-import { Button as RACButton, ButtonProps } from "react-aria-components";
-import React from "react";
+import {
+  Button as AriaButton,
+  type ButtonProps as AriaButtonProps,
+} from "react-aria-components";
+import styles from "./Button.module.css";
+import clsx from "clsx";
 
-interface ButtonPropsExtended extends Omit<ButtonProps, "className"> {
-  className?: string;
+interface ButtonProps extends AriaButtonProps {
+  variant?: "primary" | "secondary" | "ghost";
+  children: React.ReactNode;
 }
 
-export const Button: React.FC<ButtonPropsExtended> = ({
-  className,
+export function Button({
+  variant = "primary",
   children,
+  className,
   ...props
-}) => {
+}: ButtonProps) {
   return (
-    <RACButton className={className} {...props}>
+    <AriaButton
+      {...props}
+      className={clsx(styles.button, styles[variant], className)}
+    >
       {children}
-    </RACButton>
+    </AriaButton>
   );
-};
+}

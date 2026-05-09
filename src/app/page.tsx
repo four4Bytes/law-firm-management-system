@@ -1,9 +1,4 @@
-export default function Home() {
-  return (
-    <div>
-      <main>
-        <div>Hello Fucking World</div>
-      </main>
-    </div>
-  );
+import { redirect } from "next/navigation";
+export default function Page() {
+  redirect("/auth");
 }

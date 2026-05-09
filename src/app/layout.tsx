@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import "@/styles/globals.css";
 
 export const metadata: Metadata = {
   title: "Law Firm Management System",
-  description: "Capstone project for a private law firm",
+  description: "Capstone project for a private law firm ;P",
 };
 
 export default function RootLayout({

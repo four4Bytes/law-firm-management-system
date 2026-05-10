@@ -17,5 +17,5 @@ Version 1
 | Super Admin            | CRUD  | CRUD    | CRUD          | CRUD   | CRUD  | CRUD  | CRUD     | CRUD      | CRUD  |
 | Admin / Branch Manager | CRU   | CRUD    | CRUD          | CRUD   | CRUD  | CRUD  | CRUD     | CRUD      | CRUD  |
 | Lawyer                 | R / U | CRUD    | CRUD          | CRUD   | CRUD  | CRUD  | CRUD     | CRUD      | CRUD  |
-| Paralegal              | R     | R       | R             | R      | R     | R / U | R        | R / U     | R / U |
-| Process Server         | R     | R       | R             | R      | R     | R / U | R        | R / U     | R / U |
+| Paralegal              | R     | R       | R             | R      | R     | RU    | R        | CRU       | CRU   |
+| Process Server         | R     | R       | R             | R      | R     | RU    | R        | CRU       | CRU   |

@@ -17,14 +17,15 @@
 
 ## 2) Clients
 
-| Field      | Type       | Notes          |
-| ---------- | ---------- | -------------- |
-| id         | uuid / int | Primary key    |
-| name       | text       | Required       |
-| address    | text       | Optional       |
-| email      | text       | Optional       |
-| created_at | timestamp  | Auto-generated |
-| updated_at | timestamp  | Auto-updated   |
+| Field        | Type       | Notes          |
+| ------------ | ---------- | -------------- |
+| id           | uuid / int | Primary key    |
+| name         | text       | Required       |
+| address      | text       | Optional       |
+| email        | text       | Optional       |
+| phone_number | int        | Optional       |
+| created_at   | timestamp  | Auto-generated |
+| updated_at   | timestamp  | Auto-updated   |
 
 ---
 
@@ -35,9 +36,7 @@
 | id                 | uuid / int       | Primary key                                         |
 | client_id          | fk -> clients.id | Required                                            |
 | booking_datetime   | timestamp        | Required                                            |
-| purpose            | text             | Required                                            |
-| concern            | text             | Legal concern of the client                         |
-| advice             | text             | Attorney’s advice or opinion                        |
+| concern            | text             | Required                                            |
 | status             | enum             | scheduled, completed, accepted, rejected, cancelled |
 | accepted_case_id   | fk -> cases.id   | Nullable; used if consultation becomes a case       |
 | created_by_user_id | fk -> users.id   | Required                                            |

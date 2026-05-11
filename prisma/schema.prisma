@@ -6,3 +6,274 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  SuperAdmin
+  Admin
+  Lawyer
+  Paralegal
+  ProcessServer
+}
+
+enum ConsultationStatus {
+  Scheduled
+  Completed
+  Accepted
+  Rejected
+  Cancelled
+}
+
+enum CaseStatus {
+  Open
+  Ongoing
+  Closed
+  Terminated
+  Settled
+}
+
+enum TaskStatus {
+  Pending
+  Ongoing
+  Completed
+  Cancelled
+}
+
+enum CaseMilestoneStatus {
+  Pending
+  Done
+  Cancelled
+}
+
+enum PaymentStatus {
+  Unpaid
+  Partial
+  Paid
+  Refunded
+}
+
+model User {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  email      String   @unique
+  google_sub String?  @unique
+  role       Role
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  consultations          Consultation[]
+  cases                  Case[]
+  tasks                  Task[]
+  caseAssignments        CaseAssignment[]
+  taskAssignments        TaskAssignment[]
+  milestoneNotifications MilestoneNotification[]
+  payments               Payment[]
+  documents              Document[]
+  notes                  Note[]
+  notaryServices         NotaryService[]
+  caseMilestones         CaseMilestone[]
+}
+
+model Client {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  address      String?
+  email        String?
+  phone_number String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  consultations  Consultation[]
+  cases          Case[]
+  notaryServices NotaryService[]
+}
+
+model Consultation {
+  id                 String             @id @default(uuid()) @db.Uuid
+  client_id          String             @db.Uuid
+  created_by_user_id String             @db.Uuid
+  booking_datetime   DateTime
+  concern            String
+  status             ConsultationStatus
+  created_at         DateTime           @default(now())
+  updated_at         DateTime           @updatedAt
+
+  client    Client     @relation(fields: [client_id], references: [id])
+  createdBy User       @relation(fields: [created_by_user_id], references: [id])
+  payments  Payment[]
+  documents Document[]
+  notes     Note[]
+  cases     Case[]
+}
+
+model NotaryService {
+  id                 String   @id @default(uuid()) @db.Uuid
+  client_id          String?  @db.Uuid
+  name               String
+  address            String?
+  description_type   String
+  scheduled_datetime DateTime
+  created_by_user_id String   @db.Uuid
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  client    Client?    @relation(fields: [client_id], references: [id])
+  createdBy User       @relation(fields: [created_by_user_id], references: [id])
+  payments  Payment[]
+  documents Document[]
+  notes     Note[]
+}
+
+model Case {
+  id                     String     @id @default(uuid()) @db.Uuid
+  client_id              String     @db.Uuid
+  source_consultation_id String?    @db.Uuid
+  case_title             String
+  case_type              String
+  parties_involved       String?
+  status                 CaseStatus
+  created_by_user_id     String     @db.Uuid
+  created_at             DateTime   @default(now())
+  updated_at             DateTime   @updatedAt
+
+  client             Client           @relation(fields: [client_id], references: [id])
+  sourceConsultation Consultation?    @relation(fields: [source_consultation_id], references: [id])
+  createdBy          User             @relation(fields: [created_by_user_id], references: [id])
+  tasks              Task[]
+  caseAssignments    CaseAssignment[]
+  milestones         CaseMilestone[]
+  payments           Payment[]
+  documents          Document[]
+  notes              Note[]
+}
+
+model CaseAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  case_id    String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  case Case @relation(fields: [case_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model TaskAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  task_id    String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  task Task @relation(fields: [task_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model Task {
+  id                 String     @id @default(uuid()) @db.Uuid
+  case_id            String     @db.Uuid
+  title              String
+  description        String?
+  status             TaskStatus
+  created_by_user_id String     @db.Uuid
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+
+  case            Case             @relation(fields: [case_id], references: [id])
+  createdBy       User             @relation(fields: [created_by_user_id], references: [id])
+  taskAssignments TaskAssignment[]
+  documents       Document[]
+  notes           Note[]
+}
+
+model CaseMilestone {
+  id                 String              @id @default(uuid()) @db.Uuid
+  case_id            String              @db.Uuid
+  title              String
+  description        String?
+  due_date           DateTime
+  status             CaseMilestoneStatus
+  created_by_user_id String              @db.Uuid
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+
+  case          Case                    @relation(fields: [case_id], references: [id])
+  createdBy     User                    @relation(fields: [created_by_user_id], references: [id])
+  notifications MilestoneNotification[]
+}
+
+model MilestoneNotification {
+  id           String   @id @default(uuid()) @db.Uuid
+  milestone_id String   @db.Uuid
+  user_id      String   @db.Uuid
+  is_read      Boolean  @default(false)
+  notified_at  DateTime @default(now())
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  milestone CaseMilestone @relation(fields: [milestone_id], references: [id])
+  user      User          @relation(fields: [user_id], references: [id])
+}
+
+model Payment {
+  id                 String        @id @default(uuid()) @db.Uuid
+  amount             Decimal
+  payment_date       DateTime
+  status             PaymentStatus
+  payment_method     String?
+  receipt_number     String?
+  case_id            String?       @db.Uuid
+  consultation_id    String?       @db.Uuid
+  notary_service_id  String?       @db.Uuid
+  created_by_user_id String        @db.Uuid
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  case          Case?          @relation(fields: [case_id], references: [id])
+  consultation  Consultation?  @relation(fields: [consultation_id], references: [id])
+  notaryService NotaryService? @relation(fields: [notary_service_id], references: [id])
+  createdBy     User           @relation(fields: [created_by_user_id], references: [id])
+}
+
+model Document {
+  id                  String   @id @default(uuid()) @db.Uuid
+  file_name           String
+  file_path           String
+  file_type           String
+  file_size           Int?
+  case_id             String?  @db.Uuid
+  consultation_id     String?  @db.Uuid
+  notary_service_id   String?  @db.Uuid
+  task_id             String?  @db.Uuid
+  uploaded_by_user_id String   @db.Uuid
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  case          Case?          @relation(fields: [case_id], references: [id])
+  consultation  Consultation?  @relation(fields: [consultation_id], references: [id])
+  notaryService NotaryService? @relation(fields: [notary_service_id], references: [id])
+  task          Task?          @relation(fields: [task_id], references: [id])
+  uploadedBy    User           @relation(fields: [uploaded_by_user_id], references: [id])
+}
+
+model Note {
+  id                 String         @id @default(uuid()) @db.Uuid
+  content            String
+  case_id            String?        @db.Uuid
+  consultation_id    String?        @db.Uuid
+  notary_service_id  String?        @db.Uuid
+  task_id            String?        @db.Uuid
+  created_by_user_id String         @db.Uuid
+  is_private         Boolean        @default(false)
+  created_at         DateTime
+  user               User?          @relation(fields: [userId], references: [id])
+  userId             String?        @db.Uuid
+  consultation       Consultation?  @relation(fields: [consultationId], references: [id])
+  consultationId     String?        @db.Uuid
+  notaryService      NotaryService? @relation(fields: [notaryServiceId], references: [id])
+  notaryServiceId    String?        @db.Uuid
+  case               Case?          @relation(fields: [caseId], references: [id])
+  caseId             String?        @db.Uuid
+  task               Task?          @relation(fields: [taskId], references: [id])
+  taskId             String?        @db.Uuid
+}

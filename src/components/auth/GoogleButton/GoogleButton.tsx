@@ -1,6 +1,11 @@
 import { Button } from "@/components/ui/Button/Button";
-import styles from "./GoogleButton.module.css";
+import { FaGoogle } from "react-icons/fa6";
 
-export default function GoogleButton() {
-  return <Button className={styles.button}>Sign in with Google</Button>;
+export function GoogleButton() {
+  return (
+    <Button>
+      <FaGoogle size={20} />
+      Sign in with Google
+    </Button>
+  );
 }

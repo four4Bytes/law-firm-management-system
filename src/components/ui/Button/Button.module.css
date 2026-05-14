@@ -1,11 +1,12 @@
 .button {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-md);
   padding: var(--space-md) var(--space-xl);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-normal);
+  width: 100%;
 
   border: 1px solid transparent;
   border-radius: var(--radius-sm);

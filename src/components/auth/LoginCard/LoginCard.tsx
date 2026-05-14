@@ -1,7 +1,12 @@
-import { GoogleButton } from "../GoogleButton/GoogleButton";
+import { Button } from "@/components/ui/Button/Button";
+import { FaGoogle } from "react-icons/fa6";
 import styles from "./LoginCard.module.css";
 
-export function LoginCard() {
+interface LoginCardProps {
+  onClick?: () => void;
+}
+
+export function LoginCard({ onClick }: LoginCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.logoContainer}>Logo</div>
@@ -13,7 +18,12 @@ export function LoginCard() {
       <p className={styles.instruction}>
         Please sign in using your work google email address.
       </p>
-      <GoogleButton />
+
+      <Button onClick={onClick}>
+        <FaGoogle size={20} />
+        Sign in with Google
+      </Button>
+
       <p className={styles.note}>Single Sign-On via Google Workspace</p>
     </div>
   );

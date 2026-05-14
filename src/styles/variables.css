@@ -31,6 +31,7 @@
 
   --color-brand-primary: var(--raw-black);
   --color-brand-primary--hover: #1a1a1a;
+
   --color-brand-accent: var(--raw-gold);
   --color-brand-accent--hover: var(--raw-gold-dark);
   --color-brand-accent--soft: var(--raw-gold-light);

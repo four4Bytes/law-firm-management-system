@@ -1,0 +1,48 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background-color: var(--color-brand-primary);
+  width: var(--layout-sidebar-width);
+  border-right: 1px solid var(--color-border-subtle);
+  padding: var(--space-3xl);
+  color: var(--color-text-inverse);
+  gap: var(--space-3xl);
+  text-align: center;
+
+  .logoContainer {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+
+    color: var(--color-brand-accent);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-brand-accent);
+
+    width: 50px;
+    height: 50px;
+  }
+
+  .textContainer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+
+    .title {
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-bold);
+    }
+
+    .desc {
+      font-size: var(--font-size-gl);
+      font-weight: var(--font-weight-semi-bold);
+      color: var(--color-brand-accent);
+    }
+  }
+
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    flex: 1;
+  }
+}

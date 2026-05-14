@@ -11,7 +11,7 @@ export function LoginCard({ onClick }: LoginCardProps) {
     <div className={styles.card}>
       <div className={styles.logoContainer}>Logo</div>
       <div className={styles.textContainer}>
-        <h1 className={styles.title}>Anino Law &amp; Real Estate Firm </h1>
+        <h1 className={styles.title}>Anino Law &amp; Real Estate Firm</h1>
 
         <h2 className={styles.description}>Management System</h2>
       </div>

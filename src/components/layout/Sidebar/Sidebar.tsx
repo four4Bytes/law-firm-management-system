@@ -10,8 +10,8 @@ export function Sidebar() {
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Cases", href: "/case" },
     { label: "Consultations", href: "/consultation" },
+    { label: "Cases", href: "/case" },
     { label: "Notary", href: "/notary" },
   ];
 

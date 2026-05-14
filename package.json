@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\" && prisma format"
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\" && prisma format",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -31,6 +33,18 @@
     "prettier": "^3.8.3",
     "prisma": "^7.8.0",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "storybook": "^10.3.6",
+    "@storybook/nextjs-vite": "^10.3.6",
+    "@chromatic-com/storybook": "^5.1.2",
+    "@storybook/addon-vitest": "^10.3.6",
+    "@storybook/addon-a11y": "^10.3.6",
+    "@storybook/addon-docs": "^10.3.6",
+    "vite": "^8.0.12",
+    "eslint-plugin-storybook": "^10.3.6",
+    "vitest": "^4.1.6",
+    "playwright": "^1.60.0",
+    "@vitest/browser-playwright": "^4.1.6",
+    "@vitest/coverage-v8": "^4.1.6"
   }
 }

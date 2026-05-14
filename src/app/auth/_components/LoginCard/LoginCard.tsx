@@ -3,8 +3,8 @@ import styles from "./LoginCard.module.css";
 
 export default function LoginCard() {
   return (
-    <div className={styles.loginCard}>
-      <h1>Law Firm Management System</h1>
+    <div className={styles.card}>
+      <h1 className={styles.title}>Law Firm Management System</h1>
       <GoogleButton />
     </div>
   );

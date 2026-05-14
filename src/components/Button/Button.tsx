@@ -8,7 +8,7 @@ import styles from "./Button.module.css";
 import clsx from "clsx";
 
 interface ButtonProps extends AriaButtonProps {
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "navigation" | "ghost";
   children: React.ReactNode;
 }
 

@@ -11,8 +11,17 @@
   --raw-white: #ffffff;
   --raw-cream: #f7f5ef;
   --raw-sand: #f1ece0;
-  --raw-border: #ded6c2;
-  --raw-border-strong: #bfae7a;
+
+  --raw-gray-50: #f9fafb;
+  --raw-gray-100: #f3f4f6;
+  --raw-gray-200: #e5e7eb;
+  --raw-gray-300: #d1d5db;
+  --raw-gray-400: #9ca3af;
+  --raw-gray-500: #6b7280;
+  --raw-gray-600: #4b5563;
+  --raw-gray-700: #374151;
+  --raw-gray-800: #1f2937;
+  --raw-gray-900: #111827;
 
   /* --------------------------------------------- */
   /* Semantic tokens - Light mode */
@@ -26,9 +35,6 @@
   --color-text-muted: #8b8270;
   --color-text-inverse: var(--raw-white);
 
-  --color-border-subtle: var(--raw-border);
-  --color-border-strong: var(--raw-border-strong);
-
   --color-brand-primary: var(--raw-black);
   --color-brand-primary--hover: #1a1a1a;
 
@@ -36,12 +42,20 @@
   --color-brand-accent--hover: var(--raw-gold-dark);
   --color-brand-accent--soft: var(--raw-gold-light);
 
+  --color-border-subtle: var(--raw-gray-200);
+  --color-border-strong: var(--raw-gray-400);
+
   --color-success: #2e7d32;
   --color-warning: #b7791f;
   --color-danger: #c53030;
   --color-info: #2b6cb0;
 
   /* --------------------------------------------- */
+  /* Opacity  */
+  --opacity-disabled: 0.5;
+  --opacity-overlay: 0.8;
+  --opacity-subtle: 0.2;
+
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.06);
   --shadow-md: 0 4px 12px rgba(11, 11, 11, 0.1);
@@ -53,7 +67,7 @@
   --radius-lg: 16px;
   --radius-pill: 999px;
 
-  /* Spacing (semantic scale) */
+  /* Spacing */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 0.75rem;
@@ -63,11 +77,17 @@
   --space-3xl: 2rem;
   --space-4xl: 2.5rem;
 
+  /* Line heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
   /* Typography */
   --font-family-sans:
     Roboto, "Segoe UI", -apple-system, system-ui, BlinkMacSystemFont, Oxygen,
     Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 
+  /* Font sizes */
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -88,11 +108,17 @@
 
   /* Layout */
   --layout-container-max-width: 75rem;
-  --layout-header-height: 3.5rem;
-  --layout-sidebar-width: 16.25rem;
+  --layout-header-height: 60px;
+  --layout-sidebar-width: 300px;
 
   /* Transitions */
   --transition-fast: 120ms ease-in-out;
   --transition-base: 180ms ease-in-out;
   --transition-slow: 260ms ease-in-out;
+
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
 }

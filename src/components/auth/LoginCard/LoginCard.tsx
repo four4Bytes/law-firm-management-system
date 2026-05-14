@@ -19,7 +19,7 @@ export function LoginCard({ onClick }: LoginCardProps) {
         Please sign in using your work google email address.
       </p>
 
-      <Button onClick={onClick}>
+      <Button className={styles.button} onClick={onClick}>
         <FaGoogle size={20} />
         Sign in with Google
       </Button>

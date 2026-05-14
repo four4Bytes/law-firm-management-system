@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/layout/Sidebar/Sidebar";
+import { Header } from "@/components/layout/Header/Header";
 import styles from "./layout.module.css";
 
 export default function DashboardLayout({
@@ -10,9 +11,7 @@ export default function DashboardLayout({
     <div className={styles.layout}>
       <Sidebar />
       <div className={styles.main}>
-        <header className={styles.header}>
-          <div className={styles.userProfile}>A</div>
-        </header>
+        <Header />
         <main className={styles.content}>{children}</main>
       </div>
     </div>

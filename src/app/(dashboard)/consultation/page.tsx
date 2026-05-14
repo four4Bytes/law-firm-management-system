@@ -1,3 +1,3 @@
 export default function ConsultationPage() {
-  return <div>This is consultation page</div>;
+  return <div>Consultation Page</div>;
 }

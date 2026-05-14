@@ -1,3 +1,3 @@
 export default function CasePage() {
-  return <div>This is case page</div>;
+  return <div>Case Page</div>;
 }

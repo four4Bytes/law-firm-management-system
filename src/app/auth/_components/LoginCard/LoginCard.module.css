@@ -1,7 +1,12 @@
-.loginCard {
+.card {
   display: flex;
   flex-direction: column;
-  padding: var(--space-5);
-  border: 1px solid var(--border-strong);
+  padding: var(--space-md);
+  border: 1px solid var(--raw-border-strong);
   border-radius: var(--radius-md);
+  min-width: 100px;
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
 }

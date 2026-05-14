@@ -14,13 +14,17 @@
   cursor: pointer;
   font-family: inherit;
 
+  outline: none;
+
+  box-shadow: var(--shadow-sm);
   transition:
-    background-color var(--transition-base),
-    color var(--transition-base),
-    border-color var(--transition-base),
+    transform var(--transition-base),
     box-shadow var(--transition-base);
 
-  outline: none;
+  &[data-hovered] {
+    transform: var(--hover-lift-sm);
+    box-shadow: var(--shadow-sm);
+  }
 
   &[data-disabled] {
     opacity: 0.6;
@@ -41,7 +45,6 @@
 
     &[data-hovered] {
       background-color: var(--color-brand-primary--hover);
-      box-shadow: var(--shadow-sm);
     }
 
     &[data-pressed] {
@@ -49,6 +52,7 @@
     }
   }
 
+  /* Navigation variant */
   &.navigation {
     background-color: var(--color-brand-primary);
     color: var(--color-text-inverse);

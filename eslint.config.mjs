@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "node_modules/.prisma/**",
+    "storybook-static/**",
   ]),
   ...storybook.configs["flat/recommended"],
 ]);

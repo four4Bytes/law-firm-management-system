@@ -70,8 +70,9 @@ model User {
   payments               Payment[]
   documents              Document[]
   notes                  Note[]
-  notaryServices         NotaryService[]
+  notary                 Notary[]
   caseMilestones         CaseMilestone[]
+  auditLogs              AuditLog[]
 }
 
 model Client {
@@ -83,9 +84,9 @@ model Client {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  consultations  Consultation[]
-  cases          Case[]
-  notaryServices NotaryService[]
+  consultations Consultation[]
+  cases         Case[]
+  notary        Notary[]
 }
 
 model Consultation {
@@ -106,18 +107,16 @@ model Consultation {
   cases     Case[]
 }
 
-model NotaryService {
+model Notary {
   id                 String   @id @default(uuid()) @db.Uuid
-  client_id          String?  @db.Uuid
-  name               String
-  address            String?
+  client_id          String   @db.Uuid
   description_type   String
   scheduled_datetime DateTime
   created_by_user_id String   @db.Uuid
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
-  client    Client?    @relation(fields: [client_id], references: [id])
+  client    Client     @relation(fields: [client_id], references: [id])
   createdBy User       @relation(fields: [created_by_user_id], references: [id])
   payments  Payment[]
   documents Document[]
@@ -156,6 +155,8 @@ model CaseAssignment {
 
   case Case @relation(fields: [case_id], references: [id])
   user User @relation(fields: [user_id], references: [id])
+
+  @@unique([case_id, user_id])
 }
 
 model TaskAssignment {
@@ -167,6 +168,8 @@ model TaskAssignment {
 
   task Task @relation(fields: [task_id], references: [id])
   user User @relation(fields: [user_id], references: [id])
+
+  @@unique([task_id, user_id])
 }
 
 model Task {
@@ -217,7 +220,7 @@ model MilestoneNotification {
 
 model Payment {
   id                 String        @id @default(uuid()) @db.Uuid
-  amount             Decimal
+  amount             Decimal       @db.Decimal(12, 2)
   payment_date       DateTime
   status             PaymentStatus
   payment_method     String?
@@ -229,10 +232,10 @@ model Payment {
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
 
-  case          Case?          @relation(fields: [case_id], references: [id])
-  consultation  Consultation?  @relation(fields: [consultation_id], references: [id])
-  notaryService NotaryService? @relation(fields: [notary_service_id], references: [id])
-  createdBy     User           @relation(fields: [created_by_user_id], references: [id])
+  case         Case?         @relation(fields: [case_id], references: [id])
+  consultation Consultation? @relation(fields: [consultation_id], references: [id])
+  notary       Notary?       @relation(fields: [notary_service_id], references: [id])
+  createdBy    User          @relation(fields: [created_by_user_id], references: [id])
 }
 
 model Document {
@@ -249,11 +252,11 @@ model Document {
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
-  case          Case?          @relation(fields: [case_id], references: [id])
-  consultation  Consultation?  @relation(fields: [consultation_id], references: [id])
-  notaryService NotaryService? @relation(fields: [notary_service_id], references: [id])
-  task          Task?          @relation(fields: [task_id], references: [id])
-  uploadedBy    User           @relation(fields: [uploaded_by_user_id], references: [id])
+  case         Case?         @relation(fields: [case_id], references: [id])
+  consultation Consultation? @relation(fields: [consultation_id], references: [id])
+  notary       Notary?       @relation(fields: [notary_service_id], references: [id])
+  task         Task?         @relation(fields: [task_id], references: [id])
+  uploadedBy   User          @relation(fields: [uploaded_by_user_id], references: [id])
 }
 
 model Note {
@@ -268,9 +271,23 @@ model Note {
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
-  createdBy     User           @relation(fields: [created_by_user_id], references: [id])
-  consultation  Consultation?  @relation(fields: [consultation_id], references: [id])
-  notaryService NotaryService? @relation(fields: [notary_service_id], references: [id])
-  case          Case?          @relation(fields: [case_id], references: [id])
-  task          Task?          @relation(fields: [task_id], references: [id])
+  createdBy    User          @relation(fields: [created_by_user_id], references: [id])
+  consultation Consultation? @relation(fields: [consultation_id], references: [id])
+  notary       Notary?       @relation(fields: [notary_service_id], references: [id])
+  case         Case?         @relation(fields: [case_id], references: [id])
+  task         Task?         @relation(fields: [task_id], references: [id])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  actor_user_id String   @db.Uuid
+  action        String
+  entity_type   String
+  entity_id     String   @db.Uuid
+  details       String?
+  created_at    DateTime @default(now())
+
+  actor User @relation(fields: [actor_user_id], references: [id])
+
+  @@index([entity_type, entity_id])
 }

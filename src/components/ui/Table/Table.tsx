@@ -27,7 +27,7 @@ export function TableHeader(
   return (
     <AriaTableHeader
       {...props}
-      className={clsx(styles.header, props.className)}
+      className={clsx(styles.tableHeader, props.className)}
     />
   );
 }

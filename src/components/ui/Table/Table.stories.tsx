@@ -27,7 +27,9 @@ export const WithData: Story = {
   render: () => (
     <Table aria-label="Example Table">
       <TableHeader>
-        <Column id="name" isRowHeader>Name</Column>
+        <Column id="name" isRowHeader>
+          Name
+        </Column>
         <Column id="role">Role</Column>
         <Column id="status">Status</Column>
       </TableHeader>
@@ -48,7 +50,9 @@ export const Empty: Story = {
   render: () => (
     <Table aria-label="Empty Table">
       <TableHeader>
-        <Column id="name" isRowHeader>Name</Column>
+        <Column id="name" isRowHeader>
+          Name
+        </Column>
         <Column id="role">Role</Column>
         <Column id="status">Status</Column>
       </TableHeader>

@@ -15,26 +15,33 @@
 }
 
 .row {
-  border-right: 1px solid var(--color-border-strong);
   transition: background-color var(--transition-fast);
 }
 
 .row:hover {
-  background: var(--raw-gray-100);
+  background: var(--color-surface-bg-alt);
 }
 
 .column {
   padding: var(--space-md);
   text-align: left;
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-semi-bold);
   border-right: 1px solid var(--color-border-strong);
   cursor: default;
 }
 
+.column:last-child {
+  border-right: none;
+}
+
 .cell {
   padding: var(--space-md);
-  border-right: 1px solid var(--border-color, #f0f0f0);
+  border-right: 1px solid var(--color-border-subtle);
   word-break: break-word;
+}
+
+.cell:last-child {
+  border-right: none;
 }
 
 .emptyState {

@@ -1,22 +1,28 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { Input } from "./Input";
+import { TextField } from "./TextField";
 
-const meta: Meta<typeof Input> = {
-  component: Input,
+const meta: Meta<typeof TextField> = {
+  component: TextField,
   tags: ["autodocs"],
   argTypes: {
     label: { control: "text" },
     description: { control: "text" },
+    errorMessage: { control: "text" },
     placeholder: { control: "text" },
+    type: {
+      control: "select",
+      options: ["text", "email", "password", "url", "tel", "search"],
+    },
     isDisabled: { control: "boolean" },
     isReadOnly: { control: "boolean" },
     isRequired: { control: "boolean" },
+    isInvalid: { control: "boolean" },
   },
 };
 
 export default meta;
 
-type Story = StoryObj<typeof Input>;
+type Story = StoryObj<typeof TextField>;
 
 export const Default: Story = {
   args: {
@@ -30,6 +36,24 @@ export const WithDescription: Story = {
     label: "Email",
     placeholder: "you@example.com",
     description: "We'll never share your email.",
+  },
+};
+
+export const Password: Story = {
+  args: {
+    label: "Password",
+    type: "password",
+    placeholder: "Enter your password",
+    description: "At least 8 characters.",
+  },
+};
+
+export const WithError: Story = {
+  args: {
+    label: "Case Number",
+    placeholder: "e.g. C-2024-001",
+    isInvalid: true,
+    errorMessage: "This field is required.",
   },
 };
 

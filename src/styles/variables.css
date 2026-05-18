@@ -64,15 +64,15 @@
   --radius-pill: 999px;
 
   /* Spacing */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 0.75rem;
-  --space-lg: 1rem;
-  --space-xl: 1.25rem;
-  --space-2xl: 1.5rem;
-  --space-3xl: 2rem;
-  --space-4xl: 2.5rem;
-  --space-5xl: 3rem;
+  --space-xs: 0.25rem; /* 4px */
+  --space-sm: 0.5rem; /* 8px */
+  --space-md: 0.75rem; /* 12px */
+  --space-lg: 1rem; /* 16px */
+  --space-xl: 1.25rem; /* 20px */
+  --space-2xl: 1.5rem; /* 24px */
+  --space-3xl: 2rem; /* 32px */
+  --space-4xl: 2.5rem; /* 40px */
+  --space-5xl: 3rem; /* 48px */
 
   /* Line heights */
   --line-height-tight: 1.2;
@@ -129,6 +129,13 @@
   --hover-lift-sm: translateY(-1px);
   --hover-lift-md: translateY(-2px);
   --hover-lift-lg: translateY(-4px);
+
+  /* Icon sizes */
+  --icon-size-xs: var(--space-md); /* 12px */
+  --icon-size-sm: var(--space-lg); /* 16px */
+  --icon-size-md: var(--space-xl); /* 20px */
+  --icon-size-lg: var(--space-2xl); /* 24px */
+  --icon-size-xl: var(--space-3xl); /* 32px */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.06);

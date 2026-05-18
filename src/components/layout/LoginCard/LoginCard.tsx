@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { FaGoogle } from "react-icons/fa6";
 import Image from "next/image";
 import styles from "./LoginCard.module.css";
-import Logo from "@/../public/LogoWhiteBckgd.png";
+import Logo from "@/assets/images/LogoWhiteBckgd.png";
 
 interface LoginCardProps {
   onClick?: () => void;

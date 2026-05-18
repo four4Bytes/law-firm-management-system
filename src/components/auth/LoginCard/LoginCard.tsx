@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/Button/Button";
 import { FaGoogle } from "react-icons/fa6";
+import Image from "next/image";
 import styles from "./LoginCard.module.css";
+import Logo from "@/../public/LogoWhiteBckgd.png";
 
 interface LoginCardProps {
   onClick?: () => void;
@@ -9,10 +11,15 @@ interface LoginCardProps {
 export function LoginCard({ onClick }: LoginCardProps) {
   return (
     <div className={styles.card}>
-      <div className={styles.logoContainer}>Logo</div>
+      <Image
+        src={Logo}
+        alt="Anino Law & Real Estate Firm Logo"
+        className={styles.logo}
+        width={100}
+        priority
+      />
       <div className={styles.textContainer}>
         <h1 className={styles.title}>Anino Law &amp; Real Estate Firm</h1>
-
         <h2 className={styles.description}>Management System</h2>
       </div>
       <p className={styles.instruction}>

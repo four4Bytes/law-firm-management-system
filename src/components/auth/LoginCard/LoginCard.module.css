@@ -11,18 +11,9 @@
   text-align: center;
   max-width: 380px;
 
-  .logoContainer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0.5px solid var(--color-border-strong);
-    border-radius: var(--radius-pill);
-    padding: var(--space-md);
-    background-color: var(--color-brand-primary);
-    color: var(--color-brand-accent);
-
-    width: 90px;
-    height: 90px;
+  .logo {
+    height: 100px;
+    width: auto;
   }
 
   .textContainer {

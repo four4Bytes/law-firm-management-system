@@ -16,14 +16,14 @@ export function LoginCard({ onClick }: LoginCardProps) {
         alt="Anino Law & Real Estate Firm Logo"
         className={styles.logo}
         width={100}
-        priority
+        preload={true}
       />
       <div className={styles.textContainer}>
         <h1 className={styles.title}>Anino Law &amp; Real Estate Firm</h1>
         <h2 className={styles.description}>Management System</h2>
       </div>
       <p className={styles.instruction}>
-        Please sign in using your work google email address.
+        Please sign in using your work or personal Google email address.
       </p>
 
       <Button className={styles.button} onClick={onClick}>

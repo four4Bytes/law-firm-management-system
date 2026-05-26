@@ -1,4 +1,4 @@
-# AGENTS.md — Law Firm Management System
+# AGENTS.md - Law Firm Management System
 
 ## CORE RULES
 
@@ -12,7 +12,7 @@
 - Framework: Next.js 16 (App Router), React 19 + React Compiler
 - Language: TypeScript (strict mode, `@/*` path alias for `./src/*`)
 - Styling: CSS Modules + design tokens (`variables.css` primitives + semantic tokens). Use `clsx` for className composition. Never inline styles.
-- UI Library: `react-aria-components` — wrap Aria primitives in local components (e.g., `Button.tsx` wraps `Button as AriaButton`). Extend Aria props, apply CSS modules via `clsx`, accept external `className`.
+- UI Library: `react-aria-components` - wrap Aria primitives in local components (e.g., `Button.tsx` wraps `Button as AriaButton`). Extend Aria props, apply CSS modules via `clsx`, accept external `className`.
 - Data: Prisma 7 with PostgreSQL (dockerize on dev) (`@prisma/adapter-pg`). Generated client at `src/generated/prisma/`. Singleton in `src/lib/prisma.ts`.
 - Auth: Google OAuth (SSO via Google Workspace)
 - Icons: `react-icons`
@@ -20,27 +20,29 @@
 
 ## COMMANDS
 
-- `pnpm dev` — dev server
-- `pnpm build` — Prisma generate + Next build
-- `pnpm lint` — ESLint
-- `pnpm lint:fix` — ESLint auto-fix
-- `pnpm format` — Prettier + Prisma format
-- `pnpm validate` — format + lint + `tsc --noEmit`
-- `pnpm test` — vitest (unit)
-- `pnpm test:watch` — vitest watch
-- `pnpm test:browser` — vitest with Playwright
-- `pnpm storybook` — Storybook dev
-- `pnpm prisma:migrate` — `prisma migrate dev`
-- `pnpm prisma:generate` — `prisma generate`
-- `pnpm prisma:seed` — `tsx prisma/seed.ts`
-- `pnpm prisma:studio` — `prisma studio`
+`pnpm` is alias to `pn`
+
+- `pn dev` - dev server
+- `pn build` - Prisma generate + Next build
+- `pn lint` - ESLint
+- `pn lint:fix` - ESLint auto-fix
+- `pn format` - Prettier + Prisma format
+- `pn validate` - format + lint + `tsc --noEmit`
+- `pn test` - vitest (unit)
+- `pn test:watch` - vitest watch
+- `pn test:browser` - vitest with Playwright
+- `pn storybook` - Storybook dev
+- `pn prisma:migrate` - `prisma migrate dev`
+- `pn prisma:generate` - `prisma generate`
+- `pn prisma:seed` - `tsx prisma/seed.ts`
+- `pn prisma:studio` - `prisma studio &`
 
 ## CONVENTIONS
 
 ### Components
 
 - Interactive/browser API components: start with `"use client"`
-- Co-locate in `src/components/{category}/{ComponentName}/` — component, CSS module, stories
+- Co-locate in `src/components/{category}/{ComponentName}/` - component, CSS module, stories
 - Wrapping Aria components pattern:
 
   ```tsx
@@ -87,8 +89,8 @@
 
 ### Structure
 
-- `src/app/(dashboard)/` — authenticated pages (shared layout with Sidebar + Header)
-- `src/app/auth/` — login page
+- `src/app/(dashboard)/` - authenticated pages (shared layout with Sidebar + Header)
+- `src/app/auth/` - login page
 - Route groups for organizational layouts
 
 ### General

@@ -107,7 +107,7 @@
   /* Layout */
   --layout-container-max-width: 75rem;
   --layout-header-height: 60px;
-  --layout-sidebar-width: 350;
+  --layout-sidebar-width: 300;
   --layout-sidebar-collapsed-width: 80px;
 
   /* Breakpoints */

@@ -25,6 +25,11 @@
 
     .toggleButton {
       margin-left: 0;
+
+      svg {
+        width: var(--icon-size-sm);
+        height: var(--icon-size-sm);
+      }
     }
 
     .textContainer {

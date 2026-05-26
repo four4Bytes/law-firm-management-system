@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa6";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button/Button";
+import { toggleSidebarAction } from "./actions";
 import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
 import styles from "./Sidebar.module.css";
 
@@ -22,10 +23,20 @@ const navItems = [
   { label: "Users", href: "/user", icon: FaUsers },
 ] as const;
 
-export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+export function Sidebar({
+  initialCollapsed = false,
+}: {
+  initialCollapsed?: boolean;
+}) {
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
   const pathname = usePathname();
   const router = useRouter();
+
+  const handleToggle = () => {
+    const nextState = !collapsed;
+    setCollapsed(nextState);
+    toggleSidebarAction(nextState);
+  };
 
   return (
     <aside className={clsx(styles.sidebar, collapsed && styles.collapsed)}>
@@ -35,7 +46,7 @@ export function Sidebar() {
           variant="ghost"
           className={styles.toggleButton}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          onPress={() => setCollapsed((prev) => !prev)}
+          onPress={handleToggle}
         >
           <FaBars />
         </Button>

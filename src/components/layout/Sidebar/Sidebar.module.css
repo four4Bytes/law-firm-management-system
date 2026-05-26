@@ -5,32 +5,121 @@
   background-color: var(--color-brand-primary);
   width: var(--layout-sidebar-width);
   border-right: 1px solid var(--color-border-subtle);
-  padding: var(--space-3xl);
+  padding: var(--space-xl) var(--space-3xl);
   color: var(--color-text-inverse);
   gap: var(--space-3xl);
   text-align: center;
+  font-size: var(--font-size-md);
+
+  .topRow {
+    display: flex;
+    align-items: center;
+
+    .logo {
+      width: var(--icon-size-2xl);
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .toggleButton {
+      margin-left: auto;
+      color: var(--color-text-inverse);
+      width: auto;
+      padding: var(--space-xs);
+
+      svg {
+        width: var(--icon-size-md);
+        height: var(--icon-size-md);
+      }
+
+      &[data-hovered] {
+        color: var(--color-brand-accent);
+      }
+    }
+  }
 
   .textContainer {
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
+    text-align: left;
+    margin-bottom: var(--space-md);
 
     .title {
-      font-size: var(--font-size-xl);
+      font-size: var(--font-size-lg);
       font-weight: var(--font-weight-bold);
     }
 
     .desc {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-md);
       font-weight: var(--font-weight-semi-bold);
       color: var(--color-brand-accent);
+      max-height: 2rem;
+      overflow: hidden;
     }
   }
 
-  .nav {
+  .navContainer {
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
     flex: 1;
+
+    .navButton {
+      gap: var(--space-md);
+
+      svg {
+        width: var(--icon-size-sm);
+        height: var(--icon-size-sm);
+      }
+
+      .navLabel {
+        font-size: var(--font-size-sm);
+        overflow: hidden;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  &.collapsed {
+    width: var(--layout-sidebar-width-collapsed);
+    padding: var(--space-xl) var(--space-sm);
+    gap: var(--space-xl);
+
+    .topRow {
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xl);
+
+      .toggleButton {
+        margin-left: 0;
+      }
+    }
+
+    .textContainer {
+      display: none;
+
+      .title {
+        display: none;
+      }
+
+      .desc {
+        display: none;
+      }
+    }
+
+    .navContainer {
+      align-items: center;
+
+      .navButton {
+        justify-content: center;
+        align-items: center;
+        padding: var(--space-md);
+
+        .navLabel {
+          display: none;
+        }
+      }
+    }
   }
 }

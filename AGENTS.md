@@ -45,32 +45,6 @@
 - Co-locate in `src/components/{category}/{ComponentName}/` - component, CSS module, stories
 - Wrapping Aria components pattern:
 
-  ```tsx
-  import {
-    Button as AriaButton,
-    type ButtonProps as AriaButtonProps,
-  } from "react-aria-components";
-  import styles from "./Button.module.css";
-  import clsx from "clsx";
-
-  interface ButtonProps extends AriaButtonProps {
-    variant?: "primary" | "secondary" | "navigation" | "ghost";
-  }
-
-  export function Button({
-    variant = "primary",
-    className,
-    ...props
-  }: ButtonProps) {
-    return (
-      <AriaButton
-        {...props}
-        className={clsx(styles.button, styles[variant], className)}
-      />
-    );
-  }
-  ```
-
 - Props: extend Aria props interface, add local variants/props, use explicit interface
 
 ### Styling

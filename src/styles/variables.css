@@ -105,9 +105,8 @@
   --font-weight-black: 900;
 
   /* Layout */
-  --layout-container-max-width: 75rem;
   --layout-header-height: 60px;
-  --layout-sidebar-width: 350px;
+  --layout-sidebar-width: 320px;
   --layout-sidebar-width-collapsed: 80px;
 
   /* Breakpoints */

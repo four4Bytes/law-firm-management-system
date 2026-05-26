@@ -61,15 +61,5 @@
       font-weight: var(--font-weight-extra-light);
       color: var(--color-text-muted);
     }
-
-    .form {
-      display: flex;
-      width: 100%;
-
-      .button {
-        font-size: var(--font-size-sm);
-        margin-top: var(--space-md);
-      }
-    }
   }
 }

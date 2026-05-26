@@ -1,24 +1,47 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import {
+  FaHouse,
+  FaComments,
+  FaFolderOpen,
+  FaUsers,
+  FaBars,
+} from "react-icons/fa6";
+import clsx from "clsx";
 import { Button } from "@/components/ui/Button/Button";
+import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
 import styles from "./Sidebar.module.css";
 
+const navItems = [
+  { label: "Dashboard", href: "/dashboard", icon: FaHouse },
+  { label: "Consultations", href: "/consultation", icon: FaComments },
+  { label: "Cases", href: "/case", icon: FaFolderOpen },
+  { label: "Users", href: "/user", icon: FaUsers },
+] as const;
+
 export function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
-  const navItems = [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Consultations", href: "/consultation" },
-    { label: "Cases", href: "/case" },
-    { label: "Users", href: "/user" },
-  ];
-
   return (
-    <aside className={styles.sidebar}>
+    <aside className={clsx(styles.sidebar, collapsed && styles.collapsed)}>
+      <div className={styles.topRow}>
+        <Image src={LogoBlackBckgd} alt="Anino Law" className={styles.logo} />
+        <Button
+          variant="ghost"
+          className={styles.toggleButton}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onPress={() => setCollapsed((prev) => !prev)}
+        >
+          <FaBars />
+        </Button>
+      </div>
       <div className={styles.textContainer}>
-        <h1 className={styles.title}>Anino Law &amp; Real Estate Firm</h1>
+        <h1 className={styles.title}>Anino Law & Real Estate Firm</h1>
         <h1 className={styles.desc}>Management System</h1>
       </div>
       <nav className={styles.nav}>
@@ -26,10 +49,14 @@ export function Sidebar() {
           <Button
             key={item.href}
             variant="navigation"
+            className={styles.navButton}
             onPress={() => router.push(item.href)}
             data-active={pathname === item.href}
           >
-            {item.label}
+            <span title={collapsed ? item.label : undefined}>
+              <item.icon />
+            </span>
+            <span className={styles.navLabel}>{item.label}</span>
           </Button>
         ))}
       </nav>

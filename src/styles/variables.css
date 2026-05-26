@@ -107,7 +107,8 @@
   /* Layout */
   --layout-container-max-width: 75rem;
   --layout-header-height: 60px;
-  --layout-sidebar-width: 300px;
+  --layout-sidebar-width: 350;
+  --layout-sidebar-collapsed-width: 80px;
 
   /* Breakpoints */
   --breakpoint-sm: 640px;
@@ -131,11 +132,12 @@
   --hover-lift-lg: translateY(-4px);
 
   /* Icon sizes */
-  --icon-size-xs: var(--space-md); /* 12px */
-  --icon-size-sm: var(--space-lg); /* 16px */
-  --icon-size-md: var(--space-xl); /* 20px */
-  --icon-size-lg: var(--space-2xl); /* 24px */
-  --icon-size-xl: var(--space-3xl); /* 32px */
+  --icon-size-xs: var(--space-md);
+  --icon-size-sm: var(--space-lg);
+  --icon-size-md: var(--space-xl);
+  --icon-size-lg: var(--space-2xl);
+  --icon-size-xl: var(--space-3xl);
+  --icon-size-2xl: var(--space-4xl);
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.06);

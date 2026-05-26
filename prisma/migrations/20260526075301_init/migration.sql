@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('SuperAdmin', 'Admin', 'Lawyer', 'Paralegal', 'ProcessServer');
+CREATE TYPE "Role" AS ENUM ('Admin', 'BranchManager', 'Lawyer', 'Paralegal', 'ProcessServer');
 
 -- CreateEnum
 CREATE TYPE "ConsultationStatus" AS ENUM ('Scheduled', 'Completed', 'Accepted', 'Rejected', 'Cancelled');
@@ -8,7 +8,7 @@ CREATE TYPE "ConsultationStatus" AS ENUM ('Scheduled', 'Completed', 'Accepted', 
 CREATE TYPE "CaseStatus" AS ENUM ('Open', 'Ongoing', 'Closed', 'Terminated', 'Settled');
 
 -- CreateEnum
-CREATE TYPE "TaskStatus" AS ENUM ('Pending', 'Ongoing', 'Completed', 'Cancelled');
+CREATE TYPE "TaskStatus" AS ENUM ('Pending', 'Ongoing', 'Submitted', 'Accepted', 'Rejected', 'Cancelled');
 
 -- CreateEnum
 CREATE TYPE "CaseMilestoneStatus" AS ENUM ('Pending', 'Done', 'Cancelled');
@@ -58,19 +58,6 @@ CREATE TABLE "Consultation" (
 );
 
 -- CreateTable
-CREATE TABLE "Notary" (
-    "id" UUID NOT NULL,
-    "client_id" UUID NOT NULL,
-    "description_type" TEXT NOT NULL,
-    "scheduled_datetime" TIMESTAMP(3) NOT NULL,
-    "created_by_user_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Notary_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Case" (
     "id" UUID NOT NULL,
     "client_id" UUID NOT NULL,
@@ -114,12 +101,25 @@ CREATE TABLE "Task" (
     "case_id" UUID NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
-    "status" "TaskStatus" NOT NULL,
+    "status" "TaskStatus" NOT NULL DEFAULT 'Pending',
     "created_by_user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TaskReviewer" (
+    "id" UUID NOT NULL,
+    "task_id" UUID NOT NULL,
+    "reviewer_user_id" UUID NOT NULL,
+    "delegated_by_userid" UUID NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TaskReviewer_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -129,7 +129,7 @@ CREATE TABLE "CaseMilestone" (
     "title" TEXT NOT NULL,
     "description" TEXT,
     "due_date" TIMESTAMP(3) NOT NULL,
-    "status" "CaseMilestoneStatus" NOT NULL,
+    "status" "CaseMilestoneStatus" NOT NULL DEFAULT 'Pending',
     "created_by_user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -160,7 +160,6 @@ CREATE TABLE "Payment" (
     "receipt_number" TEXT,
     "case_id" UUID,
     "consultation_id" UUID,
-    "notary_service_id" UUID,
     "created_by_user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -177,7 +176,6 @@ CREATE TABLE "Document" (
     "file_size" INTEGER,
     "case_id" UUID,
     "consultation_id" UUID,
-    "notary_service_id" UUID,
     "task_id" UUID,
     "uploaded_by_user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -192,10 +190,8 @@ CREATE TABLE "Note" (
     "content" TEXT NOT NULL,
     "case_id" UUID,
     "consultation_id" UUID,
-    "notary_service_id" UUID,
     "task_id" UUID,
     "created_by_user_id" UUID NOT NULL,
-    "is_private" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -228,6 +224,9 @@ CREATE UNIQUE INDEX "CaseAssignment_case_id_user_id_key" ON "CaseAssignment"("ca
 CREATE UNIQUE INDEX "TaskAssignment_task_id_user_id_key" ON "TaskAssignment"("task_id", "user_id");
 
 -- CreateIndex
+CREATE INDEX "TaskReviewer_task_id_is_active_idx" ON "TaskReviewer"("task_id", "is_active");
+
+-- CreateIndex
 CREATE INDEX "AuditLog_entity_type_entity_id_idx" ON "AuditLog"("entity_type", "entity_id");
 
 -- AddForeignKey
@@ -235,12 +234,6 @@ ALTER TABLE "Consultation" ADD CONSTRAINT "Consultation_client_id_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "Consultation" ADD CONSTRAINT "Consultation_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Notary" ADD CONSTRAINT "Notary_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "Client"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Notary" ADD CONSTRAINT "Notary_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Case" ADD CONSTRAINT "Case_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "Client"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -252,34 +245,43 @@ ALTER TABLE "Case" ADD CONSTRAINT "Case_source_consultation_id_fkey" FOREIGN KEY
 ALTER TABLE "Case" ADD CONSTRAINT "Case_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TaskAssignment" ADD CONSTRAINT "TaskAssignment_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TaskAssignment" ADD CONSTRAINT "TaskAssignment_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TaskAssignment" ADD CONSTRAINT "TaskAssignment_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TaskAssignment" ADD CONSTRAINT "TaskAssignment_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Task" ADD CONSTRAINT "Task_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Task" ADD CONSTRAINT "Task_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CaseMilestone" ADD CONSTRAINT "CaseMilestone_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TaskReviewer" ADD CONSTRAINT "TaskReviewer_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskReviewer" ADD CONSTRAINT "TaskReviewer_reviewer_user_id_fkey" FOREIGN KEY ("reviewer_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskReviewer" ADD CONSTRAINT "TaskReviewer_delegated_by_userid_fkey" FOREIGN KEY ("delegated_by_userid") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CaseMilestone" ADD CONSTRAINT "CaseMilestone_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CaseMilestone" ADD CONSTRAINT "CaseMilestone_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MilestoneNotification" ADD CONSTRAINT "MilestoneNotification_milestone_id_fkey" FOREIGN KEY ("milestone_id") REFERENCES "CaseMilestone"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "MilestoneNotification" ADD CONSTRAINT "MilestoneNotification_milestone_id_fkey" FOREIGN KEY ("milestone_id") REFERENCES "CaseMilestone"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MilestoneNotification" ADD CONSTRAINT "MilestoneNotification_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "MilestoneNotification" ADD CONSTRAINT "MilestoneNotification_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -288,22 +290,16 @@ ALTER TABLE "Payment" ADD CONSTRAINT "Payment_case_id_fkey" FOREIGN KEY ("case_i
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_consultation_id_fkey" FOREIGN KEY ("consultation_id") REFERENCES "Consultation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Payment" ADD CONSTRAINT "Payment_notary_service_id_fkey" FOREIGN KEY ("notary_service_id") REFERENCES "Notary"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Document" ADD CONSTRAINT "Document_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Document" ADD CONSTRAINT "Document_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Document" ADD CONSTRAINT "Document_consultation_id_fkey" FOREIGN KEY ("consultation_id") REFERENCES "Consultation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Document" ADD CONSTRAINT "Document_consultation_id_fkey" FOREIGN KEY ("consultation_id") REFERENCES "Consultation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Document" ADD CONSTRAINT "Document_notary_service_id_fkey" FOREIGN KEY ("notary_service_id") REFERENCES "Notary"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Document" ADD CONSTRAINT "Document_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Document" ADD CONSTRAINT "Document_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Document" ADD CONSTRAINT "Document_uploaded_by_user_id_fkey" FOREIGN KEY ("uploaded_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -312,16 +308,13 @@ ALTER TABLE "Document" ADD CONSTRAINT "Document_uploaded_by_user_id_fkey" FOREIG
 ALTER TABLE "Note" ADD CONSTRAINT "Note_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Note" ADD CONSTRAINT "Note_consultation_id_fkey" FOREIGN KEY ("consultation_id") REFERENCES "Consultation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Note" ADD CONSTRAINT "Note_consultation_id_fkey" FOREIGN KEY ("consultation_id") REFERENCES "Consultation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Note" ADD CONSTRAINT "Note_notary_service_id_fkey" FOREIGN KEY ("notary_service_id") REFERENCES "Notary"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Note" ADD CONSTRAINT "Note_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Note" ADD CONSTRAINT "Note_case_id_fkey" FOREIGN KEY ("case_id") REFERENCES "Case"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Note" ADD CONSTRAINT "Note_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Note" ADD CONSTRAINT "Note_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_actor_user_id_fkey" FOREIGN KEY ("actor_user_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

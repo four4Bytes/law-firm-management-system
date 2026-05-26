@@ -8,8 +8,8 @@ datasource db {
 }
 
 enum Role {
-  SuperAdmin
   Admin
+  BranchManager
   Lawyer
   Paralegal
   ProcessServer
@@ -34,7 +34,9 @@ enum CaseStatus {
 enum TaskStatus {
   Pending
   Ongoing
-  Completed
+  Submitted
+  Accepted
+  Rejected
   Cancelled
 }
 
@@ -63,16 +65,17 @@ model User {
 
   consultations          Consultation[]
   cases                  Case[]
-  tasks                  Task[]
+  createdTasks           Task[]                  @relation("TaskCreator")
   caseAssignments        CaseAssignment[]
   taskAssignments        TaskAssignment[]
   milestoneNotifications MilestoneNotification[]
   payments               Payment[]
   documents              Document[]
   notes                  Note[]
-  notary                 Notary[]
   caseMilestones         CaseMilestone[]
   auditLogs              AuditLog[]
+  taskReviewsAssigned    TaskReviewer[]          @relation("ReviewerUser")
+  taskReviewsDelegated   TaskReviewer[]          @relation("DelegatorUser")
 }
 
 model Client {
@@ -86,7 +89,6 @@ model Client {
 
   consultations Consultation[]
   cases         Case[]
-  notary        Notary[]
 }
 
 model Consultation {
@@ -105,22 +107,6 @@ model Consultation {
   documents Document[]
   notes     Note[]
   cases     Case[]
-}
-
-model Notary {
-  id                 String   @id @default(uuid()) @db.Uuid
-  client_id          String   @db.Uuid
-  description_type   String
-  scheduled_datetime DateTime
-  created_by_user_id String   @db.Uuid
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
-
-  client    Client     @relation(fields: [client_id], references: [id])
-  createdBy User       @relation(fields: [created_by_user_id], references: [id])
-  payments  Payment[]
-  documents Document[]
-  notes     Note[]
 }
 
 model Case {
@@ -153,8 +139,8 @@ model CaseAssignment {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  case Case @relation(fields: [case_id], references: [id])
-  user User @relation(fields: [user_id], references: [id])
+  case Case @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([case_id, user_id])
 }
@@ -166,8 +152,8 @@ model TaskAssignment {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  task Task @relation(fields: [task_id], references: [id])
-  user User @relation(fields: [user_id], references: [id])
+  task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([task_id, user_id])
 }
@@ -177,16 +163,33 @@ model Task {
   case_id            String     @db.Uuid
   title              String
   description        String?
-  status             TaskStatus
+  status             TaskStatus @default(Pending)
   created_by_user_id String     @db.Uuid
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt
 
-  case            Case             @relation(fields: [case_id], references: [id])
-  createdBy       User             @relation(fields: [created_by_user_id], references: [id])
+  case            Case             @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  createdBy       User             @relation("TaskCreator", fields: [created_by_user_id], references: [id])
   taskAssignments TaskAssignment[]
+  taskReviewers   TaskReviewer[]
   documents       Document[]
   notes           Note[]
+}
+
+model TaskReviewer {
+  id                  String   @id @default(uuid()) @db.Uuid
+  task_id             String   @db.Uuid
+  reviewer_user_id    String   @db.Uuid
+  delegated_by_userid String   @db.Uuid
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  task        Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  reviewer    User @relation("ReviewerUser", fields: [reviewer_user_id], references: [id])
+  delegatedBy User @relation("DelegatorUser", fields: [delegated_by_userid], references: [id])
+
+  @@index([task_id, is_active])
 }
 
 model CaseMilestone {
@@ -195,12 +198,12 @@ model CaseMilestone {
   title              String
   description        String?
   due_date           DateTime
-  status             CaseMilestoneStatus
+  status             CaseMilestoneStatus @default(Pending)
   created_by_user_id String              @db.Uuid
   created_at         DateTime            @default(now())
   updated_at         DateTime            @updatedAt
 
-  case          Case                    @relation(fields: [case_id], references: [id])
+  case          Case                    @relation(fields: [case_id], references: [id], onDelete: Cascade)
   createdBy     User                    @relation(fields: [created_by_user_id], references: [id])
   notifications MilestoneNotification[]
 }
@@ -214,8 +217,8 @@ model MilestoneNotification {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  milestone CaseMilestone @relation(fields: [milestone_id], references: [id])
-  user      User          @relation(fields: [user_id], references: [id])
+  milestone CaseMilestone @relation(fields: [milestone_id], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Payment {
@@ -227,14 +230,12 @@ model Payment {
   receipt_number     String?
   case_id            String?       @db.Uuid
   consultation_id    String?       @db.Uuid
-  notary_service_id  String?       @db.Uuid
   created_by_user_id String        @db.Uuid
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
 
-  case         Case?         @relation(fields: [case_id], references: [id])
-  consultation Consultation? @relation(fields: [consultation_id], references: [id])
-  notary       Notary?       @relation(fields: [notary_service_id], references: [id])
+  case         Case?         @relation(fields: [case_id], references: [id], onDelete: SetNull)
+  consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: SetNull)
   createdBy    User          @relation(fields: [created_by_user_id], references: [id])
 }
 
@@ -246,16 +247,14 @@ model Document {
   file_size           Int?
   case_id             String?  @db.Uuid
   consultation_id     String?  @db.Uuid
-  notary_service_id   String?  @db.Uuid
   task_id             String?  @db.Uuid
   uploaded_by_user_id String   @db.Uuid
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
-  case         Case?         @relation(fields: [case_id], references: [id])
-  consultation Consultation? @relation(fields: [consultation_id], references: [id])
-  notary       Notary?       @relation(fields: [notary_service_id], references: [id])
-  task         Task?         @relation(fields: [task_id], references: [id])
+  case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
   uploadedBy   User          @relation(fields: [uploaded_by_user_id], references: [id])
 }
 
@@ -264,18 +263,15 @@ model Note {
   content            String
   case_id            String?  @db.Uuid
   consultation_id    String?  @db.Uuid
-  notary_service_id  String?  @db.Uuid
   task_id            String?  @db.Uuid
   created_by_user_id String   @db.Uuid
-  is_private         Boolean  @default(false)
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
   createdBy    User          @relation(fields: [created_by_user_id], references: [id])
-  consultation Consultation? @relation(fields: [consultation_id], references: [id])
-  notary       Notary?       @relation(fields: [notary_service_id], references: [id])
-  case         Case?         @relation(fields: [case_id], references: [id])
-  task         Task?         @relation(fields: [task_id], references: [id])
+  consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {

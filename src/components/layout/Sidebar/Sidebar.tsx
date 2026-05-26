@@ -12,7 +12,7 @@ export function Sidebar() {
     { label: "Dashboard", href: "/dashboard" },
     { label: "Consultations", href: "/consultation" },
     { label: "Cases", href: "/case" },
-    { label: "Notary", href: "/notary" },
+    { label: "Users", href: "/user" },
   ];
 
   return (

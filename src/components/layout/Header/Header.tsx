@@ -10,7 +10,7 @@ export function Header() {
     if (path.startsWith("/dashboard")) return "Overview";
     if (path.startsWith("/case")) return "Case Management";
     if (path.startsWith("/consultation")) return "Consultation Management";
-    if (path.startsWith("/notary")) return "Notary Management";
+    if (path.startsWith("/user")) return "User Management";
     return "";
   };
 

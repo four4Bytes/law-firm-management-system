@@ -55,7 +55,7 @@ export function Sidebar({
         <h1 className={styles.title}>Anino Law & Real Estate Firm</h1>
         <h1 className={styles.desc}>Management System</h1>
       </div>
-      <nav className={styles.nav}>
+      <nav className={styles.navContainer}>
         {navItems.map((item) => (
           <Button
             key={item.href}

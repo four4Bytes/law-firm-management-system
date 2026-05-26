@@ -52,6 +52,15 @@
     }
   }
 
+  /* Ghost variant */
+  &.ghost {
+    background: none;
+    border: none;
+    box-shadow: none;
+    width: auto;
+    padding: var(--space-sm);
+  }
+
   /* Navigation variant */
   &.navigation {
     background-color: var(--color-brand-primary);

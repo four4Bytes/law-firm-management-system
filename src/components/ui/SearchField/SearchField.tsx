@@ -1,18 +1,20 @@
-"use client";
+'use client';
 
+import clsx from 'clsx';
 import {
-  SearchField as AriaSearchField,
+  FieldError as AriaFieldError,
   Input as AriaInput,
   Label as AriaLabel,
+  SearchField as AriaSearchField,
   Text as AriaText,
-  FieldError as AriaFieldError,
   type SearchFieldProps as AriaSearchFieldProps,
   type ValidationResult,
-} from "react-aria-components";
-import { FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
-import { Button } from "@/components/ui/Button/Button";
-import styles from "./SearchField.module.css";
-import clsx from "clsx";
+} from 'react-aria-components';
+import { FaMagnifyingGlass, FaXmark } from 'react-icons/fa6';
+
+import { Button } from '@/components/ui/Button/Button';
+
+import styles from './SearchField.module.css';
 
 export interface SearchFieldProps extends AriaSearchFieldProps {
   label?: string;
@@ -25,7 +27,7 @@ export function SearchField({
   label,
   description,
   errorMessage,
-  placeholder = "Search...",
+  placeholder = 'Search...',
   className,
   ...props
 }: SearchFieldProps) {

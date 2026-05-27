@@ -1,7 +1,9 @@
-import { Button } from "@/components/ui/Button/Button";
-import { FaGoogle } from "react-icons/fa6";
-import styles from "./SignInButton.module.css";
-import { loginWithGoogle } from "@/features/auth/actions";
+import { FaGoogle } from 'react-icons/fa6';
+
+import { Button } from '@/components/ui/Button/Button';
+import { loginWithGoogle } from '@/features/auth/actions';
+
+import styles from './SignInButton.module.css';
 
 export function SignInButton() {
   return (

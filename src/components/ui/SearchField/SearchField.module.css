@@ -1,9 +1,9 @@
 .searchField {
   display: grid;
   grid-template-areas:
-    "label label label"
-    "icon  input button"
-    "help  help  help";
+    'label label label'
+    'icon  input button'
+    'help  help  help';
   grid-template-columns: 0px 1fr auto;
   align-items: center;
   width: 100%;

@@ -1,33 +1,25 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
-import {
-  FaHouse,
-  FaComments,
-  FaFolderOpen,
-  FaUsers,
-  FaBars,
-} from "react-icons/fa6";
-import clsx from "clsx";
-import { Button } from "@/components/ui/Button/Button";
-import { toggleSidebarAction } from "./actions";
-import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
-import styles from "./Sidebar.module.css";
+import clsx from 'clsx';
+import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { FaBars, FaComments, FaFolderOpen, FaHouse, FaUsers } from 'react-icons/fa6';
+
+import LogoBlackBckgd from '@/assets/images/LogoBlackBckgd.png';
+import { Button } from '@/components/ui/Button/Button';
+
+import { toggleSidebarAction } from './actions';
+import styles from './Sidebar.module.css';
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: FaHouse },
-  { label: "Consultations", href: "/consultation", icon: FaComments },
-  { label: "Cases", href: "/case", icon: FaFolderOpen },
-  { label: "Users", href: "/user", icon: FaUsers },
+  { label: 'Dashboard', href: '/dashboard', icon: FaHouse },
+  { label: 'Consultations', href: '/consultation', icon: FaComments },
+  { label: 'Cases', href: '/case', icon: FaFolderOpen },
+  { label: 'Users', href: '/user', icon: FaUsers },
 ] as const;
 
-export function Sidebar({
-  initialCollapsed = false,
-}: {
-  initialCollapsed?: boolean;
-}) {
+export function Sidebar({ initialCollapsed = false }: { initialCollapsed?: boolean }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const pathname = usePathname();
   const router = useRouter();
@@ -45,7 +37,7 @@ export function Sidebar({
         <Button
           variant="ghost"
           className={styles.toggleButton}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           onPress={handleToggle}
         >
           <FaBars />

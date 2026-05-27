@@ -1,7 +1,9 @@
-import Image from "next/image";
-import styles from "./page.module.css";
-import Logo from "@/assets/images/LogoWhiteBckgd.png";
-import { SignInButton } from "@/features/auth/components/SignInButton/SignInButton";
+import Image from 'next/image';
+
+import Logo from '@/assets/images/LogoWhiteBckgd.png';
+import { SignInButton } from '@/features/auth/components/SignInButton/SignInButton';
+
+import styles from './page.module.css';
 
 export default function LoginPage() {
   return (

@@ -1,7 +1,9 @@
-import { Button } from "@/components/ui/Button/Button";
-import { FaArrowRightFromBracket } from "react-icons/fa6";
-import { logoutUser } from "@/features/auth/actions";
-import styles from "./SignOutButton.module.css";
+import { FaArrowRightFromBracket } from 'react-icons/fa6';
+
+import { Button } from '@/components/ui/Button/Button';
+import { logoutUser } from '@/features/auth/actions';
+
+import styles from './SignOutButton.module.css';
 
 export function SignOutButton() {
   return (

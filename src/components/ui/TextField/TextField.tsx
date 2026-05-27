@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import clsx from 'clsx';
-import React from 'react';
+import clsx from "clsx";
+import React from "react";
 import {
   FieldError as AriaFieldError,
   Input as AriaInput,
@@ -10,20 +10,20 @@ import {
   TextField as AriaTextField,
   type TextFieldProps as AriaTextFieldProps,
   type ValidationResult,
-} from 'react-aria-components';
+} from "react-aria-components";
 
-import styles from './TextField.module.css';
+import styles from "./TextField.module.css";
 
 export interface TextFieldProps extends AriaTextFieldProps {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   placeholder?: string;
-  type?: 'text' | 'email' | 'password' | 'url' | 'tel' | 'search';
+  type?: "text" | "email" | "password" | "url" | "tel" | "search";
 }
 
 export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
-  ({ label, description, errorMessage, placeholder, type = 'text', className, ...props }, ref) => {
+  ({ label, description, errorMessage, placeholder, type = "text", className, ...props }, ref) => {
     return (
       <AriaTextField {...props} className={clsx(styles.field, className)}>
         {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
@@ -39,4 +39,4 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
   },
 );
 
-TextField.displayName = 'TextField';
+TextField.displayName = "TextField";

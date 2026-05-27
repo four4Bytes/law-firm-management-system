@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { Cell, Column, Row, Table, TableBody, TableHeader } from './Table';
-import styles from './Table.module.css';
+import { Cell, Column, Row, Table, TableBody, TableHeader } from "./Table";
+import styles from "./Table.module.css";
 
 interface StoryItem {
   id: string;
@@ -11,14 +11,14 @@ interface StoryItem {
 }
 
 const data: StoryItem[] = [
-  { id: '1', name: 'John Doe', role: 'Lawyer', status: 'Active' },
-  { id: '2', name: 'Jane Smith', role: 'Paralegal', status: 'Active' },
-  { id: '3', name: 'Bob Johnson', role: 'ProcessServer', status: 'Inactive' },
+  { id: "1", name: "John Doe", role: "Lawyer", status: "Active" },
+  { id: "2", name: "Jane Smith", role: "Paralegal", status: "Active" },
+  { id: "3", name: "Bob Johnson", role: "ProcessServer", status: "Inactive" },
 ];
 
 const meta = {
   component: Table,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 } as Meta<typeof Table>;
 
 export default meta;

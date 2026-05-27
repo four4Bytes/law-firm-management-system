@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import clsx from 'clsx';
+import clsx from "clsx";
 import {
   Dialog as AriaDialog,
   Modal as AriaModal,
   Heading,
   ModalOverlay,
   type ModalOverlayProps,
-} from 'react-aria-components';
+} from "react-aria-components";
 
-import styles from './Modal.module.css';
+import styles from "./Modal.module.css";
 
-interface ModalProps extends Omit<ModalOverlayProps, 'className'> {
+interface ModalProps extends Omit<ModalOverlayProps, "className"> {
   title: string;
   children: React.ReactNode;
   className?: string;

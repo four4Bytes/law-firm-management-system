@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import clsx from 'clsx';
+import clsx from "clsx";
 import {
   Cell as AriaCell,
   Column as AriaColumn,
@@ -9,9 +9,9 @@ import {
   TableBody as AriaTableBody,
   TableHeader as AriaTableHeader,
   type TableProps as AriaTableProps,
-} from 'react-aria-components';
+} from "react-aria-components";
 
-import styles from './Table.module.css';
+import styles from "./Table.module.css";
 
 // BASIC STYLED COMPONENTS
 

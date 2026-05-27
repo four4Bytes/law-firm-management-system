@@ -1,11 +1,11 @@
-import type { Preview } from '@storybook/nextjs-vite';
+import type { Preview } from "@storybook/nextjs-vite";
 
-import '@/styles/globals.css';
-import '@/styles/variables.css';
+import "@/styles/globals.css";
+import "@/styles/variables.css";
 
 const preview: Preview = {
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     controls: {
       disableSaveFromUI: true,
       matchers: {
@@ -18,7 +18,7 @@ const preview: Preview = {
       // 'todo' - show a11y violations in the test UI only
       // 'error' - fail CI on a11y violations
       // 'off' - skip a11y checks entirely
-      test: 'todo',
+      test: "todo",
     },
   },
 };

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-import { auth } from '@/lib/auth';
+import { auth } from "@/lib/auth";
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -8,13 +8,13 @@ export default auth((req) => {
   const pathname = nextUrl.pathname;
 
   // If NOT logged in and trying to access protected areas -> Redirect to Login Page
-  if (!isLoggedIn && pathname !== '/') {
-    return NextResponse.redirect(new URL('/', nextUrl.origin));
+  if (!isLoggedIn && pathname !== "/") {
+    return NextResponse.redirect(new URL("/", nextUrl.origin));
   }
 
   // If ALREADY logged in and trying to access the Login Page -> Redirect to Dashboard
-  if (isLoggedIn && pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', nextUrl.origin));
+  if (isLoggedIn && pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
   }
 
   return NextResponse.next();
@@ -22,5 +22,5 @@ export default auth((req) => {
 
 // Ensures the middleware runs on all paths except static files, images, and auth internal APIs
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

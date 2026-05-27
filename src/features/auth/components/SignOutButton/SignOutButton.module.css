@@ -1,3 +1,8 @@
 .form {
   display: flex;
+
+  .icon {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+  }
 }

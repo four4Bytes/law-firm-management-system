@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "pnpm prisma:generate && next build",
     "start": "next start",
-    "prepare": "prisma generate",
+    "prepare": "prisma generate && husky",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\" && pnpm prisma format",
@@ -36,8 +36,18 @@
     "react-dom": "19.2.4",
     "react-icons": "^5.6.0"
   },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@storybook/addon-a11y": "^10.4.1",
     "@storybook/addon-docs": "^10.4.1",
     "@storybook/addon-vitest": "^10.4.1",
@@ -53,6 +63,8 @@
     "eslint": "^9.39.4",
     "eslint-config-next": "16.2.4",
     "eslint-plugin-storybook": "^10.4.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
     "playwright": "^1.60.0",
     "prettier": "^3.8.3",
     "prisma": "^7.8.0",

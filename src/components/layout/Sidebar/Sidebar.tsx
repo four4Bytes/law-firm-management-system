@@ -1,19 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
-import {
-  FaHouse,
-  FaComments,
-  FaFolderOpen,
-  FaUsers,
-  FaBars,
-} from "react-icons/fa6";
 import clsx from "clsx";
-import { Button } from "@/components/ui/Button/Button";
-import { toggleSidebarAction } from "./actions";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { FaBars, FaComments, FaFolderOpen, FaHouse, FaUsers } from "react-icons/fa6";
+
 import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
+import { Button } from "@/components/ui/Button/Button";
+
+import { toggleSidebarAction } from "./actions";
 import styles from "./Sidebar.module.css";
 
 const navItems = [
@@ -23,11 +19,7 @@ const navItems = [
   { label: "Users", href: "/user", icon: FaUsers },
 ] as const;
 
-export function Sidebar({
-  initialCollapsed = false,
-}: {
-  initialCollapsed?: boolean;
-}) {
+export function Sidebar({ initialCollapsed = false }: { initialCollapsed?: boolean }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const pathname = usePathname();
   const router = useRouter();

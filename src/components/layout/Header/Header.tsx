@@ -1,9 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import Image from "next/image";
-import styles from "./Header.module.css";
+import { usePathname } from "next/navigation";
+
 import { SignOutButton } from "@/features/auth/components/SignOutButton/SignOutButton";
+
+import styles from "./Header.module.css";
 
 export function Header({ userImage }: { userImage: string | null }) {
   const pathname = usePathname();
@@ -22,13 +24,7 @@ export function Header({ userImage }: { userImage: string | null }) {
       <div className={styles.userSection}>
         <div className={styles.userProfile}>
           {userImage ? (
-            <Image
-              src={userImage}
-              alt="Profile"
-              width={32}
-              height={32}
-              className={styles.avatar}
-            />
+            <Image src={userImage} alt="Profile" width={32} height={32} className={styles.avatar} />
           ) : (
             "None"
           )}

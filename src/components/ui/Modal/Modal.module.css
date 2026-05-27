@@ -1,0 +1,76 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-modal-overlay);
+  padding: var(--space-lg);
+
+  &[data-entering] {
+    animation: fade-in var(--transition-fast);
+  }
+
+  &[data-exiting] {
+    animation: fade-out var(--transition-fast);
+  }
+
+  .modal {
+    outline: none;
+    max-width: var(--modal-max-width);
+    width: 100%;
+
+    &[data-entering] {
+      animation: slide-up var(--transition-fast);
+    }
+
+    &[data-exiting] {
+      animation: fade-out var(--transition-fast);
+    }
+
+    .dialog {
+      outline: none;
+      padding: var(--space-2xl);
+      background: var(--color-surface-bg);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+
+      .title {
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-semi-bold);
+        margin-bottom: var(--space-lg);
+      }
+    }
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

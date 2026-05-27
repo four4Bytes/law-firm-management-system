@@ -16,7 +16,7 @@
     align-items: center;
 
     .logo {
-      width: var(--icon-size-2xl);
+      width: var(--icon-size-xl);
       height: auto;
       flex-shrink: 0;
     }

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { Table, TableHeader, Column, TableBody, Row, Cell } from "./Table";
+
+import { Cell, Column, Row, Table, TableBody, TableHeader } from "./Table";
 import styles from "./Table.module.css";
 
 interface StoryItem {
@@ -58,9 +59,7 @@ export const Empty: Story = {
       </TableHeader>
       <TableBody
         items={[]}
-        renderEmptyState={() => (
-          <div className={styles.empty}>No items to display</div>
-        )}
+        renderEmptyState={() => <div className={styles.empty}>No items to display</div>}
       >
         {[]}
       </TableBody>

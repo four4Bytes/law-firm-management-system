@@ -7,7 +7,7 @@ export function SignInButton() {
   return (
     <form action={loginWithGoogle} className={styles.form}>
       <Button className={styles.button} type="submit">
-        <FaGoogle size={20} />
+        <FaGoogle className={styles.icon} />
         Sign in with Google
       </Button>
     </form>

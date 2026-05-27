@@ -7,7 +7,7 @@ export function SignOutButton() {
   return (
     <form action={logoutUser} className={styles.form}>
       <Button type="submit" variant="ghost" aria-label="Sign out">
-        <FaArrowRightFromBracket size={16} />
+        <FaArrowRightFromBracket className={styles.icon} />
       </Button>
     </form>
   );

@@ -5,5 +5,10 @@
   .button {
     font-size: var(--font-size-sm);
     margin-top: var(--space-md);
+
+    .icon {
+      width: var(--icon-size-md);
+      height: var(--icon-size-md);
+    }
   }
 }

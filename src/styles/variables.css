@@ -120,11 +120,6 @@
   --z-modal: 1100;
   --z-toast: 1200;
 
-  /* Opacity  */
-  --opacity-disabled: 0.5;
-  --opacity-overlay: 0.8;
-  --opacity-subtle: 0.2;
-
   /* Hover lift transforms */
   --hover-lift-sm: translateY(-1px);
   --hover-lift-md: translateY(-2px);
@@ -147,4 +142,12 @@
   --transition-base: 180ms ease-in-out;
   --transition-fast: 120ms ease-in-out;
   --transition-slow: 260ms ease-in-out;
+
+  /* Opacity  */
+  --opacity-overlay: 0.5;
+  --opacity-subtle: 0.2;
+
+  /* Modal */
+  --color-modal-overlay: rgba(11, 11, 11, var(--opacity-overlay));
+  --modal-max-width: 400px;
 }

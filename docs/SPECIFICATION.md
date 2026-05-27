@@ -1,6 +1,6 @@
-# Legal Case Management System (LCMS) — Specification
+# Law Firm Management System (LFMS) — Specification
 
-NOTE: THIS DOCUMENT IS THE SINGLE SOURCE OF TRUTH
+**THIS DOCUMENT IS THE SINGLE SOURCE OF TRUTH**
 
 Firm: Anino Law & Real Estate Firm
 

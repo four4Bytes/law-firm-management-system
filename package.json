@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "pnpm prisma:generate && next build",
     "start": "next start",
-    "prepare": "prisma generate && husky",
+    "prepare": "husky || true && prisma generate",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\" && pnpm prisma format",

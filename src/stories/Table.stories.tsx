@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { Cell, Column, Row, Table, TableBody, TableHeader } from "./Table";
-import styles from "./Table.module.css";
+import { Cell, Column, Row, Table, TableBody, TableHeader } from "@/components/ui/Table/Table";
+import styles from "@/components/ui/Table/Table.module.css";
 
 interface StoryItem {
   id: string;

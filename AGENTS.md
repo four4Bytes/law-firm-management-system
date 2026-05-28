@@ -53,11 +53,18 @@
 - Accept and forward external `className` props for overrides.
 - Use only semantic tokens from `variables.css`; no hardcoded values.
 
+- Responsives:
+- Mobile-first CSS.
+- Use flexbox whenever possible - avoid grid.
+- `@media` only at `48rem` (use literal `rem` — CSS variables don't work in media queries).
+- Avoid the use JS viewport detection or conditional mobile/desktop components for layout — use CSS where possible.
+
 ### Components
 
 - Always scan and use existing components from `components/` first.
 - Interactive/browser API components: start with `"use client"`.
-- Co-locate in `src/components/{category}/{ComponentName}/` — component, CSS module, stories.
+- Co-locate in `src/components/{category}/{ComponentName}/` — component, CSS module.
+- Stories live in `src/stories/`, imported via `@/` aliases (no relative `./` imports).
 - Wrapping Aria components pattern: extend Aria props interface, add local variants/props, use explicit interface.
 
 ### General

@@ -31,6 +31,7 @@
   --color-surface-bg: var(--raw-white);
   --color-surface-bg-alt: var(--raw-sand);
   --color-bg-inverse: var(--raw-black);
+  --color-modal-overlay: rgba(11, 11, 11, var(--opacity-overlay));
 
   /* Text colors */
   --color-text-primary: #111111;
@@ -109,12 +110,6 @@
   --layout-sidebar-width: 320px;
   --layout-sidebar-width-collapsed: 80px;
 
-  /* Breakpoints */
-  --breakpoint-sm: 640px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-
   /* Z index */
   --z-dropdown: 1000;
   --z-modal: 1100;
@@ -147,7 +142,15 @@
   --opacity-overlay: 0.5;
   --opacity-subtle: 0.2;
 
-  /* Modal */
-  --color-modal-overlay: rgba(11, 11, 11, var(--opacity-overlay));
-  --modal-max-width: 400px;
+  /* Responsive */
+  --page-padding: var(--space-lg);
+  --modal-max-width: 90vw;
+}
+
+/* Desktop */
+@media (min-width: 48rem) {
+  :root {
+    --page-padding: var(--space-3xl);
+    --modal-max-width: 500px;
+  }
 }

@@ -7,14 +7,14 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const pathname = nextUrl.pathname;
 
-  // If NOT logged in and trying to access protected areas -> Redirect to Login Page
-  if (!isLoggedIn && pathname !== "/") {
-    return NextResponse.redirect(new URL("/", nextUrl.origin));
+  // Protect private routes
+  if (!isLoggedIn && pathname !== "/" && !pathname.startsWith("/auth")) {
+    return NextResponse.redirect(new URL("/", nextUrl));
   }
 
-  // If ALREADY logged in and trying to access the Login Page -> Redirect to Dashboard
+  // Redirect authenticated users away from the landing/login page
   if (isLoggedIn && pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
+    return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   return NextResponse.next();
@@ -22,5 +22,7 @@ export default auth((req) => {
 
 // Ensures the middleware runs on all paths except static files, images, and auth internal APIs
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json).*)",
+  ],
 };

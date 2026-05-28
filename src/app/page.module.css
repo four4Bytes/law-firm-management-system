@@ -4,6 +4,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: var(--page-padding);
 
   .card {
     display: flex;
@@ -21,9 +22,11 @@
       transform var(--transition-base),
       box-shadow var(--transition-base);
 
-    &:hover {
-      transform: var(--hover-lift-md);
-      box-shadow: var(--shadow-md);
+    @media (min-width: 48rem) {
+      &:hover {
+        transform: var(--hover-lift-md);
+        box-shadow: var(--shadow-md);
+      }
     }
 
     .logo {

@@ -30,6 +30,7 @@
     }
 
     .dialog {
+      position: relative;
       outline: none;
       padding: var(--space-2xl);
       background: var(--color-surface-bg);
@@ -41,6 +42,21 @@
         font-size: var(--font-size-lg);
         font-weight: var(--font-weight-semi-bold);
         margin-bottom: var(--space-lg);
+      }
+
+      .closeButton {
+        display: flex;
+        position: absolute;
+        top: var(--space-sm);
+        right: var(--space-sm);
+        font-size: var(--font-size-lg);
+        padding: var(--space-xs);
+        outline: none;
+
+        &[data-focus-visible] {
+          outline: 2px solid var(--color-brand-accent--soft);
+          outline-offset: 2px;
+        }
       }
     }
   }

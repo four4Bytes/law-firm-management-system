@@ -1,28 +1,38 @@
+"use client";
+
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/Button/Button";
+import { Modal } from "@/components/ui/Modal/Modal";
 
-import { Modal } from "./Modal";
+function ModalWithTrigger({ title, children }: { title: string; children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
 
-const meta: Meta<typeof Modal> = {
-  component: Modal,
+  return (
+    <>
+      <Button onPress={() => setIsOpen(true)}>Open Modal</Button>
+      <Modal isOpen={isOpen} onOpenChange={setIsOpen} title={title}>
+        {children}
+      </Modal>
+    </>
+  );
+}
+
+const meta: Meta<typeof ModalWithTrigger> = {
+  component: ModalWithTrigger,
   tags: ["autodocs"],
-  argTypes: {
-    isOpen: { control: "boolean" },
-    title: { control: "text" },
-    onOpenChange: { action: "openChanged" },
-  },
+};
+
+export default meta;
+type Story = StoryObj<typeof ModalWithTrigger>;
+
+export const Default: Story = {
   args: {
-    isOpen: true,
     title: "Modal Title",
     children: "Modal content goes here.",
   },
 };
-
-export default meta;
-type Story = StoryObj<typeof Modal>;
-
-export const Default: Story = {};
 
 export const WithAction: Story = {
   args: {

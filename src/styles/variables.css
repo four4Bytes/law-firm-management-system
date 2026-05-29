@@ -3,6 +3,7 @@
   /* Primitives (raw values) */
   --raw-black: #0b0b0b;
   --raw-black-strong: #000000;
+  --raw-black-soft: #262626;
 
   --raw-gold: #c9a227;
   --raw-gold-light: #e0c46b;
@@ -41,7 +42,7 @@
 
   /* Brand colors */
   --color-brand-primary: var(--raw-black);
-  --color-brand-primary--hover: #1a1a1a;
+  --color-brand-primary--hover: var(--raw-black-soft);
 
   --color-brand-accent: var(--raw-gold);
   --color-brand-accent--hover: var(--raw-gold-dark);

@@ -26,7 +26,7 @@ const errorMap: Record<string, ErrorInfo> = {
   [AuthError.AccessDenied]: {
     title: "Access Denied",
     message:
-      "You don't have permission to sign in with this account. Make sure you're using your work email address.",
+      "You don't have permission to sign in with this account. If this is a mistake please contact your administrator",
   },
   [AuthError.Verification]: {
     title: "Link expired",

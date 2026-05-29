@@ -4,7 +4,7 @@
 
 Firm: Anino Law & Real Estate Firm
 
-System: Legal Case Management System (LCMS)
+System: Law Firm Management System (LFMS)
 
 Purpose: Web-based system for Anino Law & Real Estate Firm that manages end-to-end case workflows — from client consultation and intake to task delegation, document management, milestone tracking, and payment recording.
 
@@ -44,6 +44,8 @@ The exact storage backend is open, so the codebase must use a standardized S3-co
 Hierarchy
 
 ```
+DEV - Initial user to bootstap the app
+
 ADMIN
   → BRANCH MANAGER
     → LAWYER
@@ -63,13 +65,14 @@ Concepts
 
 ### Global Scope
 
-| Role           | User Mgmt | Cases | Consultations | Activity Logs |
-| -------------- | --------- | ----- | ------------- | ------------- |
-| Admin          | CRUD      | CRUD  | CRUD          | R             |
-| Branch Manager | CRU       | CRUD  | CRUD          | R             |
-| Lawyer         | R         | R     | R             | R             |
-| Paralegal      | -         | R\*   | -             | -             |
-| Process Server | -         | R\*   | -             | -             |
+| Role           | User | Cases | Consultations | Activity Logs |
+| -------------- | ---- | ----- | ------------- | ------------- |
+| Dev            | CRUD | -     | -             | -             |
+| Admin          | CRUD | CRUD  | CRUD          | R             |
+| Branch Manager | CRU  | CRUD  | CRUD          | R             |
+| Lawyer         | R    | R     | R             | R             |
+| Paralegal      | -    | R\*   | -             | -             |
+| Process Server | -    | R\*   | -             | -             |
 
 ---
 

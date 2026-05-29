@@ -8,6 +8,7 @@ datasource db {
 }
 
 enum Role {
+  Dev
   Admin
   BranchManager
   Lawyer

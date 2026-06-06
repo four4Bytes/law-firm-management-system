@@ -8,10 +8,6 @@ const preview: Preview = {
     layout: "centered",
     controls: {
       disableSaveFromUI: true,
-      matchers: {
-        color: /(background|color)$/i,
-        date: /Date$/i,
-      },
     },
 
     a11y: {

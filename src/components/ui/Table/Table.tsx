@@ -13,8 +13,6 @@ import {
 
 import styles from "./Table.module.css";
 
-// BASIC STYLED COMPONENTS
-
 export function Table(props: AriaTableProps) {
   return <AriaTable {...props} className={clsx(styles.table, props.className)} />;
 }

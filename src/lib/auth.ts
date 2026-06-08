@@ -6,6 +6,7 @@ import { upsertDeveloperUser } from "@/features/users/mutations";
 import { getUserByEmail } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseDeveloperEmails } from "@/util/env-parser";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -24,12 +25,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return false;
       }
 
-      // Parse developer array safely from environment variables at runtime
-      const devEnvString = process.env.DEVELOPER_EMAILS ?? "";
-      const developerWhitelist = devEnvString
-        .split(",")
-        .map((e) => e.trim())
-        .filter((e) => e.length > 0);
+      const developerWhitelist = parseDeveloperEmails();
 
       // Get email and existing user
       const email = user.email;

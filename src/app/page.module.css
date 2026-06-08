@@ -18,17 +18,6 @@
     text-align: center;
     max-width: 380px;
 
-    transition:
-      transform var(--transition-base),
-      box-shadow var(--transition-base);
-
-    @media (min-width: 48rem) {
-      &:hover {
-        transform: var(--hover-lift-md);
-        box-shadow: var(--shadow-md);
-      }
-    }
-
     .logo {
       height: 100px;
       width: auto;

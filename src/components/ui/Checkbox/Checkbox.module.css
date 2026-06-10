@@ -1,0 +1,43 @@
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  width: var(--space-lg);
+  height: var(--space-lg);
+}
+
+.indicator {
+  width: var(--space-lg);
+  height: var(--space-lg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-bg);
+  transition: all var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.isSelected {
+  background: var(--color-brand-accent);
+  border-color: var(--color-brand-accent);
+}
+
+.isFocusVisible {
+  outline: 2px solid var(--color-brand-accent--soft);
+  outline-offset: 2px;
+}
+
+.isDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon {
+  color: var(--raw-white);
+  font-size: 0.625rem;
+}

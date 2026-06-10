@@ -2,37 +2,142 @@
 
 import clsx from "clsx";
 import {
+  Button as AriaButton,
   Cell as AriaCell,
   Column as AriaColumn,
+  ResizableTableContainer as AriaResizableTableContainer,
   Row as AriaRow,
   Table as AriaTable,
   TableBody as AriaTableBody,
   TableHeader as AriaTableHeader,
+  TableLoadMoreItem as AriaTableLoadMoreItem,
+  Collection,
+  ColumnResizer,
+  composeRenderProps,
+  useTableOptions,
+  type ColumnProps as AriaColumnProps,
+  type RowProps as AriaRowProps,
+  type TableBodyProps as AriaTableBodyProps,
+  type TableHeaderProps as AriaTableHeaderProps,
   type TableProps as AriaTableProps,
+  type TableLoadMoreItemProps,
 } from "react-aria-components";
+import { FaChevronDown, FaChevronRight, FaChevronUp, FaGripVertical } from "react-icons/fa6";
+
+import { Checkbox } from "@/components/ui/Checkbox/Checkbox";
 
 import styles from "./Table.module.css";
 
-export function Table(props: AriaTableProps) {
-  return <AriaTable {...props} className={clsx(styles.table, props.className)} />;
+export function ResizableTableContainer({
+  className,
+  ...props
+}: React.ComponentProps<typeof AriaResizableTableContainer>) {
+  return (
+    <AriaResizableTableContainer
+      className={clsx(styles.resizableTableContainer, className)}
+      {...props}
+    />
+  );
 }
 
-export function TableHeader(props: React.ComponentProps<typeof AriaTableHeader>) {
-  return <AriaTableHeader {...props} className={clsx(styles.tableHeader, props.className)} />;
+export function Table({ className, ...props }: AriaTableProps) {
+  return <AriaTable className={clsx(styles.table, className)} {...props} />;
 }
 
-export function TableBody<T extends object>(props: React.ComponentProps<typeof AriaTableBody<T>>) {
-  return <AriaTableBody {...props} className={clsx(styles.body, props.className)} />;
+interface ColumnProps extends AriaColumnProps {
+  allowsResizing?: boolean;
 }
 
-export function Row<T extends object>(props: React.ComponentProps<typeof AriaRow<T>>) {
-  return <AriaRow {...props} className={clsx(styles.row, props.className)} />;
+export function Column({ allowsResizing, className, children, ...props }: ColumnProps) {
+  return (
+    <AriaColumn className={clsx(styles.column, className)} {...props}>
+      {({ allowsSorting, sortDirection }) => (
+        <div className={styles.columnHeader}>
+          <div role="presentation" tabIndex={-1} className={styles.columnName}>
+            {children as React.ReactNode}
+          </div>
+          {allowsSorting && (
+            <span aria-hidden="true" className={styles.sortIndicator}>
+              {sortDirection === "ascending" ? <FaChevronUp /> : <FaChevronDown />}
+            </span>
+          )}
+          {allowsResizing && <ColumnResizer aria-label="Resize" className={styles.columnResizer} />}
+        </div>
+      )}
+    </AriaColumn>
+  );
 }
 
-export function Cell(props: React.ComponentProps<typeof AriaCell>) {
-  return <AriaCell {...props} className={clsx(styles.cell, props.className)} />;
+export function TableHeader<T extends object>({
+  columns,
+  children,
+  className,
+  ...props
+}: AriaTableHeaderProps<T>) {
+  const { selectionBehavior, selectionMode, allowsDragging } = useTableOptions();
+
+  return (
+    <AriaTableHeader className={clsx(styles.tableHeader, className)} {...props}>
+      {allowsDragging && <AriaColumn className={clsx(styles.column, styles.dragColumn)} />}
+      {selectionBehavior === "toggle" && (
+        <AriaColumn className={clsx(styles.column, styles.selectionColumn)}>
+          {selectionMode === "multiple" && <Checkbox slot="selection" />}
+        </AriaColumn>
+      )}
+      <Collection items={columns}>{children}</Collection>
+    </AriaTableHeader>
+  );
 }
 
-export function Column(props: React.ComponentProps<typeof AriaColumn>) {
-  return <AriaColumn {...props} className={clsx(styles.column, props.className)} />;
+export function Row<T extends object>({
+  id,
+  columns,
+  children,
+  className,
+  ...props
+}: AriaRowProps<T>) {
+  const { selectionBehavior, allowsDragging } = useTableOptions();
+
+  return (
+    <AriaRow id={id} className={clsx(styles.row, className)} {...props}>
+      {allowsDragging && (
+        <Cell>
+          <AriaButton slot="drag" className={styles.dragButton}>
+            <FaGripVertical />
+          </AriaButton>
+        </Cell>
+      )}
+      {selectionBehavior === "toggle" && (
+        <Cell>
+          <Checkbox slot="selection" />
+        </Cell>
+      )}
+      <Collection items={columns}>{children}</Collection>
+    </AriaRow>
+  );
+}
+
+export function TableBody<T extends object>({ className, ...props }: AriaTableBodyProps<T>) {
+  return <AriaTableBody className={clsx(styles.tableBody, className)} {...props} />;
+}
+
+export function Cell({ className, ...props }: React.ComponentProps<typeof AriaCell>) {
+  return (
+    <AriaCell className={clsx(styles.cell, className)} {...props}>
+      {composeRenderProps(props.children, (children, { hasChildItems, isTreeColumn }) => (
+        <>
+          {isTreeColumn && hasChildItems && (
+            <AriaButton slot="chevron" className={styles.chevronButton}>
+              <FaChevronRight />
+            </AriaButton>
+          )}
+          {children}
+        </>
+      ))}
+    </AriaCell>
+  );
+}
+
+export function TableLoadMoreItem({ className, ...props }: TableLoadMoreItemProps) {
+  return <AriaTableLoadMoreItem className={clsx(styles.loadMoreItem, className)} {...props} />;
 }

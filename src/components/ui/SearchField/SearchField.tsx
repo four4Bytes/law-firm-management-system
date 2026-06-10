@@ -6,13 +6,13 @@ import {
   Input as AriaInput,
   Label as AriaLabel,
   SearchField as AriaSearchField,
-  Text as AriaText,
   type SearchFieldProps as AriaSearchFieldProps,
   type ValidationResult,
 } from "react-aria-components";
 import { FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
+import { Text } from "@/components/ui/Content/Content";
 
 import styles from "./SearchField.module.css";
 
@@ -40,9 +40,9 @@ export function SearchField({
         <FaXmark className={styles.clearIcon} />
       </Button>
       {description && (
-        <AriaText slot="description" className={styles.description}>
+        <Text slot="description" className={styles.description}>
           {description}
-        </AriaText>
+        </Text>
       )}
       <AriaFieldError className={styles.error}>{errorMessage}</AriaFieldError>
     </AriaSearchField>

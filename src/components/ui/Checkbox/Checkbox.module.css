@@ -1,43 +1,72 @@
-.checkbox {
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.field[data-disabled] [slot="description"] {
+  color: var(--color-text-muted);
+}
+
+.button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: var(--space-sm);
+  position: relative;
   cursor: pointer;
+  forced-color-adjust: none;
   -webkit-tap-highlight-color: transparent;
-  outline: none;
-  width: var(--space-lg);
-  height: var(--space-lg);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
 }
 
 .indicator {
-  width: var(--space-lg);
-  height: var(--space-lg);
-  border: 1px solid var(--color-border-strong);
+  width: 1.125rem;
+  height: 1.125rem;
+  box-sizing: border-box;
+  flex-shrink: 0;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-surface-bg);
+  border: 1px solid var(--color-border-strong);
   transition: all var(--transition-fast);
-  box-sizing: border-box;
 }
 
-.isSelected {
+.button[data-selected] .indicator,
+.button[data-indeterminate] .indicator {
   background: var(--color-brand-accent);
   border-color: var(--color-brand-accent);
 }
 
-.isFocusVisible {
-  outline: 2px solid var(--color-brand-accent--soft);
-  outline-offset: 2px;
+.button[data-disabled] {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
 }
 
-.isDisabled {
+.button[data-disabled] .indicator {
   opacity: 0.5;
-  cursor: not-allowed;
+}
+
+.button[data-focus-visible] .indicator {
+  outline: 2px solid var(--color-brand-accent--soft);
+  outline-offset: 2px;
 }
 
 .icon {
   color: var(--raw-white);
   font-size: 0.625rem;
+}
+
+.field [slot="description"] {
+  margin-left: calc(1.125rem + var(--space-sm));
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  margin-left: calc(1.125rem + var(--space-sm));
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
 }

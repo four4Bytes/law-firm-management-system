@@ -66,6 +66,7 @@
 - Co-locate in `src/components/{category}/{ComponentName}/` — component, CSS module.
 - Stories live in `src/stories/`, imported via `@/` aliases (no relative `./` imports).
 - Wrapping Aria components pattern: extend Aria props interface, add local variants/props, use explicit interface.
+- Extract component props into a named interface extending the Aria type when adding local variants/props — keeps function signatures terse and consistent.
 
 ### General
 

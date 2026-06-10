@@ -6,11 +6,12 @@ import {
   FieldError as AriaFieldError,
   Input as AriaInput,
   Label as AriaLabel,
-  Text as AriaText,
   TextField as AriaTextField,
   type TextFieldProps as AriaTextFieldProps,
   type ValidationResult,
 } from "react-aria-components";
+
+import { Text } from "@/components/ui/Content/Content";
 
 import styles from "./TextField.module.css";
 
@@ -29,9 +30,9 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
         {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
         <AriaInput ref={ref} type={type} placeholder={placeholder} className={styles.input} />
         {description && (
-          <AriaText slot="description" className={styles.description}>
+          <Text slot="description" className={styles.description}>
             {description}
-          </AriaText>
+          </Text>
         )}
         <AriaFieldError className={styles.error}>{errorMessage}</AriaFieldError>
       </AriaTextField>

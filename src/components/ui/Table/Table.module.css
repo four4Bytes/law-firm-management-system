@@ -122,27 +122,32 @@
         }
 
         .columnResizer {
-          width: 1px;
-          border-radius: var(--radius-sm);
-          background-color: var(--color-border-strong);
-          padding: 0 var(--space-sm);
-          translate: var(--space-md) 0;
-          height: 24px;
-          margin: -12px 0;
-          flex: 0 0 auto;
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          right: calc(-1 * var(--space-sm));
+          width: var(--space-sm);
           touch-action: none;
-          box-sizing: content-box;
-          background-clip: content-box;
           cursor: ew-resize;
           outline: none;
 
+          &::before {
+            content: "";
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 0;
+            width: 1px;
+            background-color: var(--color-border-strong);
+            border-radius: var(--radius-sm);
+          }
+
           &[data-focus-visible] {
-            background-color: var(--color-brand-accent--soft);
             outline: 2px solid var(--color-brand-accent--soft);
             outline-offset: -2px;
           }
 
-          &[data-resizing] {
+          &[data-resizing]::before {
             width: 2px;
             background-color: var(--color-brand-accent);
           }

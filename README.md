@@ -1,3 +1,3 @@
 # Law Firm Management System
 
-This is a school capstone project for a private law firm, focused on building a shared internal system for managing clients, consultations, notary services, cases, tasks, payments, documents, and notes/memos.
+A school capstone case management system for a law firm — handles client intake, consultation-to-case escalation, task workflows with review chains, milestone tracking, document management, and payment recording.

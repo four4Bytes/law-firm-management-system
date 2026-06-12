@@ -35,11 +35,16 @@
 ## Architecture
 
 - `src/app/page.tsx` — unauthenticated login page.
-- `src/app/(dashboard)/` — authenticated section (Sidebar + Header shared layout).
-- `src/app/api/auth/[...nextauth]/route.ts` — NextAuth API route.
-- `src/features/` — domain logic (auth, consultations, users).
-- `src/components/{ui,layout}/` — shared primitives and app chrome.
-- Docker Compose for local Postgres: `docker compose up -d` (creds: testing/testing).
+- `src/app/(dashboard)/` — authenticated section (Sidebar + Header shared layout). Dashboard routes: `dashboard/`, `case/`, `consultation/`, `user/`.
+- `src/app/api/auth/[...nextauth]/route.ts` — NextAuth API route (required by NextAuth). This is the **only** API route; do not create additional REST endpoints. Use Server Actions (`actions.ts`) for all custom server-side logic.
+- `src/features/` — domain logic organized by feature (`auth/`, `users/`, `consultations/`, `cases/`, etc.).
+  - Each domain has `actions.ts` (Server Actions), `queries.ts` (Prisma reads), and/or `mutations.ts` (Prisma writes).
+  - Feature-specific components live in `src/features/{domain}/components/`.
+- `src/components/{ui,layout}/` — shared primitives (ui) and app chrome (layout). Domain-agnostic; reusable across features.
+- `src/lib/` — shared utilities: `prisma.ts` (singleton), `auth.ts` (NextAuth config), etc.
+- `src/styles/` — design tokens (`variables.css`: primitives → semantic tokens).
+- `src/stories/` — Storybook stories for UI components, imported via `@/` aliases.
+- Docker Compose for local Postgres: `docker compose up -d`.
 
 ## Conventions
 
@@ -68,6 +73,16 @@
 - Wrapping Aria components pattern: extend Aria props interface, add local variants/props, use explicit interface.
 - Extract component props into a named interface extending the Aria type when adding local variants/props — keeps function signatures terse and consistent.
 
+### Data Layer
+
+- Each feature domain (`src/features/{domain}/`) owns its data logic split across three files:
+  - `actions.ts` — Next.js Server Actions (`"use server"`). Handle auth flows, form submissions, cookie management, and orchestrate calls to queries/mutations.
+  - `queries.ts` — Prisma read operations (`findUnique`, `findMany`, aggregate, etc.). Keep these as plain async functions (no `"use server"`).
+  - `mutations.ts` — Prisma write operations (`create`, `update`, `upsert`, `delete`, etc.). Plain async functions.
+- Never import `prisma` directly outside of `queries.ts` or `mutations.ts`. Server actions and components must delegate to these files.
+- Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly shared/reusable components in `src/components/ui/`.
+- Prefer Server Actions over API routes. Do not create files under `src/app/api/` — the auth `[...nextauth]` route is the only exception (required by NextAuth).
+
 ### General
 
 - Named exports only — no default exports.
@@ -75,8 +90,3 @@
 - No comments unless explaining a non-obvious decision.
 - Prisma schema: `snake_case` fields, `PascalCase` models/enums.
 - Husky: pre-commit runs `lint-staged` (Prettier + ESLint on staged files); pre-push runs `pnpm validate && pnpm test`.
-
-## Known State
-
-- No unit tests exist (`*.test.*` files) — only Storybook stories for UI components.
-- Browser test script (`test:browser`) references `vitest.workspace.ts` which does not yet exist.

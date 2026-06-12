@@ -4,7 +4,7 @@ export function parseDeveloperEmails(): string[] {
 
   const parts = raw
     .split(",")
-    .map((s: string) => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 
   return Array.from(new Set(parts));

@@ -5,8 +5,8 @@ import Google from "next-auth/providers/google";
 import { upsertDeveloperUser } from "@/features/users/mutations";
 import { getUserByEmail } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
+import { parseDeveloperEmails } from "@/lib/developer-emails";
 import { prisma } from "@/lib/prisma";
-import { parseDeveloperEmails } from "@/util/env-parser";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),

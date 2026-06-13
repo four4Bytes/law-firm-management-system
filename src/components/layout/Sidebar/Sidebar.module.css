@@ -66,6 +66,7 @@
     flex: 1;
 
     .navButton {
+      padding: var(--space-md);
       gap: var(--space-md);
 
       svg {

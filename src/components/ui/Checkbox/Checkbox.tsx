@@ -44,7 +44,9 @@ export function Checkbox({
         )}
       </CheckboxButton>
       {description && <Description>{description}</Description>}
-      <FieldError className={styles.error}>{errorMessage}</FieldError>
+      {errorMessage && (
+        <FieldError className={styles.error}>{errorMessage}</FieldError>
+      )}
     </CheckboxField>
   );
 }

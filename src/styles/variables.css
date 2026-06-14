@@ -54,6 +54,7 @@
 
   /* Border colors */
   --color-border-subtle: var(--raw-gray-200);
+  --color-border-default: var(--raw-gray-300);
   --color-border-strong: var(--raw-gray-400);
 
   --color-success: #2e7d32;

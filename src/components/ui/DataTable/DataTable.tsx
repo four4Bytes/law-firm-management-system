@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Collection, type Selection, type SortDescriptor } from "react-aria-components";
 
 import {
@@ -79,8 +79,23 @@ export function DataTable<T extends { id: string }>({
     });
   }, [rows, sortDescriptor]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (el) {
+      setIsScrolled(el.scrollTop > 0);
+    }
+  }, []);
+
   return (
-    <ResizableTableContainer className={clsx(styles.container, fill && styles.fill, className)}>
+    <ResizableTableContainer
+      ref={containerRef}
+      onScroll={handleScroll}
+      {...(isScrolled ? { "data-scrolled": true } : {})}
+      className={clsx(styles.container, fill && styles.fill, className)}
+    >
       <Table
         aria-label="Data table"
         selectionMode={selectionMode}

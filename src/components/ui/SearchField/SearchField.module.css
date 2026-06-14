@@ -44,8 +44,9 @@
     font-size: var(--font-size-md);
     color: var(--color-text-primary);
     background-color: var(--color-surface-bg);
-    border: 1px solid var(--color-border-strong);
+    border: 1px solid var(--color-border-default);
     border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
 
     outline: none;
     -webkit-tap-highlight-color: transparent;
@@ -56,7 +57,7 @@
     }
 
     &[data-hovered] {
-      border-color: var(--color-border-strong);
+      border-color: var(--color-border-default);
     }
 
     &[data-focused] {

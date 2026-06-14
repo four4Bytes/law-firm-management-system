@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import React from "react";
 import {
   Button as AriaButton,
   Cell as AriaCell,
@@ -28,17 +29,18 @@ import { Checkbox } from "@/components/ui/Checkbox/Checkbox";
 
 import styles from "./Table.module.css";
 
-export function ResizableTableContainer({
-  className,
-  ...props
-}: React.ComponentProps<typeof AriaResizableTableContainer>) {
+export const ResizableTableContainer = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof AriaResizableTableContainer>
+>(function ResizableTableContainer({ className, ...props }, ref) {
   return (
     <AriaResizableTableContainer
+      ref={ref}
       className={clsx(styles.resizableTableContainer, className)}
       {...props}
     />
   );
-}
+});
 
 export function Table({ className, ...props }: AriaTableProps) {
   return <AriaTable className={clsx(styles.table, className)} {...props} />;

@@ -45,7 +45,7 @@
   &.secondary {
     background-color: var(--color-brand-accent);
     color: var(--color-brand-primary);
-    border-color: var(--color-border-strong);
+    border-color: var(--color-border-default);
 
     &[data-hovered] {
       background-color: var(--color-brand-accent--hover);
@@ -60,7 +60,7 @@
   &.primary {
     background-color: var(--color-brand-primary);
     color: var(--color-brand-accent);
-    border-color: var(--color-border-strong);
+    border-color: var(--color-border-default);
 
     &[data-hovered] {
       background-color: var(--color-brand-primary--hover);

@@ -1,4 +1,4 @@
-import { ConsultationTable } from "@/features/consultations/components/ConsultationTable";
+import { ConsultationTable } from "@/features/consultations/components/ConsultationTable/ConsultationTable";
 
 import styles from "./page.module.css";
 

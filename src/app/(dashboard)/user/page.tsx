@@ -1,4 +1,4 @@
-import { UserTable } from "@/features/users/components/UserTable";
+import { UserTable } from "@/features/users/components/UserTable/UserTable";
 
 import styles from "./page.module.css";
 

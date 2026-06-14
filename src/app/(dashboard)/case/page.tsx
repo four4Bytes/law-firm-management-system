@@ -1,4 +1,4 @@
-import { CaseTable } from "@/features/cases/components/CaseTable";
+import { CaseTable } from "@/features/cases/components/CaseTable/CaseTable";
 
 import styles from "./page.module.css";
 

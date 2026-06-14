@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
 import { getUsersPaginatedAction } from "@/features/users/actions";
-import { AddUserModal } from "@/features/users/components/AddUserModal";
+import { AddUserModal } from "@/features/users/components/AddUserModal/AddUserModal";
 import { roleLabels } from "@/features/users/constants";
 import type { Role } from "@/generated/prisma/client";
 import { useDebounce } from "@/lib/useDebounce";

@@ -144,6 +144,8 @@ export function ConsultationTable({ fill }: ConsultationTableProps) {
         columns={columns}
         rows={items}
         fill={fill}
+        selectionMode="single"
+        selectionBehavior="replace"
         hasMore={hasMore}
         onLoadMore={handleLoadMore}
         isLoading={isLoading}

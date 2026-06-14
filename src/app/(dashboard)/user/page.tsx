@@ -5,7 +5,7 @@ import styles from "./page.module.css";
 export default async function UserPage() {
   return (
     <div className={styles.wrapper}>
-      <UserTable fill />
+      <UserTable />
     </div>
   );
 }

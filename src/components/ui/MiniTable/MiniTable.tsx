@@ -14,7 +14,7 @@ export function MiniTable<T extends { id: string }>({ columns, rows, heading }: 
   return (
     <div className={styles.wrapper}>
       <h3 className={styles.heading}>{heading}</h3>
-      <DataTable columns={columns} rows={rows} fill />
+      <DataTable columns={columns} rows={rows} />
     </div>
   );
 }

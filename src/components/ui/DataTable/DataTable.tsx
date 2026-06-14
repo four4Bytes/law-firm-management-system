@@ -39,7 +39,6 @@ export interface DataTableProps<T extends { id: string }> {
   isLoading?: boolean;
   loadMoreContent?: React.ReactNode;
   emptyContent?: React.ReactNode;
-  fill?: boolean;
   className?: string;
 }
 
@@ -56,7 +55,6 @@ export function DataTable<T extends { id: string }>({
   isLoading,
   loadMoreContent,
   emptyContent,
-  fill,
   className,
 }: DataTableProps<T>) {
   const [internalSortDescriptor, setInternalSortDescriptor] = useState<
@@ -94,7 +92,7 @@ export function DataTable<T extends { id: string }>({
       ref={containerRef}
       onScroll={handleScroll}
       {...(isScrolled ? { "data-scrolled": true } : {})}
-      className={clsx(styles.container, fill && styles.fill, className)}
+      className={clsx(styles.container, className)}
     >
       <Table
         aria-label="Data table"

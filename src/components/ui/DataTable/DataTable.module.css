@@ -1,10 +1,7 @@
 .container {
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
-}
-
-.fill {
-  flex: 1;
-  min-height: 0;
 }

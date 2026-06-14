@@ -13,10 +13,6 @@ import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./CaseTable.module.css";
 
-interface CaseTableProps {
-  fill?: boolean;
-}
-
 const statusClassMap: Record<string, string> = {
   Pending: styles.statusPending,
   Done: styles.statusDone,
@@ -59,7 +55,7 @@ const columns: ColumnDef<CaseRow>[] = [
   },
 ];
 
-export function CaseTable({ fill }: CaseTableProps) {
+export function CaseTable() {
   const [items, setItems] = useState<CaseRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -131,7 +127,6 @@ export function CaseTable({ fill }: CaseTableProps) {
       <DataTable
         columns={columns}
         rows={items}
-        fill={fill}
         selectionMode="single"
         selectionBehavior="replace"
         hasMore={hasMore}

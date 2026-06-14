@@ -5,7 +5,7 @@ import styles from "./page.module.css";
 export default function CasePage() {
   return (
     <div className={styles.wrapper}>
-      <CaseTable fill />
+      <CaseTable />
     </div>
   );
 }

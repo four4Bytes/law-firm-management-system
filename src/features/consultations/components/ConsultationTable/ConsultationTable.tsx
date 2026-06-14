@@ -13,10 +13,6 @@ import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./ConsultationTable.module.css";
 
-interface ConsultationTableProps {
-  fill?: boolean;
-}
-
 const statusClassMap: Record<string, string> = {
   Scheduled: styles.statusScheduled,
   Completed: styles.statusCompleted,
@@ -68,7 +64,7 @@ const columns: ColumnDef<ConsultationRow>[] = [
   },
 ];
 
-export function ConsultationTable({ fill }: ConsultationTableProps) {
+export function ConsultationTable() {
   const [items, setItems] = useState<ConsultationRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -143,7 +139,6 @@ export function ConsultationTable({ fill }: ConsultationTableProps) {
       <DataTable
         columns={columns}
         rows={items}
-        fill={fill}
         selectionMode="single"
         selectionBehavior="replace"
         hasMore={hasMore}

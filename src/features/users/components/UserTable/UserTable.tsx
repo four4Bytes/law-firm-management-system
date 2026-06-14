@@ -25,7 +25,6 @@ export interface UserRow {
 }
 
 interface UserTableProps {
-  fill?: boolean;
   users?: UserRow[];
 }
 
@@ -80,7 +79,7 @@ const columns: ColumnDef<UserRow>[] = [
   },
 ];
 
-export function UserTable({ fill, users: staticUsers }: UserTableProps) {
+export function UserTable({ users: staticUsers }: UserTableProps) {
   const [items, setItems] = useState<UserRow[]>(staticUsers ?? []);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -162,7 +161,6 @@ export function UserTable({ fill, users: staticUsers }: UserTableProps) {
       <DataTable
         columns={columns}
         rows={items}
-        fill={fill}
         selectionMode="single"
         selectionBehavior="replace"
         hasMore={hasMore}

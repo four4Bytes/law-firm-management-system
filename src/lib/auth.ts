@@ -10,7 +10,6 @@ import { prisma } from "@/lib/prisma";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  // providers: [Google],
   providers: [
     Google({
       // Bypasses the OAuthAccountNotLinked block dynamically in dev environment
@@ -23,7 +22,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     error: "/auth/error",
   },
-  debug: true,
+  // Enable debug only on development
+  debug: process.env.NODE_ENV === "development",
 
   callbacks: {
     async signIn({ user, account, profile }) {

@@ -91,10 +91,6 @@
       align-items: center;
       gap: var(--space-xl);
 
-      .logo {
-        display: none;
-      }
-
       .toggleButton {
         margin-left: 0;
       }

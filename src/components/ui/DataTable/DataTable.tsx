@@ -88,6 +88,21 @@ export function DataTable<T extends { id: string }>({
     }
   }, []);
 
+  if (rows.length === 0) {
+    if (isLoading) {
+      return (
+        <div className={clsx(styles.container, styles.loadingContainer, className)}>
+          <ProgressCircle aria-label="Loading data..." />
+        </div>
+      );
+    }
+    return (
+      <div className={clsx(styles.container, styles.loadingContainer, className)}>
+        {emptyContent ?? null}
+      </div>
+    );
+  }
+
   return (
     <ResizableTableContainer
       ref={containerRef}

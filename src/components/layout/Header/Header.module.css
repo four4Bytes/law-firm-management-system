@@ -1,7 +1,7 @@
 .header {
   height: var(--layout-header-height);
   background-color: var(--color-surface-bg);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-default);
   display: flex;
   align-items: center;
   justify-content: space-between;

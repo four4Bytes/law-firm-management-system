@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function upsertDeveloperUser(email: string, name: string, image?: string | null) {
   return prisma.user.upsert({
     where: { email },
-    update: { image },
+    update: { name, image },
     create: {
       email,
       name,

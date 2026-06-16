@@ -6,7 +6,7 @@
 .message {
   font-size: var(--font-size-md);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-2xl);
+  margin: var(--space-2xl) var(--space-xl);
   line-height: var(--line-height-normal);
 }
 

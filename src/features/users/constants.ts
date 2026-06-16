@@ -16,3 +16,12 @@ export const roleLabels: Record<Role, string> = {
   Paralegal: "Paralegal",
   ProcessServer: "Process Server",
 };
+
+export interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: Role | null;
+  is_active: boolean;
+  created_at: Date;
+}

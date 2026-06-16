@@ -26,7 +26,7 @@
   align-items: center;
   gap: var(--space-md);
   background: var(--color-surface-bg);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-strong);
   box-shadow: var(--shadow-lg);
   padding: var(--space-lg);
   border-radius: var(--radius-md);
@@ -54,13 +54,13 @@
   min-width: 0;
 
   .title {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-md);
     font-weight: var(--font-weight-semi-bold);
     color: var(--color-text-primary);
   }
 
   .description {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 }

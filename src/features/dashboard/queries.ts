@@ -44,7 +44,7 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
         booking_datetime: { gte: startOfDay, lt: endOfDay },
       },
     }),
-    prisma.user.count(),
+    prisma.user.count({ where: { is_active: true } }),
     prisma.caseMilestone.count({
       where: { status: "Pending", due_date: { lt: now } },
     }),

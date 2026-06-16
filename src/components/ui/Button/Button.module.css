@@ -5,7 +5,7 @@
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-medium);
   width: 100%;
 
   border: 1px solid transparent;

@@ -9,3 +9,7 @@ export function parseDeveloperEmails(): string[] {
 
   return Array.from(new Set(parts));
 }
+
+export function isDeveloperEmail(email: string): boolean {
+  return parseDeveloperEmails().includes(email);
+}

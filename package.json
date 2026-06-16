@@ -20,6 +20,7 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:reset": "prisma migrate reset",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

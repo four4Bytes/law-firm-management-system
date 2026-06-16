@@ -5,28 +5,22 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { FaPenToSquare, FaPlus, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
-import { getUsersPaginatedAction } from "@/features/users/actions";
-import { AddUserModal } from "@/features/users/components/AddUserModal/AddUserModal";
-import { roleLabels } from "@/features/users/constants";
+import { queue } from "@/components/ui/Toast/Toast";
+import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
+import { UserFormModal } from "@/features/users/components/UserFormModal/UserFormModal";
+import { roleLabels, type UserRow } from "@/features/users/constants";
 import type { Role } from "@/generated/prisma/client";
 import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./UserTable.module.css";
 
-export interface UserRow {
-  id: string;
-  name: string;
-  email: string;
-  role: Role | null;
-  is_active: boolean;
-  created_at: Date;
-}
-
 interface UserTableProps {
   users?: UserRow[];
+  sessionUserRole?: string;
 }
 
 const roleClassMap: Record<Role, string> = {
@@ -38,56 +32,18 @@ const roleClassMap: Record<Role, string> = {
   ProcessServer: styles.roleProcessServer,
 };
 
-const columns: ColumnDef<UserRow>[] = [
-  {
-    id: "name",
-    name: "Name",
-    isRowHeader: true,
-    allowsSorting: true,
-  },
-  {
-    id: "email",
-    name: "Email",
-    allowsSorting: true,
-  },
-  {
-    id: "role",
-    name: "Role",
-    allowsSorting: true,
-    render: (value) => {
-      const role = value as Role | null;
-      if (!role) return null;
-      return (
-        <span className={clsx(styles.roleBadge, roleClassMap[role])}>
-          {roleLabels[role] ?? role}
-        </span>
-      );
-    },
-  },
-  {
-    id: "is_active",
-    name: "Action",
-    render: () => (
-      <div className={styles.actions}>
-        <Button variant="ghost" aria-label="Edit user">
-          <FaPenToSquare className={styles.icon} />
-        </Button>
-        <Button variant="ghost" aria-label="Delete user">
-          <FaTrashCan className={styles.icon} />
-        </Button>
-      </div>
-    ),
-  },
-];
-
-export function UserTable({ users: staticUsers }: UserTableProps) {
+export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProps) {
+  const canManage = sessionUserRole === "Admin" || sessionUserRole === "Dev";
   const [items, setItems] = useState<UserRow[]>(staticUsers ?? []);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(staticUsers === undefined);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
+
   const [search, setSearch] = useState("");
-  const [isAddOpen, setAddOpen] = useState(false);
+  const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
+  const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPending, startTransition] = useTransition();
 
@@ -134,6 +90,65 @@ export function UserTable({ users: staticUsers }: UserTableProps) {
     }
   }, [useServerFetch, isLoading, hasMore, cursor, debouncedSearch]);
 
+  const columns: ColumnDef<UserRow>[] = [
+    {
+      id: "name",
+      name: "Name",
+      isRowHeader: true,
+      allowsSorting: true,
+    },
+    {
+      id: "email",
+      name: "Email",
+      allowsSorting: true,
+    },
+    {
+      id: "role",
+      name: "Role",
+      allowsSorting: true,
+      render: (value) => {
+        const role = value as Role | null;
+        if (!role) return null;
+        return (
+          <span className={clsx(styles.roleBadge, roleClassMap[role])}>
+            {roleLabels[role] ?? role}
+          </span>
+        );
+      },
+    },
+    ...(canManage
+      ? [
+          {
+            id: "is_active" as const,
+            name: "Action" as const,
+            render: (_value: unknown, row: unknown) => {
+              const user = row as UserRow;
+              return (
+                <div className={styles.actions}>
+                  {user.role !== "Dev" && (
+                    <Button
+                      variant="ghost"
+                      aria-label={`Edit ${user.name}`}
+                      onPress={() => setModalTarget({ type: "edit", user })}
+                    >
+                      <FaPenToSquare className={styles.icon} />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    aria-label={`Deactivate ${user.name}`}
+                    onPress={() => setDeletingUser(user)}
+                  >
+                    <FaTrashCan className={styles.icon} />
+                  </Button>
+                </div>
+              );
+            },
+          } as ColumnDef<UserRow>,
+        ]
+      : []),
+  ];
+
   const emptyContent =
     debouncedSearch && items.length === 0 && !isLoading
       ? `No users matching "${debouncedSearch}"`
@@ -152,14 +167,16 @@ export function UserTable({ users: staticUsers }: UserTableProps) {
             aria-label="Search users"
           />
         </div>
-        <Button
-          variant="secondary"
-          className={styles.addButton}
-          aria-label="Add user"
-          onPress={() => setAddOpen(true)}
-        >
-          <FaPlus /> Add User
-        </Button>
+        {canManage && (
+          <Button
+            variant="secondary"
+            className={styles.addButton}
+            aria-label="Add user"
+            onPress={() => setModalTarget({ type: "add" })}
+          >
+            <FaPlus /> Add User
+          </Button>
+        )}
       </div>
       {isInitialLoad ? (
         <div className={styles.loadingContainer}>
@@ -175,11 +192,42 @@ export function UserTable({ users: staticUsers }: UserTableProps) {
           emptyContent={emptyContent}
         />
       )}
-      <AddUserModal
-        isOpen={isAddOpen}
-        onOpenChange={setAddOpen}
+      <UserFormModal
+        mode={modalTarget?.type ?? "add"}
+        user={modalTarget?.type === "edit" ? modalTarget.user : undefined}
+        isOpen={modalTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setModalTarget(null);
+        }}
         onSuccess={() => setRefreshKey((k) => k + 1)}
       />
+
+      <ConfirmDialog
+        isOpen={!!deletingUser}
+        onOpenChange={(open) => {
+          if (!open) setDeletingUser(null);
+        }}
+        title="Deactivate User"
+        confirmLabel="Deactivate"
+        onConfirm={async () => {
+          if (!deletingUser) return;
+          const result = await deactivateUserAction(deletingUser.id);
+          if (result.error) {
+            queue.add({ title: result.error });
+            return;
+          }
+          setDeletingUser(null);
+          setRefreshKey((k) => k + 1);
+          queue.add(
+            { title: "User deactivated", description: deletingUser.email },
+            { timeout: 5000 },
+          );
+        }}
+      >
+        Are you sure you want to deactivate{" "}
+        <strong>{deletingUser?.name ?? deletingUser?.email}</strong>? They won&apos;t be able to
+        sign in.
+      </ConfirmDialog>
     </div>
   );
 }

@@ -4,8 +4,7 @@ import Google from "next-auth/providers/google";
 
 import { syncUserFromGoogle, upsertDeveloperUser } from "@/features/users/mutations";
 import { getUserByEmail } from "@/features/users/queries";
-import { Role } from "@/generated/prisma/client";
-import { parseDeveloperEmails } from "@/lib/developer-emails";
+import { isDeveloperEmail } from "@/lib/developer-emails";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -31,13 +30,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return false;
       }
 
-      const developerWhitelist = parseDeveloperEmails();
-
-      // Get email and existing user
       const email = user.email;
       const existingUser = await getUserByEmail(email);
 
-      if (developerWhitelist.includes(email)) {
+      if (isDeveloperEmail(email)) {
+        if (existingUser && !existingUser.is_active) {
+          return false;
+        }
         await upsertDeveloperUser(email, user.name ?? "Developer Account", user.image);
         return true;
       }
@@ -46,23 +45,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return false;
       }
 
-      // The environment variable was removed, but a developer tries to log in.
-      if (existingUser.role === Role.Dev) {
-        return false;
-      }
-
       await syncUserFromGoogle(email, user.name ?? email, user.image);
 
       return true;
     },
 
-    async jwt({ token, user }) {
-      if (user && token.email) {
+    async jwt({ token }) {
+      if (token.email) {
         const dbUser = await getUserByEmail(token.email);
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.id = dbUser.id;
+        if (!dbUser || !dbUser.is_active) {
+          return null;
         }
+        token.role = dbUser.role;
+        token.id = dbUser.id;
       }
       return token;
     },

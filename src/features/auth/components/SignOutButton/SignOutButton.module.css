@@ -2,16 +2,3 @@
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
 }
-
-.message {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-2xl);
-  line-height: var(--line-height-normal);
-}
-
-.actions {
-  display: flex;
-  gap: var(--space-md);
-  justify-content: flex-end;
-}

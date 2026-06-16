@@ -112,7 +112,6 @@
 
   &[data-focused] {
     background: var(--color-brand-accent);
-    color: var(--color-text-inverse);
   }
 
   &[data-selected] {
@@ -139,9 +138,7 @@
 
   .checkIcon {
     position: absolute;
-    top: 50%;
     left: var(--space-sm);
-    translate: 0 -50%;
     width: var(--icon-size-xs);
     height: var(--icon-size-xs);
     flex-shrink: 0;

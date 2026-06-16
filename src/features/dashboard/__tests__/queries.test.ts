@@ -112,7 +112,7 @@ describe("getDashboardStats", () => {
         },
       }),
     );
-    expect(prisma.user.count).toHaveBeenCalledWith();
+    expect(prisma.user.count).toHaveBeenCalledWith({ where: { is_active: true } });
     expect(prisma.caseMilestone.count).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {

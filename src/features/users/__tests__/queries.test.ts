@@ -115,7 +115,7 @@ describe("getUsersPaginated", () => {
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       take: 4,
       skip: 0,
-      where: undefined,
+      where: { is_active: true },
       orderBy: { created_at: "desc" },
       select: userSelect,
     });
@@ -148,6 +148,7 @@ describe("getUsersPaginated", () => {
             { name: { contains: "alice", mode: "insensitive" } },
             { email: { contains: "alice", mode: "insensitive" } },
           ],
+          is_active: true,
         },
       }),
     );

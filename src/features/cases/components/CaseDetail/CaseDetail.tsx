@@ -1,14 +1,15 @@
 "use client";
 
-import { FaArrowLeft } from "react-icons/fa6";
+import { FaArrowLeft, FaCalendarCheck } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
+import overviewStyles from "@/components/ui/OverviewCard/OverviewCard.module.css";
+import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import type { CaseOverviewData } from "@/features/cases/queries";
 
 import styles from "./CaseDetail.module.css";
 import { CaseOverview } from "./CaseOverview";
-import { ConsultationCard } from "./ConsultationCard";
 import { ActivityLogTab } from "./tabs/ActivityLogTab";
 import { AttachmentsTab } from "./tabs/AttachmentsTab";
 import { MilestonesTab } from "./tabs/MilestonesTab";
@@ -27,7 +28,17 @@ export function CaseDetail({ overview }: Props) {
         <FaArrowLeft /> Back to Cases
       </Link>
 
-      <CaseOverview data={overview} />
+      <div className={overviewStyles.overviewRow}>
+        <CaseOverview data={overview} />
+        {overview.sourceConsultation && (
+          <RelatedLinkCard
+            href={`/consultation/${overview.sourceConsultation.id}`}
+            label="Source Consultation"
+            title={overview.sourceConsultation.concern}
+            icon={<FaCalendarCheck />}
+          />
+        )}
+      </div>
 
       <Tabs>
         <TabList aria-label="Case details">
@@ -59,10 +70,6 @@ export function CaseDetail({ overview }: Props) {
           </TabPanel>
         </TabPanels>
       </Tabs>
-
-      {overview.sourceConsultation && (
-        <ConsultationCard consultation={overview.sourceConsultation} />
-      )}
     </div>
   );
 }

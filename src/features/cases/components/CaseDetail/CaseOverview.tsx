@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 
+import overviewStyles from "@/components/ui/OverviewCard/OverviewCard.module.css";
 import type { CaseOverviewData } from "@/features/cases/queries";
 
 import styles from "./CaseOverview.module.css";
@@ -29,60 +30,64 @@ export function CaseOverview({ data }: Props) {
     }).format(new Date(d));
 
   return (
-    <div className={styles.card}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>{data.case_title}</h2>
-        <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
-      </div>
-
-      <div className={styles.grid}>
-        <div className={styles.field}>
-          <span className={styles.label}>Client Name</span>
-          <span className={styles.value}>{data.client.name}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Phone</span>
-          <span className={styles.value}>{data.client.phone_number ?? "—"}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Email</span>
-          <span className={styles.value}>{data.client.email ?? "—"}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Address</span>
-          <span className={styles.value}>{data.client.address ?? "—"}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Case Type</span>
-          <span className={styles.value}>{data.case_type}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Latest Milestone</span>
-          <span className={styles.value}>
-            {data.latestMilestone
-              ? `${data.latestMilestone.title} (${data.latestMilestone.status})`
-              : "—"}
+    <div className={overviewStyles.card}>
+      <div className={overviewStyles.mainContent}>
+        <div className={overviewStyles.header}>
+          <h2 className={overviewStyles.title}>{data.case_title}</h2>
+          <span className={clsx(overviewStyles.badge, statusClassMap[data.status])}>
+            {data.status}
           </span>
         </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Assigned Staff</span>
-          <span className={styles.value}>{data.assignTo || "—"}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Parties Involved</span>
-          <span className={styles.value}>{data.parties_involved ?? "—"}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Created By</span>
-          <span className={styles.value}>{data.createdBy.name}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Created At</span>
-          <span className={styles.value}>{formatDate(data.created_at)}</span>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.label}>Updated At</span>
-          <span className={styles.value}>{formatDate(data.updated_at)}</span>
+
+        <div className={overviewStyles.grid}>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Client Name</span>
+            <span className={overviewStyles.value}>{data.client.name}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Phone</span>
+            <span className={overviewStyles.value}>{data.client.phone_number ?? "—"}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Email</span>
+            <span className={overviewStyles.value}>{data.client.email ?? "—"}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Address</span>
+            <span className={overviewStyles.value}>{data.client.address ?? "—"}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Case Type</span>
+            <span className={overviewStyles.value}>{data.case_type}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Latest Milestone</span>
+            <span className={overviewStyles.value}>
+              {data.latestMilestone
+                ? `${data.latestMilestone.title} (${data.latestMilestone.status})`
+                : "—"}
+            </span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Assigned Staff</span>
+            <span className={overviewStyles.value}>{data.assignTo || "—"}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Parties Involved</span>
+            <span className={overviewStyles.value}>{data.parties_involved ?? "—"}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Created By</span>
+            <span className={overviewStyles.value}>{data.createdBy.name}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Created At</span>
+            <span className={overviewStyles.value}>{formatDate(data.created_at)}</span>
+          </div>
+          <div className={overviewStyles.field}>
+            <span className={overviewStyles.label}>Updated At</span>
+            <span className={overviewStyles.value}>{formatDate(data.updated_at)}</span>
+          </div>
         </div>
       </div>
     </div>

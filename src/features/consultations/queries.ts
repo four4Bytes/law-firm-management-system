@@ -36,7 +36,7 @@ export type ConsultationOverviewData = {
     address: string | null;
   };
   createdBy: { name: string };
-  casesCount: number;
+  relatedCase: { id: string; case_title: string } | null;
 };
 
 export const getConsultationOverviewById = cache(async (id: string) => {
@@ -45,7 +45,7 @@ export const getConsultationOverviewById = cache(async (id: string) => {
     include: {
       client: true,
       createdBy: { select: { name: true } },
-      _count: { select: { cases: true } },
+      cases: { select: { id: true, case_title: true }, take: 1 },
     },
   });
 
@@ -63,7 +63,7 @@ export const getConsultationOverviewById = cache(async (id: string) => {
       address: data.client.address,
     },
     createdBy: data.createdBy,
-    casesCount: data._count.cases,
+    relatedCase: data.cases[0] ?? null,
   } satisfies ConsultationOverviewData;
 });
 
@@ -231,69 +231,6 @@ export const getConsultationPaymentsPaginated = cache(
     return {
       rows,
       nextCursor: hasMore ? payments[payments.length - 1].id : null,
-    };
-  },
-);
-
-// ----- Cases (from this consultation) -----
-
-export type CaseRow = {
-  id: string;
-  case_title: string;
-  case_type: string;
-  status: string;
-  created_at: Date;
-};
-
-export const getConsultationCasesPaginated = cache(
-  async ({
-    consultationId,
-    search = "",
-    cursor,
-    pageSize = 20,
-  }: {
-    consultationId: string;
-    search?: string;
-    cursor?: string;
-    pageSize?: number;
-  }) => {
-    const where: Record<string, unknown> = { source_consultation_id: consultationId };
-    if (search) {
-      where.OR = [
-        { case_title: { contains: search, mode: "insensitive" as const } },
-        { case_type: { contains: search, mode: "insensitive" as const } },
-      ];
-    }
-
-    const cases = await prisma.case.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy: { created_at: "desc" },
-      select: {
-        id: true,
-        case_title: true,
-        case_type: true,
-        status: true,
-        created_at: true,
-      },
-    });
-
-    const hasMore = cases.length > pageSize;
-    if (hasMore) cases.pop();
-
-    const rows: CaseRow[] = cases.map((c) => ({
-      id: c.id,
-      case_title: c.case_title,
-      case_type: c.case_type,
-      status: c.status,
-      created_at: c.created_at,
-    }));
-
-    return {
-      rows,
-      nextCursor: hasMore ? cases[cases.length - 1].id : null,
     };
   },
 );

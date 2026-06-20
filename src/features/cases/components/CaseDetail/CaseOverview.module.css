@@ -31,7 +31,6 @@
 }
 
 .card {
-  flex: 1;
   min-width: 0;
   display: flex;
   background: var(--color-surface-bg);
@@ -73,11 +72,10 @@
 
     .bodyRow {
       display: flex;
-      gap: var(--space-3xl);
-      flex: 1;
+      flex-direction: column;
+      gap: var(--space-xl);
 
       .grid {
-        flex: 1;
         min-width: 0;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -102,10 +100,55 @@
           }
         }
       }
+    }
 
-      .linkColumn {
-        width: 12rem;
+    .relatedLink {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      align-self: flex-start;
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-surface-bg-alt);
+      border-left: 3px solid var(--color-brand-accent);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--color-text-primary);
+      transition: background var(--transition-base);
+
+      &:hover {
+        background: var(--color-surface-hover);
+      }
+
+      .relatedIcon {
+        color: var(--color-brand-accent);
+        font-size: var(--font-size-md);
         flex-shrink: 0;
+        display: flex;
+      }
+
+      .relatedLabel {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+      }
+
+      .relatedTitle {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-primary);
+        flex: 1;
+      }
+
+      .relatedArrow {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-sm);
+        flex-shrink: 0;
+        transition: transform var(--transition-base);
+      }
+
+      &:hover .relatedArrow {
+        transform: translateX(3px);
       }
     }
   }

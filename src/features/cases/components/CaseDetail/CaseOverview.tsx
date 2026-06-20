@@ -1,9 +1,9 @@
 "use client";
 
 import clsx from "clsx";
-import { FaCalendarCheck } from "react-icons/fa6";
+import NextLink from "next/link";
+import { FaArrowRight, FaCalendarCheck } from "react-icons/fa6";
 
-import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import type { CaseOverviewData } from "@/features/cases/queries";
 import { formatDateTime } from "@/lib/date";
 
@@ -85,14 +85,15 @@ export function CaseOverview({ data }: Props) {
             </div>
           </div>
           {data.sourceConsultation && (
-            <div className={styles.linkColumn}>
-              <RelatedLinkCard
-                href={`/consultation/${data.sourceConsultation.id}`}
-                label="Source Consultation"
-                title={data.sourceConsultation.concern}
-                icon={<FaCalendarCheck />}
-              />
-            </div>
+            <NextLink
+              href={`/consultation/${data.sourceConsultation.id}`}
+              className={styles.relatedLink}
+            >
+              <FaCalendarCheck className={styles.relatedIcon} />
+              <span className={styles.relatedLabel}>Source Consultation</span>
+              <span className={styles.relatedTitle}>{data.sourceConsultation.concern}</span>
+              <FaArrowRight className={styles.relatedArrow} />
+            </NextLink>
           )}
         </div>
       </div>

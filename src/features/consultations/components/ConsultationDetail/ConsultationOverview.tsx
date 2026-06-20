@@ -1,9 +1,9 @@
 "use client";
 
 import clsx from "clsx";
-import { FaGavel } from "react-icons/fa6";
+import NextLink from "next/link";
+import { FaArrowRight, FaGavel } from "react-icons/fa6";
 
-import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 import { formatDateTime } from "@/lib/date";
 
@@ -66,14 +66,12 @@ export function ConsultationOverview({ data }: Props) {
             </div>
           </div>
           {data.relatedCase && (
-            <div className={styles.linkColumn}>
-              <RelatedLinkCard
-                href={`/case/${data.relatedCase.id}`}
-                label="Related Case"
-                title={data.relatedCase.case_title}
-                icon={<FaGavel />}
-              />
-            </div>
+            <NextLink href={`/case/${data.relatedCase.id}`} className={styles.relatedLink}>
+              <FaGavel className={styles.relatedIcon} />
+              <span className={styles.relatedLabel}>Related Case</span>
+              <span className={styles.relatedTitle}>{data.relatedCase.case_title}</span>
+              <FaArrowRight className={styles.relatedArrow} />
+            </NextLink>
           )}
         </div>
       </div>

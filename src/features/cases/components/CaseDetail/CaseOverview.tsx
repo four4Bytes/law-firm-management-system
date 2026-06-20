@@ -1,7 +1,9 @@
 "use client";
 
 import clsx from "clsx";
+import { FaCalendarCheck } from "react-icons/fa6";
 
+import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import type { CaseOverviewData } from "@/features/cases/queries";
 
 import styles from "./CaseOverview.module.css";
@@ -36,55 +38,67 @@ export function CaseOverview({ data }: Props) {
           <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
         </div>
 
-        <div className={styles.grid}>
-          <div className={styles.field}>
-            <span className={styles.label}>Client Name</span>
-            <span className={styles.value}>{data.client.name}</span>
+        <div className={styles.bodyRow}>
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <span className={styles.label}>Client Name</span>
+              <span className={styles.value}>{data.client.name}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Phone</span>
+              <span className={styles.value}>{data.client.phone_number ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Email</span>
+              <span className={styles.value}>{data.client.email ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Address</span>
+              <span className={styles.value}>{data.client.address ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Case Type</span>
+              <span className={styles.value}>{data.case_type}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Latest Milestone</span>
+              <span className={styles.value}>
+                {data.latestMilestone
+                  ? `${data.latestMilestone.title} (${data.latestMilestone.status})`
+                  : "—"}
+              </span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Assigned Staff</span>
+              <span className={styles.value}>{data.assignTo || "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Parties Involved</span>
+              <span className={styles.value}>{data.parties_involved ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Created By</span>
+              <span className={styles.value}>{data.createdBy.name}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Created At</span>
+              <span className={styles.value}>{formatDate(data.created_at)}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Updated At</span>
+              <span className={styles.value}>{formatDate(data.updated_at)}</span>
+            </div>
           </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Phone</span>
-            <span className={styles.value}>{data.client.phone_number ?? "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Email</span>
-            <span className={styles.value}>{data.client.email ?? "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Address</span>
-            <span className={styles.value}>{data.client.address ?? "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Case Type</span>
-            <span className={styles.value}>{data.case_type}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Latest Milestone</span>
-            <span className={styles.value}>
-              {data.latestMilestone
-                ? `${data.latestMilestone.title} (${data.latestMilestone.status})`
-                : "—"}
-            </span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Assigned Staff</span>
-            <span className={styles.value}>{data.assignTo || "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Parties Involved</span>
-            <span className={styles.value}>{data.parties_involved ?? "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Created By</span>
-            <span className={styles.value}>{data.createdBy.name}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Created At</span>
-            <span className={styles.value}>{formatDate(data.created_at)}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Updated At</span>
-            <span className={styles.value}>{formatDate(data.updated_at)}</span>
-          </div>
+          {data.sourceConsultation && (
+            <div className={styles.linkColumn}>
+              <RelatedLinkCard
+                href={`/consultation/${data.sourceConsultation.id}`}
+                label="Source Consultation"
+                title={data.sourceConsultation.concern}
+                icon={<FaCalendarCheck />}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

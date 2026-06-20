@@ -1,7 +1,9 @@
 "use client";
 
 import clsx from "clsx";
+import { FaGavel } from "react-icons/fa6";
 
+import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 
 import styles from "./ConsultationOverview.module.css";
@@ -33,39 +35,51 @@ export function ConsultationOverview({ data }: Props) {
           <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
         </div>
 
-        <div className={styles.grid}>
-          <div className={styles.field}>
-            <span className={styles.label}>Client Name</span>
-            <span className={styles.value}>{data.client.name}</span>
+        <div className={styles.bodyRow}>
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <span className={styles.label}>Client Name</span>
+              <span className={styles.value}>{data.client.name}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Phone</span>
+              <span className={styles.value}>{data.client.phone_number ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Email</span>
+              <span className={styles.value}>{data.client.email ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Address</span>
+              <span className={styles.value}>{data.client.address ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Booking Date & Time</span>
+              <span className={styles.value}>{formatDate(data.booking_datetime)}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Created By</span>
+              <span className={styles.value}>{data.createdBy.name}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Created At</span>
+              <span className={styles.value}>{formatDate(data.created_at)}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Updated At</span>
+              <span className={styles.value}>{formatDate(data.updated_at)}</span>
+            </div>
           </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Phone</span>
-            <span className={styles.value}>{data.client.phone_number ?? "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Email</span>
-            <span className={styles.value}>{data.client.email ?? "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Address</span>
-            <span className={styles.value}>{data.client.address ?? "—"}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Booking Date & Time</span>
-            <span className={styles.value}>{formatDate(data.booking_datetime)}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Created By</span>
-            <span className={styles.value}>{data.createdBy.name}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Created At</span>
-            <span className={styles.value}>{formatDate(data.created_at)}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Updated At</span>
-            <span className={styles.value}>{formatDate(data.updated_at)}</span>
-          </div>
+          {data.relatedCase && (
+            <div className={styles.linkColumn}>
+              <RelatedLinkCard
+                href={`/case/${data.relatedCase.id}`}
+                label="Related Case"
+                title={data.relatedCase.case_title}
+                icon={<FaGavel />}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

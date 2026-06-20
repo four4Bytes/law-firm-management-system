@@ -1,9 +1,8 @@
 "use client";
 
-import { FaArrowLeft, FaGavel } from "react-icons/fa6";
+import { FaArrowLeft } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
-import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 
@@ -25,17 +24,7 @@ export function ConsultationDetail({ overview }: Props) {
         <FaArrowLeft /> Back to Consultations
       </Link>
 
-      <div className={styles.overviewRow}>
-        <ConsultationOverview data={overview} />
-        {overview.relatedCase && (
-          <RelatedLinkCard
-            href={`/case/${overview.relatedCase.id}`}
-            label="Related Case"
-            title={overview.relatedCase.case_title}
-            icon={<FaGavel />}
-          />
-        )}
-      </div>
+      <ConsultationOverview data={overview} />
 
       <Tabs>
         <TabList aria-label="Consultation details">

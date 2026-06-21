@@ -1,5 +1,5 @@
-.PHONY: dev dev-up dev-down dev-logs prod prod-up prod-down prod-build \
-        prod-logs prod-ps migrate-logs down clean reset help
+.PHONY: dev dev-up dev-down dev-reset prod prod-up prod-down prod-build \
+        prod-ps prod-reset down clean reset help
 
 DEV_COMPOSE := docker compose --env-file .env.dev
 PROD_COMPOSE := docker compose --env-file .env.prod
@@ -11,10 +11,16 @@ dev-up:          ## Start dev infra (db + minio)
 dev-down:        ## Stop dev infra
 	$(DEV_COMPOSE) down
 
-dev-logs:        ## Tail dev infra logs
-	$(DEV_COMPOSE) logs -f
+dev-reset:       ## Wipe dev volumes + restart fresh
+	$(DEV_COMPOSE) down -v
+	$(DEV_COMPOSE) up -d
 
-dev: dev-up      ## Start infra then pnpm dev (Ctrl+C to stop, infra keeps running)
+dev: dev-up      ## Infra → migrate → dev server (Ctrl+C to stop server, infra keeps running)
+	@echo "Waiting for Postgres..."
+	@until $(DEV_COMPOSE) exec -T db pg_isready -U testing 2>/dev/null; do sleep 1; done
+	@echo "Running migrations..."
+	pnpm prisma:deploy
+	@echo "Starting dev server..."
 	pnpm dev
 
 # ── Prod ─────────────────────────────────────────
@@ -29,25 +35,25 @@ prod: prod-build prod-up  ## Build + start prod
 prod-down:       ## Stop prod stack
 	$(PROD_COMPOSE) down
 
-prod-logs:       ## Tail prod logs
-	$(PROD_COMPOSE) logs -f
-
 prod-ps:         ## Show prod container status
 	$(PROD_COMPOSE) ps
 
-migrate-logs:    ## Show last migrate run logs
-	$(PROD_COMPOSE) logs migrate
+prod-reset:      ## Wipe prod volumes + rebuild + restart
+	$(PROD_COMPOSE) down -v
+	$(PROD_COMPOSE) build
+	$(PROD_COMPOSE) up -d
 
 # ── Docker Cleanup ───────────────────────────────
 down:            ## Stop all environments
 	$(DEV_COMPOSE) down
 	$(PROD_COMPOSE) down
 
-clean: down      ## Stop + remove volumes
+clean: down      ## Stop + remove all volumes (dev + prod)
 	$(DEV_COMPOSE) down -v
 	$(PROD_COMPOSE) down -v
 
-reset: clean     ## Full reset: clean volumes + rebuild prod
+reset: clean     ## Wipe everything + rebuild prod + restart dev+prod
+	$(DEV_COMPOSE) up -d
 	$(PROD_COMPOSE) build
 	$(PROD_COMPOSE) up -d
 

@@ -68,7 +68,7 @@
     "eslint-config-next": "16.2.4",
     "eslint-plugin-storybook": "^10.4.3",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.7",
+    "lint-staged": "^17.0.8",
     "playwright": "^1.60.0",
     "prettier": "^3.8.4",
     "prisma": "^7.8.0",

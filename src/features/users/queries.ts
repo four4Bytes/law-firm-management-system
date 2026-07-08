@@ -98,6 +98,7 @@ export const getUsersPaginated = cache(
     cursor,
     pageSize = 20,
     includeInactive = false,
+    sort,
   }: UserPageQuery): Promise<{
     users: Array<{
       id: string;
@@ -122,12 +123,23 @@ export const getUsersPaginated = cache(
 
     const where = { ...baseFilter, ...searchFilter };
 
+    const defaultOrderBy = { created_at: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "name"
+        ? [{ name: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "email"
+          ? [{ email: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "role"
+            ? [{ role: sort.direction }, { id: "asc" as const }]
+            : defaultOrderBy;
+
     const users = await prisma.user.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { created_at: "desc" },
+      orderBy,
       select: userSelect,
     });
 

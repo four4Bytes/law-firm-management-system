@@ -47,10 +47,15 @@ export function AttachmentsTab({ caseId }: Props) {
           </button>
         ),
       },
-      { id: "file_type", name: "Type" },
-      { id: "file_size", name: "Size" },
+      { id: "file_type", name: "Type", allowsSorting: true },
+      { id: "file_size", name: "Size", allowsSorting: true },
       { id: "uploadedBy", name: "Uploaded By" },
-      { id: "created_at", name: "Date", render: (value) => formatDateTime(value as Date) },
+      {
+        id: "created_at",
+        name: "Date",
+        allowsSorting: true,
+        render: (value) => formatDateTime(value as Date),
+      },
     ],
     [handleDownload],
   );

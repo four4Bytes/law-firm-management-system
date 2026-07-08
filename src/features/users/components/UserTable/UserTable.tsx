@@ -1,7 +1,8 @@
 "use client";
 
 import clsx from "clsx";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { type SortDescriptor } from "react-aria-components";
 import { FaPenToSquare, FaPlus, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -15,6 +16,7 @@ import { UserFormModal } from "@/features/users/components/UserFormModal/UserFor
 import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import type { Role } from "@/generated/prisma/client";
+import { toSortQuery } from "@/lib/sort";
 import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./UserTable.module.css";
@@ -46,20 +48,24 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
   const [isPending, startTransition] = useTransition();
 
   const isLoading = isPending || isLoadingMore;
   const useServerFetch = staticUsers === undefined;
 
   const debouncedSearch = useDebounce(search, 300);
+  const generationRef = useRef(0);
 
   useEffect(() => {
     if (!useServerFetch) return;
 
     let cancelled = false;
+    ++generationRef.current;
 
     startTransition(async () => {
-      const result = await getUsersPaginatedAction({ search: debouncedSearch, pageSize: 10 });
+      const sort = toSortQuery(sortDescriptor);
+      const result = await getUsersPaginatedAction({ search: debouncedSearch, sort, pageSize: 10 });
       if (cancelled) return;
       setItems(result.users);
       setCursor(result.nextCursor);
@@ -70,26 +76,30 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, startTransition, useServerFetch, refreshKey]);
+  }, [debouncedSearch, sortDescriptor, startTransition, useServerFetch, refreshKey]);
 
   const handleLoadMore = useCallback(async () => {
     if (!useServerFetch || isLoading || !hasMore || !cursor) return;
 
+    const gen = generationRef.current;
     setIsLoadingMore(true);
 
     try {
+      const sort = toSortQuery(sortDescriptor);
       const result = await getUsersPaginatedAction({
         search: debouncedSearch,
         cursor,
+        sort,
         pageSize: 10,
       });
+      if (gen !== generationRef.current) return;
       setItems((prev) => [...prev, ...result.users]);
       setCursor(result.nextCursor);
       setHasMore(result.nextCursor !== null);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [useServerFetch, isLoading, hasMore, cursor, debouncedSearch]);
+  }, [useServerFetch, isLoading, hasMore, cursor, debouncedSearch, sortDescriptor]);
 
   const columns: ColumnDef<UserRow>[] = [
     {
@@ -187,6 +197,8 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
         <DataTable
           columns={columns}
           rows={items}
+          sortDescriptor={sortDescriptor}
+          onSortChange={setSortDescriptor}
           hasMore={hasMore}
           onLoadMore={handleLoadMore}
           isLoading={isLoading}

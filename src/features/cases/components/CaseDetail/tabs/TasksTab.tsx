@@ -28,13 +28,19 @@ const columns: ColumnDef<TaskRow>[] = [
   {
     id: "status",
     name: "Status",
+    allowsSorting: true,
     render: (value) => {
       const s = value as string;
       return <span className={clsx(tabStyles.badge, statusClassMap[s])}>{s}</span>;
     },
   },
   { id: "assignTo", name: "Assigned To" },
-  { id: "updated_at", name: "Updated At", render: (value) => formatDateTime(value as Date) },
+  {
+    id: "updated_at",
+    name: "Updated At",
+    allowsSorting: true,
+    render: (value) => formatDateTime(value as Date),
+  },
 ];
 
 export function TasksTab({ caseId }: Props) {

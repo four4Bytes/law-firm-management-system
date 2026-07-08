@@ -24,6 +24,7 @@ export const getDocumentsPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
+    sort,
   }: DocumentPageQuery): Promise<{
     rows: DocumentRow[];
     nextCursor: string | null;
@@ -35,12 +36,25 @@ export const getDocumentsPaginated = cache(
       where.file_name = { contains: search, mode: "insensitive" as const };
     }
 
+    const defaultOrderBy = { created_at: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "file_name"
+        ? [{ file_name: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "file_type"
+          ? [{ file_type: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "file_size"
+            ? [{ file_size: sort.direction }, { id: "asc" as const }]
+            : sort?.column === "created_at"
+              ? [{ created_at: sort.direction }, { id: "asc" as const }]
+              : defaultOrderBy;
+
     const documents = await prisma.document.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { created_at: "desc" },
+      orderBy,
       include: {
         uploadedBy: { select: { name: true } },
       },

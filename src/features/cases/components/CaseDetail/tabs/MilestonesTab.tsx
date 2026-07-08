@@ -22,10 +22,16 @@ const statusClassMap: Record<string, string> = {
 
 const columns: ColumnDef<MilestoneRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
-  { id: "due_date", name: "Due Date", render: (value) => formatDate(value as Date) },
+  {
+    id: "due_date",
+    name: "Due Date",
+    allowsSorting: true,
+    render: (value) => formatDate(value as Date),
+  },
   {
     id: "status",
     name: "Status",
+    allowsSorting: true,
     render: (value) => {
       const s = value as string;
       return <span className={clsx(tabStyles.badge, statusClassMap[s])}>{s}</span>;

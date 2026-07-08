@@ -40,6 +40,7 @@ export const getCasesPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
+    sort,
   }: PageQuery): Promise<{
     cases: CaseRow[];
     nextCursor: string | null;
@@ -53,12 +54,25 @@ export const getCasesPaginated = cache(
         }
       : undefined;
 
+    const defaultOrderBy = { created_at: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "case_title"
+        ? [{ case_title: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "clientName"
+          ? [{ client: { name: sort.direction } }, { id: "asc" as const }]
+          : sort?.column === "case_type"
+            ? [{ case_type: sort.direction }, { id: "asc" as const }]
+            : sort?.column === "status"
+              ? [{ status: sort.direction }, { id: "asc" as const }]
+              : defaultOrderBy;
+
     const cases = await prisma.case.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { created_at: "desc" },
+      orderBy,
       select: caseSelect,
     });
 
@@ -163,6 +177,7 @@ export const getCaseTasksPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
+    sort,
   }: CasePageQuery): Promise<{
     rows: TaskRow[];
     nextCursor: string | null;
@@ -172,12 +187,23 @@ export const getCaseTasksPaginated = cache(
       ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
     };
 
+    const defaultOrderBy = { updated_at: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "title"
+        ? [{ title: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "status"
+          ? [{ status: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "updated_at"
+            ? [{ updated_at: sort.direction }, { id: "asc" as const }]
+            : defaultOrderBy;
+
     const tasks = await prisma.task.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { updated_at: "desc" },
+      orderBy,
       include: {
         taskAssignments: {
           include: { user: { select: { name: true } } },
@@ -224,12 +250,14 @@ export const getCaseNotesPaginated = cache(
       ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
     };
 
+    const orderBy = { created_at: "desc" } as const;
+
     const notes = await prisma.note.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { created_at: "desc" },
+      orderBy,
       include: {
         createdBy: { select: { name: true } },
       },
@@ -266,10 +294,11 @@ export const getCaseDocumentsPaginated = cache(
     search,
     cursor,
     pageSize,
+    sort,
   }: CasePageQuery): Promise<{
     rows: DocumentRow[];
     nextCursor: string | null;
-  }> => getDocumentsPaginated({ caseId, search, cursor, pageSize }),
+  }> => getDocumentsPaginated({ caseId, search, cursor, pageSize, sort }),
 );
 
 // ----- Milestones -----
@@ -287,6 +316,7 @@ export const getCaseMilestonesPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
+    sort,
   }: CasePageQuery): Promise<{
     rows: MilestoneRow[];
     nextCursor: string | null;
@@ -296,12 +326,23 @@ export const getCaseMilestonesPaginated = cache(
       ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
     };
 
+    const defaultOrderBy = { due_date: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "title"
+        ? [{ title: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "due_date"
+          ? [{ due_date: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "status"
+            ? [{ status: sort.direction }, { id: "asc" as const }]
+            : defaultOrderBy;
+
     const milestones = await prisma.caseMilestone.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { due_date: "desc" },
+      orderBy,
     });
 
     const hasMore = milestones.length > pageSize;
@@ -338,6 +379,7 @@ export const getCasePaymentsPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
+    sort,
   }: CasePageQuery): Promise<{
     rows: PaymentRow[];
     nextCursor: string | null;
@@ -351,12 +393,23 @@ export const getCasePaymentsPaginated = cache(
       ];
     }
 
+    const defaultOrderBy = { payment_date: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "amount"
+        ? [{ amount: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "payment_date"
+          ? [{ payment_date: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "status"
+            ? [{ status: sort.direction }, { id: "asc" as const }]
+            : defaultOrderBy;
+
     const payments = await prisma.payment.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { payment_date: "desc" },
+      orderBy,
     });
 
     const hasMore = payments.length > pageSize;

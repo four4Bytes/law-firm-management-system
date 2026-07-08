@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { type SortDescriptor } from "react-aria-components";
 import { FaPlus } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
+import { toSortQuery } from "@/lib/sort";
+import type { SortQuery } from "@/lib/types";
 import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./ServerDataTable.module.css";
@@ -16,6 +19,7 @@ interface ServerDataTableProps<T extends { id: string }> {
     search?: string;
     cursor?: string;
     pageSize?: number;
+    sort?: SortQuery;
   }) => Promise<{ rows: T[]; nextCursor: string | null }>;
   columns: ColumnDef<T>[];
   searchPlaceholder?: string;
@@ -50,6 +54,7 @@ export function ServerDataTable<T extends { id: string }>({
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
   const [isPending, startTransition] = useTransition();
 
   const isLoading = isPending || isLoadingMore;
@@ -60,11 +65,18 @@ export function ServerDataTable<T extends { id: string }>({
     fetchActionRef.current = fetchAction;
   });
 
+  const generationRef = useRef(0);
+
   useEffect(() => {
     let cancelled = false;
+    ++generationRef.current;
 
     startTransition(async () => {
-      const result = await fetchActionRef.current({ search: debouncedSearch, pageSize: 10 });
+      const result = await fetchActionRef.current({
+        search: debouncedSearch,
+        sort: toSortQuery(sortDescriptor),
+        pageSize: 10,
+      });
       if (cancelled) return;
       setItems(result.rows);
       setCursor(result.nextCursor);
@@ -75,25 +87,28 @@ export function ServerDataTable<T extends { id: string }>({
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, startTransition]);
+  }, [debouncedSearch, sortDescriptor, startTransition]);
 
   const handleLoadMore = useCallback(async () => {
     if (isLoading || !hasMore || !cursor) return;
 
+    const gen = generationRef.current;
     setIsLoadingMore(true);
     try {
       const result = await fetchActionRef.current({
         search: debouncedSearch,
         cursor,
+        sort: toSortQuery(sortDescriptor),
         pageSize: 10,
       });
+      if (gen !== generationRef.current) return;
       setItems((prev) => [...prev, ...result.rows]);
       setCursor(result.nextCursor);
       setHasMore(result.nextCursor !== null);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoading, hasMore, cursor, debouncedSearch]);
+  }, [isLoading, hasMore, cursor, debouncedSearch, sortDescriptor]);
 
   const computedEmptyContent =
     debouncedSearch && items.length === 0 && !isLoading
@@ -130,6 +145,8 @@ export function ServerDataTable<T extends { id: string }>({
         <DataTable
           columns={columns}
           rows={items}
+          sortDescriptor={sortDescriptor}
+          onSortChange={setSortDescriptor}
           selectionMode={selectionMode}
           selectionBehavior={selectionBehavior}
           hasMore={hasMore}

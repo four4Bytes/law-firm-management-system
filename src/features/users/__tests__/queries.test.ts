@@ -169,4 +169,36 @@ describe("getUsersPaginated", () => {
 
     await expect(getUsersPaginated({})).rejects.toThrow(error);
   });
+
+  it("sorts by name ascending", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+    await getUsersPaginated({ sort: { column: "name", direction: "asc" } });
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ name: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by email descending", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+    await getUsersPaginated({ sort: { column: "email", direction: "desc" } });
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ email: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by role ascending", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+    await getUsersPaginated({ sort: { column: "role", direction: "asc" } });
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ role: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("falls back to default orderBy for unknown sort column", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+    await getUsersPaginated({ sort: { column: "unknown", direction: "asc" } });
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { created_at: "desc" } }),
+    );
+  });
 });

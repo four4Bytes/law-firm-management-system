@@ -44,6 +44,7 @@ const columns: ColumnDef<CaseRow>[] = [
   {
     id: "status",
     name: "Status",
+    allowsSorting: true,
     render: (value) => {
       const status = value as string | null;
       if (!status) return null;

@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Collection, type Selection, type SortDescriptor } from "react-aria-components";
 
 import {
@@ -47,8 +47,8 @@ export interface DataTableProps<T extends { id: string }> {
 export function DataTable<T extends { id: string }>({
   columns,
   rows,
-  sortDescriptor: externalSortDescriptor,
-  onSortChange: externalOnSortChange,
+  sortDescriptor,
+  onSortChange,
   selectionMode = "none",
   selectionBehavior = "toggle",
   onSelectionChange,
@@ -60,26 +60,6 @@ export function DataTable<T extends { id: string }>({
   emptyContent,
   className,
 }: DataTableProps<T>) {
-  const [internalSortDescriptor, setInternalSortDescriptor] = useState<
-    SortDescriptor | undefined
-  >();
-
-  const sortDescriptor = externalSortDescriptor ?? internalSortDescriptor;
-  const setSortDescriptor = externalOnSortChange ?? setInternalSortDescriptor;
-
-  const sortedRows = useMemo(() => {
-    if (!sortDescriptor?.column) return rows;
-    const col = sortDescriptor.column as keyof T;
-    return [...rows].sort((a, b) => {
-      const aVal = a[col];
-      const bVal = b[col];
-      const aStr = aVal == null ? "" : String(aVal);
-      const bStr = bVal == null ? "" : String(bVal);
-      const cmp = aStr.localeCompare(bStr);
-      return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    });
-  }, [rows, sortDescriptor]);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -118,7 +98,7 @@ export function DataTable<T extends { id: string }>({
         selectionBehavior={selectionBehavior}
         onSelectionChange={onSelectionChange}
         sortDescriptor={sortDescriptor}
-        onSortChange={setSortDescriptor}
+        onSortChange={onSortChange}
       >
         <TableHeader>
           {columns.map((col) => (
@@ -134,7 +114,7 @@ export function DataTable<T extends { id: string }>({
           ))}
         </TableHeader>
         <TableBody renderEmptyState={emptyContent ? () => <>{emptyContent}</> : undefined}>
-          <Collection items={sortedRows}>
+          <Collection items={rows}>
             {(item: T) => (
               <Row
                 key={item.id}

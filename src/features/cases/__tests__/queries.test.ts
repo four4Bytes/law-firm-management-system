@@ -166,6 +166,46 @@ describe("getCasesPaginated", () => {
 
     await expect(getCasesPaginated({})).rejects.toThrow(error);
   });
+
+  it("sorts by case_title ascending", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([]);
+    await getCasesPaginated({ sort: { column: "case_title", direction: "asc" } });
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ case_title: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by clientName descending", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([]);
+    await getCasesPaginated({ sort: { column: "clientName", direction: "desc" } });
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ client: { name: "desc" } }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by case_type ascending", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([]);
+    await getCasesPaginated({ sort: { column: "case_type", direction: "asc" } });
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ case_type: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by status ascending", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([]);
+    await getCasesPaginated({ sort: { column: "status", direction: "asc" } });
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ status: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("falls back to default orderBy for unknown sort column", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([]);
+    await getCasesPaginated({ sort: { column: "unknown", direction: "asc" } });
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { created_at: "desc" } }),
+    );
+  });
 });
 
 describe("getCaseOverviewById", () => {
@@ -347,6 +387,38 @@ describe("getCaseTasksPaginated", () => {
     expect(result.rows).toEqual([]);
     expect(result.nextCursor).toBeNull();
   });
+
+  it("sorts by title ascending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getCaseTasksPaginated({ caseId: "1", sort: { column: "title", direction: "asc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ title: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by title descending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getCaseTasksPaginated({ caseId: "1", sort: { column: "title", direction: "desc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ title: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by status ascending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getCaseTasksPaginated({ caseId: "1", sort: { column: "status", direction: "asc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ status: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by updated_at descending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getCaseTasksPaginated({ caseId: "1", sort: { column: "updated_at", direction: "desc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ updated_at: "desc" }, { id: "asc" }] }),
+    );
+  });
 });
 
 describe("getCaseNotesPaginated", () => {
@@ -473,6 +545,50 @@ describe("getCaseMilestonesPaginated", () => {
 
     expect(result.rows).toEqual([]);
   });
+
+  it("sorts by title ascending", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
+    await getCaseMilestonesPaginated({
+      caseId: "1",
+      sort: { column: "title", direction: "asc" },
+    });
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ title: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by title descending", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
+    await getCaseMilestonesPaginated({
+      caseId: "1",
+      sort: { column: "title", direction: "desc" },
+    });
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ title: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by due_date ascending", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
+    await getCaseMilestonesPaginated({
+      caseId: "1",
+      sort: { column: "due_date", direction: "asc" },
+    });
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ due_date: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by status descending", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
+    await getCaseMilestonesPaginated({
+      caseId: "1",
+      sort: { column: "status", direction: "desc" },
+    });
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ status: "desc" }, { id: "asc" }] }),
+    );
+  });
 });
 
 describe("getCasePaymentsPaginated", () => {
@@ -551,6 +667,50 @@ describe("getCasePaymentsPaginated", () => {
     const result = await getCasePaymentsPaginated({ caseId: "1" });
 
     expect(result.rows).toEqual([]);
+  });
+
+  it("sorts by amount ascending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getCasePaymentsPaginated({
+      caseId: "1",
+      sort: { column: "amount", direction: "asc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ amount: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by amount descending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getCasePaymentsPaginated({
+      caseId: "1",
+      sort: { column: "amount", direction: "desc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ amount: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by payment_date ascending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getCasePaymentsPaginated({
+      caseId: "1",
+      sort: { column: "payment_date", direction: "asc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ payment_date: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by status descending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getCasePaymentsPaginated({
+      caseId: "1",
+      sort: { column: "status", direction: "desc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ status: "desc" }, { id: "asc" }] }),
+    );
   });
 });
 

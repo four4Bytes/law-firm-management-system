@@ -125,6 +125,46 @@ describe("getDocumentsPaginated", () => {
 
     await expect(getDocumentsPaginated({})).rejects.toThrow(error);
   });
+
+  it("sorts by file_name ascending", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([]);
+    await getDocumentsPaginated({ sort: { column: "file_name", direction: "asc" } });
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ file_name: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by file_name descending", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([]);
+    await getDocumentsPaginated({ sort: { column: "file_name", direction: "desc" } });
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ file_name: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by file_type ascending", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([]);
+    await getDocumentsPaginated({ sort: { column: "file_type", direction: "asc" } });
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ file_type: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by file_size descending", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([]);
+    await getDocumentsPaginated({ sort: { column: "file_size", direction: "desc" } });
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ file_size: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by created_at ascending", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([]);
+    await getDocumentsPaginated({ sort: { column: "created_at", direction: "asc" } });
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ created_at: "asc" }, { id: "asc" }] }),
+    );
+  });
 });
 
 describe("getDocumentById", () => {

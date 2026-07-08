@@ -29,12 +29,18 @@ const columns: ColumnDef<PaymentRow>[] = [
     allowsSorting: true,
     render: (value) => `$${(value as number).toFixed(2)}`,
   },
-  { id: "payment_date", name: "Date", render: (value) => formatDate(value as Date) },
+  {
+    id: "payment_date",
+    name: "Date",
+    allowsSorting: true,
+    render: (value) => formatDate(value as Date),
+  },
   { id: "payment_method", name: "Method" },
   { id: "receipt_number", name: "Receipt" },
   {
     id: "status",
     name: "Status",
+    allowsSorting: true,
     render: (value) => {
       const s = value as string;
       return <span className={clsx(tabStyles.badge, statusClassMap[s])}>{s}</span>;

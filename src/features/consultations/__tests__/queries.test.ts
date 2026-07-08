@@ -140,6 +140,54 @@ describe("getConsultationsPaginated", () => {
 
     await expect(getConsultationsPaginated({})).rejects.toThrow(error);
   });
+
+  it("sorts by concern ascending", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
+    await getConsultationsPaginated({ sort: { column: "concern", direction: "asc" } });
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ concern: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by clientName descending", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
+    await getConsultationsPaginated({ sort: { column: "clientName", direction: "desc" } });
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ client: { name: "desc" } }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by createdByName ascending", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
+    await getConsultationsPaginated({ sort: { column: "createdByName", direction: "asc" } });
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ createdBy: { name: "asc" } }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by booking_datetime descending", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
+    await getConsultationsPaginated({ sort: { column: "booking_datetime", direction: "desc" } });
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ booking_datetime: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by status ascending", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
+    await getConsultationsPaginated({ sort: { column: "status", direction: "asc" } });
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ status: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("falls back to default orderBy for unknown sort column", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
+    await getConsultationsPaginated({ sort: { column: "unknown", direction: "asc" } });
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { booking_datetime: "desc" } }),
+    );
+  });
 });
 
 describe("getConsultationOverviewById", () => {

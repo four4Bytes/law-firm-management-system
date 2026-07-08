@@ -33,6 +33,7 @@ export function AttachmentsTab({ consultationId }: Props) {
         id: "file_name",
         name: "File Name",
         isRowHeader: true,
+        allowsSorting: true,
         render: (value, row) => (
           <button
             className={tabStyles.fileLink}
@@ -46,10 +47,15 @@ export function AttachmentsTab({ consultationId }: Props) {
           </button>
         ),
       },
-      { id: "file_type", name: "Type" },
-      { id: "file_size", name: "Size" },
+      { id: "file_type", name: "Type", allowsSorting: true },
+      { id: "file_size", name: "Size", allowsSorting: true },
       { id: "uploadedBy", name: "Uploaded By" },
-      { id: "created_at", name: "Uploaded At", render: (value) => formatDateTime(value as Date) },
+      {
+        id: "created_at",
+        name: "Uploaded At",
+        allowsSorting: true,
+        render: (value) => formatDateTime(value as Date),
+      },
     ],
     [handleDownload],
   );

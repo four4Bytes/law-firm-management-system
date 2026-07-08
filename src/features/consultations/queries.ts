@@ -141,10 +141,11 @@ export const getConsultationDocumentsPaginated = cache(
     search,
     cursor,
     pageSize,
+    sort,
   }: ConsultationPageQuery): Promise<{
     rows: DocumentRow[];
     nextCursor: string | null;
-  }> => getDocumentsPaginated({ consultationId, search, cursor, pageSize }),
+  }> => getDocumentsPaginated({ consultationId, search, cursor, pageSize, sort }),
 );
 
 // ----- Payments -----
@@ -270,6 +271,7 @@ export const getConsultationsPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
+    sort,
   }: PageQuery): Promise<{
     consultations: ConsultationRow[];
     nextCursor: string | null;
@@ -283,12 +285,27 @@ export const getConsultationsPaginated = cache(
         }
       : undefined;
 
+    const defaultOrderBy = { booking_datetime: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "clientName"
+        ? [{ client: { name: sort.direction } }, { id: "asc" as const }]
+        : sort?.column === "concern"
+          ? [{ concern: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "createdByName"
+            ? [{ createdBy: { name: sort.direction } }, { id: "asc" as const }]
+            : sort?.column === "booking_datetime"
+              ? [{ booking_datetime: sort.direction }, { id: "asc" as const }]
+              : sort?.column === "status"
+                ? [{ status: sort.direction }, { id: "asc" as const }]
+                : defaultOrderBy;
+
     const consultations = await prisma.consultation.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { booking_datetime: "desc" },
+      orderBy,
       select: consultationSelect,
     });
 

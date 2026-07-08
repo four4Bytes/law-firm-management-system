@@ -45,8 +45,8 @@ export async function getConsultationDocumentsPaginatedAction(
 export async function getConsultationPaymentsPaginatedAction(
   params: ConsultationPageQuery,
 ): Promise<{ rows: PaymentRow[]; nextCursor: string | null }> {
-  const { consultationId, search, cursor, pageSize } = params;
-  return getConsultationPaymentsPaginated({ consultationId, search, cursor, pageSize });
+  const { consultationId, search, cursor, pageSize, sort } = params;
+  return getConsultationPaymentsPaginated({ consultationId, search, cursor, pageSize, sort });
 }
 
 export async function getConsultationActivityLogPaginatedAction(

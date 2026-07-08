@@ -33,8 +33,8 @@ export async function getCaseOverviewByIdAction(id: string): Promise<CaseOvervie
 export async function getCaseTasksPaginatedAction(
   params: CasePageQuery,
 ): Promise<{ rows: TaskRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize } = params;
-  return getCaseTasksPaginated({ caseId, search, cursor, pageSize });
+  const { caseId, search, cursor, pageSize, sort } = params;
+  return getCaseTasksPaginated({ caseId, search, cursor, pageSize, sort });
 }
 
 export async function getCaseNotesPaginatedAction(
@@ -54,15 +54,15 @@ export async function getCaseDocumentsPaginatedAction(
 export async function getCaseMilestonesPaginatedAction(
   params: CasePageQuery,
 ): Promise<{ rows: MilestoneRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize } = params;
-  return getCaseMilestonesPaginated({ caseId, search, cursor, pageSize });
+  const { caseId, search, cursor, pageSize, sort } = params;
+  return getCaseMilestonesPaginated({ caseId, search, cursor, pageSize, sort });
 }
 
 export async function getCasePaymentsPaginatedAction(
   params: CasePageQuery,
 ): Promise<{ rows: PaymentRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize } = params;
-  return getCasePaymentsPaginated({ caseId, search, cursor, pageSize });
+  const { caseId, search, cursor, pageSize, sort } = params;
+  return getCasePaymentsPaginated({ caseId, search, cursor, pageSize, sort });
 }
 
 export async function getCaseActivityLogPaginatedAction(

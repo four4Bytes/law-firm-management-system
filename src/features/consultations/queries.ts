@@ -165,6 +165,7 @@ export const getConsultationPaymentsPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
+    sort,
   }: ConsultationPageQuery): Promise<{
     rows: PaymentRow[];
     nextCursor: string | null;
@@ -178,12 +179,23 @@ export const getConsultationPaymentsPaginated = cache(
       ];
     }
 
+    const defaultOrderBy = { payment_date: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "amount"
+        ? [{ amount: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "payment_date"
+          ? [{ payment_date: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "status"
+            ? [{ status: sort.direction }, { id: "asc" as const }]
+            : defaultOrderBy;
+
     const payments = await prisma.payment.findMany({
       take: pageSize + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
-      orderBy: { payment_date: "desc" },
+      orderBy,
     });
 
     const hasMore = payments.length > pageSize;

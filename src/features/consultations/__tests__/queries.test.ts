@@ -400,6 +400,61 @@ describe("getConsultationPaymentsPaginated", () => {
 
     expect(result.rows).toEqual([]);
   });
+
+  it("sorts by amount ascending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getConsultationPaymentsPaginated({
+      consultationId: "1",
+      sort: { column: "amount", direction: "asc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ amount: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by amount descending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getConsultationPaymentsPaginated({
+      consultationId: "1",
+      sort: { column: "amount", direction: "desc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ amount: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by payment_date ascending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getConsultationPaymentsPaginated({
+      consultationId: "1",
+      sort: { column: "payment_date", direction: "asc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ payment_date: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by status descending", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getConsultationPaymentsPaginated({
+      consultationId: "1",
+      sort: { column: "status", direction: "desc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ status: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("falls back to default orderBy for unknown sort column", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    await getConsultationPaymentsPaginated({
+      consultationId: "1",
+      sort: { column: "unknown", direction: "asc" },
+    });
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { payment_date: "desc" } }),
+    );
+  });
 });
 
 describe("getConsultationActivityLogPaginated", () => {

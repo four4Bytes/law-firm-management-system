@@ -95,7 +95,7 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   const doc = await getDocumentById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
 
-  const url = await getPresignedDownloadUrl(doc.file_path);
+  const url = await getPresignedDownloadUrl(doc.file_path, doc.file_name);
 
   return { url, file_name: doc.file_name };
 }

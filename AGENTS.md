@@ -101,7 +101,16 @@
 - Input Validation with Zod: Every exported Server Action must validate its input via `z.safeParse()` before executing any business logic. Do not declare schemas inside action files; import them from feature-specific schema files (e.g., `@/features/cases/schemas`) so they can be reused by client forms.
 - String Hygiene & Parsing: Ensure all string parameters in schemas call `.trim().min(1)` and include a `.max()` constraint matching database limits to prevent malicious database exhaustion. Reject whitespace-only values.
 - Strict Parameter Assurances: Validate all structural parameters meticulously. Ensure IDs call `.uuid()` or `.cuid()`, and enforce strictly defined sets using `z.nativeEnum(PrismaEnum)`. Never accept raw string inputs to cast them inside the function body via `as`.
-- Standardized Action Responses: All Server Actions must wrap their execution blocks in try-catch structures and return an explicit `Promise<ActionResponse>`. Use `ActionDataResponse<T>` for queries/payloads, and `ActionStatusResponse` for data-less mutations. Never allow raw server exceptions to leak across the network boundary to the client.
+- Action Response Convention:
+  - Read actions (paginated queries, single-record fetches): Return data directly
+    (e.g., `Promise<{ rows: T[]; nextCursor: string | null }>`). Let framework error
+    boundaries handle failures — throw for unrecoverable errors. No wrapper needed.
+  - Write actions (create, update, delete): Wrap execution in try-catch and return
+    `Promise<ActionStatusResponse>`. Use `ActionDataResponse<T>` when returning
+    created/updated data alongside the status. This lets the client display inline
+    error messages (toasts) without navigating away.
+- Never allow raw server exceptions to leak to the client. For writes, catch and
+  return structured errors; for reads, the framework error boundary is sufficient.
 - Centralized Auth Guards: Invoke unified, centralized protection functions like `requireAuth()` (which returns a verified session) or `requireRole(...roles)` at the very top of the execution flow. Do not write inline, ad-hoc `auth()` verification logic inside individual actions.
 - Typed Payloads over Raw FormData: Client components must pass clean, typed objects to actions instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client side before triggering the transition boundary.
 
@@ -132,7 +141,7 @@
 
 ### Boundary Type Strictness
 
-- Explicit Returns at Boundaries: Always explicitly declare return types on public API endpoints, exported Server Actions, and shared hooks (e.g., `Promise<ActionResponse>`). This protects contracts and speeds up compilation times.
+- Explicit Returns at Boundaries: Always explicitly declare return types on public API endpoints, exported Server Actions, and shared hooks (e.g., `Promise<ActionStatusResponse>` for write actions). This protects contracts and speeds up compilation times.
 - Implicit Internal Returns: Allow TypeScript's native type inference engine to handle return types for internal, unexported helper functions or simple utility chains.
 
 ### Code Patterns

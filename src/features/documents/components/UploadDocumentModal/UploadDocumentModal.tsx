@@ -134,6 +134,12 @@ export function UploadDocumentModal({
       }
 
       if (failed === 0) {
+        queue.add(
+          {
+            title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded`,
+          },
+          { timeout: 5000 },
+        );
         resetState();
         onOpenChange(false);
         onSuccess();
@@ -163,6 +169,12 @@ export function UploadDocumentModal({
       }
 
       if (failed === 0) {
+        queue.add(
+          {
+            title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded`,
+          },
+          { timeout: 5000 },
+        );
         resetState();
         onOpenChange(false);
         onSuccess();

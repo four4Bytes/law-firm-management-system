@@ -9,14 +9,17 @@ export interface AuthenticatedUser {
 
 export async function requireAuth(): Promise<AuthenticatedUser> {
   const session = await auth();
-  if (!session?.user?.id) {
+  const user = session?.user;
+
+  if (!user?.id || !user.email || !user.role || !user.name) {
     throw new Error("Unauthorized");
   }
+
   return {
-    id: session.user.id,
-    email: session.user.email!,
-    role: session.user.role!,
-    name: session.user.name!,
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.name,
   };
 }
 

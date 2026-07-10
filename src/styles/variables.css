@@ -113,8 +113,8 @@ Plan: add more than one theme later
 
   /* Typography */
   --font-family-sans:
-    Roboto, "Segoe UI", -apple-system, system-ui, BlinkMacSystemFont, Oxygen, Ubuntu, Cantarell,
-    "Open Sans", "Helvetica Neue", sans-serif;
+    var(--font-roboto), Roboto, "Segoe UI", -apple-system, system-ui, BlinkMacSystemFont, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 
   /* Font sizes */
   --font-size-xs: 0.75rem;

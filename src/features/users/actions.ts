@@ -40,7 +40,11 @@ export async function checkDeveloperEmail(email: string): Promise<boolean> {
 }
 
 export async function createUserAction(email: string, role: string): Promise<ActionStatusResponse> {
-  await requireRole("Admin", "Dev");
+  try {
+    await requireRole("Admin", "Dev");
+  } catch {
+    return { success: false, error: "You don't have permission to create users." };
+  }
 
   const parsed = CreateUserSchema.safeParse({ email, role });
   if (!parsed.success) {

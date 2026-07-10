@@ -1,5 +1,9 @@
 import type { Preview } from "@storybook/nextjs-vite";
 
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/600.css";
+import "@fontsource/roboto/700.css";
 import "@/styles/globals.css";
 import "@/styles/variables.css";
 

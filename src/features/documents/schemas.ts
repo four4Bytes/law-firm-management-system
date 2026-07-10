@@ -11,21 +11,29 @@ export const DocumentPageQuerySchema = z.object({
   sort: SortQuerySchema.optional(),
 });
 
-export const DocumentUploadPayloadSchema = z.object({
-  file_name: z.string().trim().min(1).max(500),
-  file_type: z.string().trim().min(1).max(100),
-  case_id: z.uuid().nullable().optional(),
-  consultation_id: z.uuid().nullable().optional(),
-});
+export const DocumentUploadPayloadSchema = z
+  .object({
+    file_name: z.string().trim().min(1).max(500),
+    file_type: z.string().trim().min(1).max(100),
+    case_id: z.uuid().nullable().optional(),
+    consultation_id: z.uuid().nullable().optional(),
+  })
+  .refine(({ case_id, consultation_id }) => Boolean(case_id) !== Boolean(consultation_id), {
+    message: "Provide exactly one of case_id or consultation_id",
+  });
 
-export const DocumentConfirmPayloadSchema = z.object({
-  file_name: z.string().trim().min(1).max(500),
-  file_type: z.string().trim().min(1).max(100),
-  file_size: z.coerce.number().int().positive(),
-  file_path: z.string().trim().min(1).max(1000),
-  case_id: z.uuid().nullable().optional(),
-  consultation_id: z.uuid().nullable().optional(),
-});
+export const DocumentConfirmPayloadSchema = z
+  .object({
+    file_name: z.string().trim().min(1).max(500),
+    file_type: z.string().trim().min(1).max(100),
+    file_size: z.coerce.number().int().positive(),
+    file_path: z.string().trim().min(1).max(1000),
+    case_id: z.uuid().nullable().optional(),
+    consultation_id: z.uuid().nullable().optional(),
+  })
+  .refine(({ case_id, consultation_id }) => Boolean(case_id) !== Boolean(consultation_id), {
+    message: "Provide exactly one of case_id or consultation_id",
+  });
 
 export const DocumentIdSchema = z.object({
   documentId: z.uuid(),

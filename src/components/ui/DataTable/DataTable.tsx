@@ -47,7 +47,7 @@ export interface DataTableProps<T extends { id: string }> {
 export function DataTable<T extends { id: string }>({
   columns,
   rows,
-  sortDescriptor,
+  sortDescriptor: sortDescriptorProp,
   onSortChange,
   selectionMode = "none",
   selectionBehavior = "toggle",
@@ -62,6 +62,7 @@ export function DataTable<T extends { id: string }>({
 }: DataTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
@@ -97,8 +98,8 @@ export function DataTable<T extends { id: string }>({
         selectionMode={selectionMode}
         selectionBehavior={selectionBehavior}
         onSelectionChange={onSelectionChange}
-        sortDescriptor={sortDescriptor}
-        onSortChange={onSortChange}
+        sortDescriptor={sortDescriptorProp ?? sortDescriptor}
+        onSortChange={onSortChange ?? setSortDescriptor}
       >
         <TableHeader>
           {columns.map((col) => (

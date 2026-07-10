@@ -125,7 +125,11 @@ export async function updateUserAction(
 }
 
 export async function deactivateUserAction(id: string): Promise<ActionStatusResponse> {
-  await requireRole("Admin", "Dev");
+  try {
+    await requireRole("Admin", "Dev");
+  } catch {
+    return { success: false, error: "Only admins and developers can deactivate users." };
+  }
 
   const parsed = DeactivateUserSchema.safeParse({ id });
   if (!parsed.success) {

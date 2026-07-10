@@ -8,50 +8,95 @@ import {
   getConsultationsPaginated,
   type ActivityLogRow,
   type ConsultationOverviewData,
-  type ConsultationPageQuery,
   type ConsultationRow,
   type NoteRow,
   type PaymentRow,
 } from "@/features/consultations/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
-import type { PageQuery } from "@/lib/types";
+import { requireAuth } from "@/lib/auth-guards";
+import { PageQuerySchema } from "@/lib/schemas";
 
-export async function getConsultationsPaginatedAction(
-  params: PageQuery,
-): Promise<{ consultations: ConsultationRow[]; nextCursor: string | null }> {
-  return getConsultationsPaginated(params);
+import { ConsultationOverviewIdSchema, ConsultationPageQuerySchema } from "./schemas";
+
+export async function getConsultationsPaginatedAction(params: unknown): Promise<{
+  consultations: ConsultationRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = PageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getConsultationsPaginated(parsed.data);
 }
 
 export async function getConsultationOverviewByIdAction(
   id: string,
 ): Promise<ConsultationOverviewData> {
-  return getConsultationOverviewById(id);
+  await requireAuth();
+
+  const parsed = ConsultationOverviewIdSchema.safeParse({ id });
+  if (!parsed.success) {
+    throw new Error("Invalid consultation ID");
+  }
+
+  return getConsultationOverviewById(parsed.data.id);
 }
 
-export async function getConsultationNotesPaginatedAction(
-  params: ConsultationPageQuery,
-): Promise<{ rows: NoteRow[]; nextCursor: string | null }> {
-  const { consultationId, search, cursor, pageSize } = params;
-  return getConsultationNotesPaginated({ consultationId, search, cursor, pageSize });
+export async function getConsultationNotesPaginatedAction(params: unknown): Promise<{
+  rows: NoteRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = ConsultationPageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getConsultationNotesPaginated(parsed.data);
 }
 
-export async function getConsultationDocumentsPaginatedAction(
-  params: ConsultationPageQuery,
-): Promise<{ rows: DocumentRow[]; nextCursor: string | null }> {
-  const { consultationId, search, cursor, pageSize } = params;
-  return getDocumentsPaginated({ consultationId, search, cursor, pageSize });
+export async function getConsultationDocumentsPaginatedAction(params: unknown): Promise<{
+  rows: DocumentRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = ConsultationPageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getDocumentsPaginated(parsed.data);
 }
 
-export async function getConsultationPaymentsPaginatedAction(
-  params: ConsultationPageQuery,
-): Promise<{ rows: PaymentRow[]; nextCursor: string | null }> {
-  const { consultationId, search, cursor, pageSize, sort } = params;
-  return getConsultationPaymentsPaginated({ consultationId, search, cursor, pageSize, sort });
+export async function getConsultationPaymentsPaginatedAction(params: unknown): Promise<{
+  rows: PaymentRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = ConsultationPageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getConsultationPaymentsPaginated(parsed.data);
 }
 
-export async function getConsultationActivityLogPaginatedAction(
-  params: ConsultationPageQuery,
-): Promise<{ rows: ActivityLogRow[]; nextCursor: string | null }> {
-  const { consultationId, search, cursor, pageSize } = params;
-  return getConsultationActivityLogPaginated({ consultationId, search, cursor, pageSize });
+export async function getConsultationActivityLogPaginatedAction(params: unknown): Promise<{
+  rows: ActivityLogRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = ConsultationPageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getConsultationActivityLogPaginated(parsed.data);
 }

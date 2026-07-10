@@ -7,120 +7,136 @@ import {
   getUserByEmail,
   getUserById,
   getUsersPaginated,
-  type UserPageQuery,
   type UserRow,
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
-import { auth } from "@/lib/auth";
+import type { ActionStatusResponse } from "@/lib/action-response";
+import { requireRole } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 
-export async function getUsersPaginatedAction(
-  params: UserPageQuery,
-): Promise<{ users: UserRow[]; nextCursor: string | null }> {
-  return getUsersPaginated(params);
-}
+import {
+  CreateUserSchema,
+  DeactivateUserSchema,
+  UpdateUserSchema,
+  UserPageQuerySchema,
+} from "./schemas";
 
-const ALLOWED_ROLES = new Set(CREATABLE_ROLES);
+export async function getUsersPaginatedAction(params: unknown): Promise<{
+  users: UserRow[];
+  nextCursor: string | null;
+}> {
+  await requireRole("Admin", "Dev");
+
+  const parsed = UserPageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getUsersPaginated(parsed.data);
+}
 
 export async function checkDeveloperEmail(email: string): Promise<boolean> {
   return isDeveloperEmail(email);
 }
 
-export async function createUserAction(
-  email: string,
-  role: string,
-): Promise<{ error: string | null }> {
-  const session = await auth();
-  if (session?.user?.role !== "Admin" && session?.user?.role !== Role.Dev) {
-    return { error: "You don't have permission to create users." };
+export async function createUserAction(email: string, role: string): Promise<ActionStatusResponse> {
+  await requireRole("Admin", "Dev");
+
+  const parsed = CreateUserSchema.safeParse({ email, role });
+  if (!parsed.success) {
+    return { success: false, error: "Invalid email or role" };
   }
 
-  const isDevEmail = isDeveloperEmail(email);
-  const effectiveRole = isDevEmail ? Role.Dev : (role as Role);
+  const isDevEmail = isDeveloperEmail(parsed.data.email);
+  const effectiveRole = isDevEmail ? Role.Dev : parsed.data.role;
 
-  if (!isDevEmail && !ALLOWED_ROLES.has(effectiveRole)) {
-    return { error: "Invalid role." };
+  if (!isDevEmail && !(CREATABLE_ROLES as readonly string[]).includes(effectiveRole)) {
+    return { success: false, error: "Invalid role." };
   }
 
-  const existing = await getUserByEmail(email);
+  const existing = await getUserByEmail(parsed.data.email);
   if (existing) {
     if (existing.is_active) {
-      return { error: "A user with this email already exists." };
+      return { success: false, error: "A user with this email already exists." };
     }
     try {
       await updateUser(existing.id, { role: effectiveRole, is_active: true });
     } catch {
-      return { error: "Failed to reactivate user." };
+      return { success: false, error: "Failed to reactivate user." };
     }
-    return { error: null };
+    return { success: true };
   }
 
   try {
-    await createUser(email, effectiveRole);
+    await createUser(parsed.data.email, effectiveRole);
   } catch {
-    return { error: "Failed to create user." };
+    return { success: false, error: "Failed to create user." };
   }
-  return { error: null };
+  return { success: true };
 }
 
 export async function updateUserAction(
   id: string,
   email: string,
   role: string,
-): Promise<{ error: string | null }> {
-  const session = await auth();
-  if (session?.user?.role !== "Admin" && session?.user?.role !== Role.Dev) {
-    return { error: "You don't have permission to edit users." };
+): Promise<ActionStatusResponse> {
+  const session = await requireRole("Admin", "Dev");
+
+  const parsed = UpdateUserSchema.safeParse({ id, email, role });
+  if (!parsed.success) {
+    return { success: false, error: "Invalid input" };
   }
 
-  if (!ALLOWED_ROLES.has(role as Role)) {
-    return { error: "Invalid role." };
+  if (!(CREATABLE_ROLES as readonly string[]).includes(parsed.data.role)) {
+    return { success: false, error: "Invalid role." };
   }
 
-  const target = await getUserById(id);
+  const target = await getUserById(parsed.data.id);
   if (!target) {
-    return { error: "User not found." };
+    return { success: false, error: "User not found." };
   }
   if (target.role === Role.Dev) {
-    return { error: "Cannot edit developer accounts." };
+    return { success: false, error: "Cannot edit developer accounts." };
   }
-  if (session.user.role === Role.Dev && target.id === session.user.id) {
-    return { error: "Cannot edit your own account." };
+  if (session.role === Role.Dev && target.id === session.id) {
+    return { success: false, error: "Cannot edit your own account." };
   }
 
-  const existing = await getUserByEmail(email);
-  if (existing && existing.id !== id) {
-    return { error: "A user with this email already exists." };
+  const existing = await getUserByEmail(parsed.data.email);
+  if (existing && existing.id !== parsed.data.id) {
+    return { success: false, error: "A user with this email already exists." };
   }
 
   try {
-    await updateUser(id, { email, role: role as Role });
+    await updateUser(parsed.data.id, { email: parsed.data.email, role: parsed.data.role });
   } catch {
-    return { error: "Failed to update user." };
+    return { success: false, error: "Failed to update user." };
   }
-  return { error: null };
+  return { success: true };
 }
 
-export async function deactivateUserAction(id: string): Promise<{ error: string | null }> {
-  const session = await auth();
-  if (session?.user?.role !== "Admin" && session?.user?.role !== Role.Dev) {
-    return { error: "Only admins and developers can deactivate users." };
+export async function deactivateUserAction(id: string): Promise<ActionStatusResponse> {
+  await requireRole("Admin", "Dev");
+
+  const parsed = DeactivateUserSchema.safeParse({ id });
+  if (!parsed.success) {
+    return { success: false, error: "Invalid user ID" };
   }
 
-  const target = await getUserById(id);
+  const target = await getUserById(parsed.data.id);
   if (!target) {
-    return { error: "User not found." };
+    return { success: false, error: "User not found." };
   }
   if (target.role === Role.Admin || target.role === Role.Dev) {
-    const remaining = await countActiveAdminsAndDevs(id);
+    const remaining = await countActiveAdminsAndDevs(parsed.data.id);
     if (remaining === 0) {
-      return { error: "Cannot deactivate the last admin or developer." };
+      return { success: false, error: "Cannot deactivate the last admin or developer." };
     }
   }
   try {
-    await setUserActiveStatus(id, false);
+    await setUserActiveStatus(parsed.data.id, false);
   } catch {
-    return { error: "Failed to deactivate user." };
+    return { success: false, error: "Failed to deactivate user." };
   }
-  return { error: null };
+  return { success: true };
 }

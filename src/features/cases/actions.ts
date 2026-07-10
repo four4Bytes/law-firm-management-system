@@ -10,7 +10,6 @@ import {
   getCaseTasksPaginated,
   type ActivityLogRow,
   type CaseOverviewData,
-  type CasePageQuery,
   type CaseRow,
   type MilestoneRow,
   type NoteRow,
@@ -18,56 +17,116 @@ import {
   type TaskRow,
 } from "@/features/cases/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
-import type { PageQuery } from "@/lib/types";
+import { requireAuth } from "@/lib/auth-guards";
+import { PageQuerySchema } from "@/lib/schemas";
 
-export async function getCasesPaginatedAction(
-  params: PageQuery,
-): Promise<{ cases: CaseRow[]; nextCursor: string | null }> {
-  return getCasesPaginated(params);
+import { CaseOverviewIdSchema, CasePageQuerySchema } from "./schemas";
+
+export async function getCasesPaginatedAction(params: unknown): Promise<{
+  cases: CaseRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = PageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getCasesPaginated(parsed.data);
 }
 
 export async function getCaseOverviewByIdAction(id: string): Promise<CaseOverviewData> {
-  return getCaseOverviewById(id);
+  await requireAuth();
+
+  const parsed = CaseOverviewIdSchema.safeParse({ id });
+  if (!parsed.success) {
+    throw new Error("Invalid case ID");
+  }
+
+  return getCaseOverviewById(parsed.data.id);
 }
 
-export async function getCaseTasksPaginatedAction(
-  params: CasePageQuery,
-): Promise<{ rows: TaskRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize, sort } = params;
-  return getCaseTasksPaginated({ caseId, search, cursor, pageSize, sort });
+export async function getCaseTasksPaginatedAction(params: unknown): Promise<{
+  rows: TaskRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = CasePageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getCaseTasksPaginated(parsed.data);
 }
 
-export async function getCaseNotesPaginatedAction(
-  params: CasePageQuery,
-): Promise<{ rows: NoteRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize } = params;
-  return getCaseNotesPaginated({ caseId, search, cursor, pageSize });
+export async function getCaseNotesPaginatedAction(params: unknown): Promise<{
+  rows: NoteRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = CasePageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getCaseNotesPaginated(parsed.data);
 }
 
-export async function getCaseDocumentsPaginatedAction(
-  params: CasePageQuery,
-): Promise<{ rows: DocumentRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize } = params;
-  return getDocumentsPaginated({ caseId, search, cursor, pageSize });
+export async function getCaseDocumentsPaginatedAction(params: unknown): Promise<{
+  rows: DocumentRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = CasePageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getDocumentsPaginated(parsed.data);
 }
 
-export async function getCaseMilestonesPaginatedAction(
-  params: CasePageQuery,
-): Promise<{ rows: MilestoneRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize, sort } = params;
-  return getCaseMilestonesPaginated({ caseId, search, cursor, pageSize, sort });
+export async function getCaseMilestonesPaginatedAction(params: unknown): Promise<{
+  rows: MilestoneRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = CasePageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getCaseMilestonesPaginated(parsed.data);
 }
 
-export async function getCasePaymentsPaginatedAction(
-  params: CasePageQuery,
-): Promise<{ rows: PaymentRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize, sort } = params;
-  return getCasePaymentsPaginated({ caseId, search, cursor, pageSize, sort });
+export async function getCasePaymentsPaginatedAction(params: unknown): Promise<{
+  rows: PaymentRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = CasePageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getCasePaymentsPaginated(parsed.data);
 }
 
-export async function getCaseActivityLogPaginatedAction(
-  params: CasePageQuery,
-): Promise<{ rows: ActivityLogRow[]; nextCursor: string | null }> {
-  const { caseId, search, cursor, pageSize } = params;
-  return getCaseActivityLogPaginated({ caseId, search, cursor, pageSize });
+export async function getCaseActivityLogPaginatedAction(params: unknown): Promise<{
+  rows: ActivityLogRow[];
+  nextCursor: string | null;
+}> {
+  await requireAuth();
+
+  const parsed = CasePageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getCaseActivityLogPaginated(parsed.data);
 }

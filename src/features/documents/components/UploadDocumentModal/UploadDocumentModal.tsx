@@ -71,7 +71,7 @@ export function UploadDocumentModal({
           throw new Error(`Upload failed (HTTP ${response.status})`);
         }
 
-        await confirmDocumentUploadAction({
+        const result = await confirmDocumentUploadAction({
           file_name: file.name,
           file_type: file.type,
           file_size: file.size,
@@ -79,6 +79,10 @@ export function UploadDocumentModal({
           case_id: caseId,
           consultation_id: consultationId,
         });
+
+        if (!result.success) {
+          throw new Error(result.error ?? "Failed to confirm upload");
+        }
 
         setFile(null);
         setPickerKey((k) => k + 1);

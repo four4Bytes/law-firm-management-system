@@ -8,17 +8,28 @@ import {
   type RecentCaseRow,
   type UpcomingConsultationRow,
 } from "@/features/dashboard/queries";
+import { requireAuth } from "@/lib/auth-guards";
+import { LimitSchema } from "@/lib/schemas";
 
-export async function getRecentCasesAction(limit = 10): Promise<RecentCaseRow[]> {
-  return getRecentCases(limit);
+export async function getRecentCasesAction(limit?: number): Promise<RecentCaseRow[]> {
+  await requireAuth();
+
+  const parsed = LimitSchema.safeParse(limit);
+  return getRecentCases(parsed.data ?? 10);
 }
 
 export async function getUpcomingConsultationsAction(
-  limit = 10,
+  limit?: number,
 ): Promise<UpcomingConsultationRow[]> {
-  return getUpcomingConsultations(limit);
+  await requireAuth();
+
+  const parsed = LimitSchema.safeParse(limit);
+  return getUpcomingConsultations(parsed.data ?? 10);
 }
 
-export async function getOverdueMilestonesAction(limit = 5): Promise<OverdueMilestoneRow[]> {
-  return getOverdueMilestones(limit);
+export async function getOverdueMilestonesAction(limit?: number): Promise<OverdueMilestoneRow[]> {
+  await requireAuth();
+
+  const parsed = LimitSchema.safeParse(limit);
+  return getOverdueMilestones(parsed.data ?? 5);
 }

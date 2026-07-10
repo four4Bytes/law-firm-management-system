@@ -28,7 +28,7 @@ export function ConsultationDetail({ overview }: Props) {
 
       <Tabs>
         <TabList aria-label="Consultation details">
-          <Tab id="notes">Notes/Memos</Tab>
+          <Tab id="notes">Notes</Tab>
           <Tab id="attachments">Attachments</Tab>
           <Tab id="payments">Payment Log</Tab>
           <Tab id="activity">Activity Log</Tab>

@@ -31,7 +31,7 @@ export function CaseDetail({ overview }: Props) {
       <Tabs>
         <TabList aria-label="Case details">
           <Tab id="tasks">Tasks</Tab>
-          <Tab id="notes">Notes/Memos</Tab>
+          <Tab id="notes">Notes</Tab>
           <Tab id="attachments">Attachments</Tab>
           <Tab id="milestones">Milestone</Tab>
           <Tab id="payments">Payment Log</Tab>

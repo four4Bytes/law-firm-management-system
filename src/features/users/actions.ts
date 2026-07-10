@@ -84,7 +84,12 @@ export async function updateUserAction(
   email: string,
   role: string,
 ): Promise<ActionStatusResponse> {
-  const session = await requireRole("Admin", "Dev");
+  let session: { id: string; role: string };
+  try {
+    session = await requireRole("Admin", "Dev");
+  } catch {
+    return { success: false, error: "You don't have permission to edit users." };
+  }
 
   const parsed = UpdateUserSchema.safeParse({ id, email, role });
   if (!parsed.success) {

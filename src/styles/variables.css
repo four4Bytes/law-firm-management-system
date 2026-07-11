@@ -182,6 +182,6 @@ Plan: add more than one theme later
 @media (min-width: 48rem) {
   :root {
     --page-padding: var(--space-3xl);
-    --modal-max-width: 500px;
+    --modal-max-width: 700px;
   }
 }

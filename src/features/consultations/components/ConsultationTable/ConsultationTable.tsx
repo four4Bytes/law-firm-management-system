@@ -2,10 +2,12 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
+import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
 import type { ConsultationRow } from "@/features/consultations/queries";
 import { formatDateTime } from "@/lib/date";
 
@@ -59,23 +61,40 @@ const columns: ColumnDef<ConsultationRow>[] = [
 
 export function ConsultationTable() {
   const router = useRouter();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
-    <ServerDataTable
-      fetchAction={async (p) => {
-        const result = await getConsultationsPaginatedAction(p);
-        return { rows: result.consultations, nextCursor: result.nextCursor };
-      }}
-      columns={columns}
-      searchPlaceholder="Search consultations..."
-      emptyContent="No consultations yet"
-      loadingMessage="Loading consultations..."
-      searchLabel="Search consultations"
-      selectionMode="single"
-      selectionBehavior="replace"
-      onRowAction={(id) => router.push(`/consultation/${id}`)}
-      renderAddButton
-      addButtonLabel="Add Consultation"
-    />
+    <>
+      <ServerDataTable
+        fetchAction={async (p) => {
+          const result = await getConsultationsPaginatedAction(p);
+          return { rows: result.consultations, nextCursor: result.nextCursor };
+        }}
+        columns={columns}
+        searchPlaceholder="Search consultations..."
+        emptyContent="No consultations yet"
+        loadingMessage="Loading consultations..."
+        searchLabel="Search consultations"
+        selectionMode="single"
+        selectionBehavior="replace"
+        onRowAction={(id) => router.push(`/consultation/${id}`)}
+        renderAddButton
+        addButtonLabel="Add Consultation"
+        onAddButtonPress={() => setIsAddOpen(true)}
+        refreshTrigger={refreshTrigger}
+      />
+
+      {isAddOpen && (
+        <AddConsultationModal
+          isOpen={isAddOpen}
+          onOpenChange={setIsAddOpen}
+          onSuccess={() => {
+            setIsAddOpen(false);
+            setRefreshTrigger((t) => t + 1);
+          }}
+        />
+      )}
+    </>
   );
 }

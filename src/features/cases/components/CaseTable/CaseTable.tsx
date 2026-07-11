@@ -2,10 +2,12 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { getCasesPaginatedAction } from "@/features/cases/actions";
+import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
 import type { CaseRow } from "@/features/cases/queries";
 
 import styles from "./CaseTable.module.css";
@@ -55,23 +57,40 @@ const columns: ColumnDef<CaseRow>[] = [
 
 export function CaseTable() {
   const router = useRouter();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
-    <ServerDataTable
-      fetchAction={async (p) => {
-        const result = await getCasesPaginatedAction(p);
-        return { rows: result.cases, nextCursor: result.nextCursor };
-      }}
-      columns={columns}
-      searchPlaceholder="Search cases..."
-      emptyContent="No cases yet"
-      loadingMessage="Loading cases..."
-      searchLabel="Search cases"
-      selectionMode="single"
-      selectionBehavior="replace"
-      onRowAction={(id) => router.push(`/case/${id}`)}
-      renderAddButton
-      addButtonLabel="Add Case"
-    />
+    <>
+      <ServerDataTable
+        fetchAction={async (p) => {
+          const result = await getCasesPaginatedAction(p);
+          return { rows: result.cases, nextCursor: result.nextCursor };
+        }}
+        columns={columns}
+        searchPlaceholder="Search cases..."
+        emptyContent="No cases yet"
+        loadingMessage="Loading cases..."
+        searchLabel="Search cases"
+        selectionMode="single"
+        selectionBehavior="replace"
+        onRowAction={(id) => router.push(`/case/${id}`)}
+        renderAddButton
+        addButtonLabel="Add Case"
+        onAddButtonPress={() => setIsAddOpen(true)}
+        refreshTrigger={refreshTrigger}
+      />
+
+      {isAddOpen && (
+        <AddCaseModal
+          isOpen={isAddOpen}
+          onOpenChange={setIsAddOpen}
+          onSuccess={() => {
+            setIsAddOpen(false);
+            setRefreshTrigger((t) => t + 1);
+          }}
+        />
+      )}
+    </>
   );
 }

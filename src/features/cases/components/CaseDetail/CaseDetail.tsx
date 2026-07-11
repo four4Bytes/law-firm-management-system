@@ -1,9 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
+import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseOverviewData } from "@/features/cases/queries";
 
 import styles from "./CaseDetail.module.css";
@@ -20,13 +23,16 @@ interface Props {
 }
 
 export function CaseDetail({ overview }: Props) {
+  const router = useRouter();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
   return (
     <div className={styles.detail}>
       <Link href="/case" className={styles.backLink}>
         <FaArrowLeft /> Back to Cases
       </Link>
 
-      <CaseOverview data={overview} />
+      <CaseOverview data={overview} onEdit={() => setIsEditOpen(true)} />
 
       <Tabs>
         <TabList aria-label="Case details">
@@ -58,6 +64,22 @@ export function CaseDetail({ overview }: Props) {
           </TabPanel>
         </TabPanels>
       </Tabs>
+
+      {isEditOpen && (
+        <EditCaseModal
+          isOpen={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          caseId={overview.id}
+          onSuccess={() => {
+            setIsEditOpen(false);
+            router.refresh();
+          }}
+          onDeleted={() => {
+            setIsEditOpen(false);
+            router.push("/case");
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import clsx from "clsx";
-import { FaCalendarCheck } from "react-icons/fa6";
+import { FaCalendarCheck, FaPenToSquare } from "react-icons/fa6";
 
+import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import type { CaseOverviewData } from "@/features/cases/queries";
 import { formatDateTime } from "@/lib/date";
@@ -11,6 +12,7 @@ import styles from "./CaseOverview.module.css";
 
 interface Props {
   data: CaseOverviewData;
+  onEdit?: () => void;
 }
 
 const statusClassMap: Record<string, string> = {
@@ -24,13 +26,23 @@ const statusClassMap: Record<string, string> = {
   Cancelled: styles.statusCancelled,
 };
 
-export function CaseOverview({ data }: Props) {
+export function CaseOverview({ data, onEdit }: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
         <div className={styles.header}>
           <h2 className={styles.title}>{data.case_title}</h2>
           <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
+          {onEdit && (
+            <Button
+              variant="ghost"
+              aria-label="Edit case"
+              className={styles.editButton}
+              onPress={onEdit}
+            >
+              <FaPenToSquare /> Edit
+            </Button>
+          )}
         </div>
 
         <div className={styles.bodyRow}>

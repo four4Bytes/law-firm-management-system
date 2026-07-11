@@ -1,9 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
+import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 
 import styles from "./ConsultationDetail.module.css";
@@ -18,13 +21,16 @@ interface Props {
 }
 
 export function ConsultationDetail({ overview }: Props) {
+  const router = useRouter();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
   return (
     <div className={styles.detail}>
       <Link href="/consultation" className={styles.backLink}>
         <FaArrowLeft /> Back to Consultations
       </Link>
 
-      <ConsultationOverview data={overview} />
+      <ConsultationOverview data={overview} onEdit={() => setIsEditOpen(true)} />
 
       <Tabs>
         <TabList aria-label="Consultation details">
@@ -48,6 +54,22 @@ export function ConsultationDetail({ overview }: Props) {
           </TabPanel>
         </TabPanels>
       </Tabs>
+
+      {isEditOpen && (
+        <EditConsultationModal
+          isOpen={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          consultationId={overview.id}
+          onSuccess={() => {
+            setIsEditOpen(false);
+            router.refresh();
+          }}
+          onDeleted={() => {
+            setIsEditOpen(false);
+            router.push("/consultation");
+          }}
+        />
+      )}
     </div>
   );
 }

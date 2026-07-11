@@ -68,6 +68,10 @@
         text-transform: uppercase;
         color: var(--color-text-inverse);
       }
+
+      .editButton {
+        margin-left: auto;
+      }
     }
 
     .bodyRow {

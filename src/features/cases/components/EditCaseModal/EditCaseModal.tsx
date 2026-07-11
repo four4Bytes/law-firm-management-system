@@ -1,0 +1,313 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { z } from "zod";
+
+import { Button } from "@/components/ui/Button/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { Modal } from "@/components/ui/Modal/Modal";
+import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { Select, SelectItem } from "@/components/ui/Select/Select";
+import { TextField } from "@/components/ui/TextField/TextField";
+import { queue } from "@/components/ui/Toast/Toast";
+import { deleteCaseAction, getCaseForEditAction, updateCaseAction } from "@/features/cases/actions";
+import { CaseUpdatePayloadSchema } from "@/features/cases/schemas";
+import { getClientForEditAction, updateClientAction } from "@/features/clients/actions";
+import { CaseStatus } from "@/generated/prisma/browser";
+import { useModalForm } from "@/lib/useModalForm";
+
+import styles from "./EditCaseModal.module.css";
+
+const STATUS_OPTIONS = Object.values(CaseStatus);
+
+interface EditCaseModalProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onSuccess: () => void;
+  onDeleted: () => void;
+  caseId: string | null;
+}
+
+export function EditCaseModal({
+  isOpen,
+  onOpenChange,
+  onSuccess,
+  onDeleted,
+  caseId,
+}: EditCaseModalProps) {
+  const [caseData, setCaseData] = useState<{
+    id: string;
+    client_id: string;
+    case_title: string;
+    case_type: string;
+    status: string;
+    parties_involved: string | null;
+  } | null>(null);
+
+  const [clientId, setClientId] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
+
+  const [caseTitle, setCaseTitle] = useState("");
+  const [caseType, setCaseType] = useState<string>("");
+  const [status, setStatus] = useState<CaseStatus>(CaseStatus.Open);
+  const [partiesInvolved, setPartiesInvolved] = useState("");
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const { handleCancel } = useModalForm<z.input<typeof CaseUpdatePayloadSchema>>({
+    submit: updateCaseAction,
+    onOpenChange,
+    onSuccess,
+    successMessage: "Case updated",
+    failureMessage: "Failed to update case",
+  });
+
+  function handleDismiss() {
+    if (isSaving || isDeleting) return;
+    handleCancel();
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const data = await getCaseForEditAction(caseId ?? "");
+        if (cancelled) return;
+
+        if (data) {
+          setCaseData(data);
+          setClientId(data.client_id);
+          setCaseTitle(data.case_title);
+          setCaseType(data.case_type);
+          setStatus(data.status as CaseStatus);
+          setPartiesInvolved(data.parties_involved ?? "");
+
+          const clientRes = await getClientForEditAction(data.client_id);
+          if (cancelled) return;
+
+          if (clientRes.success && clientRes.data) {
+            setClientName(clientRes.data.name);
+            setClientEmail(clientRes.data.email ?? "");
+            setClientPhone(clientRes.data.phone_number ?? "");
+            setClientAddress(clientRes.data.address ?? "");
+          }
+        } else {
+          setCaseData(null);
+        }
+      } catch {
+        if (cancelled) return;
+        setCaseData(null);
+        queue.add({ title: "Failed to load case" }, { timeout: 5000 });
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, caseId]);
+
+  async function handleSave() {
+    if (!clientId || !clientName.trim() || !caseTitle.trim() || !caseId || isSaving) return;
+
+    setIsSaving(true);
+
+    const clientResult = await updateClientAction({
+      id: clientId,
+      name: clientName.trim(),
+      email: clientEmail.trim() || undefined,
+      phone_number: clientPhone.trim() || undefined,
+      address: clientAddress.trim() || undefined,
+    });
+
+    if (!clientResult.success) {
+      setIsSaving(false);
+      queue.add({ title: clientResult.error ?? "Failed to update client" }, { timeout: 5000 });
+      return;
+    }
+
+    const caseResult = await updateCaseAction({
+      id: caseId,
+      client_id: clientId,
+      case_title: caseTitle.trim(),
+      case_type: caseType,
+      status,
+      parties_involved: partiesInvolved.trim() || undefined,
+    });
+
+    setIsSaving(false);
+
+    if (!caseResult.success) {
+      queue.add({ title: caseResult.error ?? "Failed to update case" }, { timeout: 5000 });
+      return;
+    }
+
+    onOpenChange(false);
+    onSuccess();
+  }
+
+  async function handleDelete() {
+    if (!caseId) return;
+    setIsDeleting(true);
+
+    const result = await deleteCaseAction(caseId);
+
+    setIsDeleting(false);
+    setShowDeleteConfirm(false);
+
+    if (result.success) {
+      queue.add({ title: "Case deleted" }, { timeout: 5000 });
+      onOpenChange(false);
+      onDeleted();
+    } else {
+      queue.add({ title: result.error ?? "Failed to delete case" }, { timeout: 5000 });
+    }
+  }
+
+  const isLoadingData = isOpen && caseData == null;
+  const isValid =
+    clientId.length > 0 && clientName.trim().length > 0 && caseTitle.trim().length > 0;
+
+  if (isLoadingData) {
+    return (
+      <Modal
+        title="Edit Case"
+        isOpen={isOpen}
+        onOpenChange={handleDismiss}
+        className={styles.modal}
+      >
+        <div className={styles.loadingContainer}>
+          <ProgressCircle aria-label="Loading case" />
+        </div>
+      </Modal>
+    );
+  }
+
+  if (!caseData) {
+    return (
+      <Modal
+        title="Edit Case"
+        isOpen={isOpen}
+        onOpenChange={handleDismiss}
+        className={styles.modal}
+      >
+        <div className={styles.loadingContainer}>
+          <span>Case not found.</span>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <>
+      <Modal
+        title="Edit Case"
+        isOpen={isOpen}
+        onOpenChange={handleDismiss}
+        className={styles.modal}
+      >
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            <TextField
+              label="Client Name"
+              value={clientName}
+              onChange={setClientName}
+              isDisabled={isSaving || isDeleting}
+            />
+            <TextField
+              label="Email"
+              value={clientEmail}
+              onChange={setClientEmail}
+              placeholder="Optional"
+              isDisabled={isSaving || isDeleting}
+            />
+            <TextField
+              label="Phone"
+              value={clientPhone}
+              onChange={setClientPhone}
+              placeholder="Optional"
+              isDisabled={isSaving || isDeleting}
+            />
+            <TextField
+              label="Address"
+              value={clientAddress}
+              onChange={setClientAddress}
+              placeholder="Optional"
+              isTextArea
+              rows={3}
+              isDisabled={isSaving || isDeleting}
+            />
+          </div>
+          <div className={styles.divider} />
+          <div className={styles.column}>
+            <TextField
+              label="Case Title"
+              value={caseTitle}
+              onChange={setCaseTitle}
+              isDisabled={isSaving || isDeleting}
+            />
+            <TextField
+              label="Case Type"
+              value={caseType}
+              onChange={setCaseType}
+              placeholder="e.g. Civil, Corporate"
+              isDisabled={isSaving || isDeleting}
+            />
+            <Select
+              label="Status"
+              value={status}
+              onChange={(k) => setStatus(String(k) as CaseStatus)}
+              isDisabled={isSaving || isDeleting}
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} id={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </Select>
+            <TextField
+              label="Parties Involved"
+              value={partiesInvolved}
+              onChange={setPartiesInvolved}
+              isTextArea
+              rows={3}
+              isDisabled={isSaving || isDeleting}
+            />
+          </div>
+        </div>
+        <div className={styles.actions}>
+          <Button
+            variant="secondary"
+            onPress={handleSave}
+            isDisabled={!isValid || isSaving || isDeleting}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
+          <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isSaving || isDeleting}>
+            {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
+          </Button>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Case"
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+      >
+        This permanently deletes the case and ALL its tasks, milestones, notes, documents,
+        assignments, and payments. This action cannot be undone.
+      </ConfirmDialog>
+    </>
+  );
+}

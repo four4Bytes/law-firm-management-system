@@ -68,6 +68,14 @@ describe("getCaseForEditAction", () => {
   it("throws for an invalid id", async () => {
     await expect(getCaseForEditAction("abc")).rejects.toThrow("Invalid case ID");
   });
+
+  it("returns null when the case is not found", async () => {
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
+
+    const result = await getCaseForEditAction(uuid);
+
+    expect(result).toBeNull();
+  });
 });
 
 describe("createCaseAction", () => {

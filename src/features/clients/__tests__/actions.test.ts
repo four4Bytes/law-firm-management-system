@@ -90,6 +90,15 @@ describe("getClientForEditAction", () => {
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
   });
+
+  it("returns an error when loading the client throws", async () => {
+    vi.mocked(prisma.client.findUnique).mockRejectedValue(new Error("db error"));
+
+    expect(await getClientForEditAction(uuid)).toEqual({
+      success: false,
+      error: "Failed to load client",
+    });
+  });
 });
 
 describe("updateClientAction", () => {

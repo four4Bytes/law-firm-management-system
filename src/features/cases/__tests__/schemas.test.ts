@@ -68,6 +68,24 @@ describe("CaseCreatePayloadSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts a parties_involved at the 2000 character boundary", () => {
+    expect(
+      CaseCreatePayloadSchema.safeParse({ ...base, parties_involved: "x".repeat(2000) }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a parties_involved longer than 2000 characters", () => {
+    expect(
+      CaseCreatePayloadSchema.safeParse({ ...base, parties_involved: "x".repeat(2001) }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-uuid source_consultation_id", () => {
+    expect(
+      CaseCreatePayloadSchema.safeParse({ ...base, source_consultation_id: "abc" }).success,
+    ).toBe(false);
+  });
 });
 
 describe("CaseUpdatePayloadSchema", () => {
@@ -99,6 +117,17 @@ describe("CaseUpdatePayloadSchema", () => {
       case_title: "t",
       case_type: "Civil",
       status: "Open",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid status inherited from the create schema", () => {
+    const result = CaseUpdatePayloadSchema.safeParse({
+      id: uuid,
+      client_id: uuid,
+      case_title: "t",
+      case_type: "Civil",
+      status: "NotAStatus",
     });
     expect(result.success).toBe(false);
   });

@@ -80,6 +80,53 @@ it("updateCase passes a defined parties_involved through", async () => {
   });
 });
 
+it("createCase passes through parties_involved and source_consultation_id when provided", async () => {
+  await createCase({
+    client_id: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open",
+    parties_involved: "Smith (Plaintiff)",
+    source_consultation_id: uuid,
+    created_by_user_id: "u1",
+  });
+
+  expect(prisma.case.create).toHaveBeenCalledWith({
+    data: {
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: "Smith (Plaintiff)",
+      source_consultation_id: uuid,
+      created_by_user_id: "u1",
+    },
+  });
+});
+
+it("updateCase passes through source_consultation_id", async () => {
+  await updateCase({
+    id: uuid,
+    client_id: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open",
+    source_consultation_id: uuid,
+  });
+
+  expect(prisma.case.update).toHaveBeenCalledWith({
+    where: { id: uuid },
+    data: {
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      source_consultation_id: uuid,
+      parties_involved: undefined,
+    },
+  });
+});
+
 it("deleteCase calls delete with the id", async () => {
   await deleteCase(uuid);
 

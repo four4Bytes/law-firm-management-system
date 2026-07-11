@@ -48,6 +48,12 @@ describe("ClientCreatePayloadSchema", () => {
       ClientCreatePayloadSchema.safeParse({ name: "Alice", address: "a".repeat(501) }).success,
     ).toBe(false);
   });
+
+  it("trims surrounding whitespace from name", () => {
+    const result = ClientCreatePayloadSchema.safeParse({ name: "  Alice Client  " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.name).toBe("Alice Client");
+  });
 });
 
 describe("ClientUpdatePayloadSchema", () => {
@@ -66,5 +72,29 @@ describe("ClientUpdatePayloadSchema", () => {
 
   it("rejects an empty name", () => {
     expect(ClientUpdatePayloadSchema.safeParse({ id: uuid, name: "" }).success).toBe(false);
+  });
+
+  it("rejects an email longer than 255 characters", () => {
+    expect(
+      ClientUpdatePayloadSchema.safeParse({ id: uuid, name: "Alice", email: "a".repeat(256) })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a phone_number longer than 50 characters", () => {
+    expect(
+      ClientUpdatePayloadSchema.safeParse({
+        id: uuid,
+        name: "Alice",
+        phone_number: "1".repeat(51),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an address longer than 500 characters", () => {
+    expect(
+      ClientUpdatePayloadSchema.safeParse({ id: uuid, name: "Alice", address: "a".repeat(501) })
+        .success,
+    ).toBe(false);
   });
 });

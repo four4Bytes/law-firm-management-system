@@ -53,3 +53,24 @@ it("updateClient maps empty optional fields to undefined", async () => {
     select: { id: true, name: true },
   });
 });
+
+it("updateClient passes provided optional fields through", async () => {
+  await updateClient({
+    id: uuid,
+    name: "Alice",
+    email: "alice@email.com",
+    phone_number: "09170000001",
+    address: "123 Rizal St.",
+  });
+
+  expect(prisma.client.update).toHaveBeenCalledWith({
+    where: { id: uuid },
+    data: {
+      name: "Alice",
+      email: "alice@email.com",
+      phone_number: "09170000001",
+      address: "123 Rizal St.",
+    },
+    select: { id: true, name: true },
+  });
+});

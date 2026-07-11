@@ -1,7 +1,15 @@
-import { CalendarDate } from "@internationalized/date";
+import { CalendarDate, getLocalTimeZone, Time, toCalendarDateTime } from "@internationalized/date";
 
 export function toCalendarDate(date: Date): CalendarDate {
   return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
+export function toTimeValue(date: Date): Time {
+  return new Time(date.getHours(), date.getMinutes());
+}
+
+export function combineDateTime(date: CalendarDate, time: Time): Date {
+  return toCalendarDateTime(date, time).toDate(getLocalTimeZone());
 }
 
 export function formatDate(date: Date | string): string {

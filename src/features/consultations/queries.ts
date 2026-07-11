@@ -339,3 +339,30 @@ export const getConsultationsPaginated = cache(
     };
   },
 );
+
+// ----- Consultation edit data -----
+
+export type ConsultationEditData = {
+  id: string;
+  client_id: string;
+  concern: string;
+  booking_datetime: Date;
+  status: string;
+};
+
+export const getConsultationEditData = cache(
+  async (id: string): Promise<ConsultationEditData | null> => {
+    const data = await prisma.consultation.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        client_id: true,
+        concern: true,
+        booking_datetime: true,
+        status: true,
+      },
+    });
+
+    return data;
+  },
+);

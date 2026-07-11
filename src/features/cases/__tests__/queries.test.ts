@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
   getCaseActivityLogPaginated,
+  getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
   getCaseOverviewById,
@@ -15,7 +17,7 @@ import {
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     auditLog: { findMany: vi.fn() },
-    case: { findMany: vi.fn(), findUniqueOrThrow: vi.fn() },
+    case: { findMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
     caseMilestone: { findMany: vi.fn() },
     note: { findMany: vi.fn() },
     payment: { findMany: vi.fn() },
@@ -798,5 +800,63 @@ describe("getCaseActivityLogPaginated", () => {
     const result = await getCaseActivityLogPaginated({ caseId: "1" });
 
     expect(result.rows).toEqual([]);
+  });
+});
+
+describe("getCaseEditData", () => {
+  const caseEditRecord: Case = {
+    id: "1",
+    client_id: "c1",
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open",
+    parties_involved: "Smith (Plaintiff)",
+    source_consultation_id: null,
+    created_by_user_id: "u1",
+    created_at: new Date("2024-06-01"),
+    updated_at: new Date("2024-06-01"),
+  };
+
+  it("returns the mapped case edit data", async () => {
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(caseEditRecord);
+
+    const result = await getCaseEditData("1");
+
+    expect(result).toMatchObject({
+      id: "1",
+      client_id: "c1",
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: "Smith (Plaintiff)",
+      source_consultation_id: null,
+    });
+    expect(prisma.case.findUnique).toHaveBeenCalledWith({
+      where: { id: "1" },
+      select: {
+        id: true,
+        client_id: true,
+        case_title: true,
+        case_type: true,
+        status: true,
+        parties_involved: true,
+        source_consultation_id: true,
+      },
+    });
+  });
+
+  it("returns null when the case is not found", async () => {
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
+
+    const result = await getCaseEditData("1");
+
+    expect(result).toBeNull();
+  });
+
+  it("propagates database errors", async () => {
+    const error = new Error("connection failed");
+    vi.mocked(prisma.case.findUnique).mockRejectedValue(error);
+
+    await expect(getCaseEditData("1")).rejects.toThrow(error);
   });
 });

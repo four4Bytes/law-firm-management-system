@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Consultation } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
   getConsultationActivityLogPaginated,
+  getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationPaymentsPaginated,
@@ -13,7 +15,7 @@ import {
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     auditLog: { findMany: vi.fn() },
-    consultation: { findMany: vi.fn(), findUniqueOrThrow: vi.fn() },
+    consultation: { findMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
     note: { findMany: vi.fn() },
     payment: { findMany: vi.fn() },
   },
@@ -541,5 +543,56 @@ describe("getConsultationActivityLogPaginated", () => {
     const result = await getConsultationActivityLogPaginated({ consultationId: "1" });
 
     expect(result.rows).toEqual([]);
+  });
+});
+
+describe("getConsultationEditData", () => {
+  const consultationEditRecord: Consultation = {
+    id: "1",
+    client_id: "c1",
+    concern: "Legal advice",
+    booking_datetime: new Date("2024-06-01T10:00:00"),
+    status: "Scheduled",
+    created_by_user_id: "u1",
+    created_at: new Date("2024-06-01"),
+    updated_at: new Date("2024-06-01"),
+  };
+
+  it("returns the mapped consultation edit data", async () => {
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationEditRecord);
+
+    const result = await getConsultationEditData("1");
+
+    expect(result).toMatchObject({
+      id: "1",
+      client_id: "c1",
+      concern: "Legal advice",
+      status: "Scheduled",
+    });
+    expect(prisma.consultation.findUnique).toHaveBeenCalledWith({
+      where: { id: "1" },
+      select: {
+        id: true,
+        client_id: true,
+        concern: true,
+        booking_datetime: true,
+        status: true,
+      },
+    });
+  });
+
+  it("returns null when the consultation is not found", async () => {
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(null);
+
+    const result = await getConsultationEditData("1");
+
+    expect(result).toBeNull();
+  });
+
+  it("propagates database errors", async () => {
+    const error = new Error("connection failed");
+    vi.mocked(prisma.consultation.findUnique).mockRejectedValue(error);
+
+    await expect(getConsultationEditData("1")).rejects.toThrow(error);
   });
 });

@@ -36,6 +36,8 @@
       border-radius: var(--radius-md);
       box-shadow: var(--shadow-lg);
       text-align: center;
+      max-height: 80vh;
+      overflow: auto;
 
       .title {
         font-size: var(--font-size-lg);

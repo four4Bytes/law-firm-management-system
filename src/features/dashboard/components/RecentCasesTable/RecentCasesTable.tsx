@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { queue } from "@/components/ui/Toast/Toast";
 import { getRecentCasesAction } from "@/features/dashboard/actions";
 import type { RecentCaseRow } from "@/features/dashboard/queries";
 
@@ -41,11 +42,22 @@ export function RecentCasesTable() {
   useEffect(() => {
     let cancelled = false;
 
-    getRecentCasesAction().then((result) => {
-      if (cancelled) return;
-      setItems(result);
-      setIsLoading(false);
-    });
+    async function load() {
+      try {
+        const result = await getRecentCasesAction();
+        if (cancelled) return;
+        setItems(result);
+      } catch {
+        queue.add({
+          title: "Failed to load cases",
+          description: "Could not load recent cases. Please try again.",
+        });
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    void load();
 
     return () => {
       cancelled = true;

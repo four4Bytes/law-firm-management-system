@@ -32,6 +32,7 @@ interface ServerDataTableProps<T extends { id: string }> {
   selectionMode?: "none" | "single" | "multiple";
   selectionBehavior?: "toggle" | "replace";
   onRowAction?: (key: string) => void;
+  refreshTrigger?: number;
 }
 
 export function ServerDataTable<T extends { id: string }>({
@@ -47,6 +48,7 @@ export function ServerDataTable<T extends { id: string }>({
   selectionMode = "single",
   selectionBehavior = "replace",
   onRowAction,
+  refreshTrigger,
 }: ServerDataTableProps<T>) {
   const [items, setItems] = useState<T[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export function ServerDataTable<T extends { id: string }>({
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, sortDescriptor, startTransition]);
+  }, [debouncedSearch, sortDescriptor, startTransition, refreshTrigger]);
 
   const handleLoadMore = useCallback(async () => {
     if (isLoading || !hasMore || !cursor) return;

@@ -1,3 +1,9 @@
+import { CalendarDate } from "@internationalized/date";
+
+export function toCalendarDate(date: Date): CalendarDate {
+  return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
 export function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("en-US", {

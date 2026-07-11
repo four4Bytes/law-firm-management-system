@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
 
-import { getDocumentById, getDocumentsPaginated } from "../queries";
+import { getDocumentById, getDocumentDetailRowById, getDocumentsPaginated } from "../queries";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: { document: { findMany: vi.fn(), findUnique: vi.fn() } },
@@ -199,5 +199,52 @@ describe("getDocumentById", () => {
     vi.mocked(prisma.document.findUnique).mockRejectedValue(error);
 
     await expect(getDocumentById("d1")).rejects.toThrow(error);
+  });
+});
+
+describe("getDocumentDetailRowById", () => {
+  it("returns full detail row when found", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument());
+
+    const result = await getDocumentDetailRowById("d1");
+
+    expect(result).toEqual({
+      id: "d1",
+      file_name: "complaint.pdf",
+      file_type: "application/pdf",
+      file_size: 2500000,
+      uploadedBy: "John Lawyer",
+      created_at: new Date("2024-06-01"),
+      case_id: "c1",
+      consultation_id: null,
+    });
+    expect(prisma.document.findUnique).toHaveBeenCalledWith({
+      where: { id: "d1" },
+      select: {
+        id: true,
+        file_name: true,
+        file_type: true,
+        file_size: true,
+        case_id: true,
+        consultation_id: true,
+        created_at: true,
+        uploadedBy: { select: { name: true } },
+      },
+    });
+  });
+
+  it("returns null when not found", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(null);
+
+    const result = await getDocumentDetailRowById("999");
+
+    expect(result).toBeNull();
+  });
+
+  it("propagates database errors", async () => {
+    const error = new Error("connection failed");
+    vi.mocked(prisma.document.findUnique).mockRejectedValue(error);
+
+    await expect(getDocumentDetailRowById("d1")).rejects.toThrow(error);
   });
 });

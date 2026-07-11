@@ -114,6 +114,12 @@
 - Centralized Auth Guards: Invoke unified, centralized protection functions like `requireAuth()` (which returns a verified session) or `requireRole(...roles)` at the very top of the execution flow. Do not write inline, ad-hoc `auth()` verification logic inside individual actions.
 - Typed Payloads over Raw FormData: Client components must pass clean, typed objects to actions instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client side before triggering the transition boundary.
 
+### Async & Error Handling
+
+- Prefer `async`/`await` with `try-catch` over promise chains (`.then()`/`.catch()`) across the entire codebase, especially in asynchronous code. Avoid `.then()`/`.catch()` method chaining.
+- Never let a promise rejection go unhandled. In client components, surface failures through the toast `queue` (`queue.add(...)`) or appropriate error UI. In Server Actions, follow the existing Action Response Convention (catch and return a structured `ActionStatusResponse`).
+- Inside `useEffect`, wrap async work in a locally-scoped `async function` and invoke it (use `void` for fire-and-forget calls to keep intent explicit).
+
 ### General
 
 - Idiomatic, modular code is the top priority in this project, not a collection of hacks and workarounds.

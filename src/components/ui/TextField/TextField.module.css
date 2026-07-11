@@ -56,6 +56,15 @@
     }
   }
 
+  .textarea {
+    min-height: 120px;
+    max-height: 240px;
+    padding: var(--space-sm);
+    line-height: var(--line-height-md);
+    resize: vertical;
+    font-family: inherit;
+  }
+
   .description {
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);

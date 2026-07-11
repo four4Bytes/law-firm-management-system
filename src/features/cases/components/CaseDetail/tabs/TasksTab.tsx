@@ -1,11 +1,14 @@
 "use client";
 
 import clsx from "clsx";
+import { useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
-import type { TaskRow } from "@/features/cases/queries";
+import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
+import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTaskModal";
+import type { TaskRow } from "@/features/tasks/queries";
 import { formatDateTime } from "@/lib/date";
 
 import tabStyles from "./Tab.module.css";
@@ -44,16 +47,49 @@ const columns: ColumnDef<TaskRow>[] = [
 ];
 
 export function TasksTab({ caseId }: Props) {
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  function handleRefresh() {
+    setRefreshTrigger((n) => n + 1);
+  }
+
   return (
-    <ServerDataTable
-      fetchAction={(p) => getCaseTasksPaginatedAction({ caseId, ...p })}
-      columns={columns}
-      searchPlaceholder="Search tasks..."
-      emptyContent="No tasks yet"
-      loadingMessage="Loading tasks..."
-      searchLabel="Search tasks"
-      renderAddButton
-      addButtonLabel="Add Task"
-    />
+    <>
+      <ServerDataTable
+        fetchAction={(p) => getCaseTasksPaginatedAction({ caseId, ...p })}
+        columns={columns}
+        searchPlaceholder="Search tasks..."
+        emptyContent="No tasks yet"
+        loadingMessage="Loading tasks..."
+        searchLabel="Search tasks"
+        renderAddButton
+        addButtonLabel="Add Task"
+        onAddButtonPress={() => setIsAddOpen(true)}
+        onRowAction={(id) => {
+          setSelectedTaskId(id);
+          setIsEditOpen(true);
+        }}
+        refreshTrigger={refreshTrigger}
+      />
+
+      <AddTaskModal
+        isOpen={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        onSuccess={handleRefresh}
+        caseId={caseId}
+      />
+
+      {isEditOpen && selectedTaskId && (
+        <EditTaskModal
+          isOpen={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          onSuccess={handleRefresh}
+          taskId={selectedTaskId}
+        />
+      )}
+    </>
   );
 }

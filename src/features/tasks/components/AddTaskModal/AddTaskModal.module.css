@@ -1,0 +1,35 @@
+.modal {
+  width: 500px;
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    text-align: left;
+
+    .selectedAssignees {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      max-height: 7rem;
+      overflow-y: auto;
+      padding-left: var(--space-lg);
+      margin: 0;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-primary);
+
+      .selectedAssignee {
+        padding: var(--space-xs) 0;
+      }
+    }
+
+    .actions {
+      display: flex;
+      gap: var(--space-lg);
+
+      > * {
+        flex: 1;
+      }
+    }
+  }
+}

@@ -4,22 +4,12 @@
   gap: var(--space-lg);
   padding-top: var(--space-md);
 
-  .fileInfo {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
-  }
-
-  .error {
-    font-size: var(--font-size-sm);
-    color: var(--color-danger-text);
-    background: var(--color-danger-bg);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-sm);
-  }
-
   .actions {
     display: flex;
-    justify-content: flex-end;
     gap: var(--space-md);
+
+    > * {
+      flex: 1;
+    }
   }
 }

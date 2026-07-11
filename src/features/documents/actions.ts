@@ -4,10 +4,23 @@ import { revalidatePath } from "next/cache";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth, requireRole } from "@/lib/auth-guards";
-import { deleteFile, generateKey, getPresignedDownloadUrl, getPresignedUploadUrl } from "@/lib/s3";
+import { getParentPath } from "@/lib/path";
+import {
+  deleteFile,
+  generateKey,
+  getPresignedDownloadUrl,
+  getPresignedUploadUrl,
+  objectExists,
+} from "@/lib/s3";
 
 import { createDocument, deleteDocument as deleteDocumentRecord } from "./mutations";
-import { getDocumentById, getDocumentsPaginated, type DocumentRow } from "./queries";
+import {
+  getDocumentById,
+  getDocumentDetailRowById,
+  getDocumentsPaginated,
+  type DocumentDetailRow,
+  type DocumentRow,
+} from "./queries";
 import {
   DocumentConfirmPayloadSchema,
   DocumentIdSchema,
@@ -73,7 +86,9 @@ export async function confirmDocumentUploadAction(
       uploaded_by_user_id: session.id,
     });
 
-    revalidatePath(case_id ? `/case/${case_id}` : `/consultation/${consultation_id}`);
+    revalidatePath(
+      getParentPath({ case_id: case_id ?? null, consultation_id: consultation_id ?? null }),
+    );
 
     return { success: true, data: { id: doc.id } };
   } catch {
@@ -95,9 +110,26 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   const doc = await getDocumentById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
 
-  const url = await getPresignedDownloadUrl(doc.file_path);
+  const exists = await objectExists(doc.file_path);
+  if (!exists) throw new Error("This file no longer exists in storage. It may have been deleted.");
+
+  const url = await getPresignedDownloadUrl(doc.file_path, doc.file_name);
 
   return { url, file_name: doc.file_name };
+}
+
+export async function getDocumentDetailRowAction(documentId: string): Promise<DocumentDetailRow> {
+  await requireAuth();
+
+  const parsed = DocumentIdSchema.safeParse({ documentId });
+  if (!parsed.success) {
+    throw new Error("Invalid document ID");
+  }
+
+  const doc = await getDocumentDetailRowById(parsed.data.documentId);
+  if (!doc) throw new Error("Document not found");
+
+  return doc;
 }
 
 export async function deleteDocumentAction(documentId: string): Promise<ActionStatusResponse> {
@@ -115,13 +147,7 @@ export async function deleteDocumentAction(documentId: string): Promise<ActionSt
     await deleteFile(doc.file_path);
     await deleteDocumentRecord(parsed.data.documentId);
 
-    const path = doc.case_id
-      ? `/case/${doc.case_id}`
-      : doc.consultation_id
-        ? `/consultation/${doc.consultation_id}`
-        : "/case";
-
-    revalidatePath(path);
+    revalidatePath(getParentPath(doc));
 
     return { success: true };
   } catch {

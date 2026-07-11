@@ -101,3 +101,45 @@ export const getDocumentById = cache(
     });
   },
 );
+
+export type DocumentDetailRow = {
+  id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number | null;
+  uploadedBy: string;
+  created_at: Date;
+  case_id: string | null;
+  consultation_id: string | null;
+};
+
+export const getDocumentDetailRowById = cache(
+  async (id: string): Promise<DocumentDetailRow | null> => {
+    const doc = await prisma.document.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        file_name: true,
+        file_type: true,
+        file_size: true,
+        case_id: true,
+        consultation_id: true,
+        created_at: true,
+        uploadedBy: { select: { name: true } },
+      },
+    });
+
+    if (!doc) return null;
+
+    return {
+      id: doc.id,
+      file_name: doc.file_name,
+      file_type: doc.file_type,
+      file_size: doc.file_size,
+      uploadedBy: doc.uploadedBy.name,
+      created_at: doc.created_at,
+      case_id: doc.case_id,
+      consultation_id: doc.consultation_id,
+    };
+  },
+);

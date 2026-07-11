@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import { getDocumentsPaginated } from "@/features/documents/queries";
+import type { TaskRow } from "@/features/tasks/queries";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -162,14 +163,6 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
 });
 
 // ----- Tasks -----
-
-export type TaskRow = {
-  id: string;
-  title: string;
-  status: string;
-  assignTo: string;
-  updated_at: Date;
-};
 
 export const getCaseTasksPaginated = cache(
   async ({

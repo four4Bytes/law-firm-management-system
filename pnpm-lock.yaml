@@ -17,6 +17,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1080.0
         version: 3.1080.0
+      '@internationalized/date':
+        specifier: ^3.12.2
+        version: 3.12.2
       '@prisma/adapter-pg':
         specifier: ^7.8.0
         version: 7.8.0

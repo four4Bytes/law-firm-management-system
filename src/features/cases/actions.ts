@@ -14,9 +14,9 @@ import {
   type MilestoneRow,
   type NoteRow,
   type PaymentRow,
-  type TaskRow,
 } from "@/features/cases/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
+import type { TaskRow } from "@/features/tasks/queries";
 import { requireAuth } from "@/lib/auth-guards";
 import { PageQuerySchema } from "@/lib/schemas";
 

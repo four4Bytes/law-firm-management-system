@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { queue } from "@/components/ui/Toast/Toast";
 import { getUpcomingConsultationsAction } from "@/features/dashboard/actions";
 import type { UpcomingConsultationRow } from "@/features/dashboard/queries";
 import { formatDateTime } from "@/lib/date";
@@ -27,11 +28,22 @@ export function UpcomingConsultationsTable() {
   useEffect(() => {
     let cancelled = false;
 
-    getUpcomingConsultationsAction().then((result) => {
-      if (cancelled) return;
-      setItems(result);
-      setIsLoading(false);
-    });
+    async function load() {
+      try {
+        const result = await getUpcomingConsultationsAction();
+        if (cancelled) return;
+        setItems(result);
+      } catch {
+        queue.add({
+          title: "Failed to load consultations",
+          description: "Could not load upcoming consultations. Please try again.",
+        });
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    void load();
 
     return () => {
       cancelled = true;

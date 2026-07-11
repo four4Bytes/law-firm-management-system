@@ -1,0 +1,59 @@
+.fileList {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  scrollbar-width: thin;
+
+  .fileRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+
+    .fileIcon {
+      flex-shrink: 0;
+      color: var(--color-text-muted);
+      font-size: var(--icon-size-sm);
+    }
+
+    .fileName {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    .fileSize {
+      flex-shrink: 0;
+      color: var(--color-text-muted);
+    }
+
+    .removeButton {
+      padding: 2px;
+      color: var(--color-text-muted);
+    }
+
+    .doneIcon {
+      flex-shrink: 0;
+      color: var(--color-success);
+    }
+
+    .failedIcon {
+      flex-shrink: 0;
+      color: var(--color-danger);
+    }
+
+    .errorText {
+      flex-shrink: 1;
+      color: var(--color-danger);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}

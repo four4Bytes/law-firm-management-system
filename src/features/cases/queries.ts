@@ -484,3 +484,32 @@ export const getCaseActivityLogPaginated = cache(
     };
   },
 );
+
+// ----- Case edit data -----
+
+export type CaseEditData = {
+  id: string;
+  client_id: string;
+  case_title: string;
+  case_type: string;
+  status: string;
+  parties_involved: string | null;
+  source_consultation_id: string | null;
+};
+
+export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | null> => {
+  const data = await prisma.case.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      client_id: true,
+      case_title: true,
+      case_type: true,
+      status: true,
+      parties_involved: true,
+      source_consultation_id: true,
+    },
+  });
+
+  return data;
+});

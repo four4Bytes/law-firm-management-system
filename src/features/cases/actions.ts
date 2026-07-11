@@ -1,7 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import {
   getCaseActivityLogPaginated,
+  getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
   getCaseOverviewById,
@@ -9,6 +12,7 @@ import {
   getCasesPaginated,
   getCaseTasksPaginated,
   type ActivityLogRow,
+  type CaseEditData,
   type CaseOverviewData,
   type CaseRow,
   type MilestoneRow,
@@ -17,10 +21,18 @@ import {
 } from "@/features/cases/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { TaskRow } from "@/features/tasks/queries";
+import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { PageQuerySchema } from "@/lib/schemas";
 
-import { CaseOverviewIdSchema, CasePageQuerySchema } from "./schemas";
+import { createCase, deleteCase, updateCase } from "./mutations";
+import {
+  CaseCreatePayloadSchema,
+  CaseDeletePayloadSchema,
+  CaseOverviewIdSchema,
+  CasePageQuerySchema,
+  CaseUpdatePayloadSchema,
+} from "./schemas";
 
 export async function getCasesPaginatedAction(params: unknown): Promise<{
   cases: CaseRow[];
@@ -129,4 +141,101 @@ export async function getCaseActivityLogPaginatedAction(params: unknown): Promis
   }
 
   return getCaseActivityLogPaginated(parsed.data);
+}
+
+export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {
+  await requireAuth();
+
+  const parsed = CaseOverviewIdSchema.safeParse({ id });
+  if (!parsed.success) {
+    throw new Error("Invalid case ID");
+  }
+
+  return getCaseEditData(parsed.data.id);
+}
+
+export async function createCaseAction(payload: unknown): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = CaseCreatePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid case data" };
+  }
+
+  const { client_id, case_title, case_type, status, parties_involved, source_consultation_id } =
+    parsed.data;
+
+  try {
+    await createCase({
+      client_id,
+      case_title,
+      case_type,
+      status,
+      parties_involved: parties_involved || undefined,
+      source_consultation_id,
+      created_by_user_id: session.id,
+    });
+
+    revalidatePath("/case");
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to create case" };
+  }
+}
+
+export async function updateCaseAction(payload: unknown): Promise<ActionStatusResponse> {
+  await requireAuth();
+
+  const parsed = CaseUpdatePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid case data" };
+  }
+
+  const { id, client_id, case_title, case_type, status, parties_involved, source_consultation_id } =
+    parsed.data;
+
+  try {
+    const existing = await getCaseEditData(id);
+    if (!existing) return { success: false, error: "Case not found" };
+
+    await updateCase({
+      id,
+      client_id,
+      case_title,
+      case_type,
+      status,
+      parties_involved: parties_involved || undefined,
+      source_consultation_id,
+    });
+
+    revalidatePath(`/case/${id}`);
+    revalidatePath("/case");
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update case" };
+  }
+}
+
+export async function deleteCaseAction(payload: unknown): Promise<ActionStatusResponse> {
+  await requireAuth();
+
+  const parsed = CaseDeletePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid case ID" };
+  }
+
+  try {
+    const existing = await getCaseEditData(parsed.data.id);
+    if (!existing) return { success: false, error: "Case not found" };
+
+    await deleteCase(parsed.data.id);
+
+    revalidatePath("/case");
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to delete case" };
+  }
 }

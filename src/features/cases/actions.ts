@@ -32,7 +32,10 @@ import {
   CaseOverviewIdSchema,
   CasePageQuerySchema,
   CaseUpdatePayloadSchema,
+  CaseWithClientCreatePayloadSchema,
+  CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
+import { prisma } from "@/lib/prisma";
 
 export async function getCasesPaginatedAction(params: unknown): Promise<{
   cases: CaseRow[];
@@ -184,6 +187,49 @@ export async function createCaseAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
+export async function createCaseWithClientAction(
+  payload: unknown,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid case data" };
+  }
+
+  const { client, case: caseData } = parsed.data;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const newClient = await tx.client.create({
+        data: {
+          name: client.name,
+          email: client.email || undefined,
+          phone_number: client.phone_number || undefined,
+          address: client.address || undefined,
+        },
+      });
+
+      await tx.case.create({
+        data: {
+          client_id: newClient.id,
+          case_title: caseData.case_title,
+          case_type: caseData.case_type,
+          status: caseData.status,
+          parties_involved: caseData.parties_involved || undefined,
+          created_by_user_id: session.id,
+        },
+      });
+    });
+
+    revalidatePath("/case");
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to create case" };
+  }
+}
+
 export async function updateCaseAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
@@ -210,6 +256,50 @@ export async function updateCaseAction(payload: unknown): Promise<ActionStatusRe
     });
 
     revalidatePath(`/case/${id}`);
+    revalidatePath("/case");
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update case" };
+  }
+}
+
+export async function updateCaseWithClientAction(
+  payload: unknown,
+): Promise<ActionStatusResponse> {
+  await requireAuth();
+
+  const parsed = CaseWithClientUpdatePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid case data" };
+  }
+
+  const { case_id, client_id, client, case: caseData } = parsed.data;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.client.update({
+        where: { id: client_id },
+        data: {
+          name: client.name,
+          email: client.email || undefined,
+          phone_number: client.phone_number || undefined,
+          address: client.address || undefined,
+        },
+      });
+
+      await tx.case.update({
+        where: { id: case_id },
+        data: {
+          case_title: caseData.case_title,
+          case_type: caseData.case_type,
+          status: caseData.status,
+          parties_involved: caseData.parties_involved || undefined,
+        },
+      });
+    });
+
+    revalidatePath(`/case/${case_id}`);
     revalidatePath("/case");
 
     return { success: true };

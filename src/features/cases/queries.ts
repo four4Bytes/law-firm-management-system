@@ -4,6 +4,7 @@ import { getDocumentsPaginated } from "@/features/documents/queries";
 import type { TaskRow } from "@/features/tasks/queries";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
+import type { Case } from "@/generated/prisma/browser";
 
 export interface CasePageQuery extends PageQuery {
   caseId: string;
@@ -487,15 +488,16 @@ export const getCaseActivityLogPaginated = cache(
 
 // ----- Case edit data -----
 
-export type CaseEditData = {
-  id: string;
-  client_id: string;
-  case_title: string;
-  case_type: string;
-  status: string;
-  parties_involved: string | null;
-  source_consultation_id: string | null;
-};
+export type CaseEditData = Pick<
+  Case,
+  | "id"
+  | "client_id"
+  | "case_title"
+  | "case_type"
+  | "status"
+  | "parties_involved"
+  | "source_consultation_id"
+>;
 
 export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | null> => {
   const data = await prisma.case.findUnique({

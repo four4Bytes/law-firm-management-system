@@ -13,7 +13,7 @@ export async function updateCase(data: CaseUpdatePayload) {
     where: { id },
     data: {
       ...rest,
-      parties_involved: rest.parties_involved || undefined,
+      parties_involved: rest.parties_involved ? rest.parties_involved : null,
     },
   });
 }

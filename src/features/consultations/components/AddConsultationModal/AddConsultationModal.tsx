@@ -10,8 +10,7 @@ import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { queue } from "@/components/ui/Toast/Toast";
-import { createClientAction } from "@/features/clients/actions";
-import { createConsultationAction } from "@/features/consultations/actions";
+import { createConsultationWithClientAction } from "@/features/consultations/actions";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime } from "@/lib/date";
 
@@ -80,33 +79,24 @@ export function AddConsultationModal({
 
     setIsPending(true);
 
-    const clientResult = await createClientAction({
-      name: name.trim(),
-      email: email.trim() || undefined,
-      phone_number: phone.trim() || undefined,
-      address: address.trim() || undefined,
-    });
-
-    if (!clientResult.success || !clientResult.data) {
-      setIsPending(false);
-      queue.add({ title: clientResult.error ?? "Failed to create client" }, { timeout: 5000 });
-      return;
-    }
-
-    const consultationResult = await createConsultationAction({
-      client_id: clientResult.data.id,
-      concern: concern.trim(),
-      booking_datetime: combineDateTime(date, time),
-      status,
+    const result = await createConsultationWithClientAction({
+      client: {
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone_number: phone.trim() || undefined,
+        address: address.trim() || undefined,
+      },
+      consultation: {
+        concern: concern.trim(),
+        booking_datetime: combineDateTime(date, time),
+        status,
+      },
     });
 
     setIsPending(false);
 
-    if (!consultationResult.success) {
-      queue.add(
-        { title: consultationResult.error ?? "Failed to create consultation" },
-        { timeout: 5000 },
-      );
+    if (!result.success) {
+      queue.add({ title: result.error ?? "Failed to create consultation" }, { timeout: 5000 });
       return;
     }
 

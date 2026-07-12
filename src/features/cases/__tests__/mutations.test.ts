@@ -36,7 +36,7 @@ it("createCase merges created_by_user_id into the create payload", async () => {
   });
 });
 
-it("updateCase strips id and maps empty parties_involved to undefined", async () => {
+it("updateCase strips id and maps empty parties_involved to null", async () => {
   await updateCase({
     id: uuid,
     client_id: uuid,
@@ -53,7 +53,7 @@ it("updateCase strips id and maps empty parties_involved to undefined", async ()
       case_title: "Smith vs Jones",
       case_type: "Civil",
       status: "Open",
-      parties_involved: undefined,
+      parties_involved: null,
     },
   });
 });
@@ -122,7 +122,7 @@ it("updateCase passes through source_consultation_id", async () => {
       case_type: "Civil",
       status: "Open",
       source_consultation_id: uuid,
-      parties_involved: undefined,
+      parties_involved: null,
     },
   });
 });

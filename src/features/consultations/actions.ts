@@ -28,7 +28,10 @@ import {
   ConsultationOverviewIdSchema,
   ConsultationPageQuerySchema,
   ConsultationUpdatePayloadSchema,
+  ConsultationWithClientCreatePayloadSchema,
+  ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
+import { prisma } from "@/lib/prisma";
 
 export async function getConsultationsPaginatedAction(params: unknown): Promise<{
   consultations: ConsultationRow[];
@@ -153,6 +156,48 @@ export async function createConsultationAction(payload: unknown): Promise<Action
   }
 }
 
+export async function createConsultationWithClientAction(
+  payload: unknown,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = ConsultationWithClientCreatePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid consultation data" };
+  }
+
+  const { client, consultation } = parsed.data;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const newClient = await tx.client.create({
+        data: {
+          name: client.name,
+          email: client.email || undefined,
+          phone_number: client.phone_number || undefined,
+          address: client.address || undefined,
+        },
+      });
+
+      await tx.consultation.create({
+        data: {
+          client_id: newClient.id,
+          concern: consultation.concern,
+          booking_datetime: consultation.booking_datetime,
+          status: consultation.status,
+          created_by_user_id: session.id,
+        },
+      });
+    });
+
+    revalidatePath("/consultation");
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to create consultation" };
+  }
+}
+
 export async function updateConsultationAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
@@ -170,6 +215,49 @@ export async function updateConsultationAction(payload: unknown): Promise<Action
     await updateConsultation({ id, client_id, concern, booking_datetime, status });
 
     revalidatePath(`/consultation/${id}`);
+    revalidatePath("/consultation");
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update consultation" };
+  }
+}
+
+export async function updateConsultationWithClientAction(
+  payload: unknown,
+): Promise<ActionStatusResponse> {
+  await requireAuth();
+
+  const parsed = ConsultationWithClientUpdatePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid consultation data" };
+  }
+
+  const { consultation_id, client_id, client, consultation } = parsed.data;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.client.update({
+        where: { id: client_id },
+        data: {
+          name: client.name,
+          email: client.email || undefined,
+          phone_number: client.phone_number || undefined,
+          address: client.address || undefined,
+        },
+      });
+
+      await tx.consultation.update({
+        where: { id: consultation_id },
+        data: {
+          concern: consultation.concern,
+          booking_datetime: consultation.booking_datetime,
+          status: consultation.status,
+        },
+      });
+    });
+
+    revalidatePath(`/consultation/${consultation_id}`);
     revalidatePath("/consultation");
 
     return { success: true };

@@ -7,8 +7,7 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
-import { createCaseAction } from "@/features/cases/actions";
-import { createClientAction } from "@/features/clients/actions";
+import { createCaseWithClientAction } from "@/features/cases/actions";
 import { CaseStatus } from "@/generated/prisma/browser";
 
 import styles from "./AddCaseModal.module.css";
@@ -72,35 +71,29 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
   }
 
   async function handleSubmit() {
-    if (!name.trim() || !caseTitle.trim() || isPending) return;
+    if (!name.trim() || !caseTitle.trim() || !caseType.trim() || isPending) return;
 
     setIsPending(true);
 
-    const clientResult = await createClientAction({
-      name: name.trim(),
-      email: email.trim() || undefined,
-      phone_number: phone.trim() || undefined,
-      address: address.trim() || undefined,
-    });
-
-    if (!clientResult.success || !clientResult.data) {
-      setIsPending(false);
-      queue.add({ title: clientResult.error ?? "Failed to create client" }, { timeout: 5000 });
-      return;
-    }
-
-    const caseResult = await createCaseAction({
-      client_id: clientResult.data.id,
-      case_title: caseTitle.trim(),
-      case_type: caseType,
-      status,
-      parties_involved: partiesInvolved.trim() || undefined,
+    const result = await createCaseWithClientAction({
+      client: {
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone_number: phone.trim() || undefined,
+        address: address.trim() || undefined,
+      },
+      case: {
+        case_title: caseTitle.trim(),
+        case_type: caseType,
+        status,
+        parties_involved: partiesInvolved.trim() || undefined,
+      },
     });
 
     setIsPending(false);
 
-    if (!caseResult.success) {
-      queue.add({ title: caseResult.error ?? "Failed to create case" }, { timeout: 5000 });
+    if (!result.success) {
+      queue.add({ title: result.error ?? "Failed to create case" }, { timeout: 5000 });
       return;
     }
 
@@ -187,7 +180,10 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
         <Button variant="secondary" onPress={handleCancel} isDisabled={isPending}>
           Cancel
         </Button>
-        <Button onPress={handleSubmit} isDisabled={!name.trim() || !caseTitle.trim() || isPending}>
+        <Button
+          onPress={handleSubmit}
+          isDisabled={!name.trim() || !caseTitle.trim() || !caseType.trim() || isPending}
+        >
           {isPending ? "Saving..." : "Create"}
         </Button>
       </div>

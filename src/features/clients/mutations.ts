@@ -19,9 +19,9 @@ export async function updateClient(data: ClientUpdatePayload) {
     where: { id: data.id },
     data: {
       name: data.name,
-      email: data.email || undefined,
-      phone_number: data.phone_number || undefined,
-      address: data.address || undefined,
+      email: data.email ? data.email : null,
+      phone_number: data.phone_number ? data.phone_number : null,
+      address: data.address ? data.address : null,
     },
     select: { id: true, name: true },
   });

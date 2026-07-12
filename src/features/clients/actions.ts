@@ -6,12 +6,14 @@ import type { ActionDataResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 
 import { createClient, updateClient } from "./mutations";
-import { getClientForEdit } from "./queries";
-import { ClientCreatePayloadSchema, ClientUpdatePayloadSchema } from "./schemas";
+import { getClientForEdit, type ClientEditData } from "./queries";
+import { ClientCreatePayloadSchema, ClientIdSchema, ClientUpdatePayloadSchema } from "./schemas";
+
+type ClientCreateResult = { id: string; name: string };
 
 export async function createClientAction(
   payload: unknown,
-): Promise<ActionDataResponse<{ id: string; name: string }>> {
+): Promise<ActionDataResponse<ClientCreateResult>> {
   await requireAuth();
 
   const parsed = ClientCreatePayloadSchema.safeParse(payload);
@@ -32,23 +34,18 @@ export async function createClientAction(
   }
 }
 
-export async function getClientForEditAction(id: string): Promise<
-  ActionDataResponse<{
-    id: string;
-    name: string;
-    email: string | null;
-    phone_number: string | null;
-    address: string | null;
-  }>
-> {
+export async function getClientForEditAction(
+  id: string,
+): Promise<ActionDataResponse<ClientEditData>> {
   await requireAuth();
 
-  if (!id) {
-    return { success: false, error: "Client id is required" };
+  const parsed = ClientIdSchema.safeParse({ id });
+  if (!parsed.success) {
+    return { success: false, error: "Invalid client ID" };
   }
 
   try {
-    const client = await getClientForEdit(id);
+    const client = await getClientForEdit(parsed.data.id);
     if (!client) {
       return { success: false, error: "Client not found" };
     }
@@ -61,7 +58,7 @@ export async function getClientForEditAction(id: string): Promise<
 
 export async function updateClientAction(
   payload: unknown,
-): Promise<ActionDataResponse<{ id: string; name: string }>> {
+): Promise<ActionDataResponse<ClientCreateResult>> {
   await requireAuth();
 
   const parsed = ClientUpdatePayloadSchema.safeParse(payload);

@@ -13,12 +13,14 @@ import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { queue } from "@/components/ui/Toast/Toast";
-import { getClientForEditAction, updateClientAction } from "@/features/clients/actions";
+import { getClientForEditAction } from "@/features/clients/actions";
 import {
   deleteConsultationAction,
   getConsultationForEditAction,
   updateConsultationAction,
+  updateConsultationWithClientAction,
 } from "@/features/consultations/actions";
+import type { ConsultationEditData } from "@/features/consultations/queries";
 import { ConsultationUpdatePayloadSchema } from "@/features/consultations/schemas";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
@@ -50,13 +52,7 @@ export function EditConsultationModal({
   onDeleted,
   consultationId,
 }: EditConsultationModalProps) {
-  const [consultation, setConsultation] = useState<{
-    id: string;
-    client_id: string;
-    concern: string;
-    booking_datetime: Date;
-    status: string;
-  } | null>(null);
+  const [consultation, setConsultation] = useState<ConsultationEditData | null>(null);
 
   const [clientId, setClientId] = useState("");
   const [clientName, setClientName] = useState("");
@@ -140,35 +136,26 @@ export function EditConsultationModal({
 
     setIsSaving(true);
 
-    const clientResult = await updateClientAction({
-      id: clientId,
-      name: clientName.trim(),
-      email: clientEmail.trim() || undefined,
-      phone_number: clientPhone.trim() || undefined,
-      address: clientAddress.trim() || undefined,
-    });
-
-    if (!clientResult.success) {
-      setIsSaving(false);
-      queue.add({ title: clientResult.error ?? "Failed to update client" }, { timeout: 5000 });
-      return;
-    }
-
-    const consultationResult = await updateConsultationAction({
-      id: consultationId,
+    const result = await updateConsultationWithClientAction({
+      consultation_id: consultationId,
       client_id: clientId,
-      concern: fields.concern.trim(),
-      booking_datetime: combineDateTime(fields.date, fields.time),
-      status: fields.status,
+      client: {
+        name: clientName.trim(),
+        email: clientEmail.trim() || undefined,
+        phone_number: clientPhone.trim() || undefined,
+        address: clientAddress.trim() || undefined,
+      },
+      consultation: {
+        concern: fields.concern.trim(),
+        booking_datetime: combineDateTime(fields.date, fields.time),
+        status: fields.status,
+      },
     });
 
     setIsSaving(false);
 
-    if (!consultationResult.success) {
-      queue.add(
-        { title: consultationResult.error ?? "Failed to update consultation" },
-        { timeout: 5000 },
-      );
+    if (!result.success) {
+      queue.add({ title: result.error ?? "Failed to update consultation" }, { timeout: 5000 });
       return;
     }
 

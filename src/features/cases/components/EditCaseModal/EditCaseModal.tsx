@@ -10,9 +10,14 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
-import { deleteCaseAction, getCaseForEditAction, updateCaseAction } from "@/features/cases/actions";
+import {
+  deleteCaseAction,
+  getCaseForEditAction,
+  updateCaseAction,
+  updateCaseWithClientAction,
+} from "@/features/cases/actions";
 import { CaseUpdatePayloadSchema } from "@/features/cases/schemas";
-import { getClientForEditAction, updateClientAction } from "@/features/clients/actions";
+import { getClientForEditAction } from "@/features/clients/actions";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/useModalForm";
 
@@ -121,33 +126,27 @@ export function EditCaseModal({
 
     setIsSaving(true);
 
-    const clientResult = await updateClientAction({
-      id: clientId,
-      name: clientName.trim(),
-      email: clientEmail.trim() || undefined,
-      phone_number: clientPhone.trim() || undefined,
-      address: clientAddress.trim() || undefined,
-    });
-
-    if (!clientResult.success) {
-      setIsSaving(false);
-      queue.add({ title: clientResult.error ?? "Failed to update client" }, { timeout: 5000 });
-      return;
-    }
-
-    const caseResult = await updateCaseAction({
-      id: caseId,
+    const result = await updateCaseWithClientAction({
+      case_id: caseId,
       client_id: clientId,
-      case_title: caseTitle.trim(),
-      case_type: caseType,
-      status,
-      parties_involved: partiesInvolved.trim() || undefined,
+      client: {
+        name: clientName.trim(),
+        email: clientEmail.trim() || undefined,
+        phone_number: clientPhone.trim() || undefined,
+        address: clientAddress.trim() || undefined,
+      },
+      case: {
+        case_title: caseTitle.trim(),
+        case_type: caseType,
+        status,
+        parties_involved: partiesInvolved.trim() || undefined,
+      },
     });
 
     setIsSaving(false);
 
-    if (!caseResult.success) {
-      queue.add({ title: caseResult.error ?? "Failed to update case" }, { timeout: 5000 });
+    if (!result.success) {
+      queue.add({ title: result.error ?? "Failed to update case" }, { timeout: 5000 });
       return;
     }
 
@@ -159,7 +158,7 @@ export function EditCaseModal({
     if (!caseId) return;
     setIsDeleting(true);
 
-    const result = await deleteCaseAction(caseId);
+    const result = await deleteCaseAction({ id: caseId });
 
     setIsDeleting(false);
     setShowDeleteConfirm(false);

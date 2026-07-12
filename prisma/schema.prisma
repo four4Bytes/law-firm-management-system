@@ -259,7 +259,7 @@ model Payment {
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
 
-  case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  case         Case?         @relation(fields: [case_id], references: [id], onDelete: SetNull)
   consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: SetNull)
   createdBy    User          @relation(fields: [created_by_user_id], references: [id])
 }

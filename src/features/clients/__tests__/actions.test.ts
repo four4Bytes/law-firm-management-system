@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import { Client } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +14,14 @@ vi.mock("@/lib/auth-guards", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+}));
+
+vi.mock("next/server", () => ({
+  after: vi.fn(),
+}));
+
+vi.mock("@/features/audit/mutations", () => ({
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -32,13 +42,25 @@ const clientRecord: Client = {
   updated_at: new Date("2024-06-01"),
 };
 
+/**
+ * The `after()` callbacks scheduled by the actions module are fire-and-forget:
+ * our `next/server` mock records them but never invokes them. To exercise the
+ * audit log logic they schedule, we grab the callbacks passed to `after` and
+ * invoke them ourselves.
+ */
+async function runScheduledAfterCallbacks() {
+  const calls = vi.mocked(after).mock.calls;
+  await Promise.all(calls.map(([callback]) => callback()));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("createClientAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await createClientAction({})).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await createClientAction({} as any)).toEqual({
       success: false,
       error: "Invalid client data",
     });
@@ -53,6 +75,36 @@ describe("createClientAction", () => {
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
     expect(prisma.client.create).toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalledWith("/client");
+  });
+
+  it("schedules an audit log entry via after() for the created client", async () => {
+    vi.mocked(prisma.client.create).mockResolvedValue(clientRecord);
+
+    await createClientAction({ name: "Alice Client" });
+
+    expect(after).toHaveBeenCalledTimes(1);
+    await runScheduledAfterCallbacks();
+
+    expect(createAuditLog).toHaveBeenCalledWith({
+      actorUserId: "u1",
+      action: "client.created",
+      entityType: "Client",
+      entityId: clientRecord.id,
+      details: 'Created client: "Alice Client"',
+    });
+  });
+
+  it("does not throw when the scheduled audit log write fails", async () => {
+    vi.mocked(prisma.client.create).mockResolvedValue(clientRecord);
+    vi.mocked(createAuditLog).mockRejectedValue(new Error("audit failure"));
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await createClientAction({ name: "Alice Client" });
+
+    await expect(runScheduledAfterCallbacks()).resolves.not.toThrow();
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 
   it("returns an error when creation fails", async () => {
@@ -93,7 +145,8 @@ describe("getClientForEditAction", () => {
 
 describe("updateClientAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await updateClientAction({ clientId: uuid })).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await updateClientAction({ clientId: uuid } as any)).toEqual({
       success: false,
       error: "Invalid client data",
     });
@@ -108,6 +161,23 @@ describe("updateClientAction", () => {
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
     expect(prisma.client.update).toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalledWith("/client");
+  });
+
+  it("schedules an audit log entry via after() for the updated client", async () => {
+    vi.mocked(prisma.client.update).mockResolvedValue(clientRecord);
+
+    await updateClientAction({ clientId: uuid, name: "Alice Client" });
+
+    expect(after).toHaveBeenCalledTimes(1);
+    await runScheduledAfterCallbacks();
+
+    expect(createAuditLog).toHaveBeenCalledWith({
+      actorUserId: "u1",
+      action: "client.updated",
+      entityType: "Client",
+      entityId: uuid,
+      details: 'Updated client: "Alice Client"',
+    });
   });
 
   it("returns an error when update fails", async () => {

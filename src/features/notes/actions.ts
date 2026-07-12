@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
@@ -42,6 +43,14 @@ export async function createNoteAction(
       consultation_id,
       created_by_user_id: session.id,
     });
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "note.created",
+      entityType: case_id ? "Case" : "Consultation",
+      entityId: (case_id ?? consultation_id)!,
+      details: `Created note: "${content.slice(0, 80)}${content.length > 80 ? "..." : ""}"`,
+    }).catch(console.error);
   } catch {
     return { success: false, error: "Failed to create note" };
   }
@@ -54,7 +63,7 @@ export async function createNoteAction(
 export async function updateNoteAction(
   payload: z.input<typeof NoteUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = NoteUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -69,6 +78,14 @@ export async function updateNoteAction(
 
     await updateNote(noteId, content);
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "note.updated",
+      entityType: existing.case_id ? "Case" : "Consultation",
+      entityId: (existing.case_id ?? existing.consultation_id)!,
+      details: `Updated note: "${existing.content.slice(0, 80)}${existing.content.length > 80 ? "..." : ""}"`,
+    }).catch(console.error);
+
     revalidatePath(getParentPath(existing));
 
     return { success: true };
@@ -80,7 +97,7 @@ export async function updateNoteAction(
 export async function deleteNoteAction(
   payload: z.input<typeof NoteIdSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = NoteIdSchema.safeParse(payload);
   if (!parsed.success) {
@@ -94,6 +111,14 @@ export async function deleteNoteAction(
     if (!existing) return { success: false, error: "Note not found" };
 
     await deleteNote(noteId);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "note.deleted",
+      entityType: existing.case_id ? "Case" : "Consultation",
+      entityId: (existing.case_id ?? existing.consultation_id)!,
+      details: `Deleted note: "${existing.content.slice(0, 80)}${existing.content.length > 80 ? "..." : ""}"`,
+    }).catch(console.error);
 
     revalidatePath(getParentPath(existing));
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 
@@ -44,6 +45,14 @@ export async function createTaskAction(
       assignee_ids,
     });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "task.created",
+      entityType: "Case",
+      entityId: case_id,
+      details: `Created task: "${title}"`,
+    }).catch(console.error);
+
     revalidatePath(`/case/${case_id}`);
 
     return { success: true, data: { id: task.id } };
@@ -55,7 +64,7 @@ export async function createTaskAction(
 export async function updateTaskAction(
   payload: z.input<typeof TaskUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = TaskUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) return { success: false, error: "Invalid task data" };
@@ -68,6 +77,14 @@ export async function updateTaskAction(
 
     await updateTask(taskId, { title, description, status, assignee_ids });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "task.updated",
+      entityType: "Case",
+      entityId: existing.case_id,
+      details: `Updated task: "${existing.title}"`,
+    }).catch(console.error);
+
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
@@ -79,7 +96,7 @@ export async function updateTaskAction(
 export async function deleteTaskAction(
   payload: z.input<typeof TaskIdSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = TaskIdSchema.safeParse(payload);
   if (!parsed.success) return { success: false, error: "Invalid task ID" };
@@ -91,6 +108,14 @@ export async function deleteTaskAction(
     if (!existing) return { success: false, error: "Task not found" };
 
     await deleteTask(taskId);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "task.deleted",
+      entityType: "Case",
+      entityId: existing.case_id,
+      details: `Deleted task: "${existing.title}"`,
+    }).catch(console.error);
 
     revalidatePath(`/case/${existing.case_id}`);
 

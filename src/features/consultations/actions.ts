@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import {
   getConsultationActivityLogPaginated,
   getConsultationEditData,
@@ -157,14 +158,23 @@ export async function createConsultationAction(
 
   const { client_id, concern, booking_datetime, status } = parsed.data;
 
+  let createdConsultation;
   try {
-    await createConsultation({
+    createdConsultation = await createConsultation({
       client_id,
       concern,
       booking_datetime,
       status,
       created_by_user_id: session.id,
     });
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "consultation.created",
+      entityType: "Consultation",
+      entityId: createdConsultation.id,
+      details: `Created consultation: "${concern}"`,
+    }).catch(console.error);
 
     revalidatePath("/consultation");
 
@@ -184,11 +194,20 @@ export async function createConsultationWithClientAction(
     return { success: false, error: "Invalid consultation data" };
   }
 
+  let createdWithClient;
   try {
-    await createConsultationWithClient({
+    createdWithClient = await createConsultationWithClient({
       ...parsed.data,
       created_by_user_id: session.id,
     });
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "consultation.created",
+      entityType: "Consultation",
+      entityId: createdWithClient.id,
+      details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
+    }).catch(console.error);
 
     revalidatePath("/consultation");
 
@@ -201,7 +220,7 @@ export async function createConsultationWithClientAction(
 export async function updateConsultationAction(
   payload: z.input<typeof ConsultationUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = ConsultationUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -216,6 +235,14 @@ export async function updateConsultationAction(
 
     await updateConsultation({ consultationId, client_id, concern, booking_datetime, status });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "consultation.updated",
+      entityType: "Consultation",
+      entityId: consultationId,
+      details: `Updated consultation: "${existing.concern}"`,
+    }).catch(console.error);
+
     revalidatePath(`/consultation/${consultationId}`);
     revalidatePath("/consultation");
 
@@ -228,21 +255,30 @@ export async function updateConsultationAction(
 export async function updateConsultationWithClientAction(
   payload: z.input<typeof ConsultationWithClientUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = ConsultationWithClientUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { consultation_id, client_id } = parsed.data;
+  const { consultation_id, client_id, client, consultation } = parsed.data;
 
   try {
     await updateConsultationWithClient({
-      ...parsed.data,
       consultation_id,
       client_id,
+      client,
+      consultation,
     });
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "consultation.updated",
+      entityType: "Consultation",
+      entityId: consultation_id,
+      details: `Updated consultation: "${consultation.concern}" with client: "${client.name}"`,
+    }).catch(console.error);
 
     revalidatePath(`/consultation/${consultation_id}`);
     revalidatePath("/consultation");
@@ -256,7 +292,7 @@ export async function updateConsultationWithClientAction(
 export async function deleteConsultationAction(
   payload: z.input<typeof ConsultationDeletePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = ConsultationDeletePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -268,6 +304,14 @@ export async function deleteConsultationAction(
     if (!existing) return { success: false, error: "Consultation not found" };
 
     await deleteConsultation(parsed.data.consultationId);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "consultation.deleted",
+      entityType: "Consultation",
+      entityId: parsed.data.consultationId,
+      details: `Deleted consultation: "${existing.concern}"`,
+    }).catch(console.error);
 
     revalidatePath("/consultation");
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
@@ -47,6 +48,14 @@ export async function createPaymentAction(
       created_by_user_id: session.id,
     });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "payment.created",
+      entityType: case_id ? "Case" : "Consultation",
+      entityId: (case_id ?? consultation_id)!,
+      details: `Created payment: $${Number(amount).toFixed(2)}`,
+    }).catch(console.error);
+
     revalidatePath(case_id ? `/case/${case_id}` : `/consultation/${consultation_id}`);
 
     return { success: true, data: { id: payment.id } };
@@ -58,7 +67,7 @@ export async function createPaymentAction(
 export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -79,6 +88,14 @@ export async function updatePaymentAction(
       receipt_number: receipt_number || null,
     });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "payment.updated",
+      entityType: existing.case_id ? "Case" : "Consultation",
+      entityId: (existing.case_id ?? existing.consultation_id)!,
+      details: `Updated payment: $${Number(existing.amount).toFixed(2)}`,
+    }).catch(console.error);
+
     revalidatePath(getParentPath(existing));
 
     return { success: true };
@@ -90,7 +107,7 @@ export async function updatePaymentAction(
 export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = PaymentIdSchema.safeParse(payload);
   if (!parsed.success) {
@@ -104,6 +121,14 @@ export async function deletePaymentAction(
     if (!existing) return { success: false, error: "Payment not found" };
 
     await deletePayment(paymentId);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "payment.deleted",
+      entityType: existing.case_id ? "Case" : "Consultation",
+      entityId: (existing.case_id ?? existing.consultation_id)!,
+      details: `Deleted payment: $${Number(existing.amount).toFixed(2)}`,
+    }).catch(console.error);
 
     revalidatePath(getParentPath(existing));
 

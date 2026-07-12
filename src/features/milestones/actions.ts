@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 
@@ -47,6 +48,14 @@ export async function createMilestoneAction(
       created_by_user_id: session.id,
     });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "milestone.created",
+      entityType: "Case",
+      entityId: case_id,
+      details: `Created milestone: "${title}"`,
+    }).catch(console.error);
+
     revalidatePath(`/case/${case_id}`);
 
     return { success: true, data: { id: milestone.id } };
@@ -58,7 +67,7 @@ export async function createMilestoneAction(
 export async function updateMilestoneAction(
   payload: z.input<typeof MilestoneUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = MilestoneUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -78,6 +87,14 @@ export async function updateMilestoneAction(
       status,
     });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "milestone.updated",
+      entityType: "Case",
+      entityId: existing.case_id,
+      details: `Updated milestone: "${existing.title}"`,
+    }).catch(console.error);
+
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
@@ -89,7 +106,7 @@ export async function updateMilestoneAction(
 export async function deleteMilestoneAction(
   payload: z.input<typeof MilestoneIdSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = MilestoneIdSchema.safeParse(payload);
   if (!parsed.success) {
@@ -103,6 +120,14 @@ export async function deleteMilestoneAction(
     if (!existing) return { success: false, error: "Milestone not found" };
 
     await deleteMilestone(milestoneId);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "milestone.deleted",
+      entityType: "Case",
+      entityId: existing.case_id,
+      details: `Deleted milestone: "${existing.title}"`,
+    }).catch(console.error);
 
     revalidatePath(`/case/${existing.case_id}`);
 

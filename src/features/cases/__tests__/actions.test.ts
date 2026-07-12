@@ -95,6 +95,8 @@ describe("createCaseAction", () => {
   });
 
   it("creates a case and revalidates the list", async () => {
+    vi.mocked(prisma.case.create).mockResolvedValue({ id: "1" } as never);
+
     const result = await createCaseAction(validPayload);
 
     expect(result).toEqual({ success: true });

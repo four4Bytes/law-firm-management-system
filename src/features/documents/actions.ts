@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
@@ -91,6 +92,14 @@ export async function confirmDocumentUploadAction(
       uploaded_by_user_id: session.id,
     });
 
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "document.uploaded",
+      entityType: case_id ? "Case" : "Consultation",
+      entityId: (case_id ?? consultation_id)!,
+      details: `Uploaded document: "${file_name}"`,
+    }).catch(console.error);
+
     revalidatePath(
       getParentPath({ case_id: case_id ?? null, consultation_id: consultation_id ?? null }),
     );
@@ -140,7 +149,7 @@ export async function getDocumentDetailRowAction(documentId: string): Promise<Do
 export async function deleteDocumentAction(
   payload: z.input<typeof DocumentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = DocumentIdSchema.safeParse(payload);
   if (!parsed.success) {
@@ -155,6 +164,14 @@ export async function deleteDocumentAction(
 
     await deleteFile(doc.file_path);
     await deleteDocumentRecord(documentId);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "document.deleted",
+      entityType: doc.case_id ? "Case" : "Consultation",
+      entityId: (doc.case_id ?? doc.consultation_id)!,
+      details: `Deleted document: "${doc.file_name}"`,
+    }).catch(console.error);
 
     revalidatePath(getParentPath(doc));
 

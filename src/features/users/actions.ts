@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import { CREATABLE_ROLES } from "@/features/users/constants";
 import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
 import {
@@ -55,8 +56,9 @@ export async function checkDeveloperEmail(email: string): Promise<boolean> {
 export async function createUserAction(
   payload: z.input<typeof CreateUserSchema>,
 ): Promise<ActionStatusResponse> {
+  let session: { id: string; role: string };
   try {
-    await requireRole("Admin", "Dev");
+    session = await requireRole("Admin", "Dev");
   } catch {
     return { success: false, error: "You don't have permission to create users." };
   }
@@ -80,14 +82,31 @@ export async function createUserAction(
     }
     try {
       await updateUser(existing.id, { role: effectiveRole, is_active: true });
+
+      void createAuditLog({
+        actorUserId: session.id,
+        action: "user.created",
+        entityType: "User",
+        entityId: existing.id,
+        details: `Reactivated user: ${parsed.data.email}`,
+      }).catch(console.error);
     } catch {
       return { success: false, error: "Failed to reactivate user." };
     }
     return { success: true };
   }
 
+  let createdUser;
   try {
-    await createUser(parsed.data.email, effectiveRole);
+    createdUser = await createUser(parsed.data.email, effectiveRole);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "user.created",
+      entityType: "User",
+      entityId: createdUser.id,
+      details: `Created user: ${parsed.data.email}`,
+    }).catch(console.error);
   } catch {
     return { success: false, error: "Failed to create user." };
   }
@@ -131,6 +150,14 @@ export async function updateUserAction(
 
   try {
     await updateUser(parsed.data.userId, { email: parsed.data.email, role: parsed.data.role });
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "user.updated",
+      entityType: "User",
+      entityId: parsed.data.userId,
+      details: `Updated user: ${parsed.data.email}`,
+    }).catch(console.error);
   } catch {
     return { success: false, error: "Failed to update user." };
   }
@@ -140,8 +167,9 @@ export async function updateUserAction(
 export async function deactivateUserAction(
   payload: z.input<typeof DeactivateUserSchema>,
 ): Promise<ActionStatusResponse> {
+  let session: { id: string; role: string };
   try {
-    await requireRole("Admin", "Dev");
+    session = await requireRole("Admin", "Dev");
   } catch {
     return { success: false, error: "Only admins and developers can deactivate users." };
   }
@@ -163,6 +191,14 @@ export async function deactivateUserAction(
   }
   try {
     await setUserActiveStatus(parsed.data.userId, false);
+
+    void createAuditLog({
+      actorUserId: session.id,
+      action: "user.deactivated",
+      entityType: "User",
+      entityId: parsed.data.userId,
+      details: "Deactivated user",
+    }).catch(console.error);
   } catch {
     return { success: false, error: "Failed to deactivate user." };
   }

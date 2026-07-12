@@ -72,7 +72,7 @@ describe("createUserAction", () => {
   it("creates a user successfully", async () => {
     vi.mocked(requireRole).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserByEmail).mockResolvedValue(null);
-    vi.mocked(createUser).mockResolvedValue(undefined);
+    vi.mocked(createUser).mockResolvedValue({ id: "new-user-id" });
 
     const result = await createUserAction(validPayload);
 
@@ -84,7 +84,7 @@ describe("createUserAction", () => {
     vi.mocked(requireRole).mockResolvedValue(sessionAdmin);
     vi.mocked(isDeveloperEmail).mockReturnValue(true);
     vi.mocked(getUserByEmail).mockResolvedValue(null);
-    vi.mocked(createUser).mockResolvedValue(undefined);
+    vi.mocked(createUser).mockResolvedValue({ id: "new-user-id" });
 
     const result = await createUserAction({ email: "dev@example.com", role: "Lawyer" });
 

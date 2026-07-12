@@ -31,14 +31,15 @@ export async function upsertDeveloperUser(
   });
 }
 
-export async function createUser(email: string, role: Role): Promise<void> {
-  await prisma.user.create({
+export async function createUser(email: string, role: Role): Promise<{ id: string }> {
+  return prisma.user.create({
     data: {
       email,
       name: "New User",
       role,
       is_active: true,
     },
+    select: { id: true },
   });
 }
 

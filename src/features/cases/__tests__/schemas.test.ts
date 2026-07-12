@@ -4,6 +4,8 @@ import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
   CaseUpdatePayloadSchema,
+  CaseWithClientCreatePayloadSchema,
+  CaseWithClientUpdatePayloadSchema,
 } from "../schemas";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -86,6 +88,18 @@ describe("CaseCreatePayloadSchema", () => {
       CaseCreatePayloadSchema.safeParse({ ...base, source_consultation_id: "abc" }).success,
     ).toBe(false);
   });
+
+  it("rejects an empty parties_involved when provided", () => {
+    expect(CaseCreatePayloadSchema.safeParse({ ...base, parties_involved: "" }).success).toBe(
+      false,
+    );
+  });
+
+  it("rejects a whitespace-only parties_involved", () => {
+    expect(CaseCreatePayloadSchema.safeParse({ ...base, parties_involved: "   " }).success).toBe(
+      false,
+    );
+  });
 });
 
 describe("CaseUpdatePayloadSchema", () => {
@@ -137,5 +151,118 @@ describe("CaseDeletePayloadSchema", () => {
   it("requires a uuid id", () => {
     expect(CaseDeletePayloadSchema.safeParse({ id: uuid }).success).toBe(true);
     expect(CaseDeletePayloadSchema.safeParse({ id: "abc" }).success).toBe(false);
+  });
+});
+
+describe("CaseWithClientCreatePayloadSchema", () => {
+  const base = {
+    client: { name: "Alice Client" },
+    case: { case_title: "Smith vs Jones", case_type: "Civil", status: "Open" },
+  };
+
+  it("accepts a minimal valid payload", () => {
+    expect(CaseWithClientCreatePayloadSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("accepts a payload with optional client fields", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      client: {
+        name: "Alice Client",
+        email: "alice@example.com",
+        phone_number: "09170000001",
+        address: "123 Rizal St.",
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a missing client name", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      client: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty client email when provided", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      client: { name: "Alice Client", email: "" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty client phone_number when provided", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      client: { name: "Alice Client", phone_number: "" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty client address when provided", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      client: { name: "Alice Client", address: "" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty case_title", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      case: { ...base.case, case_title: "" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty parties_involved when provided", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      case: { ...base.case, parties_involved: "" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid case status", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      case: { ...base.case, status: "NotAStatus" },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("CaseWithClientUpdatePayloadSchema", () => {
+  const base = {
+    case_id: uuid,
+    client_id: uuid,
+    client: { name: "Alice Client" },
+    case: { case_title: "Smith vs Jones", case_type: "Civil", status: "Open" },
+  };
+
+  it("accepts a valid payload", () => {
+    expect(CaseWithClientUpdatePayloadSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("rejects a non-uuid case_id", () => {
+    expect(
+      CaseWithClientUpdatePayloadSchema.safeParse({ ...base, case_id: "abc" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-uuid client_id", () => {
+    expect(
+      CaseWithClientUpdatePayloadSchema.safeParse({ ...base, client_id: "abc" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an empty client name", () => {
+    const result = CaseWithClientUpdatePayloadSchema.safeParse({
+      ...base,
+      client: { name: "" },
+    });
+    expect(result.success).toBe(false);
   });
 });

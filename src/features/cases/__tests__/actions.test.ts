@@ -6,9 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 import {
   createCaseAction,
+  createCaseWithClientAction,
   deleteCaseAction,
   getCaseForEditAction,
   updateCaseAction,
+  updateCaseWithClientAction,
 } from "../actions";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -19,13 +21,21 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/prisma", () => {
+  const prismaMock = {
     case: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
-  },
-}));
+    client: { create: vi.fn(), update: vi.fn() },
+  };
+  return {
+    prisma: {
+      ...prismaMock,
+      $transaction: vi.fn((fn: (tx: typeof prismaMock) => unknown) => fn(prismaMock)),
+    },
+  };
+});
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
+const clientUuid = "660e8400-e29b-41d4-a716-446655440001";
 
 const caseRecord: Case = {
   id: "1",
@@ -179,5 +189,92 @@ describe("deleteCaseAction", () => {
     expect(await deleteCaseAction({ id: uuid })).toEqual({ success: true });
     expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid } });
     expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
+});
+
+describe("createCaseWithClientAction", () => {
+  const validPayload = {
+    client: { name: "Alice Client" },
+    case: { case_title: "Smith vs Jones", case_type: "Civil", status: "Open" },
+  };
+
+  it("returns an error for an invalid payload", async () => {
+    expect(await createCaseWithClientAction({})).toEqual({
+      success: false,
+      error: "Invalid case data",
+    });
+  });
+
+  it("creates the client and case, then revalidates the list", async () => {
+    vi.mocked(prisma.client.create).mockResolvedValue({
+      id: clientUuid,
+      name: "Alice Client",
+      email: null,
+      phone_number: null,
+      address: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    expect(await createCaseWithClientAction(validPayload)).toEqual({ success: true });
+    expect(prisma.client.create).toHaveBeenCalled();
+    expect(prisma.case.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ client_id: clientUuid, created_by_user_id: "u1" }),
+      }),
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
+
+  it("returns an error when the transaction fails", async () => {
+    vi.mocked(prisma.client.create).mockRejectedValue(new Error("db error"));
+
+    expect(await createCaseWithClientAction(validPayload)).toEqual({
+      success: false,
+      error: "Failed to create case",
+    });
+  });
+});
+
+describe("updateCaseWithClientAction", () => {
+  const validPayload = {
+    case_id: uuid,
+    client_id: clientUuid,
+    client: { name: "Alice Client" },
+    case: { case_title: "Smith vs Jones", case_type: "Civil", status: "Open" },
+  };
+
+  it("returns an error for an invalid payload", async () => {
+    expect(await updateCaseWithClientAction({})).toEqual({
+      success: false,
+      error: "Invalid case data",
+    });
+  });
+
+  it("updates the client and case, then revalidates", async () => {
+    vi.mocked(prisma.case.findUnique).mockResolvedValue({ id: uuid, client_id: clientUuid });
+
+    expect(await updateCaseWithClientAction(validPayload)).toEqual({ success: true });
+    expect(prisma.client.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: clientUuid } }),
+    );
+    expect(prisma.case.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: uuid } }),
+    );
+    expect(revalidatePath).toHaveBeenCalledWith(`/case/${uuid}`);
+    expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
+
+  it("returns an error when the case does not belong to the given client", async () => {
+    vi.mocked(prisma.case.findUnique).mockResolvedValue({
+      id: uuid,
+      client_id: "770e8400-e29b-41d4-a716-446655440002",
+    });
+
+    expect(await updateCaseWithClientAction(validPayload)).toEqual({
+      success: false,
+      error: "Failed to update case",
+    });
+    expect(prisma.client.update).not.toHaveBeenCalled();
   });
 });

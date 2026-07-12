@@ -122,6 +122,26 @@ describe("MilestoneCreatePayloadSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects an empty description when provided", () => {
+    const result = MilestoneCreatePayloadSchema.safeParse({
+      title: "Test",
+      description: "",
+      due_date: "2024-07-15",
+      case_id: uuid,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a whitespace-only description", () => {
+    const result = MilestoneCreatePayloadSchema.safeParse({
+      title: "Test",
+      description: "   ",
+      due_date: "2024-07-15",
+      case_id: uuid,
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("MilestoneUpdatePayloadSchema", () => {
@@ -169,6 +189,28 @@ describe("MilestoneUpdatePayloadSchema", () => {
   it("rejects missing milestoneId", () => {
     const result = MilestoneUpdatePayloadSchema.safeParse({
       title: "Test",
+      due_date: "2024-08-01",
+      status: "Pending",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty description when provided", () => {
+    const result = MilestoneUpdatePayloadSchema.safeParse({
+      milestoneId: uuid,
+      title: "Test",
+      description: "",
+      due_date: "2024-08-01",
+      status: "Pending",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a whitespace-only description", () => {
+    const result = MilestoneUpdatePayloadSchema.safeParse({
+      milestoneId: uuid,
+      title: "Test",
+      description: "   ",
       due_date: "2024-08-01",
       status: "Pending",
     });

@@ -62,6 +62,24 @@ describe("TaskCreatePayloadSchema", () => {
       expect(result.data.status).toBe("Pending");
     }
   });
+
+  it("rejects an empty description when provided", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      description: "",
+      case_id: uuid,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a whitespace-only description", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      description: "   ",
+      case_id: uuid,
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("TaskUpdatePayloadSchema", () => {
@@ -107,6 +125,26 @@ describe("TaskUpdatePayloadSchema", () => {
     const result = TaskUpdatePayloadSchema.safeParse({
       taskId: uuid,
       title: "Task",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty description when provided", () => {
+    const result = TaskUpdatePayloadSchema.safeParse({
+      taskId: uuid,
+      title: "Task",
+      description: "",
+      status: "Pending",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a whitespace-only description", () => {
+    const result = TaskUpdatePayloadSchema.safeParse({
+      taskId: uuid,
+      title: "Task",
+      description: "   ",
+      status: "Pending",
     });
     expect(result.success).toBe(false);
   });

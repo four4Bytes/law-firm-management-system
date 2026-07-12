@@ -19,10 +19,15 @@ import {
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { prisma } from "@/lib/prisma";
 import { PageQuerySchema } from "@/lib/schemas";
 
-import { createConsultation, deleteConsultation, updateConsultation } from "./mutations";
+import {
+  createConsultation,
+  createConsultationWithClient,
+  deleteConsultation,
+  updateConsultation,
+  updateConsultationWithClient,
+} from "./mutations";
 import {
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
@@ -166,28 +171,10 @@ export async function createConsultationWithClientAction(
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { client, consultation } = parsed.data;
-
   try {
-    await prisma.$transaction(async (tx) => {
-      const newClient = await tx.client.create({
-        data: {
-          name: client.name,
-          email: client.email || undefined,
-          phone_number: client.phone_number || undefined,
-          address: client.address || undefined,
-        },
-      });
-
-      await tx.consultation.create({
-        data: {
-          client_id: newClient.id,
-          concern: consultation.concern,
-          booking_datetime: consultation.booking_datetime,
-          status: consultation.status,
-          created_by_user_id: session.id,
-        },
-      });
+    await createConsultationWithClient({
+      ...parsed.data,
+      created_by_user_id: session.id,
     });
 
     revalidatePath("/consultation");
@@ -233,28 +220,13 @@ export async function updateConsultationWithClientAction(
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { consultation_id, client_id, client, consultation } = parsed.data;
+  const { consultation_id, client_id } = parsed.data;
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.client.update({
-        where: { id: client_id },
-        data: {
-          name: client.name,
-          email: client.email || undefined,
-          phone_number: client.phone_number || undefined,
-          address: client.address || undefined,
-        },
-      });
-
-      await tx.consultation.update({
-        where: { id: consultation_id },
-        data: {
-          concern: consultation.concern,
-          booking_datetime: consultation.booking_datetime,
-          status: consultation.status,
-        },
-      });
+    await updateConsultationWithClient({
+      ...parsed.data,
+      consultation_id,
+      client_id,
     });
 
     revalidatePath(`/consultation/${consultation_id}`);

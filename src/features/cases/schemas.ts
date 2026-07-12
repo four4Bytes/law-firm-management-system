@@ -32,36 +32,30 @@ export const CaseDeletePayloadSchema = z.object({
   id: z.uuid(),
 });
 
+const ClientDataSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  email: z.string().trim().max(255).optional(),
+  phone_number: z.string().trim().max(50).optional(),
+  address: z.string().trim().max(500).optional(),
+});
+
+const CaseDataSchema = z.object({
+  case_title: z.string().trim().min(1).max(255),
+  case_type: z.string().trim().min(1).max(255),
+  status: z.enum(CaseStatus),
+  parties_involved: z.string().trim().max(2000).optional(),
+});
+
 export const CaseWithClientCreatePayloadSchema = z.object({
-  client: z.object({
-    name: z.string().trim().min(1).max(255),
-    email: z.string().trim().max(255).optional(),
-    phone_number: z.string().trim().max(50).optional(),
-    address: z.string().trim().max(500).optional(),
-  }),
-  case: z.object({
-    case_title: z.string().trim().min(1).max(255),
-    case_type: z.string().trim().min(1).max(255),
-    status: z.enum(CaseStatus),
-    parties_involved: z.string().trim().max(2000).optional(),
-  }),
+  client: ClientDataSchema,
+  case: CaseDataSchema,
 });
 
 export const CaseWithClientUpdatePayloadSchema = z.object({
   case_id: z.uuid(),
   client_id: z.uuid(),
-  client: z.object({
-    name: z.string().trim().min(1).max(255),
-    email: z.string().trim().max(255).optional(),
-    phone_number: z.string().trim().max(50).optional(),
-    address: z.string().trim().max(500).optional(),
-  }),
-  case: z.object({
-    case_title: z.string().trim().min(1).max(255),
-    case_type: z.string().trim().min(1).max(255),
-    status: z.enum(CaseStatus),
-    parties_involved: z.string().trim().max(2000).optional(),
-  }),
+  client: ClientDataSchema,
+  case: CaseDataSchema,
 });
 
 export type CaseCreatePayload = z.infer<typeof CaseCreatePayloadSchema>;

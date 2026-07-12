@@ -8,6 +8,10 @@ import { isDeveloperEmail } from "@/lib/developer-emails";
 
 import { createUserAction, deactivateUserAction, updateUserAction } from "../actions";
 
+vi.mock("next/server", () => ({
+  after: vi.fn(),
+}));
+
 vi.mock("@/lib/auth-guards", () => ({
   requireRole: vi.fn(),
 }));
@@ -330,16 +334,21 @@ describe("deactivateUserAction", () => {
   });
 
   it("flags self-deactivation when the target is the current user", async () => {
-    vi.mocked(requireRole).mockResolvedValue(sessionAdmin);
+    vi.mocked(requireRole).mockResolvedValue({
+      id: uuid,
+      email: "admin@law.com",
+      role: "Admin",
+      name: "Admin",
+    });
     vi.mocked(getUserById).mockResolvedValue({
-      id: sessionAdmin.id,
+      id: uuid,
       role: "Admin",
       is_active: true,
     });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(1);
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
 
-    const result = await deactivateUserAction({ userId: sessionAdmin.id });
+    const result = await deactivateUserAction({ userId: uuid });
 
     expect(result).toEqual({ success: true, data: { selfDeactivated: true } });
   });

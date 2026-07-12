@@ -123,9 +123,11 @@ export function UploadDocumentModal({
         updateEntry(entry.id, { status: "done" });
       } catch (err) {
         failed++;
-        updateEntry(entry.id, {
-          status: "failed",
-          error: err instanceof Error ? err.message : "Upload failed",
+        const message = err instanceof Error ? err.message : "Upload failed";
+        updateEntry(entry.id, { status: "failed", error: message });
+        queue.add({
+          title: `Failed to upload "${entry.file.name}"`,
+          description: message,
         });
       }
     }
@@ -139,16 +141,23 @@ export function UploadDocumentModal({
     const externalFailedCount = failedEntries.filter((e) => !targetIds.has(e.id)).length;
 
     startTransition(async () => {
-      const failed = await runUploads(targets);
+      try {
+        const failed = await runUploads(targets);
 
-      if (failed === 0 && externalFailedCount === 0) {
-        queue.add(
-          { title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded` },
-          { timeout: 5000 },
-        );
-        resetState();
-        onOpenChange(false);
-        onSuccess();
+        if (failed === 0 && externalFailedCount === 0) {
+          queue.add(
+            { title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded` },
+            { timeout: 5000 },
+          );
+          resetState();
+          onOpenChange(false);
+          onSuccess();
+        }
+      } catch {
+        queue.add({
+          title: "Upload failed",
+          description: "An unexpected error occurred. Please try again.",
+        });
       }
     });
   }
@@ -157,16 +166,23 @@ export function UploadDocumentModal({
     const targets = failedEntries;
 
     startTransition(async () => {
-      const failed = await runUploads(targets);
+      try {
+        const failed = await runUploads(targets);
 
-      if (failed === 0) {
-        queue.add(
-          { title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded` },
-          { timeout: 5000 },
-        );
-        resetState();
-        onOpenChange(false);
-        onSuccess();
+        if (failed === 0) {
+          queue.add(
+            { title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded` },
+            { timeout: 5000 },
+          );
+          resetState();
+          onOpenChange(false);
+          onSuccess();
+        }
+      } catch {
+        queue.add({
+          title: "Upload failed",
+          description: "An unexpected error occurred. Please try again.",
+        });
       }
     });
   }

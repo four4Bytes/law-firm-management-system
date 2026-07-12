@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
+import { queue } from "@/components/ui/Toast/Toast";
 import { toSortQuery } from "@/lib/sort";
 import type { SortQuery } from "@/lib/types";
 import { useDebounce } from "@/lib/useDebounce";
@@ -74,16 +75,25 @@ export function ServerDataTable<T extends { id: string }>({
     ++generationRef.current;
 
     startTransition(async () => {
-      const result = await fetchActionRef.current({
-        search: debouncedSearch,
-        sort: toSortQuery(sortDescriptor),
-        pageSize: 10,
-      });
-      if (cancelled) return;
-      setItems(result.rows);
-      setCursor(result.nextCursor);
-      setHasMore(result.nextCursor !== null);
-      setIsInitialLoad(false);
+      try {
+        const result = await fetchActionRef.current({
+          search: debouncedSearch,
+          sort: toSortQuery(sortDescriptor),
+          pageSize: 10,
+        });
+        if (cancelled) return;
+        setItems(result.rows);
+        setCursor(result.nextCursor);
+        setHasMore(result.nextCursor !== null);
+        setIsInitialLoad(false);
+      } catch {
+        if (cancelled) return;
+        setIsInitialLoad(false);
+        queue.add({
+          title: "Failed to load data",
+          description: "Could not retrieve the list. Please try again.",
+        });
+      }
     });
 
     return () => {
@@ -107,6 +117,11 @@ export function ServerDataTable<T extends { id: string }>({
       setItems((prev) => [...prev, ...result.rows]);
       setCursor(result.nextCursor);
       setHasMore(result.nextCursor !== null);
+    } catch {
+      queue.add({
+        title: "Failed to load more",
+        description: "Could not retrieve additional items. Please try again.",
+      });
     } finally {
       setIsLoadingMore(false);
     }

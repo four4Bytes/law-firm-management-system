@@ -66,14 +66,20 @@ describe("createClientAction", () => {
 });
 
 describe("getClientForEditAction", () => {
-  it("throws when id is missing", async () => {
-    await expect(getClientForEditAction("")).rejects.toThrow("Invalid client ID");
+  it("returns an error when id is missing", async () => {
+    expect(await getClientForEditAction("")).toEqual({
+      success: false,
+      error: "Invalid client ID",
+    });
   });
 
-  it("returns null when the client is not found", async () => {
+  it("returns an error when the client is not found", async () => {
     vi.mocked(prisma.client.findUnique).mockResolvedValue(null);
 
-    expect(await getClientForEditAction(uuid)).toBeNull();
+    expect(await getClientForEditAction(uuid)).toEqual({
+      success: false,
+      error: "Client not found",
+    });
   });
 
   it("returns the client edit data", async () => {
@@ -81,23 +87,26 @@ describe("getClientForEditAction", () => {
 
     const result = await getClientForEditAction(uuid);
 
-    expect(result).toMatchObject({ id: "1", name: "Alice Client" });
+    expect(result).toEqual({
+      success: true,
+      data: expect.objectContaining({ id: "1", name: "Alice Client" }),
+    });
   });
 
-  it("throws when loading the client fails", async () => {
+  it("returns an error when loading the client fails", async () => {
     vi.mocked(prisma.client.findUnique).mockRejectedValue(new Error("db error"));
 
-    await expect(getClientForEditAction(uuid)).rejects.toThrow();
+    expect(await getClientForEditAction(uuid)).toEqual({
+      success: false,
+      error: "Failed to load client",
+    });
   });
 
-  it("propagates the original error message instead of swallowing it", async () => {
-    vi.mocked(prisma.client.findUnique).mockRejectedValue(new Error("connection reset"));
-
-    await expect(getClientForEditAction(uuid)).rejects.toThrow("connection reset");
-  });
-
-  it("rejects with 'Invalid client ID' for a non-uuid id rather than querying prisma", async () => {
-    await expect(getClientForEditAction("not-a-uuid")).rejects.toThrow("Invalid client ID");
+  it("returns an error for a non-uuid id rather than querying prisma", async () => {
+    expect(await getClientForEditAction("not-a-uuid")).toEqual({
+      success: false,
+      error: "Invalid client ID",
+    });
     expect(prisma.client.findUnique).not.toHaveBeenCalled();
   });
 });

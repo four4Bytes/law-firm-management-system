@@ -252,7 +252,7 @@ describe("updateCaseWithClientAction", () => {
   });
 
   it("updates the client and case, then revalidates", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue({ id: uuid, client_id: clientUuid });
+    vi.mocked(prisma.case.findUnique).mockResolvedValue({ ...caseRecord, id: uuid, client_id: clientUuid });
 
     expect(await updateCaseWithClientAction(validPayload)).toEqual({ success: true });
     expect(prisma.client.update).toHaveBeenCalledWith(
@@ -267,6 +267,7 @@ describe("updateCaseWithClientAction", () => {
 
   it("returns an error when the case does not belong to the given client", async () => {
     vi.mocked(prisma.case.findUnique).mockResolvedValue({
+      ...caseRecord,
       id: uuid,
       client_id: "770e8400-e29b-41d4-a716-446655440002",
     });

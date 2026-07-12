@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import { deleteNoteAction } from "../actions";
@@ -21,11 +22,26 @@ vi.mock("@/lib/prisma", () => ({
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
-const noteRecord = {
+const noteRecord: Prisma.NoteGetPayload<{
+  select: {
+    id: true;
+    content: true;
+    case_id: true;
+    consultation_id: true;
+    created_at: true;
+    updated_at: true;
+    created_by_user_id: true;
+    task_id: true;
+  };
+}> = {
   id: uuid,
   content: "Discussed settlement terms",
   case_id: "c1",
   consultation_id: null,
+  created_at: new Date("2024-06-01"),
+  updated_at: new Date("2024-06-01"),
+  created_by_user_id: "u1",
+  task_id: null,
 };
 
 beforeEach(() => {
@@ -34,14 +50,14 @@ beforeEach(() => {
 
 describe("deleteNoteAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await deleteNoteAction({})).toEqual({
+    expect(await deleteNoteAction("")).toEqual({
       success: false,
       error: "Invalid note ID",
     });
   });
 
   it("returns an error for a non-uuid noteId", async () => {
-    expect(await deleteNoteAction({ noteId: "abc" })).toEqual({
+    expect(await deleteNoteAction("abc")).toEqual({
       success: false,
       error: "Invalid note ID",
     });
@@ -50,7 +66,7 @@ describe("deleteNoteAction", () => {
   it("returns an error when the note is not found", async () => {
     vi.mocked(prisma.note.findUnique).mockResolvedValue(null);
 
-    expect(await deleteNoteAction({ noteId: uuid })).toEqual({
+    expect(await deleteNoteAction(uuid)).toEqual({
       success: false,
       error: "Note not found",
     });
@@ -59,7 +75,7 @@ describe("deleteNoteAction", () => {
   it("deletes the note and revalidates the case path", async () => {
     vi.mocked(prisma.note.findUnique).mockResolvedValue(noteRecord);
 
-    const result = await deleteNoteAction({ noteId: uuid });
+    const result = await deleteNoteAction(uuid);
 
     expect(result).toEqual({ success: true });
     expect(prisma.note.delete).toHaveBeenCalledWith(expect.objectContaining({ where: { id: uuid } }));
@@ -73,7 +89,7 @@ describe("deleteNoteAction", () => {
       consultation_id: "con1",
     });
 
-    expect(await deleteNoteAction({ noteId: uuid })).toEqual({ success: true });
+    expect(await deleteNoteAction(uuid)).toEqual({ success: true });
     expect(revalidatePath).toHaveBeenCalledWith("/consultation/con1");
   });
 
@@ -81,7 +97,7 @@ describe("deleteNoteAction", () => {
     vi.mocked(prisma.note.findUnique).mockResolvedValue(noteRecord);
     vi.mocked(prisma.note.delete).mockRejectedValue(new Error("db error"));
 
-    expect(await deleteNoteAction({ noteId: uuid })).toEqual({
+    expect(await deleteNoteAction(uuid)).toEqual({
       success: false,
       error: "Failed to delete note",
     });

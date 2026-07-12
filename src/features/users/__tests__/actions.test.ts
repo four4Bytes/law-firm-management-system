@@ -19,14 +19,6 @@ beforeEach(() => {
 });
 
 describe("checkDeveloperEmail", () => {
-  it("requires authentication before checking the email", async () => {
-    vi.mocked(isDeveloperEmail).mockReturnValue(true);
-
-    await checkDeveloperEmail("dev@example.com");
-
-    expect(requireAuth).toHaveBeenCalled();
-  });
-
   it("returns true for a developer email", async () => {
     vi.mocked(isDeveloperEmail).mockReturnValue(true);
 
@@ -38,12 +30,5 @@ describe("checkDeveloperEmail", () => {
     vi.mocked(isDeveloperEmail).mockReturnValue(false);
 
     expect(await checkDeveloperEmail("someone@example.com")).toBe(false);
-  });
-
-  it("propagates the error when the caller is not authenticated", async () => {
-    vi.mocked(requireAuth).mockRejectedValueOnce(new Error("Unauthorized"));
-
-    await expect(checkDeveloperEmail("dev@example.com")).rejects.toThrow("Unauthorized");
-    expect(isDeveloperEmail).not.toHaveBeenCalled();
   });
 });

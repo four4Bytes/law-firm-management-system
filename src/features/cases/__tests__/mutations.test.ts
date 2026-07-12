@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -25,6 +26,19 @@ vi.mock("@/lib/prisma", () => {
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 const clientUuid = "660e8400-e29b-41d4-a716-446655440001";
+
+const caseRecord: Case = {
+  id: uuid,
+  client_id: clientUuid,
+  case_title: "Smith vs Jones",
+  case_type: "Civil",
+  status: "Open",
+  parties_involved: null,
+  source_consultation_id: null,
+  created_by_user_id: "u1",
+  created_at: new Date("2024-06-01"),
+  updated_at: new Date("2024-06-01"),
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -275,6 +289,7 @@ describe("updateCaseWithClient", () => {
 
   it("throws when the case belongs to a different client", async () => {
     vi.mocked(prisma.case.findUnique).mockResolvedValue({
+      ...caseRecord,
       id: uuid,
       client_id: "770e8400-e29b-41d4-a716-446655440002",
     });
@@ -286,7 +301,7 @@ describe("updateCaseWithClient", () => {
   });
 
   it("updates the client and the case when they match", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue({ id: uuid, client_id: clientUuid });
+    vi.mocked(prisma.case.findUnique).mockResolvedValue({ ...caseRecord, id: uuid, client_id: clientUuid });
 
     await updateCaseWithClient(payload);
 
@@ -312,7 +327,7 @@ describe("updateCaseWithClient", () => {
   });
 
   it("maps a falsy parties_involved to null on the updated case", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue({ id: uuid, client_id: clientUuid });
+    vi.mocked(prisma.case.findUnique).mockResolvedValue({ ...caseRecord, id: uuid, client_id: clientUuid });
 
     await updateCaseWithClient({
       ...payload,

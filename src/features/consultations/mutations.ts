@@ -21,11 +21,11 @@ export async function createConsultation(
 }
 
 export async function updateConsultation(data: ConsultationUpdatePayload, tx?: TransactionClient) {
-  const { id, ...rest } = data;
+  const { consultationId, ...rest } = data;
   const client = tx || prisma;
 
   return client.consultation.update({
-    where: { id },
+    where: { id: consultationId },
     data: rest,
   });
 }
@@ -86,7 +86,7 @@ export async function updateConsultationWithClient(
 
     return updateConsultation(
       {
-        id: data.consultation_id,
+        consultationId: data.consultation_id,
         client_id: data.client_id,
         concern: data.consultation.concern,
         booking_datetime: data.consultation.booking_datetime,

@@ -224,7 +224,7 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
         confirmLabel="Deactivate"
         onConfirm={async () => {
           if (!deletingUser) return;
-          const result = await deactivateUserAction(deletingUser.id);
+          const result = await deactivateUserAction({ userId: deletingUser.id });
           if (result.error) {
             queue.add({ title: result.error });
             return;

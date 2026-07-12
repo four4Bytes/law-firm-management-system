@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { CaseStatus } from "@/generated/prisma/browser";
-import { SortQuerySchema } from "@/lib/schemas";
+import { CaseStatus } from "@/generated/prisma/client";
+import { ClientDataSchema, SortQuerySchema } from "@/lib/schemas";
 
 export const CasePageQuerySchema = z.object({
   caseId: z.uuid(),
@@ -12,7 +12,7 @@ export const CasePageQuerySchema = z.object({
 });
 
 export const CaseOverviewIdSchema = z.object({
-  id: z.uuid(),
+  caseId: z.uuid(),
 });
 
 export const CaseCreatePayloadSchema = z.object({
@@ -25,18 +25,11 @@ export const CaseCreatePayloadSchema = z.object({
 });
 
 export const CaseUpdatePayloadSchema = CaseCreatePayloadSchema.extend({
-  id: z.uuid(),
+  caseId: z.uuid(),
 });
 
 export const CaseDeletePayloadSchema = z.object({
-  id: z.uuid(),
-});
-
-const ClientDataSchema = z.object({
-  name: z.string().trim().min(1).max(255),
-  email: z.string().trim().min(1).max(255).optional(),
-  phone_number: z.string().trim().min(1).max(50).optional(),
-  address: z.string().trim().min(1).max(500).optional(),
+  caseId: z.uuid(),
 });
 
 const CaseDataSchema = z.object({

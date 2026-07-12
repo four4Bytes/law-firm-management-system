@@ -21,11 +21,11 @@ export async function createCase(
 }
 
 export async function updateCase(data: CaseUpdatePayload, tx?: TransactionClient) {
-  const { id, ...rest } = data;
+  const { caseId, ...rest } = data;
   const client = tx || prisma;
 
   return client.case.update({
-    where: { id },
+    where: { id: caseId },
     data: {
       ...rest,
       parties_involved: rest.parties_involved ? rest.parties_involved : null,
@@ -89,7 +89,7 @@ export async function updateCaseWithClient(
 
     return updateCase(
       {
-        id: data.case_id,
+        caseId: data.case_id,
         client_id: data.client_id,
         case_title: data.case.case_title,
         case_type: data.case.case_type,

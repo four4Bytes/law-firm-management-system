@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { SortQuerySchema } from "@/lib/schemas";
+import { exactlyOneParentRefinement, SortQuerySchema } from "@/lib/schemas";
 
 export const DocumentPageQuerySchema = z.object({
   caseId: z.uuid().optional(),
@@ -18,7 +18,7 @@ export const DocumentUploadPayloadSchema = z
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })
-  .refine(({ case_id, consultation_id }) => Boolean(case_id) !== Boolean(consultation_id), {
+  .refine(exactlyOneParentRefinement, {
     message: "Provide exactly one of case_id or consultation_id",
   });
 
@@ -31,7 +31,7 @@ export const DocumentConfirmPayloadSchema = z
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })
-  .refine(({ case_id, consultation_id }) => Boolean(case_id) !== Boolean(consultation_id), {
+  .refine(exactlyOneParentRefinement, {
     message: "Provide exactly one of case_id or consultation_id",
   });
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { ConsultationStatus } from "@/generated/prisma/browser";
-import { SortQuerySchema } from "@/lib/schemas";
+import { ConsultationStatus } from "@/generated/prisma/client";
+import { ClientDataSchema, SortQuerySchema } from "@/lib/schemas";
 
 export const ConsultationPageQuerySchema = z.object({
   consultationId: z.uuid(),
@@ -12,7 +12,7 @@ export const ConsultationPageQuerySchema = z.object({
 });
 
 export const ConsultationOverviewIdSchema = z.object({
-  id: z.uuid(),
+  consultationId: z.uuid(),
 });
 
 export const ConsultationCreatePayloadSchema = z.object({
@@ -23,18 +23,11 @@ export const ConsultationCreatePayloadSchema = z.object({
 });
 
 export const ConsultationUpdatePayloadSchema = ConsultationCreatePayloadSchema.extend({
-  id: z.uuid(),
+  consultationId: z.uuid(),
 });
 
 export const ConsultationDeletePayloadSchema = z.object({
-  id: z.uuid(),
-});
-
-const ClientDataSchema = z.object({
-  name: z.string().trim().min(1).max(255),
-  email: z.string().trim().min(1).max(255).optional(),
-  phone_number: z.string().trim().min(1).max(50).optional(),
-  address: z.string().trim().min(1).max(500).optional(),
+  consultationId: z.uuid(),
 });
 
 const ConsultationDataSchema = z.object({

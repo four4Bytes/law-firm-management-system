@@ -39,7 +39,7 @@ it("createConsultation merges created_by_user_id into the create payload", async
 
 it("updateConsultation strips id from the update data", async () => {
   await updateConsultation({
-    id: uuid,
+    consultationId: uuid,
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,

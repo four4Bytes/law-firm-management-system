@@ -105,7 +105,7 @@ describe("createConsultationAction", () => {
 
 describe("updateConsultationAction", () => {
   const validPayload = {
-    id: uuid,
+    consultationId: uuid,
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
@@ -113,7 +113,7 @@ describe("updateConsultationAction", () => {
   };
 
   it("returns an error for an invalid payload", async () => {
-    expect(await updateConsultationAction({ id: uuid })).toEqual({
+    expect(await updateConsultationAction({ consultationId: uuid })).toEqual({
       success: false,
       error: "Invalid consultation data",
     });
@@ -149,7 +149,7 @@ describe("updateConsultationAction", () => {
 
 describe("deleteConsultationAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await deleteConsultationAction({ id: "abc" })).toEqual({
+    expect(await deleteConsultationAction({ consultationId: "abc" })).toEqual({
       success: false,
       error: "Invalid consultation ID",
     });
@@ -158,7 +158,7 @@ describe("deleteConsultationAction", () => {
   it("returns an error when the consultation is not found", async () => {
     vi.mocked(prisma.consultation.findUnique).mockResolvedValue(null);
 
-    expect(await deleteConsultationAction({ id: uuid })).toEqual({
+    expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({
       success: false,
       error: "Consultation not found",
     });
@@ -167,7 +167,7 @@ describe("deleteConsultationAction", () => {
   it("deletes a consultation and revalidates the list", async () => {
     vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
 
-    expect(await deleteConsultationAction({ id: uuid })).toEqual({ success: true });
+    expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({ success: true });
     expect(prisma.consultation.delete).toHaveBeenCalledWith({ where: { id: uuid } });
     expect(revalidatePath).toHaveBeenCalledWith("/consultation");
   });

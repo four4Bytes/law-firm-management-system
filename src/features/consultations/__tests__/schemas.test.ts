@@ -57,7 +57,7 @@ describe("ConsultationCreatePayloadSchema", () => {
 });
 
 describe("ConsultationUpdatePayloadSchema", () => {
-  it("requires a uuid id", () => {
+  it("requires a uuid consultationId", () => {
     const result = ConsultationUpdatePayloadSchema.safeParse({
       client_id: uuid,
       concern: "c",
@@ -69,7 +69,7 @@ describe("ConsultationUpdatePayloadSchema", () => {
 
   it("accepts a valid update payload", () => {
     const result = ConsultationUpdatePayloadSchema.safeParse({
-      id: uuid,
+      consultationId: uuid,
       client_id: uuid,
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
@@ -80,8 +80,10 @@ describe("ConsultationUpdatePayloadSchema", () => {
 });
 
 describe("ConsultationDeletePayloadSchema", () => {
-  it("requires a uuid id", () => {
-    expect(ConsultationDeletePayloadSchema.safeParse({ id: uuid }).success).toBe(true);
-    expect(ConsultationDeletePayloadSchema.safeParse({ id: "abc" }).success).toBe(false);
+  it("requires a uuid consultationId", () => {
+    expect(ConsultationDeletePayloadSchema.safeParse({ consultationId: uuid }).success).toBe(true);
+    expect(ConsultationDeletePayloadSchema.safeParse({ consultationId: "abc" }).success).toBe(
+      false,
+    );
   });
 });

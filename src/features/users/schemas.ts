@@ -19,7 +19,7 @@ export const CreateUserSchema = z.object({
 });
 
 export const UpdateUserSchema = z.object({
-  id: z.uuid(),
+  userId: z.uuid(),
   email: z.email().trim().min(1).max(255),
   role: z.enum(Role).refine((r) => CREATABLE_ROLES.includes(r), {
     message: "Role is not creatable",
@@ -27,5 +27,5 @@ export const UpdateUserSchema = z.object({
 });
 
 export const DeactivateUserSchema = z.object({
-  id: z.uuid(),
+  userId: z.uuid(),
 });

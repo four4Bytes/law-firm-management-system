@@ -59,12 +59,12 @@ export async function getCasesPaginatedAction(params: unknown): Promise<{
 export async function getCaseOverviewByIdAction(id: string): Promise<CaseOverviewData> {
   await requireAuth();
 
-  const parsed = CaseOverviewIdSchema.safeParse({ id });
+  const parsed = CaseOverviewIdSchema.safeParse({ caseId: id });
   if (!parsed.success) {
     throw new Error("Invalid case ID");
   }
 
-  return getCaseOverviewById(parsed.data.id);
+  return getCaseOverviewById(parsed.data.caseId);
 }
 
 export async function getCaseTasksPaginatedAction(params: unknown): Promise<{
@@ -154,12 +154,12 @@ export async function getCaseActivityLogPaginatedAction(params: unknown): Promis
 export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {
   await requireAuth();
 
-  const parsed = CaseOverviewIdSchema.safeParse({ id });
+  const parsed = CaseOverviewIdSchema.safeParse({ caseId: id });
   if (!parsed.success) {
     throw new Error("Invalid case ID");
   }
 
-  return getCaseEditData(parsed.data.id);
+  return getCaseEditData(parsed.data.caseId);
 }
 
 export async function createCaseAction(payload: unknown): Promise<ActionStatusResponse> {
@@ -225,15 +225,22 @@ export async function updateCaseAction(payload: unknown): Promise<ActionStatusRe
     return { success: false, error: "Invalid case data" };
   }
 
-  const { id, client_id, case_title, case_type, status, parties_involved, source_consultation_id } =
-    parsed.data;
+  const {
+    caseId,
+    client_id,
+    case_title,
+    case_type,
+    status,
+    parties_involved,
+    source_consultation_id,
+  } = parsed.data;
 
   try {
-    const existing = await getCaseEditData(id);
+    const existing = await getCaseEditData(caseId);
     if (!existing) return { success: false, error: "Case not found" };
 
     await updateCase({
-      id,
+      caseId,
       client_id,
       case_title,
       case_type,
@@ -242,7 +249,7 @@ export async function updateCaseAction(payload: unknown): Promise<ActionStatusRe
       source_consultation_id,
     });
 
-    revalidatePath(`/case/${id}`);
+    revalidatePath(`/case/${caseId}`);
     revalidatePath("/case");
 
     return { success: true };
@@ -287,10 +294,10 @@ export async function deleteCaseAction(payload: unknown): Promise<ActionStatusRe
   }
 
   try {
-    const existing = await getCaseEditData(parsed.data.id);
+    const existing = await getCaseEditData(parsed.data.caseId);
     if (!existing) return { success: false, error: "Case not found" };
 
-    await deleteCase(parsed.data.id);
+    await deleteCase(parsed.data.caseId);
 
     revalidatePath("/case");
 

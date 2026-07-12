@@ -57,12 +57,12 @@ export async function getConsultationOverviewByIdAction(
 ): Promise<ConsultationOverviewData> {
   await requireAuth();
 
-  const parsed = ConsultationOverviewIdSchema.safeParse({ id });
+  const parsed = ConsultationOverviewIdSchema.safeParse({ consultationId: id });
   if (!parsed.success) {
     throw new Error("Invalid consultation ID");
   }
 
-  return getConsultationOverviewById(parsed.data.id);
+  return getConsultationOverviewById(parsed.data.consultationId);
 }
 
 export async function getConsultationNotesPaginatedAction(params: unknown): Promise<{
@@ -126,12 +126,12 @@ export async function getConsultationForEditAction(
 ): Promise<ConsultationEditData | null> {
   await requireAuth();
 
-  const parsed = ConsultationOverviewIdSchema.safeParse({ id });
+  const parsed = ConsultationOverviewIdSchema.safeParse({ consultationId: id });
   if (!parsed.success) {
     throw new Error("Invalid consultation ID");
   }
 
-  return getConsultationEditData(parsed.data.id);
+  return getConsultationEditData(parsed.data.consultationId);
 }
 
 export async function createConsultationAction(payload: unknown): Promise<ActionStatusResponse> {
@@ -193,15 +193,15 @@ export async function updateConsultationAction(payload: unknown): Promise<Action
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { id, client_id, concern, booking_datetime, status } = parsed.data;
+  const { consultationId, client_id, concern, booking_datetime, status } = parsed.data;
 
   try {
-    const existing = await getConsultationEditData(id);
+    const existing = await getConsultationEditData(consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    await updateConsultation({ id, client_id, concern, booking_datetime, status });
+    await updateConsultation({ consultationId, client_id, concern, booking_datetime, status });
 
-    revalidatePath(`/consultation/${id}`);
+    revalidatePath(`/consultation/${consultationId}`);
     revalidatePath("/consultation");
 
     return { success: true };
@@ -247,10 +247,10 @@ export async function deleteConsultationAction(payload: unknown): Promise<Action
   }
 
   try {
-    const existing = await getConsultationEditData(parsed.data.id);
+    const existing = await getConsultationEditData(parsed.data.consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    await deleteConsultation(parsed.data.id);
+    await deleteConsultation(parsed.data.consultationId);
 
     revalidatePath("/consultation");
 

@@ -93,7 +93,7 @@ describe("getClientForEditAction", () => {
 
 describe("updateClientAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await updateClientAction({ id: uuid })).toEqual({
+    expect(await updateClientAction({ clientId: uuid })).toEqual({
       success: false,
       error: "Invalid client data",
     });
@@ -102,7 +102,7 @@ describe("updateClientAction", () => {
   it("updates a client and revalidates the list", async () => {
     vi.mocked(prisma.client.update).mockResolvedValue(clientRecord);
 
-    const result = await updateClientAction({ id: uuid, name: "Alice Client" });
+    const result = await updateClientAction({ clientId: uuid, name: "Alice Client" });
 
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
@@ -113,7 +113,7 @@ describe("updateClientAction", () => {
   it("returns an error when update fails", async () => {
     vi.mocked(prisma.client.update).mockRejectedValue(new Error("db error"));
 
-    expect(await updateClientAction({ id: uuid, name: "Alice Client" })).toEqual({
+    expect(await updateClientAction({ clientId: uuid, name: "Alice Client" })).toEqual({
       success: false,
       error: "Failed to update client",
     });

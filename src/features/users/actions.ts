@@ -48,14 +48,14 @@ export async function checkDeveloperEmail(email: string): Promise<boolean> {
   return isDeveloperEmail(parsed.data.email);
 }
 
-export async function createUserAction(email: string, role: string): Promise<ActionStatusResponse> {
+export async function createUserAction(payload: unknown): Promise<ActionStatusResponse> {
   try {
     await requireRole("Admin", "Dev");
   } catch {
     return { success: false, error: "You don't have permission to create users." };
   }
 
-  const parsed = CreateUserSchema.safeParse({ email, role });
+  const parsed = CreateUserSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid email or role" };
   }
@@ -88,11 +88,7 @@ export async function createUserAction(email: string, role: string): Promise<Act
   return { success: true };
 }
 
-export async function updateUserAction(
-  id: string,
-  email: string,
-  role: string,
-): Promise<ActionStatusResponse> {
+export async function updateUserAction(payload: unknown): Promise<ActionStatusResponse> {
   let session: { id: string; role: string };
   try {
     session = await requireRole("Admin", "Dev");
@@ -100,7 +96,7 @@ export async function updateUserAction(
     return { success: false, error: "You don't have permission to edit users." };
   }
 
-  const parsed = UpdateUserSchema.safeParse({ id, email, role });
+  const parsed = UpdateUserSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid input" };
   }
@@ -109,7 +105,7 @@ export async function updateUserAction(
     return { success: false, error: "Invalid role." };
   }
 
-  const target = await getUserById(parsed.data.id);
+  const target = await getUserById(parsed.data.userId);
   if (!target) {
     return { success: false, error: "User not found." };
   }
@@ -121,42 +117,42 @@ export async function updateUserAction(
   }
 
   const existing = await getUserByEmail(parsed.data.email);
-  if (existing && existing.id !== parsed.data.id) {
+  if (existing && existing.id !== parsed.data.userId) {
     return { success: false, error: "A user with this email already exists." };
   }
 
   try {
-    await updateUser(parsed.data.id, { email: parsed.data.email, role: parsed.data.role });
+    await updateUser(parsed.data.userId, { email: parsed.data.email, role: parsed.data.role });
   } catch {
     return { success: false, error: "Failed to update user." };
   }
   return { success: true };
 }
 
-export async function deactivateUserAction(id: string): Promise<ActionStatusResponse> {
+export async function deactivateUserAction(payload: unknown): Promise<ActionStatusResponse> {
   try {
     await requireRole("Admin", "Dev");
   } catch {
     return { success: false, error: "Only admins and developers can deactivate users." };
   }
 
-  const parsed = DeactivateUserSchema.safeParse({ id });
+  const parsed = DeactivateUserSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid user ID" };
   }
 
-  const target = await getUserById(parsed.data.id);
+  const target = await getUserById(parsed.data.userId);
   if (!target) {
     return { success: false, error: "User not found." };
   }
   if (target.role === Role.Admin || target.role === Role.Dev) {
-    const remaining = await countActiveAdminsAndDevs(parsed.data.id);
+    const remaining = await countActiveAdminsAndDevs(parsed.data.userId);
     if (remaining === 0) {
       return { success: false, error: "Cannot deactivate the last admin or developer." };
     }
   }
   try {
-    await setUserActiveStatus(parsed.data.id, false);
+    await setUserActiveStatus(parsed.data.userId, false);
   } catch {
     return { success: false, error: "Failed to deactivate user." };
   }

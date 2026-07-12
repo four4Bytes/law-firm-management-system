@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const NotePageQuerySchema = z.object({
+import { exactlyOneParentRefinement, PageQuerySchema } from "@/lib/schemas";
+
+export const NotePageQuerySchema = PageQuerySchema.extend({
   noteId: z.uuid(),
 });
 
@@ -10,7 +12,7 @@ export const NoteCreatePayloadSchema = z
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })
-  .refine(({ case_id, consultation_id }) => Boolean(case_id) !== Boolean(consultation_id), {
+  .refine(exactlyOneParentRefinement, {
     message: "Provide exactly one of case_id or consultation_id",
   });
 

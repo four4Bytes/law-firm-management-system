@@ -89,7 +89,7 @@ describe("CaseCreatePayloadSchema", () => {
 });
 
 describe("CaseUpdatePayloadSchema", () => {
-  it("requires an id", () => {
+  it("requires a caseId", () => {
     const result = CaseUpdatePayloadSchema.safeParse({
       client_id: uuid,
       case_title: "t",
@@ -101,7 +101,7 @@ describe("CaseUpdatePayloadSchema", () => {
 
   it("accepts a valid update payload", () => {
     const result = CaseUpdatePayloadSchema.safeParse({
-      id: uuid,
+      caseId: uuid,
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
@@ -110,9 +110,9 @@ describe("CaseUpdatePayloadSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects a non-uuid id", () => {
+  it("rejects a non-uuid caseId", () => {
     const result = CaseUpdatePayloadSchema.safeParse({
-      id: "abc",
+      caseId: "abc",
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
@@ -123,7 +123,7 @@ describe("CaseUpdatePayloadSchema", () => {
 
   it("rejects an invalid status inherited from the create schema", () => {
     const result = CaseUpdatePayloadSchema.safeParse({
-      id: uuid,
+      caseId: uuid,
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
@@ -134,8 +134,8 @@ describe("CaseUpdatePayloadSchema", () => {
 });
 
 describe("CaseDeletePayloadSchema", () => {
-  it("requires a uuid id", () => {
-    expect(CaseDeletePayloadSchema.safeParse({ id: uuid }).success).toBe(true);
-    expect(CaseDeletePayloadSchema.safeParse({ id: "abc" }).success).toBe(false);
+  it("requires a uuid caseId", () => {
+    expect(CaseDeletePayloadSchema.safeParse({ caseId: uuid }).success).toBe(true);
+    expect(CaseDeletePayloadSchema.safeParse({ caseId: "abc" }).success).toBe(false);
   });
 });

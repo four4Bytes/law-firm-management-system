@@ -114,7 +114,7 @@ describe("createCaseAction", () => {
 
 describe("updateCaseAction", () => {
   const validPayload = {
-    id: uuid,
+    caseId: uuid,
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
@@ -122,7 +122,7 @@ describe("updateCaseAction", () => {
   };
 
   it("returns an error for an invalid payload", async () => {
-    expect(await updateCaseAction({ id: uuid })).toEqual({
+    expect(await updateCaseAction({ caseId: uuid })).toEqual({
       success: false,
       error: "Invalid case data",
     });
@@ -158,7 +158,7 @@ describe("updateCaseAction", () => {
 
 describe("deleteCaseAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await deleteCaseAction({ id: "abc" })).toEqual({
+    expect(await deleteCaseAction({ caseId: "abc" })).toEqual({
       success: false,
       error: "Invalid case ID",
     });
@@ -167,7 +167,7 @@ describe("deleteCaseAction", () => {
   it("returns an error when the case is not found", async () => {
     vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
 
-    expect(await deleteCaseAction({ id: uuid })).toEqual({
+    expect(await deleteCaseAction({ caseId: uuid })).toEqual({
       success: false,
       error: "Case not found",
     });
@@ -176,7 +176,7 @@ describe("deleteCaseAction", () => {
   it("deletes a case and revalidates the list", async () => {
     vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
 
-    expect(await deleteCaseAction({ id: uuid })).toEqual({ success: true });
+    expect(await deleteCaseAction({ caseId: uuid })).toEqual({ success: true });
     expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid } });
     expect(revalidatePath).toHaveBeenCalledWith("/case");
   });

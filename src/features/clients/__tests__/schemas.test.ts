@@ -57,13 +57,15 @@ describe("ClientCreatePayloadSchema", () => {
 });
 
 describe("ClientUpdatePayloadSchema", () => {
-  it("requires a uuid id", () => {
-    expect(ClientUpdatePayloadSchema.safeParse({ id: "abc", name: "Alice" }).success).toBe(false);
+  it("requires a uuid clientId", () => {
+    expect(ClientUpdatePayloadSchema.safeParse({ clientId: "abc", name: "Alice" }).success).toBe(
+      false,
+    );
   });
 
   it("accepts a valid update payload", () => {
     const result = ClientUpdatePayloadSchema.safeParse({
-      id: uuid,
+      clientId: uuid,
       name: "Alice Client",
       email: "alice@email.com",
     });
@@ -71,12 +73,12 @@ describe("ClientUpdatePayloadSchema", () => {
   });
 
   it("rejects an empty name", () => {
-    expect(ClientUpdatePayloadSchema.safeParse({ id: uuid, name: "" }).success).toBe(false);
+    expect(ClientUpdatePayloadSchema.safeParse({ clientId: uuid, name: "" }).success).toBe(false);
   });
 
   it("rejects an email longer than 255 characters", () => {
     expect(
-      ClientUpdatePayloadSchema.safeParse({ id: uuid, name: "Alice", email: "a".repeat(256) })
+      ClientUpdatePayloadSchema.safeParse({ clientId: uuid, name: "Alice", email: "a".repeat(256) })
         .success,
     ).toBe(false);
   });
@@ -84,7 +86,7 @@ describe("ClientUpdatePayloadSchema", () => {
   it("rejects a phone_number longer than 50 characters", () => {
     expect(
       ClientUpdatePayloadSchema.safeParse({
-        id: uuid,
+        clientId: uuid,
         name: "Alice",
         phone_number: "1".repeat(51),
       }).success,
@@ -93,8 +95,11 @@ describe("ClientUpdatePayloadSchema", () => {
 
   it("rejects an address longer than 500 characters", () => {
     expect(
-      ClientUpdatePayloadSchema.safeParse({ id: uuid, name: "Alice", address: "a".repeat(501) })
-        .success,
+      ClientUpdatePayloadSchema.safeParse({
+        clientId: uuid,
+        name: "Alice",
+        address: "a".repeat(501),
+      }).success,
     ).toBe(false);
   });
 });

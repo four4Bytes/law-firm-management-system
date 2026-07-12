@@ -38,7 +38,7 @@ it("createCase merges created_by_user_id into the create payload", async () => {
 
 it("updateCase strips id and maps empty parties_involved to null", async () => {
   await updateCase({
-    id: uuid,
+    caseId: uuid,
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
@@ -60,7 +60,7 @@ it("updateCase strips id and maps empty parties_involved to null", async () => {
 
 it("updateCase passes a defined parties_involved through", async () => {
   await updateCase({
-    id: uuid,
+    caseId: uuid,
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
@@ -106,7 +106,7 @@ it("createCase passes through parties_involved and source_consultation_id when p
 
 it("updateCase passes through source_consultation_id", async () => {
   await updateCase({
-    id: uuid,
+    caseId: uuid,
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",

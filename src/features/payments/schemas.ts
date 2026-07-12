@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { PaymentStatus } from "@/generated/prisma/browser";
+import { PaymentStatus } from "@/generated/prisma/client";
+import { exactlyOneParentRefinement } from "@/lib/schemas";
 
 export const PaymentIdSchema = z.object({
   paymentId: z.uuid(),
@@ -16,7 +17,7 @@ export const PaymentCreatePayloadSchema = z
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })
-  .refine(({ case_id, consultation_id }) => Boolean(case_id) !== Boolean(consultation_id), {
+  .refine(exactlyOneParentRefinement, {
     message: "Provide exactly one of case_id or consultation_id",
   });
 

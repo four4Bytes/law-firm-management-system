@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CaseMilestoneStatus } from "@/generated/prisma/browser";
+import { CaseMilestoneStatus } from "@/generated/prisma/client";
 
 export const MilestoneIdSchema = z.object({
   milestoneId: z.uuid(),

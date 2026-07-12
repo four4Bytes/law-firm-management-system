@@ -1,24 +1,17 @@
 import { z } from "zod";
 
-export const ClientCreatePayloadSchema = z.object({
-  name: z.string().trim().min(1).max(255),
-  email: z.string().trim().min(1).max(255).optional(),
-  phone_number: z.string().trim().min(1).max(50).optional(),
-  address: z.string().trim().min(1).max(500).optional(),
-});
+import { ClientDataSchema } from "@/lib/schemas";
+
+export const ClientCreatePayloadSchema = ClientDataSchema;
 
 export type ClientCreatePayload = z.infer<typeof ClientCreatePayloadSchema>;
 
 export const ClientIdSchema = z.object({
-  id: z.uuid(),
+  clientId: z.uuid(),
 });
 
-export const ClientUpdatePayloadSchema = z.object({
-  id: z.uuid(),
-  name: z.string().trim().min(1).max(255),
-  email: z.string().trim().min(1).max(255).optional(),
-  phone_number: z.string().trim().min(1).max(50).optional(),
-  address: z.string().trim().min(1).max(500).optional(),
+export const ClientUpdatePayloadSchema = ClientDataSchema.extend({
+  clientId: z.uuid(),
 });
 
 export type ClientUpdatePayload = z.infer<typeof ClientUpdatePayloadSchema>;

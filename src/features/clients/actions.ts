@@ -37,12 +37,12 @@ export async function createClientAction(
 export async function getClientForEditAction(id: string): Promise<ClientEditData | null> {
   await requireAuth();
 
-  const parsed = ClientIdSchema.safeParse({ id });
+  const parsed = ClientIdSchema.safeParse({ clientId: id });
   if (!parsed.success) {
     throw new Error("Invalid client ID");
   }
 
-  return getClientForEdit(parsed.data.id);
+  return getClientForEdit(parsed.data.clientId);
 }
 
 export async function updateClientAction(
@@ -55,10 +55,10 @@ export async function updateClientAction(
     return { success: false, error: "Invalid client data" };
   }
 
-  const { id, name, email, phone_number, address } = parsed.data;
+  const { clientId, name, email, phone_number, address } = parsed.data;
 
   try {
-    const client = await updateClient({ id, name, email, phone_number, address });
+    const client = await updateClient({ clientId, name, email, phone_number, address });
 
     revalidatePath("/client");
 

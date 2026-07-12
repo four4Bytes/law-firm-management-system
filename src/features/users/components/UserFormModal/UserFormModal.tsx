@@ -51,8 +51,8 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
 
       const result =
         mode === "edit" && user
-          ? await updateUserAction(user.id, email, role)
-          : await createUserAction(email, role);
+          ? await updateUserAction({ userId: user.id, email, role })
+          : await createUserAction({ email, role });
 
       if (result.error) {
         queue.add({ title: result.error });
@@ -78,7 +78,7 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
     if (!pendingDevEmail) return;
     setIsPending(true);
     setError(null);
-    const result = await createUserAction(pendingDevEmail, "Dev");
+    const result = await createUserAction({ email: pendingDevEmail, role: "Dev" });
     if (result.error) {
       queue.add({ title: result.error });
       setError(result.error);

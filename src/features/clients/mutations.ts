@@ -16,7 +16,7 @@ export async function createClient(data: ClientCreatePayload) {
 
 export async function updateClient(data: ClientUpdatePayload) {
   return prisma.client.update({
-    where: { id: data.id },
+    where: { id: data.clientId },
     data: {
       name: data.name,
       email: data.email ? data.email : null,

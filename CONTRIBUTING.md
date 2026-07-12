@@ -176,7 +176,7 @@ git push origin main    # triggers CI + auto-release
 
 The release can also be triggered manually from the GitHub Actions tab:
 
-1. Navigate to **Actions** → **Continuous Integration**
+1. Navigate to **Actions** → **CI & Release**
 2. Click **Run workflow**
 3. Select branch `main` and run
 

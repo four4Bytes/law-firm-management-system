@@ -64,6 +64,16 @@ export async function updateConsultationWithClient(
   data: ConsultationWithClientUpdatePayload & { consultation_id: string; client_id: string },
 ) {
   return prisma.$transaction(async (tx) => {
+    // Verify that the consultation belongs to the specified client
+    const consultation = await tx.consultation.findUnique({
+      where: { id: data.consultation_id },
+      select: { id: true, client_id: true },
+    });
+
+    if (!consultation || consultation.client_id !== data.client_id) {
+      throw new Error("Consultation not found or does not belong to the specified client");
+    }
+
     await tx.client.update({
       where: { id: data.client_id },
       data: {

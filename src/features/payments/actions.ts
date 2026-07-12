@@ -97,7 +97,7 @@ export async function updatePaymentAction(
         action: "payment.updated",
         entityType: existing.case_id ? "Case" : "Consultation",
         entityId: (existing.case_id ?? existing.consultation_id)!,
-        details: `Updated payment: $${Number(existing.amount).toFixed(2)}`,
+        details: `Updated payment: $${Number(amount).toFixed(2)}`,
       }).catch(console.error),
     );
 

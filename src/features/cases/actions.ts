@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
@@ -189,7 +190,7 @@ export async function createCaseAction(
   const { client_id, case_title, case_type, status, parties_involved, source_consultation_id } =
     parsed.data;
 
-  let createdCase;
+  let createdCase: { id: string };
   try {
     createdCase = await createCase({
       client_id,
@@ -201,13 +202,15 @@ export async function createCaseAction(
       created_by_user_id: session.id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "case.created",
-      entityType: "Case",
-      entityId: createdCase.id,
-      details: `Created case: "${case_title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "case.created",
+        entityType: "Case",
+        entityId: createdCase.id,
+        details: `Created case: "${case_title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/case");
 
@@ -229,7 +232,7 @@ export async function createCaseWithClientAction(
 
   const { client, case: caseData } = parsed.data;
 
-  let createdWithClient;
+  let createdWithClient: { id: string };
   try {
     createdWithClient = await createCaseWithClient({
       client,
@@ -237,13 +240,15 @@ export async function createCaseWithClientAction(
       created_by_user_id: session.id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "case.created",
-      entityType: "Case",
-      entityId: createdWithClient.id,
-      details: `Created case: "${caseData.case_title}" with client: "${client.name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "case.created",
+        entityType: "Case",
+        entityId: createdWithClient.id,
+        details: `Created case: "${caseData.case_title}" with client: "${client.name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/case");
 
@@ -287,13 +292,15 @@ export async function updateCaseAction(
       source_consultation_id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "case.updated",
-      entityType: "Case",
-      entityId: caseId,
-      details: `Updated case: "${existing.case_title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "case.updated",
+        entityType: "Case",
+        entityId: caseId,
+        details: `Updated case: "${existing.case_title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${caseId}`);
     revalidatePath("/case");
@@ -324,13 +331,15 @@ export async function updateCaseWithClientAction(
       case: caseData,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "case.updated",
-      entityType: "Case",
-      entityId: case_id,
-      details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "case.updated",
+        entityType: "Case",
+        entityId: case_id,
+        details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${case_id}`);
     revalidatePath("/case");
@@ -357,13 +366,15 @@ export async function deleteCaseAction(
 
     await deleteCase(parsed.data.caseId);
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "case.deleted",
-      entityType: "Case",
-      entityId: parsed.data.caseId,
-      details: `Deleted case: "${existing.case_title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "case.deleted",
+        entityType: "Case",
+        entityId: parsed.data.caseId,
+        details: `Deleted case: "${existing.case_title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/case");
 

@@ -13,12 +13,7 @@ enum AuthError {
   Default = "Default",
 }
 
-interface ErrorInfo {
-  title: string;
-  message: string;
-}
-
-const errorMap: Record<string, ErrorInfo> = {
+const errorMap: Record<string, { title: string; message: string }> = {
   [AuthError.Configuration]: {
     title: "Something went wrong",
     message:

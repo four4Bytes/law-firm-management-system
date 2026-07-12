@@ -15,7 +15,7 @@ import {
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireRole } from "@/lib/auth-guards";
+import { requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 
 import {
@@ -57,7 +57,7 @@ export async function checkDeveloperEmail(email: string): Promise<boolean> {
 export async function createUserAction(
   payload: z.input<typeof CreateUserSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: { id: string; role: string };
+  let session: AuthenticatedUser;
   try {
     session = await requireRole("Admin", "Dev");
   } catch {
@@ -121,7 +121,7 @@ export async function createUserAction(
 export async function updateUserAction(
   payload: z.input<typeof UpdateUserSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: { id: string; role: string };
+  let session: AuthenticatedUser;
   try {
     session = await requireRole("Admin", "Dev");
   } catch {
@@ -174,7 +174,7 @@ export async function updateUserAction(
 export async function deactivateUserAction(
   payload: z.input<typeof DeactivateUserSchema>,
 ): Promise<ActionDataResponse<{ selfDeactivated: boolean }>> {
-  let session: { id: string; role: string };
+  let session: AuthenticatedUser;
   try {
     session = await requireRole("Admin", "Dev");
   } catch {

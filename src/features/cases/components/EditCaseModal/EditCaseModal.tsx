@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -15,8 +16,10 @@ import {
   updateCaseWithClientAction,
 } from "@/features/cases/actions";
 import type { CaseEditData } from "@/features/cases/queries";
+import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import { getClientForEditAction } from "@/features/clients/actions";
 import { CaseStatus } from "@/generated/prisma/browser";
+import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditCaseModal.module.css";
 
@@ -51,12 +54,21 @@ export function EditCaseModal({
   const [partiesInvolved, setPartiesInvolved] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const { isPending, submitForm } = useModalForm<z.input<typeof CaseWithClientUpdatePayloadSchema>>(
+    {
+      submit: updateCaseWithClientAction,
+      onOpenChange,
+      onSuccess,
+      successMessage: "Case updated",
+      failureMessage: "Failed to update case. Please try again.",
+    },
+  );
+
   function handleDismiss() {
-    if (isSaving || isDeleting) return;
+    if (isPending || isDeleting) return;
     onOpenChange(false);
   }
 
@@ -113,41 +125,24 @@ export function EditCaseModal({
   }, [isOpen, caseId]);
 
   async function handleSave() {
-    if (!clientId || !clientName.trim() || !caseTitle.trim() || !caseId || isSaving) return;
+    if (!clientId || !clientName.trim() || !caseTitle.trim() || !caseId || isPending) return;
 
-    setIsSaving(true);
-
-    try {
-      const result = await updateCaseWithClientAction({
-        case_id: caseId,
-        client_id: clientId,
-        client: {
-          name: clientName.trim(),
-          email: clientEmail.trim() || undefined,
-          phone_number: clientPhone.trim() || undefined,
-          address: clientAddress.trim() || undefined,
-        },
-        case: {
-          case_title: caseTitle.trim(),
-          case_type: caseType,
-          status,
-          parties_involved: partiesInvolved.trim() || undefined,
-        },
-      });
-
-      if (!result.success) {
-        queue.add({ title: result.error ?? "Failed to update case" }, { timeout: 5000 });
-        return;
-      }
-
-      queue.add({ title: "Case updated" }, { timeout: 5000 });
-      onOpenChange(false);
-      onSuccess();
-    } catch {
-      queue.add({ title: "Failed to update case. Please try again." }, { timeout: 5000 });
-    } finally {
-      setIsSaving(false);
-    }
+    await submitForm({
+      case_id: caseId,
+      client_id: clientId,
+      client: {
+        name: clientName.trim(),
+        email: clientEmail.trim() || undefined,
+        phone_number: clientPhone.trim() || undefined,
+        address: clientAddress.trim() || undefined,
+      },
+      case: {
+        case_title: caseTitle.trim(),
+        case_type: caseType,
+        status,
+        parties_involved: partiesInvolved.trim() || undefined,
+      },
+    });
   }
 
   async function handleDelete() {
@@ -221,21 +216,21 @@ export function EditCaseModal({
               label="Client Name"
               value={clientName}
               onChange={setClientName}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TextField
               label="Email"
               value={clientEmail}
               onChange={setClientEmail}
               placeholder="Optional"
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TextField
               label="Phone"
               value={clientPhone}
               onChange={setClientPhone}
               placeholder="Optional"
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TextField
               label="Address"
@@ -244,7 +239,7 @@ export function EditCaseModal({
               placeholder="Optional"
               isTextArea
               rows={3}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
           </div>
           <div className={styles.divider} />
@@ -253,20 +248,20 @@ export function EditCaseModal({
               label="Case Title"
               value={caseTitle}
               onChange={setCaseTitle}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TextField
               label="Case Type"
               value={caseType}
               onChange={setCaseType}
               placeholder="e.g. Civil, Corporate"
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <Select
               label="Status"
               value={status}
               onChange={(k) => setStatus(String(k) as CaseStatus)}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             >
               {STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s} id={s}>
@@ -280,7 +275,7 @@ export function EditCaseModal({
               onChange={setPartiesInvolved}
               isTextArea
               rows={3}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
           </div>
         </div>
@@ -288,11 +283,11 @@ export function EditCaseModal({
           <Button
             variant="secondary"
             onPress={handleSave}
-            isDisabled={!isValid || isSaving || isDeleting}
+            isDisabled={!isValid || isPending || isDeleting}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isPending ? "Saving..." : "Save"}
           </Button>
-          <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isSaving || isDeleting}>
+          <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
             {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
           </Button>
         </div>

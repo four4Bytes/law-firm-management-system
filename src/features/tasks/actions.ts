@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
@@ -45,13 +46,15 @@ export async function createTaskAction(
       assignee_ids,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "task.created",
-      entityType: "Case",
-      entityId: case_id,
-      details: `Created task: "${title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "task.created",
+        entityType: "Case",
+        entityId: case_id,
+        details: `Created task: "${title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${case_id}`);
 
@@ -77,13 +80,15 @@ export async function updateTaskAction(
 
     await updateTask(taskId, { title, description, status, assignee_ids });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "task.updated",
-      entityType: "Case",
-      entityId: existing.case_id,
-      details: `Updated task: "${existing.title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "task.updated",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Updated task: "${existing.title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${existing.case_id}`);
 
@@ -109,13 +114,15 @@ export async function deleteTaskAction(
 
     await deleteTask(taskId);
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "task.deleted",
-      entityType: "Case",
-      entityId: existing.case_id,
-      details: `Deleted task: "${existing.title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "task.deleted",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Deleted task: "${existing.title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${existing.case_id}`);
 

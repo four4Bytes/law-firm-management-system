@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
@@ -158,7 +159,7 @@ export async function createConsultationAction(
 
   const { client_id, concern, booking_datetime, status } = parsed.data;
 
-  let createdConsultation;
+  let createdConsultation: { id: string };
   try {
     createdConsultation = await createConsultation({
       client_id,
@@ -168,13 +169,15 @@ export async function createConsultationAction(
       created_by_user_id: session.id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "consultation.created",
-      entityType: "Consultation",
-      entityId: createdConsultation.id,
-      details: `Created consultation: "${concern}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "consultation.created",
+        entityType: "Consultation",
+        entityId: createdConsultation.id,
+        details: `Created consultation: "${concern}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/consultation");
 
@@ -194,20 +197,22 @@ export async function createConsultationWithClientAction(
     return { success: false, error: "Invalid consultation data" };
   }
 
-  let createdWithClient;
+  let createdWithClient: { id: string };
   try {
     createdWithClient = await createConsultationWithClient({
       ...parsed.data,
       created_by_user_id: session.id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "consultation.created",
-      entityType: "Consultation",
-      entityId: createdWithClient.id,
-      details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "consultation.created",
+        entityType: "Consultation",
+        entityId: createdWithClient.id,
+        details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/consultation");
 
@@ -235,13 +240,15 @@ export async function updateConsultationAction(
 
     await updateConsultation({ consultationId, client_id, concern, booking_datetime, status });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "consultation.updated",
-      entityType: "Consultation",
-      entityId: consultationId,
-      details: `Updated consultation: "${existing.concern}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "consultation.updated",
+        entityType: "Consultation",
+        entityId: consultationId,
+        details: `Updated consultation: "${existing.concern}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/consultation/${consultationId}`);
     revalidatePath("/consultation");
@@ -272,13 +279,15 @@ export async function updateConsultationWithClientAction(
       consultation,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "consultation.updated",
-      entityType: "Consultation",
-      entityId: consultation_id,
-      details: `Updated consultation: "${consultation.concern}" with client: "${client.name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "consultation.updated",
+        entityType: "Consultation",
+        entityId: consultation_id,
+        details: `Updated consultation: "${consultation.concern}" with client: "${client.name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/consultation/${consultation_id}`);
     revalidatePath("/consultation");
@@ -305,13 +314,15 @@ export async function deleteConsultationAction(
 
     await deleteConsultation(parsed.data.consultationId);
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "consultation.deleted",
-      entityType: "Consultation",
-      entityId: parsed.data.consultationId,
-      details: `Deleted consultation: "${existing.concern}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "consultation.deleted",
+        entityType: "Consultation",
+        entityId: parsed.data.consultationId,
+        details: `Deleted consultation: "${existing.concern}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/consultation");
 

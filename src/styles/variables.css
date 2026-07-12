@@ -141,6 +141,12 @@ Plan: add more than one theme later
   --layout-sidebar-width: 320px;
   --layout-sidebar-width-collapsed: 80px;
 
+  --screen-height: 100vh;
+  --auth-content-max-width: 480px;
+  --auth-card-max-width: 380px;
+  --logo-height: 100px;
+  --border-width-sm: 1px;
+
   /* Z index */
   --z-dropdown: 1000;
   --z-modal: 1100;

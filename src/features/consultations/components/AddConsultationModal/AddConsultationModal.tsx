@@ -2,6 +2,7 @@
 
 import { CalendarDate, getLocalTimeZone, Time, today } from "@internationalized/date";
 import { useState } from "react";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
@@ -9,10 +10,11 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
-import { queue } from "@/components/ui/Toast/Toast";
 import { createConsultationWithClientAction } from "@/features/consultations/actions";
+import { ConsultationWithClientCreatePayloadSchema } from "@/features/consultations/schemas";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime } from "@/lib/date";
+import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddConsultationModal.module.css";
 
@@ -58,56 +60,44 @@ export function AddConsultationModal({
 }: AddConsultationModalProps) {
   const [client, setClient] = useState<ClientFields>(resetClient());
   const [consultation, setConsultation] = useState<ConsultationFields>(resetConsultation);
-  const [isPending, setIsPending] = useState(false);
 
   const { name, email, phone, address } = client;
   const { concern, date, time, status } = consultation;
+
+  const { isPending, submitForm, handleCancel } = useModalForm<
+    z.input<typeof ConsultationWithClientCreatePayloadSchema>
+  >({
+    submit: createConsultationWithClientAction,
+    onOpenChange,
+    onSuccess,
+    successMessage: "Consultation created",
+    failureMessage: "Failed to create consultation. Please try again.",
+    reset: () => {
+      setClient(resetClient());
+      setConsultation(resetConsultation());
+    },
+  });
 
   function setClientField<K extends keyof ClientFields>(key: K, value: string) {
     setClient((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleCancel() {
-    if (isPending) return;
-    setClient(resetClient());
-    setConsultation(resetConsultation());
-    onOpenChange(false);
-  }
-
   async function handleSubmit() {
     if (!name.trim() || !concern.trim() || isPending) return;
 
-    setIsPending(true);
-
-    try {
-      const result = await createConsultationWithClientAction({
-        client: {
-          name: name.trim(),
-          email: email.trim() || undefined,
-          phone_number: phone.trim() || undefined,
-          address: address.trim() || undefined,
-        },
-        consultation: {
-          concern: concern.trim(),
-          booking_datetime: combineDateTime(date, time),
-          status,
-        },
-      });
-
-      if (!result.success) {
-        queue.add({ title: result.error ?? "Failed to create consultation" }, { timeout: 5000 });
-        return;
-      }
-
-      queue.add({ title: "Consultation created" }, { timeout: 5000 });
-      setClient(resetClient());
-      setConsultation(resetConsultation());
-      onSuccess();
-    } catch {
-      queue.add({ title: "Failed to create consultation. Please try again." }, { timeout: 5000 });
-    } finally {
-      setIsPending(false);
-    }
+    await submitForm({
+      client: {
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone_number: phone.trim() || undefined,
+        address: address.trim() || undefined,
+      },
+      consultation: {
+        concern: concern.trim(),
+        booking_datetime: combineDateTime(date, time),
+        status,
+      },
+    });
   }
 
   return (

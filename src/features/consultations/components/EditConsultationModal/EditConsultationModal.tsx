@@ -2,6 +2,7 @@
 
 import { CalendarDate, getLocalTimeZone, Time, today } from "@internationalized/date";
 import { useEffect, useState } from "react";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -19,8 +20,10 @@ import {
   updateConsultationWithClientAction,
 } from "@/features/consultations/actions";
 import type { ConsultationEditData } from "@/features/consultations/queries";
+import { ConsultationWithClientUpdatePayloadSchema } from "@/features/consultations/schemas";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
+import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditConsultationModal.module.css";
 
@@ -64,12 +67,21 @@ export function EditConsultationModal({
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const { isPending, submitForm } = useModalForm<
+    z.input<typeof ConsultationWithClientUpdatePayloadSchema>
+  >({
+    submit: updateConsultationWithClientAction,
+    onOpenChange,
+    onSuccess,
+    successMessage: "Consultation updated",
+    failureMessage: "Failed to update consultation. Please try again.",
+  });
+
   function handleDismiss() {
-    if (isSaving || isDeleting) return;
+    if (isPending || isDeleting) return;
     onOpenChange(false);
   }
 
@@ -128,51 +140,33 @@ export function EditConsultationModal({
   }, [isOpen, consultationId]);
 
   async function handleSave() {
-    if (!clientId || !clientName.trim() || !fields.concern.trim() || !consultationId || isSaving)
+    if (!clientId || !clientName.trim() || !fields.concern.trim() || !consultationId || isPending)
       return;
 
-    setIsSaving(true);
-
-    try {
-      const result = await updateConsultationWithClientAction({
-        consultation_id: consultationId,
-        client_id: clientId,
-        client: {
-          name: clientName.trim(),
-          email: clientEmail.trim() || undefined,
-          phone_number: clientPhone.trim() || undefined,
-          address: clientAddress.trim() || undefined,
-        },
-        consultation: {
-          concern: fields.concern.trim(),
-          booking_datetime: combineDateTime(fields.date, fields.time),
-          status: fields.status,
-        },
-      });
-
-      if (!result.success) {
-        queue.add({ title: result.error ?? "Failed to update consultation" }, { timeout: 5000 });
-        return;
-      }
-
-      queue.add({ title: "Consultation updated" }, { timeout: 5000 });
-      onOpenChange(false);
-      onSuccess();
-    } catch {
-      queue.add({ title: "Failed to update consultation. Please try again." }, { timeout: 5000 });
-    } finally {
-      setIsSaving(false);
-    }
+    await submitForm({
+      consultation_id: consultationId,
+      client_id: clientId,
+      client: {
+        name: clientName.trim(),
+        email: clientEmail.trim() || undefined,
+        phone_number: clientPhone.trim() || undefined,
+        address: clientAddress.trim() || undefined,
+      },
+      consultation: {
+        concern: fields.concern.trim(),
+        booking_datetime: combineDateTime(fields.date, fields.time),
+        status: fields.status,
+      },
+    });
   }
 
   async function handleDelete() {
     if (!consultationId) return;
     setIsDeleting(true);
+    setShowDeleteConfirm(false);
 
     try {
       const result = await deleteConsultationAction({ consultationId });
-
-      setShowDeleteConfirm(false);
 
       if (result.success) {
         queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
@@ -236,21 +230,21 @@ export function EditConsultationModal({
               label="Client Name"
               value={clientName}
               onChange={setClientName}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TextField
               label="Email"
               value={clientEmail}
               onChange={setClientEmail}
               placeholder="Optional"
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TextField
               label="Phone"
               value={clientPhone}
               onChange={setClientPhone}
               placeholder="Optional"
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TextField
               label="Address"
@@ -259,7 +253,7 @@ export function EditConsultationModal({
               placeholder="Optional"
               isTextArea
               rows={3}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
           </div>
           <div className={styles.divider} />
@@ -270,19 +264,19 @@ export function EditConsultationModal({
               onChange={(v) => setFields((p) => ({ ...p, concern: v }))}
               isTextArea
               rows={4}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <DatePicker
               label="Booking Date"
               value={fields.date}
               onChange={(v) => v && setFields((p) => ({ ...p, date: v }))}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <TimeField
               label="Booking Time"
               value={fields.time}
               onChange={(v) => v && setFields((p) => ({ ...p, time: new Time(v.hour, v.minute) }))}
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             />
             <Select
               label="Status"
@@ -290,7 +284,7 @@ export function EditConsultationModal({
               onChange={(k) =>
                 setFields((p) => ({ ...p, status: String(k) as ConsultationStatus }))
               }
-              isDisabled={isSaving || isDeleting}
+              isDisabled={isPending || isDeleting}
             >
               {STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s} id={s}>
@@ -304,11 +298,11 @@ export function EditConsultationModal({
           <Button
             variant="secondary"
             onPress={handleSave}
-            isDisabled={!isValid || isSaving || isDeleting}
+            isDisabled={!isValid || isPending || isDeleting}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isPending ? "Saving..." : "Save"}
           </Button>
-          <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isSaving || isDeleting}>
+          <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
             {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
           </Button>
         </div>

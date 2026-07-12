@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { queue } from "@/components/ui/Toast/Toast";
 import { createCaseWithClientAction } from "@/features/cases/actions";
+import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
 import { CaseStatus } from "@/generated/prisma/browser";
+import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddCaseModal.module.css";
 
@@ -50,10 +52,23 @@ function resetCase(): CaseFields {
 export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalProps) {
   const [client, setClient] = useState<ClientFields>(resetClient());
   const [caseFields, setCaseFields] = useState<CaseFields>(resetCase());
-  const [isPending, setIsPending] = useState(false);
 
   const { name, email, phone, address } = client;
   const { caseTitle, caseType, status, partiesInvolved } = caseFields;
+
+  const { isPending, submitForm, handleCancel } = useModalForm<
+    z.input<typeof CaseWithClientCreatePayloadSchema>
+  >({
+    submit: createCaseWithClientAction,
+    onOpenChange,
+    onSuccess,
+    successMessage: "Case created",
+    failureMessage: "Failed to create case. Please try again.",
+    reset: () => {
+      setClient(resetClient());
+      setCaseFields(resetCase());
+    },
+  });
 
   function setClientField<K extends keyof ClientFields>(key: K, value: string) {
     setClient((prev) => ({ ...prev, [key]: value }));
@@ -63,48 +78,23 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
     setCaseFields((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleCancel() {
-    if (isPending) return;
-    setClient(resetClient());
-    setCaseFields(resetCase());
-    onOpenChange(false);
-  }
-
   async function handleSubmit() {
     if (!name.trim() || !caseTitle.trim() || !caseType.trim() || isPending) return;
 
-    setIsPending(true);
-
-    try {
-      const result = await createCaseWithClientAction({
-        client: {
-          name: name.trim(),
-          email: email.trim() || undefined,
-          phone_number: phone.trim() || undefined,
-          address: address.trim() || undefined,
-        },
-        case: {
-          case_title: caseTitle.trim(),
-          case_type: caseType,
-          status,
-          parties_involved: partiesInvolved.trim() || undefined,
-        },
-      });
-
-      if (!result.success) {
-        queue.add({ title: result.error ?? "Failed to create case" }, { timeout: 5000 });
-        return;
-      }
-
-      queue.add({ title: "Case created" }, { timeout: 5000 });
-      setClient(resetClient());
-      setCaseFields(resetCase());
-      onSuccess();
-    } catch {
-      queue.add({ title: "Failed to create case. Please try again." }, { timeout: 5000 });
-    } finally {
-      setIsPending(false);
-    }
+    await submitForm({
+      client: {
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone_number: phone.trim() || undefined,
+        address: address.trim() || undefined,
+      },
+      case: {
+        case_title: caseTitle.trim(),
+        case_type: caseType,
+        status,
+        parties_involved: partiesInvolved.trim() || undefined,
+      },
+    });
   }
 
   return (

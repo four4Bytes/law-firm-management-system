@@ -19,6 +19,10 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("next/server", () => ({
+  after: vi.fn(),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     consultation: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },

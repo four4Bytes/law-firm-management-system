@@ -135,11 +135,7 @@ export function UploadDocumentModal({
     return failed;
   }
 
-  function handleSubmitAll() {
-    const targets = pendingEntries;
-    const targetIds = new Set(targets.map((e) => e.id));
-    const externalFailedCount = failedEntries.filter((e) => !targetIds.has(e.id)).length;
-
+  function finishUploads(targets: FileEntry[], externalFailedCount = 0) {
     startTransition(async () => {
       try {
         const failed = await runUploads(targets);
@@ -162,29 +158,16 @@ export function UploadDocumentModal({
     });
   }
 
+  function handleSubmitAll() {
+    const targets = pendingEntries;
+    const targetIds = new Set(targets.map((e) => e.id));
+    const externalFailedCount = failedEntries.filter((e) => !targetIds.has(e.id)).length;
+
+    finishUploads(targets, externalFailedCount);
+  }
+
   function handleRetryFailed() {
-    const targets = failedEntries;
-
-    startTransition(async () => {
-      try {
-        const failed = await runUploads(targets);
-
-        if (failed === 0) {
-          queue.add(
-            { title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded` },
-            { timeout: 5000 },
-          );
-          resetState();
-          onOpenChange(false);
-          onSuccess();
-        }
-      } catch {
-        queue.add({
-          title: "Upload failed",
-          description: "An unexpected error occurred. Please try again.",
-        });
-      }
-    });
+    finishUploads(failedEntries);
   }
 
   function handleFileSelect(files: File[]) {

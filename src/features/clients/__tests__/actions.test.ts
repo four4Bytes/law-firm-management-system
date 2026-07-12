@@ -42,8 +42,8 @@ beforeEach(() => {
 
 describe("createClientAction", () => {
   it("returns an error for an invalid payload", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await createClientAction({} as any)).toEqual({
+    // @ts-expect-error testing invalid payload
+    expect(await createClientAction({})).toEqual({
       success: false,
       error: "Invalid client data",
     });
@@ -98,8 +98,8 @@ describe("getClientForEditAction", () => {
 
 describe("updateClientAction", () => {
   it("returns an error for an invalid payload", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await updateClientAction({ clientId: uuid } as any)).toEqual({
+    // @ts-expect-error testing invalid payload
+    expect(await updateClientAction({ clientId: uuid })).toEqual({
       success: false,
       error: "Invalid client data",
     });

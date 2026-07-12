@@ -51,6 +51,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const completeLoading = useCallback(() => {
     if (stateRef.current !== "loading") return;
+    if (pendingCompleteRef.current) return;
 
     const elapsed = Date.now() - loadingStartedAt.current;
     const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
@@ -67,13 +68,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const startLoading = useCallback(() => {
-    clearTimeout(completingTimeoutRef.current);
-    clearTimeout(maxTimeoutRef.current);
-    clearTimeout(pendingCompleteRef.current);
-
     if (stateRef.current === "loading") {
       return;
     }
+
+    clearTimeout(completingTimeoutRef.current);
+    clearTimeout(maxTimeoutRef.current);
+    clearTimeout(pendingCompleteRef.current);
 
     loadingStartedAt.current = Date.now();
     setState("loading");

@@ -68,7 +68,7 @@ export function Sidebar({ initialCollapsed = false }: SidebarProps) {
           </Button>
         ))}
       </nav>
-      <div className={clsx(styles.version, collapsed && styles.versionCollapsed)}>
+      <div className={clsx(styles.version)}>
         <span className={styles.versionLabel}>
           v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0-dev"}
         </span>

@@ -35,7 +35,7 @@ describe("logoutUser", () => {
   });
 
   it("calls signOut exactly once per invocation", async () => {
-    await logoutUser("deactivated");
+    await logoutUser();
 
     expect(signOut).toHaveBeenCalledTimes(1);
   });

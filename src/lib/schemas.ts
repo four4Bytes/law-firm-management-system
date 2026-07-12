@@ -16,17 +16,17 @@ export const LimitSchema = z.coerce.number().int().min(1).max(100).optional();
 
 export const ClientDataSchema = z.object({
   name: z.string().trim().min(1).max(255),
-  email: z.email().trim().min(1).max(255).optional(),
+  email: z.string().trim().min(1).max(255).pipe(z.email()).optional(),
   phone_number: z.string().trim().min(1).max(50).optional(),
   address: z.string().trim().min(1).max(500).optional(),
 });
 
-export function exactlyOneParentRefinement({
-  case_id,
-  consultation_id,
-}: {
+interface ParentRefinementPayload {
   case_id?: string | null;
   consultation_id?: string | null;
-}): boolean {
+}
+
+export function exactlyOneParentRefinement(payload: ParentRefinementPayload): boolean {
+  const { case_id, consultation_id } = payload;
   return Boolean(case_id) !== Boolean(consultation_id);
 }

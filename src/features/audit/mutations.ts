@@ -21,5 +21,6 @@ export async function createAuditLog(payload: AuditLogPayload): Promise<void> {
     });
   } catch (err) {
     console.error("Failed to write audit log:", err);
+    throw err;
   }
 }

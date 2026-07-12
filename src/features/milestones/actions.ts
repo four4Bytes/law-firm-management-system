@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
@@ -48,13 +49,15 @@ export async function createMilestoneAction(
       created_by_user_id: session.id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "milestone.created",
-      entityType: "Case",
-      entityId: case_id,
-      details: `Created milestone: "${title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "milestone.created",
+        entityType: "Case",
+        entityId: case_id,
+        details: `Created milestone: "${title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${case_id}`);
 
@@ -87,13 +90,15 @@ export async function updateMilestoneAction(
       status,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "milestone.updated",
-      entityType: "Case",
-      entityId: existing.case_id,
-      details: `Updated milestone: "${existing.title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "milestone.updated",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Updated milestone: "${existing.title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${existing.case_id}`);
 
@@ -121,13 +126,15 @@ export async function deleteMilestoneAction(
 
     await deleteMilestone(milestoneId);
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "milestone.deleted",
-      entityType: "Case",
-      entityId: existing.case_id,
-      details: `Deleted milestone: "${existing.title}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "milestone.deleted",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Deleted milestone: "${existing.title}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(`/case/${existing.case_id}`);
 

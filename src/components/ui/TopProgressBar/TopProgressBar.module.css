@@ -19,7 +19,7 @@
 .fill {
   block-size: 100%;
   background: var(--color-brand-accent);
-  transition: width var(--transition-slow) ease-out;
+  transition: width var(--transition-slow);
 }
 
 .bar[data-state="loading"] .fill {

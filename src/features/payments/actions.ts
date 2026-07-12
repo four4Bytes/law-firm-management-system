@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
@@ -48,13 +49,15 @@ export async function createPaymentAction(
       created_by_user_id: session.id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "payment.created",
-      entityType: case_id ? "Case" : "Consultation",
-      entityId: (case_id ?? consultation_id)!,
-      details: `Created payment: $${Number(amount).toFixed(2)}`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "payment.created",
+        entityType: case_id ? "Case" : "Consultation",
+        entityId: (case_id ?? consultation_id)!,
+        details: `Created payment: $${Number(amount).toFixed(2)}`,
+      }).catch(console.error),
+    );
 
     revalidatePath(case_id ? `/case/${case_id}` : `/consultation/${consultation_id}`);
 
@@ -88,13 +91,15 @@ export async function updatePaymentAction(
       receipt_number: receipt_number || null,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "payment.updated",
-      entityType: existing.case_id ? "Case" : "Consultation",
-      entityId: (existing.case_id ?? existing.consultation_id)!,
-      details: `Updated payment: $${Number(existing.amount).toFixed(2)}`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "payment.updated",
+        entityType: existing.case_id ? "Case" : "Consultation",
+        entityId: (existing.case_id ?? existing.consultation_id)!,
+        details: `Updated payment: $${Number(existing.amount).toFixed(2)}`,
+      }).catch(console.error),
+    );
 
     revalidatePath(getParentPath(existing));
 
@@ -122,13 +127,15 @@ export async function deletePaymentAction(
 
     await deletePayment(paymentId);
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "payment.deleted",
-      entityType: existing.case_id ? "Case" : "Consultation",
-      entityId: (existing.case_id ?? existing.consultation_id)!,
-      details: `Deleted payment: $${Number(existing.amount).toFixed(2)}`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "payment.deleted",
+        entityType: existing.case_id ? "Case" : "Consultation",
+        entityId: (existing.case_id ?? existing.consultation_id)!,
+        details: `Deleted payment: $${Number(existing.amount).toFixed(2)}`,
+      }).catch(console.error),
+    );
 
     revalidatePath(getParentPath(existing));
 

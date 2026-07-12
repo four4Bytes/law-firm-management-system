@@ -21,7 +21,10 @@ export function Link({ className, onPress, href, target, download, ...props }: R
       onPress={(e) => {
         const isExternal = href && (href.startsWith("http://") || href.startsWith("https://"));
         const hasModifier = e.ctrlKey || e.metaKey || e.shiftKey || e.altKey;
-        const shouldStartLoading = href && !isExternal && !target && !download && !hasModifier;
+        const isHashOnly = href && href.startsWith("#");
+        const isNonRouteScheme = href && (href.startsWith("mailto:") || href.startsWith("tel:"));
+        const hasDownload = download != null;
+        const shouldStartLoading = href && !isExternal && !target && !hasDownload && !hasModifier && !isHashOnly && !isNonRouteScheme;
 
         if (shouldStartLoading) {
           startLoading();

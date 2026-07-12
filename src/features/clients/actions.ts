@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
@@ -28,13 +29,15 @@ export async function createClientAction(
   try {
     const client = await createClient({ name, email, phone_number, address });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "client.created",
-      entityType: "Client",
-      entityId: client.id,
-      details: `Created client: "${name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "client.created",
+        entityType: "Client",
+        entityId: client.id,
+        details: `Created client: "${name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/client");
 
@@ -70,13 +73,15 @@ export async function updateClientAction(
   try {
     const client = await updateClient({ clientId, name, email, phone_number, address });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "client.updated",
-      entityType: "Client",
-      entityId: clientId,
-      details: `Updated client: "${name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "client.updated",
+        entityType: "Client",
+        entityId: clientId,
+        details: `Updated client: "${name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath("/client");
 

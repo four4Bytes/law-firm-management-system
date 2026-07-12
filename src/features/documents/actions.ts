@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
@@ -92,13 +93,15 @@ export async function confirmDocumentUploadAction(
       uploaded_by_user_id: session.id,
     });
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "document.uploaded",
-      entityType: case_id ? "Case" : "Consultation",
-      entityId: (case_id ?? consultation_id)!,
-      details: `Uploaded document: "${file_name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "document.uploaded",
+        entityType: case_id ? "Case" : "Consultation",
+        entityId: (case_id ?? consultation_id)!,
+        details: `Uploaded document: "${file_name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(
       getParentPath({ case_id: case_id ?? null, consultation_id: consultation_id ?? null }),
@@ -165,13 +168,15 @@ export async function deleteDocumentAction(
     await deleteFile(doc.file_path);
     await deleteDocumentRecord(documentId);
 
-    void createAuditLog({
-      actorUserId: session.id,
-      action: "document.deleted",
-      entityType: doc.case_id ? "Case" : "Consultation",
-      entityId: (doc.case_id ?? doc.consultation_id)!,
-      details: `Deleted document: "${doc.file_name}"`,
-    }).catch(console.error);
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "document.deleted",
+        entityType: doc.case_id ? "Case" : "Consultation",
+        entityId: (doc.case_id ?? doc.consultation_id)!,
+        details: `Deleted document: "${doc.file_name}"`,
+      }).catch(console.error),
+    );
 
     revalidatePath(getParentPath(doc));
 

@@ -83,7 +83,7 @@ describe("createConsultationAction", () => {
   });
 
   it("creates a consultation and revalidates the list", async () => {
-    vi.mocked(prisma.consultation.create).mockResolvedValue({ id: "1" } as never);
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
 
     const result = await createConsultationAction(validPayload);
 

@@ -86,7 +86,7 @@ export async function updateTaskAction(
         action: "task.updated",
         entityType: "Case",
         entityId: existing.case_id,
-        details: `Updated task: "${existing.title}"`,
+        details: `Updated task: "${title}"`,
       }).catch(console.error),
     );
 

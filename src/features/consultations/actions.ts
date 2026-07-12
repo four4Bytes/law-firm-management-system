@@ -246,7 +246,7 @@ export async function updateConsultationAction(
         action: "consultation.updated",
         entityType: "Consultation",
         entityId: consultationId,
-        details: `Updated consultation: "${existing.concern}"`,
+        details: `Updated consultation: "${concern}"`,
       }).catch(console.error),
     );
 

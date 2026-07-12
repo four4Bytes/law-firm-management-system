@@ -298,7 +298,7 @@ export async function updateCaseAction(
         action: "case.updated",
         entityType: "Case",
         entityId: caseId,
-        details: `Updated case: "${existing.case_title}"`,
+        details: `Updated case: "${case_title}"`,
       }).catch(console.error),
     );
 

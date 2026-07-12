@@ -25,11 +25,17 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 3. **Environment variables**
 
+   Copy the example env files for your target environment:
+
    ```bash
-   cp .env.example .env
+   cp .env.dev.example .env.dev     # local development (make dev*)
+   cp .env.prod.example .env.prod   # production stack (make prod*)
    ```
 
-   Fill in at minimum:
+   `.env.dev` is used by `make dev*` targets, `.env.prod` by `make prod*` targets.
+   The standalone `.env.example` serves as a combined reference for all variable descriptions.
+
+   Fill in at minimum (for both):
    - `AUTH_SECRET` — generate with `pnpx auth secret`
    - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — from [Google OAuth console](https://console.cloud.google.com/apis/credentials)
    - `DEVELOPER_EMAILS` — comma-separated email addresses that bypass Google OAuth in dev

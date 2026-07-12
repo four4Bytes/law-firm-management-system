@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requireRole } from "@/lib/auth-guards";
+import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 import {
   deleteFile,
@@ -133,7 +133,7 @@ export async function getDocumentDetailRowAction(documentId: string): Promise<Do
 }
 
 export async function deleteDocumentAction(documentId: string): Promise<ActionStatusResponse> {
-  await requireRole("Admin", "Dev", "BranchManager", "Lawyer");
+  await requireAuth();
 
   const parsed = DocumentIdSchema.safeParse({ documentId });
   if (!parsed.success) {

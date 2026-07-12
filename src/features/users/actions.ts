@@ -14,7 +14,7 @@ import {
   type UserRow,
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
-import type { ActionStatusResponse } from "@/lib/action-response";
+import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireRole } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 
@@ -173,7 +173,7 @@ export async function updateUserAction(
 
 export async function deactivateUserAction(
   payload: z.input<typeof DeactivateUserSchema>,
-): Promise<ActionStatusResponse> {
+): Promise<ActionDataResponse<{ selfDeactivated: boolean }>> {
   let session: { id: string; role: string };
   try {
     session = await requireRole("Admin", "Dev");
@@ -211,5 +211,5 @@ export async function deactivateUserAction(
   } catch {
     return { success: false, error: "Failed to deactivate user." };
   }
-  return { success: true };
+  return { success: true, data: { selfDeactivated: parsed.data.userId === session.id } };
 }

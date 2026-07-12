@@ -24,7 +24,14 @@ export function Link({ className, onPress, href, target, download, ...props }: R
         const isHashOnly = href && href.startsWith("#");
         const isNonRouteScheme = href && (href.startsWith("mailto:") || href.startsWith("tel:"));
         const hasDownload = download != null;
-        const shouldStartLoading = href && !isExternal && !target && !hasDownload && !hasModifier && !isHashOnly && !isNonRouteScheme;
+        const shouldStartLoading =
+          href &&
+          !isExternal &&
+          !target &&
+          !hasDownload &&
+          !hasModifier &&
+          !isHashOnly &&
+          !isNonRouteScheme;
 
         if (shouldStartLoading) {
           startLoading();

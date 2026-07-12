@@ -7,8 +7,14 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const pathname = nextUrl.pathname;
 
-  // Protect private routes
-  if (!isLoggedIn && pathname !== "/" && !pathname.startsWith("/auth")) {
+  // Protect private routes; "/deactivated" is reachable while signed out so the
+  // post-deactivation notice can be displayed.
+  if (
+    !isLoggedIn &&
+    pathname !== "/" &&
+    !pathname.startsWith("/auth") &&
+    pathname !== "/deactivated"
+  ) {
     return NextResponse.redirect(new URL("/", nextUrl));
   }
 

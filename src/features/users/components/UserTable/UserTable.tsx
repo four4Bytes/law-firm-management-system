@@ -11,6 +11,7 @@ import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
 import { queue } from "@/components/ui/Toast/Toast";
+import { logoutUser } from "@/features/auth/actions";
 import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
 import { UserFormModal } from "@/features/users/components/UserFormModal/UserFormModal";
 import { roleLabels } from "@/features/users/constants";
@@ -245,6 +246,10 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
           const result = await deactivateUserAction({ userId: deletingUser.id });
           if (result.error) {
             queue.add({ title: result.error });
+            return;
+          }
+          if (result.data?.selfDeactivated) {
+            await logoutUser("deactivated");
             return;
           }
           setDeletingUser(null);

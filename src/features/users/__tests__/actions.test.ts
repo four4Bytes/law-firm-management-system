@@ -300,7 +300,7 @@ describe("deactivateUserAction", () => {
 
     const result = await deactivateUserAction(validPayload);
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, data: { selfDeactivated: false } });
     expect(setUserActiveStatus).toHaveBeenCalledWith(uuid, false);
   });
 
@@ -312,7 +312,7 @@ describe("deactivateUserAction", () => {
 
     const result = await deactivateUserAction(validPayload);
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, data: { selfDeactivated: false } });
     expect(setUserActiveStatus).toHaveBeenCalledWith(uuid, false);
   });
 
@@ -327,5 +327,20 @@ describe("deactivateUserAction", () => {
       success: false,
       error: "Failed to deactivate user.",
     });
+  });
+
+  it("flags self-deactivation when the target is the current user", async () => {
+    vi.mocked(requireRole).mockResolvedValue(sessionAdmin);
+    vi.mocked(getUserById).mockResolvedValue({
+      id: sessionAdmin.id,
+      role: "Admin",
+      is_active: true,
+    });
+    vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(1);
+    vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
+
+    const result = await deactivateUserAction({ userId: sessionAdmin.id });
+
+    expect(result).toEqual({ success: true, data: { selfDeactivated: true } });
   });
 });

@@ -6,6 +6,7 @@ import { FaArrowLeft } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseOverviewData } from "@/features/cases/queries";
 
@@ -24,6 +25,7 @@ interface Props {
 
 export function CaseDetail({ overview }: Props) {
   const router = useRouter();
+  const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -41,6 +43,7 @@ export function CaseDetail({ overview }: Props) {
   const selectedKey = tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "tasks";
 
   const handleSelectionChange = (key: React.Key) => {
+    startLoading();
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", String(key));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -95,6 +98,7 @@ export function CaseDetail({ overview }: Props) {
             router.refresh();
           }}
           onDeleted={() => {
+            startLoading();
             setIsEditOpen(false);
             router.push("/case");
           }}

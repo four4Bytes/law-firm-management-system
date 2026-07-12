@@ -1,0 +1,43 @@
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.bar[data-state="loading"],
+.bar[data-state="completing"] {
+  opacity: 1;
+}
+
+.fill {
+  block-size: 100%;
+  background: var(--color-brand-accent);
+  border-radius: 0;
+  transition: width 300ms ease-out;
+}
+
+.bar[data-state="loading"] .fill {
+  width: 20%;
+  animation: sweep 1.5s ease-in-out infinite;
+}
+
+.bar[data-state="completing"] .fill {
+  width: 100%;
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(500%);
+  }
+}

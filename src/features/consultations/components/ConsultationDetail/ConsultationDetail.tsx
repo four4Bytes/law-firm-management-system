@@ -6,6 +6,7 @@ import { FaArrowLeft } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 
@@ -22,6 +23,7 @@ interface Props {
 
 export function ConsultationDetail({ overview }: Props) {
   const router = useRouter();
+  const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -32,6 +34,7 @@ export function ConsultationDetail({ overview }: Props) {
   const selectedKey = tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "notes";
 
   const handleSelectionChange = (key: React.Key) => {
+    startLoading();
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", String(key));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -78,6 +81,7 @@ export function ConsultationDetail({ overview }: Props) {
             router.refresh();
           }}
           onDeleted={() => {
+            startLoading();
             setIsEditOpen(false);
             router.push("/consultation");
           }}

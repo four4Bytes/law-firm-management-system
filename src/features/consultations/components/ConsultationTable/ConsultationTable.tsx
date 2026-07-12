@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
 import type { ConsultationRow } from "@/features/consultations/queries";
@@ -61,6 +62,7 @@ const columns: ColumnDef<ConsultationRow>[] = [
 
 export function ConsultationTable() {
   const router = useRouter();
+  const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -78,7 +80,10 @@ export function ConsultationTable() {
         searchLabel="Search consultations"
         selectionMode="single"
         selectionBehavior="replace"
-        onRowAction={(id) => router.push(`/consultation/${id}`)}
+        onRowAction={(id) => {
+          startLoading();
+          router.push(`/consultation/${id}`);
+        }}
         renderAddButton
         addButtonLabel="Add Consultation"
         onAddButtonPress={() => setIsAddOpen(true)}

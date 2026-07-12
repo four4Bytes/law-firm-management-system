@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
 import type { CaseRow } from "@/features/cases/queries";
@@ -57,6 +58,7 @@ const columns: ColumnDef<CaseRow>[] = [
 
 export function CaseTable() {
   const router = useRouter();
+  const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -74,7 +76,10 @@ export function CaseTable() {
         searchLabel="Search cases"
         selectionMode="single"
         selectionBehavior="replace"
-        onRowAction={(id) => router.push(`/case/${id}`)}
+        onRowAction={(id) => {
+          startLoading();
+          router.push(`/case/${id}`);
+        }}
         renderAddButton
         addButtonLabel="Add Case"
         onAddButtonPress={() => setIsAddOpen(true)}

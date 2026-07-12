@@ -8,6 +8,7 @@ import { FaBars, FaComments, FaFolderOpen, FaHouse, FaUsers } from "react-icons/
 
 import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
 import { Button } from "@/components/ui/Button/Button";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 
 import { toggleSidebarAction } from "./actions";
 import styles from "./Sidebar.module.css";
@@ -27,6 +28,7 @@ export function Sidebar({ initialCollapsed = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const pathname = usePathname();
   const router = useRouter();
+  const { startLoading } = useNavigationProgress();
 
   const handleToggle = () => {
     const nextState = !collapsed;
@@ -57,7 +59,10 @@ export function Sidebar({ initialCollapsed = false }: SidebarProps) {
             key={item.href}
             variant="navigation"
             className={styles.navButton}
-            onPress={() => router.push(item.href)}
+            onPress={() => {
+              startLoading();
+              router.push(item.href);
+            }}
             data-active={pathname.startsWith(item.href)}
             title={collapsed ? item.label : undefined}
           >

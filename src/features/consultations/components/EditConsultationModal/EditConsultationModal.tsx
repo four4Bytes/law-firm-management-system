@@ -159,6 +159,7 @@ export function EditConsultationModal({
       return;
     }
 
+    queue.add({ title: "Consultation updated" }, { timeout: 5000 });
     onOpenChange(false);
     onSuccess();
   }
@@ -167,7 +168,7 @@ export function EditConsultationModal({
     if (!consultationId) return;
     setIsDeleting(true);
 
-    const result = await deleteConsultationAction(consultationId);
+    const result = await deleteConsultationAction({ id: consultationId });
 
     setIsDeleting(false);
     setShowDeleteConfirm(false);
@@ -314,8 +315,8 @@ export function EditConsultationModal({
         confirmLabel="Delete"
         onConfirm={handleDelete}
       >
-        This permanently deletes the consultation and ALL its notes and documents. Linked cases are
-        kept (unlinked) and payments are preserved. This action cannot be undone.
+        This permanently deletes the consultation and ALL its notes, documents, and payments. Linked
+        cases are kept (unlinked). This action cannot be undone.
       </ConfirmDialog>
     </>
   );

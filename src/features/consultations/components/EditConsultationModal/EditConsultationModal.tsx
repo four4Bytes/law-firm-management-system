@@ -165,7 +165,7 @@ export function EditConsultationModal({
     if (!consultationId) return;
     setIsDeleting(true);
 
-    const result = await deleteConsultationAction({ id: consultationId });
+    const result = await deleteConsultationAction({ consultationId });
 
     setIsDeleting(false);
     setShowDeleteConfirm(false);

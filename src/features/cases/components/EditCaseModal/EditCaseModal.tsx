@@ -150,7 +150,7 @@ export function EditCaseModal({
     if (!caseId) return;
     setIsDeleting(true);
 
-    const result = await deleteCaseAction({ id: caseId });
+    const result = await deleteCaseAction({ caseId });
 
     setIsDeleting(false);
     setShowDeleteConfirm(false);

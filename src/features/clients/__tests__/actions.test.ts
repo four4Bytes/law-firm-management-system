@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createAuditLog } from "@/features/audit/mutations";
 import { Client } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
@@ -14,11 +16,29 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("next/server", () => ({
+  after: vi.fn(),
+}));
+
+vi.mock("@/features/audit/mutations", () => ({
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     client: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
   },
 }));
+
+/**
+ * Retrieves and invokes the callback most recently registered via `after()`, so tests can
+ * assert on side effects (like audit logging) that are scheduled to run after the response.
+ */
+async function runScheduledAfterCallback() {
+  const calls = vi.mocked(after).mock.calls;
+  const callback = calls[calls.length - 1]?.[0];
+  await callback?.();
+}
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -38,7 +58,8 @@ beforeEach(() => {
 
 describe("createClientAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await createClientAction({})).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await createClientAction({} as any)).toEqual({
       success: false,
       error: "Invalid client data",
     });
@@ -53,6 +74,31 @@ describe("createClientAction", () => {
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
     expect(prisma.client.create).toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalledWith("/client");
+  });
+
+  it("schedules an audit log entry via after() on success", async () => {
+    vi.mocked(prisma.client.create).mockResolvedValue(clientRecord);
+
+    await createClientAction({ name: "Alice Client" });
+
+    expect(after).toHaveBeenCalledTimes(1);
+    await runScheduledAfterCallback();
+
+    expect(createAuditLog).toHaveBeenCalledWith({
+      actorUserId: "u1",
+      action: "client.created",
+      entityType: "Client",
+      entityId: "1",
+      details: 'Created client: "Alice Client"',
+    });
+  });
+
+  it("does not schedule an audit log entry when creation fails", async () => {
+    vi.mocked(prisma.client.create).mockRejectedValue(new Error("db error"));
+
+    await createClientAction({ name: "Alice Client" });
+
+    expect(after).not.toHaveBeenCalled();
   });
 
   it("returns an error when creation fails", async () => {
@@ -93,7 +139,8 @@ describe("getClientForEditAction", () => {
 
 describe("updateClientAction", () => {
   it("returns an error for an invalid payload", async () => {
-    expect(await updateClientAction({ clientId: uuid })).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await updateClientAction({ clientId: uuid } as any)).toEqual({
       success: false,
       error: "Invalid client data",
     });
@@ -108,6 +155,31 @@ describe("updateClientAction", () => {
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
     expect(prisma.client.update).toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalledWith("/client");
+  });
+
+  it("schedules an audit log entry via after() on success", async () => {
+    vi.mocked(prisma.client.update).mockResolvedValue(clientRecord);
+
+    await updateClientAction({ clientId: uuid, name: "Alice Client" });
+
+    expect(after).toHaveBeenCalledTimes(1);
+    await runScheduledAfterCallback();
+
+    expect(createAuditLog).toHaveBeenCalledWith({
+      actorUserId: "u1",
+      action: "client.updated",
+      entityType: "Client",
+      entityId: uuid,
+      details: 'Updated client: "Alice Client"',
+    });
+  });
+
+  it("does not schedule an audit log entry when update fails", async () => {
+    vi.mocked(prisma.client.update).mockRejectedValue(new Error("db error"));
+
+    await updateClientAction({ clientId: uuid, name: "Alice Client" });
+
+    expect(after).not.toHaveBeenCalled();
   });
 
   it("returns an error when update fails", async () => {

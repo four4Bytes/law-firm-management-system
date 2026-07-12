@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
@@ -22,7 +23,7 @@ export async function getNoteRowByIdAction(noteId: string): Promise<NoteRow | nu
 }
 
 export async function createNoteAction(
-  payload: unknown,
+  payload: z.input<typeof NoteCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
   const session = await requireAuth();
 
@@ -50,7 +51,9 @@ export async function createNoteAction(
   return { success: true, data: { id: note.id } };
 }
 
-export async function updateNoteAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updateNoteAction(
+  payload: z.input<typeof NoteUpdatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = NoteUpdatePayloadSchema.safeParse(payload);
@@ -74,7 +77,9 @@ export async function updateNoteAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function deleteNoteAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deleteNoteAction(
+  payload: z.input<typeof NoteIdSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = NoteIdSchema.safeParse(payload);

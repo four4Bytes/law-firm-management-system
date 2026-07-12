@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
@@ -28,7 +29,9 @@ import {
   DocumentUploadPayloadSchema,
 } from "./schemas";
 
-export async function getDocumentsPaginatedAction(params: unknown): Promise<{
+export async function getDocumentsPaginatedAction(
+  params: z.input<typeof DocumentPageQuerySchema>,
+): Promise<{
   rows: DocumentRow[];
   nextCursor: string | null;
 }> {
@@ -42,7 +45,9 @@ export async function getDocumentsPaginatedAction(params: unknown): Promise<{
   return getDocumentsPaginated(parsed.data);
 }
 
-export async function getDocumentUploadUrlAction(payload: unknown): Promise<{
+export async function getDocumentUploadUrlAction(
+  payload: z.input<typeof DocumentUploadPayloadSchema>,
+): Promise<{
   key: string;
   uploadUrl: string;
 }> {
@@ -64,7 +69,7 @@ export async function getDocumentUploadUrlAction(payload: unknown): Promise<{
 }
 
 export async function confirmDocumentUploadAction(
-  payload: unknown,
+  payload: z.input<typeof DocumentConfirmPayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
   const session = await requireAuth();
 
@@ -132,7 +137,9 @@ export async function getDocumentDetailRowAction(documentId: string): Promise<Do
   return doc;
 }
 
-export async function deleteDocumentAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deleteDocumentAction(
+  payload: z.input<typeof DocumentIdSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = DocumentIdSchema.safeParse(payload);

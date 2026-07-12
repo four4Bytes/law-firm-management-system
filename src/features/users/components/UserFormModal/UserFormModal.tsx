@@ -12,6 +12,7 @@ import { queue } from "@/components/ui/Toast/Toast";
 import { checkDeveloperEmail, createUserAction, updateUserAction } from "@/features/users/actions";
 import { CREATABLE_ROLES, roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
+import type { Role } from "@/generated/prisma/browser";
 
 import styles from "./UserFormModal.module.css";
 
@@ -34,7 +35,7 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
 
     try {
       const email = formData.get("email") as string;
-      const role = formData.get("role") as string;
+      const role = formData.get("role") as Role;
 
       if (!email || !role) {
         setError("All fields are required.");

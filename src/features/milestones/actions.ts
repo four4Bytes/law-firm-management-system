@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
@@ -25,7 +26,7 @@ export async function getMilestoneRowByIdAction(milestoneId: string): Promise<Mi
 }
 
 export async function createMilestoneAction(
-  payload: unknown,
+  payload: z.input<typeof MilestoneCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
   const session = await requireAuth();
 
@@ -54,7 +55,9 @@ export async function createMilestoneAction(
   }
 }
 
-export async function updateMilestoneAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updateMilestoneAction(
+  payload: z.input<typeof MilestoneUpdatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = MilestoneUpdatePayloadSchema.safeParse(payload);
@@ -83,7 +86,9 @@ export async function updateMilestoneAction(payload: unknown): Promise<ActionSta
   }
 }
 
-export async function deleteMilestoneAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deleteMilestoneAction(
+  payload: z.input<typeof MilestoneIdSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = MilestoneIdSchema.safeParse(payload);

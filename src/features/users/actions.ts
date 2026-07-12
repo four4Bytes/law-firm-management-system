@@ -1,5 +1,7 @@
 "use server";
 
+import { z } from "zod";
+
 import { CREATABLE_ROLES } from "@/features/users/constants";
 import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
 import {
@@ -21,7 +23,9 @@ import {
   UserPageQuerySchema,
 } from "./schemas";
 
-export async function getUsersPaginatedAction(params: unknown): Promise<{
+export async function getUsersPaginatedAction(
+  params: z.input<typeof UserPageQuerySchema>,
+): Promise<{
   users: UserRow[];
   nextCursor: string | null;
 }> {
@@ -48,7 +52,9 @@ export async function checkDeveloperEmail(email: string): Promise<boolean> {
   return isDeveloperEmail(parsed.data.email);
 }
 
-export async function createUserAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function createUserAction(
+  payload: z.input<typeof CreateUserSchema>,
+): Promise<ActionStatusResponse> {
   try {
     await requireRole("Admin", "Dev");
   } catch {
@@ -88,7 +94,9 @@ export async function createUserAction(payload: unknown): Promise<ActionStatusRe
   return { success: true };
 }
 
-export async function updateUserAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updateUserAction(
+  payload: z.input<typeof UpdateUserSchema>,
+): Promise<ActionStatusResponse> {
   let session: { id: string; role: string };
   try {
     session = await requireRole("Admin", "Dev");
@@ -129,7 +137,9 @@ export async function updateUserAction(payload: unknown): Promise<ActionStatusRe
   return { success: true };
 }
 
-export async function deactivateUserAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deactivateUserAction(
+  payload: z.input<typeof DeactivateUserSchema>,
+): Promise<ActionStatusResponse> {
   try {
     await requireRole("Admin", "Dev");
   } catch {

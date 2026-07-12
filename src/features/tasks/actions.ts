@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
@@ -24,7 +25,7 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<TaskDe
 }
 
 export async function createTaskAction(
-  payload: unknown,
+  payload: z.input<typeof TaskCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
   const session = await requireAuth();
 
@@ -51,7 +52,9 @@ export async function createTaskAction(
   }
 }
 
-export async function updateTaskAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updateTaskAction(
+  payload: z.input<typeof TaskUpdatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = TaskUpdatePayloadSchema.safeParse(payload);
@@ -73,7 +76,9 @@ export async function updateTaskAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function deleteTaskAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deleteTaskAction(
+  payload: z.input<typeof TaskIdSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = TaskIdSchema.safeParse(payload);

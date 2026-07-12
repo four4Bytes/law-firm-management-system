@@ -83,11 +83,15 @@ describe("createCaseAction", () => {
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
-    status: "Open",
+    status: "Open" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
-    expect(await createCaseAction({})).toEqual({ success: false, error: "Invalid case data" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await createCaseAction({} as any)).toEqual({
+      success: false,
+      error: "Invalid case data",
+    });
   });
 
   it("creates a case and revalidates the list", async () => {
@@ -118,11 +122,12 @@ describe("updateCaseAction", () => {
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
-    status: "Open",
+    status: "Open" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
-    expect(await updateCaseAction({ caseId: uuid })).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await updateCaseAction({ caseId: uuid } as any)).toEqual({
       success: false,
       error: "Invalid case data",
     });

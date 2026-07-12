@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import {
   getConsultationActivityLogPaginated,
@@ -38,7 +39,9 @@ import {
   ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
 
-export async function getConsultationsPaginatedAction(params: unknown): Promise<{
+export async function getConsultationsPaginatedAction(
+  params: z.input<typeof PageQuerySchema>,
+): Promise<{
   consultations: ConsultationRow[];
   nextCursor: string | null;
 }> {
@@ -65,7 +68,9 @@ export async function getConsultationOverviewByIdAction(
   return getConsultationOverviewById(parsed.data.consultationId);
 }
 
-export async function getConsultationNotesPaginatedAction(params: unknown): Promise<{
+export async function getConsultationNotesPaginatedAction(
+  params: z.input<typeof ConsultationPageQuerySchema>,
+): Promise<{
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
@@ -79,7 +84,9 @@ export async function getConsultationNotesPaginatedAction(params: unknown): Prom
   return getConsultationNotesPaginated(parsed.data);
 }
 
-export async function getConsultationDocumentsPaginatedAction(params: unknown): Promise<{
+export async function getConsultationDocumentsPaginatedAction(
+  params: z.input<typeof ConsultationPageQuerySchema>,
+): Promise<{
   rows: DocumentRow[];
   nextCursor: string | null;
 }> {
@@ -93,7 +100,9 @@ export async function getConsultationDocumentsPaginatedAction(params: unknown): 
   return getDocumentsPaginated(parsed.data);
 }
 
-export async function getConsultationPaymentsPaginatedAction(params: unknown): Promise<{
+export async function getConsultationPaymentsPaginatedAction(
+  params: z.input<typeof ConsultationPageQuerySchema>,
+): Promise<{
   rows: PaymentRow[];
   nextCursor: string | null;
 }> {
@@ -107,7 +116,9 @@ export async function getConsultationPaymentsPaginatedAction(params: unknown): P
   return getConsultationPaymentsPaginated(parsed.data);
 }
 
-export async function getConsultationActivityLogPaginatedAction(params: unknown): Promise<{
+export async function getConsultationActivityLogPaginatedAction(
+  params: z.input<typeof ConsultationPageQuerySchema>,
+): Promise<{
   rows: ActivityLogRow[];
   nextCursor: string | null;
 }> {
@@ -134,7 +145,9 @@ export async function getConsultationForEditAction(
   return getConsultationEditData(parsed.data.consultationId);
 }
 
-export async function createConsultationAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function createConsultationAction(
+  payload: z.input<typeof ConsultationCreatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   const session = await requireAuth();
 
   const parsed = ConsultationCreatePayloadSchema.safeParse(payload);
@@ -162,7 +175,7 @@ export async function createConsultationAction(payload: unknown): Promise<Action
 }
 
 export async function createConsultationWithClientAction(
-  payload: unknown,
+  payload: z.input<typeof ConsultationWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
   const session = await requireAuth();
 
@@ -185,7 +198,9 @@ export async function createConsultationWithClientAction(
   }
 }
 
-export async function updateConsultationAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updateConsultationAction(
+  payload: z.input<typeof ConsultationUpdatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = ConsultationUpdatePayloadSchema.safeParse(payload);
@@ -211,7 +226,7 @@ export async function updateConsultationAction(payload: unknown): Promise<Action
 }
 
 export async function updateConsultationWithClientAction(
-  payload: unknown,
+  payload: z.input<typeof ConsultationWithClientUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
   await requireAuth();
 
@@ -238,7 +253,9 @@ export async function updateConsultationWithClientAction(
   }
 }
 
-export async function deleteConsultationAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deleteConsultationAction(
+  payload: z.input<typeof ConsultationDeletePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = ConsultationDeletePayloadSchema.safeParse(payload);

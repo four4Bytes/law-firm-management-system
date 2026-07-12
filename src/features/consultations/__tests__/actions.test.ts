@@ -71,11 +71,12 @@ describe("createConsultationAction", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled",
+    status: "Scheduled" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
-    expect(await createConsultationAction({})).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await createConsultationAction({} as any)).toEqual({
       success: false,
       error: "Invalid consultation data",
     });
@@ -109,11 +110,12 @@ describe("updateConsultationAction", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled",
+    status: "Scheduled" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
-    expect(await updateConsultationAction({ consultationId: uuid })).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await updateConsultationAction({ consultationId: uuid } as any)).toEqual({
       success: false,
       error: "Invalid consultation data",
     });

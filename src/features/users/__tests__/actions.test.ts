@@ -38,7 +38,7 @@ beforeEach(() => {
 });
 
 describe("createUserAction", () => {
-  const validPayload = { email: "lawyer@law.com", role: "Lawyer" };
+  const validPayload = { email: "lawyer@law.com", role: "Lawyer" as const };
 
   it("returns an error when unauthorized", async () => {
     vi.mocked(requireRole).mockRejectedValue(new Error("Forbidden"));
@@ -52,7 +52,8 @@ describe("createUserAction", () => {
   it("returns an error for a payload missing email", async () => {
     vi.mocked(requireRole).mockResolvedValue(sessionAdmin);
 
-    expect(await createUserAction({ role: "Lawyer" })).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await createUserAction({ role: "Lawyer" } as any)).toEqual({
       success: false,
       error: "Invalid email or role",
     });
@@ -61,7 +62,8 @@ describe("createUserAction", () => {
   it("returns an error for an invalid role string", async () => {
     vi.mocked(requireRole).mockResolvedValue(sessionAdmin);
 
-    expect(await createUserAction({ email: "lawyer@law.com", role: "SuperAdmin" })).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await createUserAction({ email: "lawyer@law.com", role: "SuperAdmin" } as any)).toEqual({
       success: false,
       error: "Invalid email or role",
     });
@@ -155,7 +157,7 @@ describe("createUserAction", () => {
 });
 
 describe("updateUserAction", () => {
-  const validPayload = { userId: uuid, email: "updated@law.com", role: "Paralegal" };
+  const validPayload = { userId: uuid, email: "updated@law.com", role: "Paralegal" as const };
 
   it("returns an error when unauthorized", async () => {
     vi.mocked(requireRole).mockRejectedValue(new Error("Forbidden"));

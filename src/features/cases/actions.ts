@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import {
   getCaseActivityLogPaginated,
@@ -42,7 +43,7 @@ import {
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
 
-export async function getCasesPaginatedAction(params: unknown): Promise<{
+export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
   cases: CaseRow[];
   nextCursor: string | null;
 }> {
@@ -67,7 +68,9 @@ export async function getCaseOverviewByIdAction(id: string): Promise<CaseOvervie
   return getCaseOverviewById(parsed.data.caseId);
 }
 
-export async function getCaseTasksPaginatedAction(params: unknown): Promise<{
+export async function getCaseTasksPaginatedAction(
+  params: z.input<typeof CasePageQuerySchema>,
+): Promise<{
   rows: TaskRow[];
   nextCursor: string | null;
 }> {
@@ -81,7 +84,9 @@ export async function getCaseTasksPaginatedAction(params: unknown): Promise<{
   return getCaseTasksPaginated(parsed.data);
 }
 
-export async function getCaseNotesPaginatedAction(params: unknown): Promise<{
+export async function getCaseNotesPaginatedAction(
+  params: z.input<typeof CasePageQuerySchema>,
+): Promise<{
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
@@ -95,7 +100,9 @@ export async function getCaseNotesPaginatedAction(params: unknown): Promise<{
   return getCaseNotesPaginated(parsed.data);
 }
 
-export async function getCaseDocumentsPaginatedAction(params: unknown): Promise<{
+export async function getCaseDocumentsPaginatedAction(
+  params: z.input<typeof CasePageQuerySchema>,
+): Promise<{
   rows: DocumentRow[];
   nextCursor: string | null;
 }> {
@@ -109,7 +116,9 @@ export async function getCaseDocumentsPaginatedAction(params: unknown): Promise<
   return getDocumentsPaginated(parsed.data);
 }
 
-export async function getCaseMilestonesPaginatedAction(params: unknown): Promise<{
+export async function getCaseMilestonesPaginatedAction(
+  params: z.input<typeof CasePageQuerySchema>,
+): Promise<{
   rows: MilestoneRow[];
   nextCursor: string | null;
 }> {
@@ -123,7 +132,9 @@ export async function getCaseMilestonesPaginatedAction(params: unknown): Promise
   return getCaseMilestonesPaginated(parsed.data);
 }
 
-export async function getCasePaymentsPaginatedAction(params: unknown): Promise<{
+export async function getCasePaymentsPaginatedAction(
+  params: z.input<typeof CasePageQuerySchema>,
+): Promise<{
   rows: PaymentRow[];
   nextCursor: string | null;
 }> {
@@ -137,7 +148,9 @@ export async function getCasePaymentsPaginatedAction(params: unknown): Promise<{
   return getCasePaymentsPaginated(parsed.data);
 }
 
-export async function getCaseActivityLogPaginatedAction(params: unknown): Promise<{
+export async function getCaseActivityLogPaginatedAction(
+  params: z.input<typeof CasePageQuerySchema>,
+): Promise<{
   rows: ActivityLogRow[];
   nextCursor: string | null;
 }> {
@@ -162,7 +175,9 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
   return getCaseEditData(parsed.data.caseId);
 }
 
-export async function createCaseAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function createCaseAction(
+  payload: z.input<typeof CaseCreatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   const session = await requireAuth();
 
   const parsed = CaseCreatePayloadSchema.safeParse(payload);
@@ -192,7 +207,9 @@ export async function createCaseAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function createCaseWithClientAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function createCaseWithClientAction(
+  payload: z.input<typeof CaseWithClientCreatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   const session = await requireAuth();
 
   const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
@@ -217,7 +234,9 @@ export async function createCaseWithClientAction(payload: unknown): Promise<Acti
   }
 }
 
-export async function updateCaseAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updateCaseAction(
+  payload: z.input<typeof CaseUpdatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = CaseUpdatePayloadSchema.safeParse(payload);
@@ -258,7 +277,9 @@ export async function updateCaseAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function updateCaseWithClientAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updateCaseWithClientAction(
+  payload: z.input<typeof CaseWithClientUpdatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = CaseWithClientUpdatePayloadSchema.safeParse(payload);
@@ -285,7 +306,9 @@ export async function updateCaseWithClientAction(payload: unknown): Promise<Acti
   }
 }
 
-export async function deleteCaseAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deleteCaseAction(
+  payload: z.input<typeof CaseDeletePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = CaseDeletePayloadSchema.safeParse(payload);

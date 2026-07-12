@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { ActionDataResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
@@ -12,7 +13,7 @@ import { ClientCreatePayloadSchema, ClientIdSchema, ClientUpdatePayloadSchema } 
 type ClientCreateResult = { id: string; name: string };
 
 export async function createClientAction(
-  payload: unknown,
+  payload: z.input<typeof ClientCreatePayloadSchema>,
 ): Promise<ActionDataResponse<ClientCreateResult>> {
   await requireAuth();
 
@@ -46,7 +47,7 @@ export async function getClientForEditAction(id: string): Promise<ClientEditData
 }
 
 export async function updateClientAction(
-  payload: unknown,
+  payload: z.input<typeof ClientUpdatePayloadSchema>,
 ): Promise<ActionDataResponse<ClientCreateResult>> {
   await requireAuth();
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
@@ -22,7 +23,7 @@ export async function getPaymentRowByIdAction(paymentId: string): Promise<Paymen
 }
 
 export async function createPaymentAction(
-  payload: unknown,
+  payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
   const session = await requireAuth();
 
@@ -54,7 +55,9 @@ export async function createPaymentAction(
   }
 }
 
-export async function updatePaymentAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function updatePaymentAction(
+  payload: z.input<typeof PaymentUpdatePayloadSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
@@ -84,7 +87,9 @@ export async function updatePaymentAction(payload: unknown): Promise<ActionStatu
   }
 }
 
-export async function deletePaymentAction(payload: unknown): Promise<ActionStatusResponse> {
+export async function deletePaymentAction(
+  payload: z.input<typeof PaymentIdSchema>,
+): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = PaymentIdSchema.safeParse(payload);

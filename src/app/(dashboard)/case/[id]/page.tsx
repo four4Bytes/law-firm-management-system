@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { CaseDetail } from "@/features/cases/components/CaseDetail/CaseDetail";
 import { getCaseOverviewById } from "@/features/cases/queries";
 
@@ -13,7 +15,9 @@ export default async function CaseDetailPage({ params }: Props) {
 
   return (
     <div className={styles.detailPage}>
-      <CaseDetail overview={overview} />
+      <Suspense fallback={<div>Loading...</div>}>
+        <CaseDetail overview={overview} />
+      </Suspense>
     </div>
   );
 }

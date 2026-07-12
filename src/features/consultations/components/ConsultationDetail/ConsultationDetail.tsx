@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
@@ -22,7 +22,17 @@ interface Props {
 
 export function ConsultationDetail({ overview }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const selectedKey = searchParams.get("tab") ?? "notes";
+
+  const handleSelectionChange = (key: React.Key) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", String(key));
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   return (
     <div className={styles.detail}>
@@ -32,7 +42,7 @@ export function ConsultationDetail({ overview }: Props) {
 
       <ConsultationOverview data={overview} onEdit={() => setIsEditOpen(true)} />
 
-      <Tabs>
+      <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Consultation details">
           <Tab id="notes">Notes</Tab>
           <Tab id="attachments">Attachments</Tab>

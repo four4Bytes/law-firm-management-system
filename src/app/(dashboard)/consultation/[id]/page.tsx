@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { ConsultationDetail } from "@/features/consultations/components/ConsultationDetail/ConsultationDetail";
 import { getConsultationOverviewById } from "@/features/consultations/queries";
 
@@ -13,7 +15,9 @@ export default async function ConsultationDetailPage({ params }: Props) {
 
   return (
     <div className={styles.detailPage}>
-      <ConsultationDetail overview={overview} />
+      <Suspense fallback={<div>Loading...</div>}>
+        <ConsultationDetail overview={overview} />
+      </Suspense>
     </div>
   );
 }

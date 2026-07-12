@@ -75,32 +75,36 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
 
     setIsPending(true);
 
-    const result = await createCaseWithClientAction({
-      client: {
-        name: name.trim(),
-        email: email.trim() || undefined,
-        phone_number: phone.trim() || undefined,
-        address: address.trim() || undefined,
-      },
-      case: {
-        case_title: caseTitle.trim(),
-        case_type: caseType,
-        status,
-        parties_involved: partiesInvolved.trim() || undefined,
-      },
-    });
+    try {
+      const result = await createCaseWithClientAction({
+        client: {
+          name: name.trim(),
+          email: email.trim() || undefined,
+          phone_number: phone.trim() || undefined,
+          address: address.trim() || undefined,
+        },
+        case: {
+          case_title: caseTitle.trim(),
+          case_type: caseType,
+          status,
+          parties_involved: partiesInvolved.trim() || undefined,
+        },
+      });
 
-    setIsPending(false);
+      if (!result.success) {
+        queue.add({ title: result.error ?? "Failed to create case" }, { timeout: 5000 });
+        return;
+      }
 
-    if (!result.success) {
-      queue.add({ title: result.error ?? "Failed to create case" }, { timeout: 5000 });
-      return;
+      queue.add({ title: "Case created" }, { timeout: 5000 });
+      setClient(resetClient());
+      setCaseFields(resetCase());
+      onSuccess();
+    } catch {
+      queue.add({ title: "Failed to create case. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsPending(false);
     }
-
-    queue.add({ title: "Case created" }, { timeout: 5000 });
-    setClient(resetClient());
-    setCaseFields(resetCase());
-    onSuccess();
   }
 
   return (

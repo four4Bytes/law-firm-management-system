@@ -109,17 +109,22 @@ export function EditMilestoneModal({
     if (!milestoneId) return;
     setIsDeleting(true);
 
-    const result = await deleteMilestoneAction({ milestoneId });
+    try {
+      const result = await deleteMilestoneAction({ milestoneId });
 
-    setIsDeleting(false);
-    setShowDeleteConfirm(false);
+      setShowDeleteConfirm(false);
 
-    if (result.success) {
-      queue.add({ title: "Milestone deleted" }, { timeout: 5000 });
-      onOpenChange(false);
-      onSuccess();
-    } else {
-      queue.add({ title: result.error ?? "Failed to delete milestone" }, { timeout: 5000 });
+      if (result.success) {
+        queue.add({ title: "Milestone deleted" }, { timeout: 5000 });
+        onOpenChange(false);
+        onSuccess();
+      } else {
+        queue.add({ title: result.error ?? "Failed to delete milestone" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to delete milestone. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsDeleting(false);
     }
   }
 

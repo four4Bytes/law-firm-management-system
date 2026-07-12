@@ -30,6 +30,9 @@ export function ConfirmDialog({
     setIsPending(true);
     try {
       await onConfirm();
+    } catch {
+      // Caller is responsible for their own error handling (toasts, rollback, etc.).
+      // This catch prevents the unhandled promise rejection in React's event system.
     } finally {
       setIsPending(false);
     }

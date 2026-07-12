@@ -133,49 +133,58 @@ export function EditConsultationModal({
 
     setIsSaving(true);
 
-    const result = await updateConsultationWithClientAction({
-      consultation_id: consultationId,
-      client_id: clientId,
-      client: {
-        name: clientName.trim(),
-        email: clientEmail.trim() || undefined,
-        phone_number: clientPhone.trim() || undefined,
-        address: clientAddress.trim() || undefined,
-      },
-      consultation: {
-        concern: fields.concern.trim(),
-        booking_datetime: combineDateTime(fields.date, fields.time),
-        status: fields.status,
-      },
-    });
+    try {
+      const result = await updateConsultationWithClientAction({
+        consultation_id: consultationId,
+        client_id: clientId,
+        client: {
+          name: clientName.trim(),
+          email: clientEmail.trim() || undefined,
+          phone_number: clientPhone.trim() || undefined,
+          address: clientAddress.trim() || undefined,
+        },
+        consultation: {
+          concern: fields.concern.trim(),
+          booking_datetime: combineDateTime(fields.date, fields.time),
+          status: fields.status,
+        },
+      });
 
-    setIsSaving(false);
+      if (!result.success) {
+        queue.add({ title: result.error ?? "Failed to update consultation" }, { timeout: 5000 });
+        return;
+      }
 
-    if (!result.success) {
-      queue.add({ title: result.error ?? "Failed to update consultation" }, { timeout: 5000 });
-      return;
+      queue.add({ title: "Consultation updated" }, { timeout: 5000 });
+      onOpenChange(false);
+      onSuccess();
+    } catch {
+      queue.add({ title: "Failed to update consultation. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsSaving(false);
     }
-
-    queue.add({ title: "Consultation updated" }, { timeout: 5000 });
-    onOpenChange(false);
-    onSuccess();
   }
 
   async function handleDelete() {
     if (!consultationId) return;
     setIsDeleting(true);
 
-    const result = await deleteConsultationAction({ consultationId });
+    try {
+      const result = await deleteConsultationAction({ consultationId });
 
-    setIsDeleting(false);
-    setShowDeleteConfirm(false);
+      setShowDeleteConfirm(false);
 
-    if (result.success) {
-      queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
-      onOpenChange(false);
-      onDeleted();
-    } else {
-      queue.add({ title: result.error ?? "Failed to delete consultation" }, { timeout: 5000 });
+      if (result.success) {
+        queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
+        onOpenChange(false);
+        onDeleted();
+      } else {
+        queue.add({ title: result.error ?? "Failed to delete consultation" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to delete consultation. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsDeleting(false);
     }
   }
 

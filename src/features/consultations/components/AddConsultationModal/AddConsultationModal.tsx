@@ -79,31 +79,35 @@ export function AddConsultationModal({
 
     setIsPending(true);
 
-    const result = await createConsultationWithClientAction({
-      client: {
-        name: name.trim(),
-        email: email.trim() || undefined,
-        phone_number: phone.trim() || undefined,
-        address: address.trim() || undefined,
-      },
-      consultation: {
-        concern: concern.trim(),
-        booking_datetime: combineDateTime(date, time),
-        status,
-      },
-    });
+    try {
+      const result = await createConsultationWithClientAction({
+        client: {
+          name: name.trim(),
+          email: email.trim() || undefined,
+          phone_number: phone.trim() || undefined,
+          address: address.trim() || undefined,
+        },
+        consultation: {
+          concern: concern.trim(),
+          booking_datetime: combineDateTime(date, time),
+          status,
+        },
+      });
 
-    setIsPending(false);
+      if (!result.success) {
+        queue.add({ title: result.error ?? "Failed to create consultation" }, { timeout: 5000 });
+        return;
+      }
 
-    if (!result.success) {
-      queue.add({ title: result.error ?? "Failed to create consultation" }, { timeout: 5000 });
-      return;
+      queue.add({ title: "Consultation created" }, { timeout: 5000 });
+      setClient(resetClient());
+      setConsultation(resetConsultation());
+      onSuccess();
+    } catch {
+      queue.add({ title: "Failed to create consultation. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsPending(false);
     }
-
-    queue.add({ title: "Consultation created" }, { timeout: 5000 });
-    setClient(resetClient());
-    setConsultation(resetConsultation());
-    onSuccess();
   }
 
   return (

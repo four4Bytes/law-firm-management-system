@@ -78,20 +78,27 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
     if (!pendingDevEmail) return;
     setIsPending(true);
     setError(null);
-    const result = await createUserAction({ email: pendingDevEmail, role: "Dev" });
-    if (result.error) {
-      queue.add({ title: result.error });
-      setError(result.error);
-    } else {
-      queue.add(
-        { title: "Developer account activated", description: pendingDevEmail },
-        { timeout: 5000 },
-      );
-      onSuccess?.();
-      onOpenChange(false);
+
+    try {
+      const result = await createUserAction({ email: pendingDevEmail, role: "Dev" });
+      if (result.error) {
+        queue.add({ title: result.error });
+        setError(result.error);
+      } else {
+        queue.add(
+          { title: "Developer account activated", description: pendingDevEmail },
+          { timeout: 5000 },
+        );
+        onSuccess?.();
+        onOpenChange(false);
+      }
+    } catch {
+      setError("An unexpected error occurred.");
+      queue.add({ title: "An unexpected error occurred." }, { timeout: 5000 });
+    } finally {
+      setPendingDevEmail(null);
+      setIsPending(false);
     }
-    setPendingDevEmail(null);
-    setIsPending(false);
   }
 
   return (

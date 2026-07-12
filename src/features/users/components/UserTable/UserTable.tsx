@@ -64,13 +64,26 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
     ++generationRef.current;
 
     startTransition(async () => {
-      const sort = toSortQuery(sortDescriptor);
-      const result = await getUsersPaginatedAction({ search: debouncedSearch, sort, pageSize: 10 });
-      if (cancelled) return;
-      setItems(result.users);
-      setCursor(result.nextCursor);
-      setHasMore(result.nextCursor !== null);
-      setIsInitialLoad(false);
+      try {
+        const sort = toSortQuery(sortDescriptor);
+        const result = await getUsersPaginatedAction({
+          search: debouncedSearch,
+          sort,
+          pageSize: 10,
+        });
+        if (cancelled) return;
+        setItems(result.users);
+        setCursor(result.nextCursor);
+        setHasMore(result.nextCursor !== null);
+        setIsInitialLoad(false);
+      } catch {
+        if (cancelled) return;
+        setIsInitialLoad(false);
+        queue.add({
+          title: "Failed to load users",
+          description: "Could not retrieve the user list. Please try again.",
+        });
+      }
     });
 
     return () => {
@@ -96,6 +109,11 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
       setItems((prev) => [...prev, ...result.users]);
       setCursor(result.nextCursor);
       setHasMore(result.nextCursor !== null);
+    } catch {
+      queue.add({
+        title: "Failed to load more users",
+        description: "Could not retrieve additional items. Please try again.",
+      });
     } finally {
       setIsLoadingMore(false);
     }

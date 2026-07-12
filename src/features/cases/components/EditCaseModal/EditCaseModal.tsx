@@ -117,50 +117,59 @@ export function EditCaseModal({
 
     setIsSaving(true);
 
-    const result = await updateCaseWithClientAction({
-      case_id: caseId,
-      client_id: clientId,
-      client: {
-        name: clientName.trim(),
-        email: clientEmail.trim() || undefined,
-        phone_number: clientPhone.trim() || undefined,
-        address: clientAddress.trim() || undefined,
-      },
-      case: {
-        case_title: caseTitle.trim(),
-        case_type: caseType,
-        status,
-        parties_involved: partiesInvolved.trim() || undefined,
-      },
-    });
+    try {
+      const result = await updateCaseWithClientAction({
+        case_id: caseId,
+        client_id: clientId,
+        client: {
+          name: clientName.trim(),
+          email: clientEmail.trim() || undefined,
+          phone_number: clientPhone.trim() || undefined,
+          address: clientAddress.trim() || undefined,
+        },
+        case: {
+          case_title: caseTitle.trim(),
+          case_type: caseType,
+          status,
+          parties_involved: partiesInvolved.trim() || undefined,
+        },
+      });
 
-    setIsSaving(false);
+      if (!result.success) {
+        queue.add({ title: result.error ?? "Failed to update case" }, { timeout: 5000 });
+        return;
+      }
 
-    if (!result.success) {
-      queue.add({ title: result.error ?? "Failed to update case" }, { timeout: 5000 });
-      return;
+      queue.add({ title: "Case updated" }, { timeout: 5000 });
+      onOpenChange(false);
+      onSuccess();
+    } catch {
+      queue.add({ title: "Failed to update case. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsSaving(false);
     }
-
-    queue.add({ title: "Case updated" }, { timeout: 5000 });
-    onOpenChange(false);
-    onSuccess();
   }
 
   async function handleDelete() {
     if (!caseId) return;
     setIsDeleting(true);
 
-    const result = await deleteCaseAction({ caseId });
+    try {
+      const result = await deleteCaseAction({ caseId });
 
-    setIsDeleting(false);
-    setShowDeleteConfirm(false);
+      setShowDeleteConfirm(false);
 
-    if (result.success) {
-      queue.add({ title: "Case deleted" }, { timeout: 5000 });
-      onOpenChange(false);
-      onDeleted();
-    } else {
-      queue.add({ title: result.error ?? "Failed to delete case" }, { timeout: 5000 });
+      if (result.success) {
+        queue.add({ title: "Case deleted" }, { timeout: 5000 });
+        onOpenChange(false);
+        onDeleted();
+      } else {
+        queue.add({ title: result.error ?? "Failed to delete case" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to delete case. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsDeleting(false);
     }
   }
 

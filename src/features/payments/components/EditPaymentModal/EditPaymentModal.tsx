@@ -109,17 +109,22 @@ export function EditPaymentModal({
     if (!paymentId) return;
     setIsDeleting(true);
 
-    const result = await deletePaymentAction({ paymentId });
+    try {
+      const result = await deletePaymentAction({ paymentId });
 
-    setIsDeleting(false);
-    setShowDeleteConfirm(false);
+      setShowDeleteConfirm(false);
 
-    if (result.success) {
-      queue.add({ title: "Payment deleted" }, { timeout: 5000 });
-      onOpenChange(false);
-      onSuccess();
-    } else {
-      queue.add({ title: result.error ?? "Failed to delete payment" }, { timeout: 5000 });
+      if (result.success) {
+        queue.add({ title: "Payment deleted" }, { timeout: 5000 });
+        onOpenChange(false);
+        onSuccess();
+      } else {
+        queue.add({ title: result.error ?? "Failed to delete payment" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to delete payment. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsDeleting(false);
     }
   }
 

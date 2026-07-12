@@ -45,17 +45,22 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
   async function handleDelete() {
     setIsLoading(true);
 
-    const result = await deleteNoteAction({ noteId: note.id });
+    try {
+      const result = await deleteNoteAction({ noteId: note.id });
 
-    setIsLoading(false);
-    setShowDeleteConfirm(false);
+      setShowDeleteConfirm(false);
 
-    if (result.success) {
-      queue.add({ title: "Note deleted" }, { timeout: 5000 });
-      onOpenChange(false);
-      onSuccess();
-    } else {
-      queue.add({ title: result.error ?? "Failed to delete note" }, { timeout: 5000 });
+      if (result.success) {
+        queue.add({ title: "Note deleted" }, { timeout: 5000 });
+        onOpenChange(false);
+        onSuccess();
+      } else {
+        queue.add({ title: result.error ?? "Failed to delete note" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to delete note. Please try again." }, { timeout: 5000 });
+    } finally {
+      setIsLoading(false);
     }
   }
 

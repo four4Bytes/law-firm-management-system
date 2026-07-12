@@ -15,7 +15,11 @@ export async function getRecentCasesAction(limit?: number): Promise<RecentCaseRo
   await requireAuth();
 
   const parsed = LimitSchema.safeParse(limit);
-  return getRecentCases(parsed.data ?? 10);
+  if (!parsed.success) {
+    throw new Error("Invalid limit parameter");
+  }
+
+  return getRecentCases(parsed.data);
 }
 
 export async function getUpcomingConsultationsAction(
@@ -24,12 +28,20 @@ export async function getUpcomingConsultationsAction(
   await requireAuth();
 
   const parsed = LimitSchema.safeParse(limit);
-  return getUpcomingConsultations(parsed.data ?? 10);
+  if (!parsed.success) {
+    throw new Error("Invalid limit parameter");
+  }
+
+  return getUpcomingConsultations(parsed.data);
 }
 
 export async function getOverdueMilestonesAction(limit?: number): Promise<OverdueMilestoneRow[]> {
   await requireAuth();
 
   const parsed = LimitSchema.safeParse(limit);
-  return getOverdueMilestones(parsed.data ?? 5);
+  if (!parsed.success) {
+    throw new Error("Invalid limit parameter");
+  }
+
+  return getOverdueMilestones(parsed.data);
 }

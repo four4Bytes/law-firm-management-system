@@ -60,8 +60,10 @@ export function Sidebar({ initialCollapsed = false }: SidebarProps) {
             variant="navigation"
             className={styles.navButton}
             onPress={() => {
-              startLoading();
-              router.push(item.href);
+              if (!pathname.startsWith(item.href)) {
+                startLoading();
+                router.push(item.href);
+              }
             }}
             data-active={pathname.startsWith(item.href)}
             title={collapsed ? item.label : undefined}

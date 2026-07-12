@@ -145,6 +145,7 @@ Plan: add more than one theme later
   --z-dropdown: 1000;
   --z-modal: 1100;
   --z-toast: 1200;
+  --z-progress-bar: 9999;
 
   /* Hover lift transforms */
   --hover-lift-sm: translateY(-1px);
@@ -168,6 +169,10 @@ Plan: add more than one theme later
   --transition-base: 180ms ease-in-out;
   --transition-fast: 120ms ease-in-out;
   --transition-slow: 260ms ease-in-out;
+
+  /* Progress bar */
+  --progress-bar-height: 3px;
+  --progress-bar-animation-duration: 1.5s;
 
   /* Opacity  */
   --opacity-overlay: 0.5;

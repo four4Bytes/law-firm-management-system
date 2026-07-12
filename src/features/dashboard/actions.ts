@@ -19,7 +19,7 @@ export async function getRecentCasesAction(limit?: number): Promise<RecentCaseRo
     throw new Error("Invalid limit parameter");
   }
 
-  return getRecentCases(parsed.data);
+  return getRecentCases(parsed.data ?? 10);
 }
 
 export async function getUpcomingConsultationsAction(
@@ -32,7 +32,7 @@ export async function getUpcomingConsultationsAction(
     throw new Error("Invalid limit parameter");
   }
 
-  return getUpcomingConsultations(parsed.data);
+  return getUpcomingConsultations(parsed.data ?? 10);
 }
 
 export async function getOverdueMilestonesAction(limit?: number): Promise<OverdueMilestoneRow[]> {

@@ -56,10 +56,10 @@ export function FileList({ entries, isBusy, onRemove }: FileListProps) {
           {entry.status === "done" && <FaCheck className={styles.doneIcon} aria-label="Uploaded" />}
 
           {entry.status === "failed" && (
-            <FaXmark
-              className={styles.failedIcon}
-              aria-label={`Failed: ${entry.error ?? "Upload failed"}`}
-            />
+            <span className={styles.failedIndicator} role="alert">
+              <FaXmark className={styles.failedIcon} aria-hidden="true" />
+              <span className={styles.errorMessage}>{entry.error ?? "Upload failed"}</span>
+            </span>
           )}
         </div>
       ))}

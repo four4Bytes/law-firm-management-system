@@ -3,12 +3,12 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 3px;
-  z-index: 9999;
+  height: var(--progress-bar-height);
+  z-index: var(--z-progress-bar);
   pointer-events: none;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 200ms ease;
+  transition: opacity var(--transition-base);
 }
 
 .bar[data-state="loading"],
@@ -19,13 +19,12 @@
 .fill {
   block-size: 100%;
   background: var(--color-brand-accent);
-  border-radius: 0;
-  transition: width 300ms ease-out;
+  transition: width var(--transition-slow) ease-out;
 }
 
 .bar[data-state="loading"] .fill {
   width: 20%;
-  animation: sweep 1.5s ease-in-out infinite;
+  animation: sweep var(--progress-bar-animation-duration) ease-in-out infinite;
 }
 
 .bar[data-state="completing"] .fill {

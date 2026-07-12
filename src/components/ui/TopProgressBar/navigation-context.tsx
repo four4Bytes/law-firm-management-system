@@ -71,6 +71,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     clearTimeout(maxTimeoutRef.current);
     clearTimeout(pendingCompleteRef.current);
 
+    if (stateRef.current === "loading") {
+      return;
+    }
+
     loadingStartedAt.current = Date.now();
     setState("loading");
 

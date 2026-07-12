@@ -28,10 +28,10 @@ describe("logoutUser", () => {
     expect(signOut).toHaveBeenCalledWith({ redirectTo: "/" });
   });
 
-  it("redirects to the deactivated page when called with reason 'deactivated'", async () => {
-    await logoutUser("deactivated");
+  it("redirects to the sign-in page when invoked", async () => {
+    await logoutUser();
 
-    expect(signOut).toHaveBeenCalledWith({ redirectTo: "/deactivated?reason=deactivated" });
+    expect(signOut).toHaveBeenCalledWith({ redirectTo: "/" });
   });
 
   it("calls signOut exactly once per invocation", async () => {

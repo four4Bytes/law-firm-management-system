@@ -12,14 +12,14 @@
     align-items: center;
     background-color: var(--color-surface-bg);
     padding: var(--space-3xl);
-    border: var(--border-width-sm) solid var(--color-border-strong);
+    border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-md);
     gap: var(--space-2xl);
     text-align: center;
-    max-width: var(--auth-card-max-width);
+    max-width: 380px;
 
     .logo {
-      height: var(--logo-height);
+      height: 100px;
       width: auto;
     }
 

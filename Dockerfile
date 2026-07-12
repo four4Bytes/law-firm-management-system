@@ -2,8 +2,10 @@
 # Stage 1: Base
 # =============================
 FROM node:22-alpine AS base
+ARG NEXT_PUBLIC_APP_VERSION=0.0.0-dev
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 RUN corepack enable && corepack prepare pnpm@11.8.0 --activate
 
 # =============================

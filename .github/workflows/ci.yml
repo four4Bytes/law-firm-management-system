@@ -29,3 +29,19 @@ jobs:
       - run: pnpm validate
 
       - run: pnpm test
+
+  release:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - id: calver
+        uses: basnijholt/calver-auto-release@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

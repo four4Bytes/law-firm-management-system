@@ -114,12 +114,115 @@ This checks formatting, lint, TypeScript types, and ensures the production build
 
 Pre-commit hooks (Husky + lint-staged) auto-format and lint staged files. Pre-push hooks run `pnpm validate && pnpm test`.
 
-## Learn More
+## Release Workflow
 
-To learn more about Next.js, take a look at the following resources:
+The project uses **CalVer** (Calendar Versioning) with automatic tagging on every merge to `main`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Branching Flow
+
+```
+dev  ──(work)──→ dev ──(PR)──→ main ──(merge)──→ auto-tag + GitHub Release
+```
+
+1. Work is committed to `dev` (or feature branches).
+2. When ready, open a pull request from `dev` → `main`.
+3. On merge to `main`, CI runs (`build` → `validate` → `test`).
+4. If CI passes, a **CalVer tag** is created (e.g., `v2026.07.12.0`) and a **GitHub Release** is published with auto-generated release notes.
+
+### Version Format
+
+```
+v{YYYY}.{MM}.{PATCH}
+```
+
+- `YYYY` — 4-digit year
+- `MM` — 2-digit month
+- `PATCH` — zero-based increment for the day (resets monthly)
+
+Examples: `v2026.07.12.0`, `v2026.07.12.1`, `v2026.08.01.0`
+
+### The Version in the App
+
+The current version is displayed at the bottom of the sidebar.
+
+| Context                        | Value                              |
+| ------------------------------ | ---------------------------------- |
+| CI release build               | CalVer tag (e.g., `v2026.07.12.0`) |
+| Local dev                      | `0.0.0-dev`                        |
+| Docker build without build arg | `0.0.0-dev`                        |
+
+To override locally:
+
+```bash
+NEXT_PUBLIC_APP_VERSION=my-feature-branch pnpm dev
+```
+
+### Cutting a Release
+
+```bash
+# 1. Ensure dev is up to date and clean
+git checkout dev && git pull
+
+# 2. Merge into main
+git checkout main && git merge dev
+git push origin main    # triggers CI + auto-release
+
+# 3. Verify the release on GitHub
+#    https://github.com/your-org/your-repo/releases
+```
+
+### Manual Trigger
+
+The release can also be triggered manually from the GitHub Actions tab:
+
+1. Navigate to **Actions** → **Continuous Integration**
+2. Click **Run workflow**
+3. Select branch `main` and run
+
+### Docker Production Build
+
+When building the production Docker image manually, pass the version as a build arg:
+
+```bash
+docker build --build-arg NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always)" -t law-firm:latest .
+```
+
+With the production Compose stack, uncomment the `args` section in `docker-compose.prod.yml`:
+
+```yaml
+web:
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_APP_VERSION: "${NEXT_PUBLIC_APP_VERSION:-0.0.0-dev}"
+```
+
+Then set the version in `.env.prod`:
+
+```
+NEXT_PUBLIC_APP_VERSION=v2026.07.12.0
+```
+
+## Tech Stack
+
+- [Next.js 16 (App Router)](https://nextjs.org/docs) — React framework with file-based routing and server components.
+- [React 19](https://react.dev) — UI library, with React Compiler for automatic memoization.
+- [TypeScript](https://www.typescriptlang.org/docs) — strict-mode typed JavaScript.
+- [pnpm](https://pnpm.io/motivation) — fast, disk-efficient package manager.
+- [PostgreSQL](https://www.postgresql.org/docs) — relational database.
+- [Prisma 7](https://www.prisma.io/docs) — ORM with `@prisma/adapter-pg` driver and Prisma Studio.
+- [NextAuth v5](https://next-auth.js.org/getting-started/introduction) — authentication (JWT sessions, Google OAuth, Prisma adapter).
+- [AWS SDK v3 (S3)](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3) — object storage via presigned URLs; [MinIO](https://min.io/docs/minio/container/index.html) for local dev.
+- [react-aria-components](https://react-spectrum.adobe.com/react-aria/index.html) — accessible headless UI primitives.
+- [react-icons](https://react-icons.github.io/react-icons) — icon library.
+- [CSS Modules](https://nextjs.org/docs/app/building-your-application/styling/css-modules) — scoped styles; [clsx](https://github.com/lukeed/clsx) for composition.
+- [Zod](https://zod.dev) — schema validation.
+- [ESLint](https://eslint.org/docs/latest) (flat config) + [Prettier](https://prettier.io/docs) — linting and formatting.
+- [Husky](https://typicode.github.io/husky) + [lint-staged](https://github.com/lint-staged/lint-staged) — pre-commit hooks.
+- [Vitest](https://vitest.dev/guide) + [Playwright](https://playwright.dev/docs/intro) — unit and browser testing.
+- [Storybook](https://storybook.js.org/docs) — component development environment.
+- [Docker](https://docs.docker.com) + [Docker Compose](https://docs.docker.com/compose) — containerized dev and production environments.
+- [GitHub Actions](https://docs.github.com/actions) — CI/CD; [Dependabot](https://docs.github.com/code-security/dependabot) — dependency updates.
 
 ## Using AI/LLM Coding Agents
 

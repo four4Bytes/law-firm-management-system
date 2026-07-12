@@ -157,7 +157,7 @@ export async function seedConsultations(
 
   for (const c of consultations) {
     const bookingDate = new Date();
-    bookingDate.setDate(bookingDate.getDate() + c.daysAgo);
+    bookingDate.setDate(bookingDate.getDate() - c.daysAgo);
 
     const consultation = await prisma.consultation.create({
       data: {

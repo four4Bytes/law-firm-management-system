@@ -44,9 +44,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   const loadingStartedAt = useRef(0);
-  const maxTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined!);
+  const maxTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingCompleteRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const completingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined!);
+  const completingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prevUrlRef = useRef(`${pathname}${searchParams.toString()}`);
 
   const completeLoading = useCallback(() => {

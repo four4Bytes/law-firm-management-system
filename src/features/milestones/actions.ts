@@ -96,7 +96,7 @@ export async function updateMilestoneAction(
         action: "milestone.updated",
         entityType: "Case",
         entityId: existing.case_id,
-        details: `Updated milestone: "${existing.title}"`,
+        details: `Updated milestone: "${title}"`,
       }).catch(console.error),
     );
 

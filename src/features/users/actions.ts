@@ -11,7 +11,7 @@ import {
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
 import type { ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requireRole } from "@/lib/auth-guards";
+import { requireRole } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 
 import {
@@ -36,12 +36,16 @@ export async function getUsersPaginatedAction(params: unknown): Promise<{
 }
 
 export async function checkDeveloperEmail(email: string): Promise<boolean> {
-  await requireAuth();
+  try {
+    await requireRole("Admin", "Dev");
+  } catch {
+    return false;
+  }
 
-  const parsed = CreateUserSchema.shape.email.safeParse(email);
+  const parsed = CreateUserSchema.pick({ email: true }).safeParse({ email });
   if (!parsed.success) return false;
 
-  return isDeveloperEmail(parsed.data);
+  return isDeveloperEmail(parsed.data.email);
 }
 
 export async function createUserAction(email: string, role: string): Promise<ActionStatusResponse> {

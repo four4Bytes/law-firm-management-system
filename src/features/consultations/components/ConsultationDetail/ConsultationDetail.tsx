@@ -26,7 +26,10 @@ export function ConsultationDetail({ overview }: Props) {
   const searchParams = useSearchParams();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const selectedKey = searchParams.get("tab") ?? "notes";
+  const validTabs = ["notes", "attachments", "payments", "activity"] as const;
+  type ValidTab = typeof validTabs[number];
+  const tabParam = searchParams.get("tab");
+  const selectedKey = tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "notes";
 
   const handleSelectionChange = (key: React.Key) => {
     const params = new URLSearchParams(searchParams.toString());

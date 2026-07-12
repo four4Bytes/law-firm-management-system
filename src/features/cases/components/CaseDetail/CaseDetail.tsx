@@ -28,7 +28,10 @@ export function CaseDetail({ overview }: Props) {
   const searchParams = useSearchParams();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const selectedKey = searchParams.get("tab") ?? "tasks";
+  const validTabs = ["tasks", "notes", "attachments", "milestones", "payments", "activity"] as const;
+  type ValidTab = typeof validTabs[number];
+  const tabParam = searchParams.get("tab");
+  const selectedKey = tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "tasks";
 
   const handleSelectionChange = (key: React.Key) => {
     const params = new URLSearchParams(searchParams.toString());

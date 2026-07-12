@@ -81,9 +81,9 @@ export async function updateCaseWithClient(
       where: { id: data.client_id },
       data: {
         name: data.client.name,
-        email: data.client.email || undefined,
-        phone_number: data.client.phone_number || undefined,
-        address: data.client.address || undefined,
+        email: data.client.email ?? null,
+        phone_number: data.client.phone_number ?? null,
+        address: data.client.address ?? null,
       },
     });
 

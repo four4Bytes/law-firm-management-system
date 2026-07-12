@@ -37,7 +37,11 @@ export async function getUsersPaginatedAction(params: unknown): Promise<{
 
 export async function checkDeveloperEmail(email: string): Promise<boolean> {
   await requireAuth();
-  return isDeveloperEmail(email);
+
+  const parsed = CreateUserSchema.shape.email.safeParse(email);
+  if (!parsed.success) return false;
+
+  return isDeveloperEmail(parsed.data);
 }
 
 export async function createUserAction(email: string, role: string): Promise<ActionStatusResponse> {

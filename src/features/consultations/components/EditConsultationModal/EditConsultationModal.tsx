@@ -63,6 +63,7 @@ export function EditConsultationModal({
     status: ConsultationStatus.Scheduled,
   });
 
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -78,8 +79,10 @@ export function EditConsultationModal({
     let cancelled = false;
 
     async function load() {
+      setIsLoading(true);
       try {
         if (!consultationId) {
+          setIsLoading(false);
           setConsultation(null);
           return;
         }
@@ -112,6 +115,8 @@ export function EditConsultationModal({
         if (cancelled) return;
         setConsultation(null);
         queue.add({ title: "Failed to load consultation" }, { timeout: 5000 });
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     }
 
@@ -174,7 +179,7 @@ export function EditConsultationModal({
     }
   }
 
-  const isLoadingData = isOpen && consultation == null;
+  const isLoadingData = isOpen && isLoading;
   const isValid =
     clientId.length > 0 && clientName.trim().length > 0 && fields.concern.trim().length > 0;
 

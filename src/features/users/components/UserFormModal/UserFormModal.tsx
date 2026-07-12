@@ -32,43 +32,46 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
     setIsPending(true);
     setError(null);
 
-    const email = formData.get("email") as string;
-    const role = formData.get("role") as string;
+    try {
+      const email = formData.get("email") as string;
+      const role = formData.get("role") as string;
 
-    if (!email || !role) {
-      setError("All fields are required.");
-      setIsPending(false);
-      return;
-    }
-
-    if (mode === "add") {
-      const isDev = await checkDeveloperEmail(email);
-      if (isDev) {
-        setPendingDevEmail(email);
-        setIsPending(false);
+      if (!email || !role) {
+        setError("All fields are required.");
         return;
       }
-    }
 
-    const result =
-      mode === "edit" && user
-        ? await updateUserAction(user.id, email, role)
-        : await createUserAction(email, role);
+      if (mode === "add") {
+        const isDev = await checkDeveloperEmail(email);
+        if (isDev) {
+          setPendingDevEmail(email);
+          return;
+        }
+      }
 
-    if (result.error) {
-      queue.add({ title: result.error });
-      setError(result.error);
+      const result =
+        mode === "edit" && user
+          ? await updateUserAction(user.id, email, role)
+          : await createUserAction(email, role);
+
+      if (result.error) {
+        queue.add({ title: result.error });
+        setError(result.error);
+        return;
+      }
+
+      queue.add(
+        { title: mode === "edit" ? "User updated" : "User created", description: email },
+        { timeout: 5000 },
+      );
+      onSuccess?.();
+      onOpenChange(false);
+    } catch {
+      setError("An unexpected error occurred.");
+      queue.add({ title: "An unexpected error occurred." }, { timeout: 5000 });
+    } finally {
       setIsPending(false);
-      return;
     }
-
-    queue.add(
-      { title: mode === "edit" ? "User updated" : "User created", description: email },
-      { timeout: 5000 },
-    );
-    setIsPending(false);
-    onSuccess?.();
-    onOpenChange(false);
   }
 
   async function handleDevConfirm() {

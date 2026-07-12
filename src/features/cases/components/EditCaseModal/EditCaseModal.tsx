@@ -50,6 +50,7 @@ export function EditCaseModal({
   const [status, setStatus] = useState<CaseStatus>(CaseStatus.Open);
   const [partiesInvolved, setPartiesInvolved] = useState("");
 
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -65,8 +66,10 @@ export function EditCaseModal({
     let cancelled = false;
 
     async function load() {
+      setIsLoading(true);
       try {
         if (!caseId) {
+          setIsLoading(false);
           setCaseData(null);
           return;
         }
@@ -97,6 +100,8 @@ export function EditCaseModal({
         if (cancelled) return;
         setCaseData(null);
         queue.add({ title: "Failed to load case" }, { timeout: 5000 });
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     }
 
@@ -159,7 +164,7 @@ export function EditCaseModal({
     }
   }
 
-  const isLoadingData = isOpen && caseData == null;
+  const isLoadingData = isOpen && isLoading;
   const isValid =
     clientId.length > 0 && clientName.trim().length > 0 && caseTitle.trim().length > 0;
 

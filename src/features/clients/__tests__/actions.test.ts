@@ -69,7 +69,7 @@ describe("getClientForEditAction", () => {
   it("returns an error when id is missing", async () => {
     expect(await getClientForEditAction("")).toEqual({
       success: false,
-      error: "Client id is required",
+      error: "Invalid client ID",
     });
   });
 

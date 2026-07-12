@@ -208,8 +208,8 @@ export async function createCaseWithClientAction(payload: unknown): Promise<Acti
         },
       });
 
-      await tx.case.create({
-        data: {
+      await createCase(
+        {
           client_id: newClient.id,
           case_title: caseData.case_title,
           case_type: caseData.case_type,
@@ -217,7 +217,8 @@ export async function createCaseWithClientAction(payload: unknown): Promise<Acti
           parties_involved: caseData.parties_involved || undefined,
           created_by_user_id: session.id,
         },
-      });
+        tx,
+      );
     });
 
     revalidatePath("/case");
@@ -284,15 +285,17 @@ export async function updateCaseWithClientAction(payload: unknown): Promise<Acti
         },
       });
 
-      await tx.case.update({
-        where: { id: case_id },
-        data: {
+      await updateCase(
+        {
+          id: case_id,
+          client_id,
           case_title: caseData.case_title,
           case_type: caseData.case_type,
           status: caseData.status,
           parties_involved: caseData.parties_involved || undefined,
         },
-      });
+        tx,
+      );
     });
 
     revalidatePath(`/case/${case_id}`);

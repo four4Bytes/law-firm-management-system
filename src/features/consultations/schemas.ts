@@ -30,34 +30,29 @@ export const ConsultationDeletePayloadSchema = z.object({
   id: z.uuid(),
 });
 
+const ClientDataSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  email: z.string().trim().min(1).max(255).optional(),
+  phone_number: z.string().trim().min(1).max(50).optional(),
+  address: z.string().trim().min(1).max(500).optional(),
+});
+
+const ConsultationDataSchema = z.object({
+  concern: z.string().trim().min(1).max(500),
+  booking_datetime: z.coerce.date(),
+  status: z.enum(ConsultationStatus),
+});
+
 export const ConsultationWithClientCreatePayloadSchema = z.object({
-  client: z.object({
-    name: z.string().trim().min(1).max(255),
-    email: z.string().trim().min(1).max(255).optional(),
-    phone_number: z.string().trim().min(1).max(50).optional(),
-    address: z.string().trim().min(1).max(500).optional(),
-  }),
-  consultation: z.object({
-    concern: z.string().trim().min(1).max(500),
-    booking_datetime: z.coerce.date(),
-    status: z.enum(ConsultationStatus),
-  }),
+  client: ClientDataSchema,
+  consultation: ConsultationDataSchema,
 });
 
 export const ConsultationWithClientUpdatePayloadSchema = z.object({
   consultation_id: z.uuid(),
   client_id: z.uuid(),
-  client: z.object({
-    name: z.string().trim().min(1).max(255),
-    email: z.string().trim().min(1).max(255).optional(),
-    phone_number: z.string().trim().min(1).max(50).optional(),
-    address: z.string().trim().min(1).max(500).optional(),
-  }),
-  consultation: z.object({
-    concern: z.string().trim().min(1).max(500),
-    booking_datetime: z.coerce.date(),
-    status: z.enum(ConsultationStatus),
-  }),
+  client: ClientDataSchema,
+  consultation: ConsultationDataSchema,
 });
 
 export type ConsultationCreatePayload = z.infer<typeof ConsultationCreatePayloadSchema>;

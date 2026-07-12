@@ -120,7 +120,7 @@ The project uses **CalVer** (Calendar Versioning) with automatic tagging on ever
 
 ### Branching Flow
 
-```
+```text
 dev  ──(work)──→ dev ──(PR)──→ main ──(merge)──→ auto-tag + GitHub Release
 ```
 
@@ -131,13 +131,14 @@ dev  ──(work)──→ dev ──(PR)──→ main ──(merge)──→ a
 
 ### Version Format
 
-```
-v{YYYY}.{MM}.{PATCH}
+```text
+v{YYYY}.{MM}.{DD}.{PATCH}
 ```
 
 - `YYYY` — 4-digit year
 - `MM` — 2-digit month
-- `PATCH` — zero-based increment for the day (resets monthly)
+- `DD` — 2-digit day
+- `PATCH` — zero-based increment for the day (resets daily)
 
 Examples: `v2026.07.12.0`, `v2026.07.12.1`, `v2026.08.01.0`
 

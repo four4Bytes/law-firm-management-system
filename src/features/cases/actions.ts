@@ -23,6 +23,7 @@ import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/qu
 import type { TaskRow } from "@/features/tasks/queries";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { prisma } from "@/lib/prisma";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import { createCase, deleteCase, updateCase } from "./mutations";
@@ -35,7 +36,6 @@ import {
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
-import { prisma } from "@/lib/prisma";
 
 export async function getCasesPaginatedAction(params: unknown): Promise<{
   cases: CaseRow[];
@@ -187,9 +187,7 @@ export async function createCaseAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function createCaseWithClientAction(
-  payload: unknown,
-): Promise<ActionStatusResponse> {
+export async function createCaseWithClientAction(payload: unknown): Promise<ActionStatusResponse> {
   const session = await requireAuth();
 
   const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
@@ -264,9 +262,7 @@ export async function updateCaseAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function updateCaseWithClientAction(
-  payload: unknown,
-): Promise<ActionStatusResponse> {
+export async function updateCaseWithClientAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
   const parsed = CaseWithClientUpdatePayloadSchema.safeParse(payload);

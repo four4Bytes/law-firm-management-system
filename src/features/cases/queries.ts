@@ -2,9 +2,9 @@ import { cache } from "react";
 
 import { getDocumentsPaginated } from "@/features/documents/queries";
 import type { TaskRow } from "@/features/tasks/queries";
+import type { Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
-import type { Case } from "@/generated/prisma/browser";
 
 export interface CasePageQuery extends PageQuery {
   caseId: string;

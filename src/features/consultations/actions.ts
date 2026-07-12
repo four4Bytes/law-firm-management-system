@@ -19,6 +19,7 @@ import {
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { prisma } from "@/lib/prisma";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import { createConsultation, deleteConsultation, updateConsultation } from "./mutations";
@@ -31,7 +32,6 @@ import {
   ConsultationWithClientCreatePayloadSchema,
   ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
-import { prisma } from "@/lib/prisma";
 
 export async function getConsultationsPaginatedAction(params: unknown): Promise<{
   consultations: ConsultationRow[];

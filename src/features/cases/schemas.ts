@@ -20,7 +20,7 @@ export const CaseCreatePayloadSchema = z.object({
   case_title: z.string().trim().min(1).max(255),
   case_type: z.string().trim().min(1).max(255),
   status: z.enum(CaseStatus),
-  parties_involved: z.string().trim().max(2000).optional(),
+  parties_involved: z.string().trim().min(1).max(2000).optional(),
   source_consultation_id: z.uuid().optional(),
 });
 
@@ -34,16 +34,16 @@ export const CaseDeletePayloadSchema = z.object({
 
 const ClientDataSchema = z.object({
   name: z.string().trim().min(1).max(255),
-  email: z.string().trim().max(255).optional(),
-  phone_number: z.string().trim().max(50).optional(),
-  address: z.string().trim().max(500).optional(),
+  email: z.string().trim().min(1).max(255).optional(),
+  phone_number: z.string().trim().min(1).max(50).optional(),
+  address: z.string().trim().min(1).max(500).optional(),
 });
 
 const CaseDataSchema = z.object({
   case_title: z.string().trim().min(1).max(255),
   case_type: z.string().trim().min(1).max(255),
   status: z.enum(CaseStatus),
-  parties_involved: z.string().trim().max(2000).optional(),
+  parties_involved: z.string().trim().min(1).max(2000).optional(),
 });
 
 export const CaseWithClientCreatePayloadSchema = z.object({

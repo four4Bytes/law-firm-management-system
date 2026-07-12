@@ -23,10 +23,15 @@ import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/qu
 import type { TaskRow } from "@/features/tasks/queries";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { prisma } from "@/lib/prisma";
 import { PageQuerySchema } from "@/lib/schemas";
 
-import { createCase, deleteCase, updateCase } from "./mutations";
+import {
+  createCase,
+  createCaseWithClient,
+  deleteCase,
+  updateCase,
+  updateCaseWithClient,
+} from "./mutations";
 import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
@@ -198,27 +203,10 @@ export async function createCaseWithClientAction(payload: unknown): Promise<Acti
   const { client, case: caseData } = parsed.data;
 
   try {
-    await prisma.$transaction(async (tx) => {
-      const newClient = await tx.client.create({
-        data: {
-          name: client.name,
-          email: client.email || undefined,
-          phone_number: client.phone_number || undefined,
-          address: client.address || undefined,
-        },
-      });
-
-      await createCase(
-        {
-          client_id: newClient.id,
-          case_title: caseData.case_title,
-          case_type: caseData.case_type,
-          status: caseData.status,
-          parties_involved: caseData.parties_involved || undefined,
-          created_by_user_id: session.id,
-        },
-        tx,
-      );
+    await createCaseWithClient({
+      client,
+      case: caseData,
+      created_by_user_id: session.id,
     });
 
     revalidatePath("/case");
@@ -274,28 +262,11 @@ export async function updateCaseWithClientAction(payload: unknown): Promise<Acti
   const { case_id, client_id, client, case: caseData } = parsed.data;
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.client.update({
-        where: { id: client_id },
-        data: {
-          name: client.name,
-          email: client.email || undefined,
-          phone_number: client.phone_number || undefined,
-          address: client.address || undefined,
-        },
-      });
-
-      await updateCase(
-        {
-          id: case_id,
-          client_id,
-          case_title: caseData.case_title,
-          case_type: caseData.case_type,
-          status: caseData.status,
-          parties_involved: caseData.parties_involved || undefined,
-        },
-        tx,
-      );
+    await updateCaseWithClient({
+      case_id,
+      client_id,
+      client,
+      case: caseData,
     });
 
     revalidatePath(`/case/${case_id}`);

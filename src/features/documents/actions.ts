@@ -132,20 +132,22 @@ export async function getDocumentDetailRowAction(documentId: string): Promise<Do
   return doc;
 }
 
-export async function deleteDocumentAction(documentId: string): Promise<ActionStatusResponse> {
+export async function deleteDocumentAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
-  const parsed = DocumentIdSchema.safeParse({ documentId });
+  const parsed = DocumentIdSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid document ID" };
   }
 
+  const { documentId } = parsed.data;
+
   try {
-    const doc = await getDocumentById(parsed.data.documentId);
+    const doc = await getDocumentById(documentId);
     if (!doc) return { success: false, error: "Document not found" };
 
     await deleteFile(doc.file_path);
-    await deleteDocumentRecord(parsed.data.documentId);
+    await deleteDocumentRecord(documentId);
 
     revalidatePath(getParentPath(doc));
 

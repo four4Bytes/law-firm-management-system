@@ -84,13 +84,15 @@ export async function updatePaymentAction(payload: unknown): Promise<ActionStatu
   }
 }
 
-export async function deletePaymentAction(paymentId: string): Promise<ActionStatusResponse> {
+export async function deletePaymentAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
-  const parsed = PaymentIdSchema.safeParse({ paymentId });
+  const parsed = PaymentIdSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid payment ID" };
   }
+
+  const { paymentId } = parsed.data;
 
   try {
     const existing = await getPaymentById(paymentId);

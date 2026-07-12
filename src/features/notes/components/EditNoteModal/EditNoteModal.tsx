@@ -45,7 +45,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
   async function handleDelete() {
     setIsLoading(true);
 
-    const result = await deleteNoteAction(note.id);
+    const result = await deleteNoteAction({ noteId: note.id });
 
     setIsLoading(false);
     setShowDeleteConfirm(false);

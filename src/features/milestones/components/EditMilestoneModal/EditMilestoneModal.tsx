@@ -109,7 +109,7 @@ export function EditMilestoneModal({
     if (!milestoneId) return;
     setIsDeleting(true);
 
-    const result = await deleteMilestoneAction(milestoneId);
+    const result = await deleteMilestoneAction({ milestoneId });
 
     setIsDeleting(false);
     setShowDeleteConfirm(false);

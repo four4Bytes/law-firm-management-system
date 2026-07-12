@@ -98,7 +98,7 @@ export function EditPaymentModal({
     await submitForm({
       paymentId,
       amount: Number.parseFloat(amount),
-      payment_date: paymentDate.toString(),
+      payment_date: paymentDate.toDate(getLocalTimeZone()),
       status,
       payment_method: paymentMethod.trim() || undefined,
       receipt_number: receiptNumber.trim() || undefined,
@@ -109,7 +109,7 @@ export function EditPaymentModal({
     if (!paymentId) return;
     setIsDeleting(true);
 
-    const result = await deletePaymentAction(paymentId);
+    const result = await deletePaymentAction({ paymentId });
 
     setIsDeleting(false);
     setShowDeleteConfirm(false);

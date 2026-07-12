@@ -6,7 +6,7 @@ import { queue } from "@/components/ui/Toast/Toast";
 import type { ActionStatusResponse } from "@/lib/action-response";
 
 interface UseModalFormOptions<TArgs> {
-  submit: (args: TArgs) => Promise<ActionStatusResponse>;
+  submit?: (args: TArgs) => Promise<ActionStatusResponse>;
   onOpenChange: (open: boolean) => void;
   successMessage: string;
   failureMessage: string;
@@ -38,6 +38,7 @@ export function useModalForm<TArgs>({
   const [isPending, setIsPending] = useState(false);
 
   async function submitForm(args: TArgs) {
+    if (!submit) return;
     setIsPending(true);
 
     try {

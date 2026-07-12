@@ -19,7 +19,11 @@ const navItems = [
   { label: "Users", href: "/user", icon: FaUsers },
 ] as const;
 
-export function Sidebar({ initialCollapsed = false }: { initialCollapsed?: boolean }) {
+interface SidebarProps {
+  initialCollapsed?: boolean;
+}
+
+export function Sidebar({ initialCollapsed = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const pathname = usePathname();
   const router = useRouter();

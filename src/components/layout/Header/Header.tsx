@@ -10,15 +10,13 @@ import type { Role } from "@/generated/prisma/client";
 
 import styles from "./Header.module.css";
 
-export function Header({
-  userImage,
-  userName,
-  userRole,
-}: {
+interface HeaderProps {
   userImage: string | null;
   userName?: string | null;
   userRole?: Role | null;
-}) {
+}
+
+export function Header({ userImage, userName, userRole }: HeaderProps) {
   const pathname = usePathname();
 
   const getPageTitle = (path: string) => {

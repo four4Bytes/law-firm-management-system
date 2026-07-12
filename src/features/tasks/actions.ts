@@ -73,11 +73,13 @@ export async function updateTaskAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function deleteTaskAction(taskId: string): Promise<ActionStatusResponse> {
+export async function deleteTaskAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
-  const parsed = TaskIdSchema.safeParse({ taskId });
+  const parsed = TaskIdSchema.safeParse(payload);
   if (!parsed.success) return { success: false, error: "Invalid task ID" };
+
+  const { taskId } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);

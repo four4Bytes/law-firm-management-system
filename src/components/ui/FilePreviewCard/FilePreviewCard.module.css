@@ -23,6 +23,31 @@
       border: 1px solid var(--color-border-subtle);
       flex-shrink: 0;
 
+      &[data-category="pdf"] {
+        --file-icon-color: var(--raw-brick);
+      }
+      &[data-category="doc"] {
+        --file-icon-color: var(--raw-steel);
+      }
+      &[data-category="xls"] {
+        --file-icon-color: var(--raw-sage);
+      }
+      &[data-category="ppt"] {
+        --file-icon-color: var(--raw-orange);
+      }
+      &[data-category="img"] {
+        --file-icon-color: var(--raw-violet);
+      }
+      &[data-category="zip"] {
+        --file-icon-color: var(--raw-amber);
+      }
+      &[data-category="txt"] {
+        --file-icon-color: var(--raw-gray-500);
+      }
+      &[data-category="unknown"] {
+        --file-icon-color: var(--raw-gray-400);
+      }
+
       .icon {
         font-size: var(--icon-size-xl);
         color: var(--file-icon-color, var(--color-text-muted));

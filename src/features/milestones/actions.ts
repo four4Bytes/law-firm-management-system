@@ -83,13 +83,15 @@ export async function updateMilestoneAction(payload: unknown): Promise<ActionSta
   }
 }
 
-export async function deleteMilestoneAction(milestoneId: string): Promise<ActionStatusResponse> {
+export async function deleteMilestoneAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
-  const parsed = MilestoneIdSchema.safeParse({ milestoneId });
+  const parsed = MilestoneIdSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid milestone ID" };
   }
+
+  const { milestoneId } = parsed.data;
 
   try {
     const existing = await getMilestoneById(milestoneId);

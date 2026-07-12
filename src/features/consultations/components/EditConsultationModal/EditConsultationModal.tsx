@@ -2,7 +2,6 @@
 
 import { CalendarDate, getLocalTimeZone, Time, today } from "@internationalized/date";
 import { useEffect, useState } from "react";
-import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -17,14 +16,11 @@ import { getClientForEditAction } from "@/features/clients/actions";
 import {
   deleteConsultationAction,
   getConsultationForEditAction,
-  updateConsultationAction,
   updateConsultationWithClientAction,
 } from "@/features/consultations/actions";
 import type { ConsultationEditData } from "@/features/consultations/queries";
-import { ConsultationUpdatePayloadSchema } from "@/features/consultations/schemas";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
-import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditConsultationModal.module.css";
 
@@ -71,17 +67,9 @@ export function EditConsultationModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { handleCancel } = useModalForm<z.input<typeof ConsultationUpdatePayloadSchema>>({
-    submit: updateConsultationAction,
-    onOpenChange,
-    onSuccess,
-    successMessage: "Consultation updated",
-    failureMessage: "Failed to update consultation",
-  });
-
   function handleDismiss() {
     if (isSaving || isDeleting) return;
-    handleCancel();
+    onOpenChange(false);
   }
 
   useEffect(() => {
@@ -91,7 +79,11 @@ export function EditConsultationModal({
 
     async function load() {
       try {
-        const data = await getConsultationForEditAction(consultationId ?? "");
+        if (!consultationId) {
+          setConsultation(null);
+          return;
+        }
+        const data = await getConsultationForEditAction(consultationId);
         if (cancelled) return;
 
         if (data) {
@@ -104,14 +96,14 @@ export function EditConsultationModal({
             status: data.status as ConsultationStatus,
           });
 
-          const clientRes = await getClientForEditAction(data.client_id);
+          const clientData = await getClientForEditAction(data.client_id);
           if (cancelled) return;
 
-          if (clientRes.success && clientRes.data) {
-            setClientName(clientRes.data.name);
-            setClientEmail(clientRes.data.email ?? "");
-            setClientPhone(clientRes.data.phone_number ?? "");
-            setClientAddress(clientRes.data.address ?? "");
+          if (clientData) {
+            setClientName(clientData.name);
+            setClientEmail(clientData.email ?? "");
+            setClientPhone(clientData.phone_number ?? "");
+            setClientAddress(clientData.address ?? "");
           }
         } else {
           setConsultation(null);

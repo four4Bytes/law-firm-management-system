@@ -53,7 +53,7 @@ export function ViewAttachmentModal({
     setIsDeleting(true);
 
     try {
-      const result = await deleteDocumentAction(doc.id);
+      const result = await deleteDocumentAction({ documentId: doc.id });
 
       if (result.success) {
         queue.add({ title: "Attachment deleted" }, { timeout: 5000 });

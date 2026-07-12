@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -13,13 +12,11 @@ import { queue } from "@/components/ui/Toast/Toast";
 import {
   deleteCaseAction,
   getCaseForEditAction,
-  updateCaseAction,
   updateCaseWithClientAction,
 } from "@/features/cases/actions";
-import { CaseUpdatePayloadSchema } from "@/features/cases/schemas";
+import type { CaseEditData } from "@/features/cases/queries";
 import { getClientForEditAction } from "@/features/clients/actions";
 import { CaseStatus } from "@/generated/prisma/browser";
-import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditCaseModal.module.css";
 
@@ -40,14 +37,7 @@ export function EditCaseModal({
   onDeleted,
   caseId,
 }: EditCaseModalProps) {
-  const [caseData, setCaseData] = useState<{
-    id: string;
-    client_id: string;
-    case_title: string;
-    case_type: string;
-    status: string;
-    parties_involved: string | null;
-  } | null>(null);
+  const [caseData, setCaseData] = useState<CaseEditData | null>(null);
 
   const [clientId, setClientId] = useState("");
   const [clientName, setClientName] = useState("");
@@ -64,17 +54,9 @@ export function EditCaseModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { handleCancel } = useModalForm<z.input<typeof CaseUpdatePayloadSchema>>({
-    submit: updateCaseAction,
-    onOpenChange,
-    onSuccess,
-    successMessage: "Case updated",
-    failureMessage: "Failed to update case",
-  });
-
   function handleDismiss() {
     if (isSaving || isDeleting) return;
-    handleCancel();
+    onOpenChange(false);
   }
 
   useEffect(() => {
@@ -84,7 +66,11 @@ export function EditCaseModal({
 
     async function load() {
       try {
-        const data = await getCaseForEditAction(caseId ?? "");
+        if (!caseId) {
+          setCaseData(null);
+          return;
+        }
+        const data = await getCaseForEditAction(caseId);
         if (cancelled) return;
 
         if (data) {
@@ -95,14 +81,14 @@ export function EditCaseModal({
           setStatus(data.status as CaseStatus);
           setPartiesInvolved(data.parties_involved ?? "");
 
-          const clientRes = await getClientForEditAction(data.client_id);
+          const clientData = await getClientForEditAction(data.client_id);
           if (cancelled) return;
 
-          if (clientRes.success && clientRes.data) {
-            setClientName(clientRes.data.name);
-            setClientEmail(clientRes.data.email ?? "");
-            setClientPhone(clientRes.data.phone_number ?? "");
-            setClientAddress(clientRes.data.address ?? "");
+          if (clientData) {
+            setClientName(clientData.name);
+            setClientEmail(clientData.email ?? "");
+            setClientPhone(clientData.phone_number ?? "");
+            setClientAddress(clientData.address ?? "");
           }
         } else {
           setCaseData(null);

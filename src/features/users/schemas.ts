@@ -12,7 +12,7 @@ export const UserPageQuerySchema = z.object({
 });
 
 export const CreateUserSchema = z.object({
-  email: z.email().trim().max(255),
+  email: z.email().trim().min(1).max(255),
   role: z.enum(Role).refine((r) => CREATABLE_ROLES.includes(r), {
     message: "Role is not creatable",
   }),
@@ -20,7 +20,7 @@ export const CreateUserSchema = z.object({
 
 export const UpdateUserSchema = z.object({
   id: z.uuid(),
-  email: z.email().trim().max(255),
+  email: z.email().trim().min(1).max(255),
   role: z.enum(Role).refine((r) => CREATABLE_ROLES.includes(r), {
     message: "Role is not creatable",
   }),

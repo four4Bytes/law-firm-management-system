@@ -74,13 +74,15 @@ export async function updateNoteAction(payload: unknown): Promise<ActionStatusRe
   }
 }
 
-export async function deleteNoteAction(noteId: string): Promise<ActionStatusResponse> {
+export async function deleteNoteAction(payload: unknown): Promise<ActionStatusResponse> {
   await requireAuth();
 
-  const parsed = NoteIdSchema.safeParse({ noteId });
+  const parsed = NoteIdSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid note ID" };
   }
+
+  const { noteId } = parsed.data;
 
   try {
     const existing = await getNoteById(noteId);

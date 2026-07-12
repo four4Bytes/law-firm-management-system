@@ -34,26 +34,15 @@ export async function createClientAction(
   }
 }
 
-export async function getClientForEditAction(
-  id: string,
-): Promise<ActionDataResponse<ClientEditData>> {
+export async function getClientForEditAction(id: string): Promise<ClientEditData | null> {
   await requireAuth();
 
   const parsed = ClientIdSchema.safeParse({ id });
   if (!parsed.success) {
-    return { success: false, error: "Invalid client ID" };
+    throw new Error("Invalid client ID");
   }
 
-  try {
-    const client = await getClientForEdit(parsed.data.id);
-    if (!client) {
-      return { success: false, error: "Client not found" };
-    }
-
-    return { success: true, data: client };
-  } catch {
-    return { success: false, error: "Failed to load client" };
-  }
+  return getClientForEdit(parsed.data.id);
 }
 
 export async function updateClientAction(

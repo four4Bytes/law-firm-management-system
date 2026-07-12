@@ -19,18 +19,17 @@ import styles from "./FilePreviewCard.module.css";
 interface FileTypeConfig {
   icon: IconType;
   label: string;
-  color: string;
 }
 
 const FILE_TYPE_CONFIG: Record<FileCategory, FileTypeConfig> = {
-  pdf: { icon: FaRegFilePdf, label: "PDF Document", color: "var(--raw-brick)" },
-  doc: { icon: FaRegFileWord, label: "Word Document", color: "var(--raw-steel)" },
-  xls: { icon: FaRegFileExcel, label: "Spreadsheet", color: "var(--raw-sage)" },
-  ppt: { icon: FaRegFilePowerpoint, label: "Presentation", color: "var(--raw-orange)" },
-  img: { icon: FaRegFileImage, label: "Image", color: "var(--raw-violet)" },
-  zip: { icon: FaRegFileZipper, label: "Archive", color: "var(--raw-amber)" },
-  txt: { icon: FaRegFileLines, label: "Text File", color: "var(--raw-gray-500)" },
-  unknown: { icon: FaRegFile, label: "File", color: "var(--raw-gray-400)" },
+  pdf: { icon: FaRegFilePdf, label: "PDF Document" },
+  doc: { icon: FaRegFileWord, label: "Word Document" },
+  xls: { icon: FaRegFileExcel, label: "Spreadsheet" },
+  ppt: { icon: FaRegFilePowerpoint, label: "Presentation" },
+  img: { icon: FaRegFileImage, label: "Image" },
+  zip: { icon: FaRegFileZipper, label: "Archive" },
+  txt: { icon: FaRegFileLines, label: "Text File" },
+  unknown: { icon: FaRegFile, label: "File" },
 };
 
 function getFileTypeConfig(fileType: string): FileTypeConfig {
@@ -52,7 +51,8 @@ export function FilePreviewCard({
   uploadedBy,
   created_at,
 }: FilePreviewCardProps) {
-  const { icon: Icon, label, color } = getFileTypeConfig(file_type);
+  const { icon: Icon, label } = getFileTypeConfig(file_type);
+  const fileCategory = classifyFileType(file_type);
 
   const dateStr = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -63,10 +63,7 @@ export function FilePreviewCard({
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        <div
-          className={styles.iconContainer}
-          style={{ "--file-icon-color": color } as React.CSSProperties}
-        >
+        <div className={styles.iconContainer} data-category={fileCategory}>
           <Icon className={styles.icon} />
         </div>
         <div className={styles.info}>

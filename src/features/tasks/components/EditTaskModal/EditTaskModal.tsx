@@ -130,7 +130,7 @@ export function EditTaskModal({ isOpen, onOpenChange, onSuccess, taskId }: EditT
     setIsDeleting(true);
 
     try {
-      const result = await deleteTaskAction(taskId);
+      const result = await deleteTaskAction({ taskId });
 
       if (result.success) {
         queue.add({ title: "Task deleted" }, { timeout: 5000 });

@@ -13,7 +13,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 1. **Clone the repo**
 
    ```bash
-   git clone <url>
+   git clone https://github.com/four4Bytes/law-firm-management-system.git
    cd law-firm-management-system
    ```
 
@@ -115,45 +115,12 @@ MINIO_KMS_AUTO_ENCRYPTION=on                    # Encrypt every new object
 
 The `createbuckets` init container also runs `mc encrypt set sse-s3 local/law-firm-files` so the bucket itself declares the default encryption rule.
 
-### Re-encrypting existing data
-
-`MINIO_KMS_AUTO_ENCRYPTION=on` only encrypts **new** writes. To encrypt data that already exists in the bucket, copy all objects to a new bucket (which will encrypt them on write), verify the copy, then cut over.
-
-**Important:** Test this workflow against a backup or non-production copy first. The original bucket remains untouched during the process.
-
-```bash
-# dev (MinIO on localhost:9000)
-docker run --rm --network host minio/mc sh -c "
-  mc alias set local http://localhost:9000 minioadmin minioadmin &&
-  mc mb local/law-firm-files-encrypted &&
-  mc mirror --preserve local/law-firm-files local/law-firm-files-encrypted &&
-  echo 'Verify the new bucket contents and encryption status before cutting over.'"
-
-# prod (MinIO reachable as http://minio:9000 inside the compose network)
-docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm \
-  --entrypoint sh minio -c "
-    mc alias set local http://minio:9000 minioadmin minioadmin &&
-    mc mb local/law-firm-files-encrypted &&
-    mc mirror --preserve local/law-firm-files local/law-firm-files-encrypted &&
-    echo 'Verify the new bucket contents and encryption status before cutting over.'"
-```
-
-After verifying the new bucket, update your application configuration to point to `law-firm-files-encrypted`, or manually rename/remove the old bucket. Do **not** delete the original bucket until you have confirmed the new bucket is working correctly.
-
 ### Verifying
 
 ```bash
 mc encrypt info local/law-firm-files          # → sse-s3 (lawfirm-sse)
 mc stat local/law-firm-files/OBJECT_KEY       # → Encryption method: AES256
 ```
-
-### Encryption in transit (TLS) — prod only
-
-SSE protects data **on disk** only. In dev the browser→MinIO traffic is `localhost` (loopback), so plaintext HTTP is acceptable. In **prod** the upload/download bytes cross a real network and should be HTTPS.
-
-Terminate TLS either with a reverse proxy (Caddy/Traefik) in front of `minio:9000`, or configure MinIO to use TLS directly by mounting a certs directory into the container. MinIO expects certificate files named `public.crt` and `private.key` inside `/root/.minio/certs` (or a custom directory specified with `--certs-dir`). In `docker-compose.prod.yml`, add a volume mount for the certs directory and reference `--certs-dir` in the MinIO `command:` if using a custom path.
-
-Then update `S3_ENDPOINT` in `.env.prod` to the `https://` URL — presigned URLs will switch to HTTPS automatically.
 
 ## Available Commands
 

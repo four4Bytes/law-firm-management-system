@@ -1,9 +1,20 @@
 # Law Firm Management System
 
-A school capstone case management system for a law firm — handles client intake, consultation-to-case escalation, task workflows with review chains, milestone tracking, document management, and payment recording.
+A web-based case management system developed as a college mini-capstone project.
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local development setup instructions.
+The system is designed to streamline law firm operations by managing the lifecycle of legal cases, from client intake to case resolution. Core features include:
 
-### 🚧 Work in progress...
+- Client intake and consultation management
+- Consultation-to-case escalation
+- Case and task management with review workflows
+- Milestone tracking
+- Document management
+- Payment recording and tracking
 
-This is a school project in early development. Not yet production ready.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local development and setup instructions.
+
+## Project Status
+
+> 🚧 **Work in Progress**
+
+This project is a work in progress. Features are still being implemented, and it is **not ready for production use**.

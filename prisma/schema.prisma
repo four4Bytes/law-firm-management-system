@@ -101,6 +101,9 @@ model User {
   auditLogs              AuditLog[]
   taskReviewsAssigned    TaskReviewer[]          @relation("ReviewerUser")
   taskReviewsDelegated   TaskReviewer[]          @relation("DelegatorUser")
+
+  @@index([is_active])
+  @@index([created_at])
 }
 
 model Client {
@@ -132,6 +135,9 @@ model Consultation {
   documents Document[]
   notes     Note[]
   cases     Case[]
+
+  @@index([booking_datetime])
+  @@index([status, booking_datetime])
 }
 
 model Case {
@@ -155,6 +161,9 @@ model Case {
   payments           Payment[]
   documents          Document[]
   notes              Note[]
+
+  @@index([created_at])
+  @@index([status])
 }
 
 model CaseAssignment {
@@ -199,6 +208,8 @@ model Task {
   taskReviewers   TaskReviewer[]
   documents       Document[]
   notes           Note[]
+
+  @@index([case_id, updated_at])
 }
 
 model TaskReviewer {
@@ -231,6 +242,9 @@ model CaseMilestone {
   case          Case                    @relation(fields: [case_id], references: [id], onDelete: Cascade)
   createdBy     User                    @relation(fields: [created_by_user_id], references: [id])
   notifications MilestoneNotification[]
+
+  @@index([case_id, due_date])
+  @@index([status, due_date])
 }
 
 model MilestoneNotification {
@@ -262,6 +276,9 @@ model Payment {
   case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
   consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
   createdBy    User          @relation(fields: [created_by_user_id], references: [id])
+
+  @@index([case_id, payment_date])
+  @@index([consultation_id, payment_date])
 }
 
 model Document {
@@ -281,6 +298,9 @@ model Document {
   consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
   task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
   uploadedBy   User          @relation(fields: [uploaded_by_user_id], references: [id])
+
+  @@index([case_id, created_at])
+  @@index([consultation_id, created_at])
 }
 
 model Note {
@@ -297,6 +317,9 @@ model Note {
   consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
   case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
   task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@index([case_id, created_at])
+  @@index([consultation_id, created_at])
 }
 
 model AuditLog {
@@ -310,5 +333,5 @@ model AuditLog {
 
   actor User @relation(fields: [actor_user_id], references: [id])
 
-  @@index([entity_type, entity_id])
+  @@index([entity_type, entity_id, created_at])
 }

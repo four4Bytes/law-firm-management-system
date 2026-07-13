@@ -60,7 +60,12 @@ const columns: ColumnDef<ConsultationRow>[] = [
   },
 ];
 
-export function ConsultationTable() {
+interface ConsultationTableProps {
+  initialConsultations?: ConsultationRow[];
+  initialCursor?: string | null;
+}
+
+export function ConsultationTable({ initialConsultations, initialCursor }: ConsultationTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -74,6 +79,8 @@ export function ConsultationTable() {
           return { rows: result.consultations, nextCursor: result.nextCursor };
         }}
         columns={columns}
+        initialRows={initialConsultations}
+        initialCursor={initialCursor}
         searchPlaceholder="Search consultations..."
         emptyContent="No consultations yet"
         loadingMessage="Loading consultations..."

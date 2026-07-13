@@ -56,7 +56,12 @@ const columns: ColumnDef<CaseRow>[] = [
   },
 ];
 
-export function CaseTable() {
+interface CaseTableProps {
+  initialCases?: CaseRow[];
+  initialCursor?: string | null;
+}
+
+export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -70,6 +75,8 @@ export function CaseTable() {
           return { rows: result.cases, nextCursor: result.nextCursor };
         }}
         columns={columns}
+        initialRows={initialCases}
+        initialCursor={initialCursor}
         searchPlaceholder="Search cases..."
         emptyContent="No cases yet"
         loadingMessage="Loading cases..."

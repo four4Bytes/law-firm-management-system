@@ -1,15 +1,13 @@
 "use client";
 
 import clsx from "clsx";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { type SortDescriptor } from "react-aria-components";
-import { FaPenToSquare, FaPlus, FaTrashCan } from "react-icons/fa6";
+import { useState } from "react";
+import { FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
-import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
-import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
-import { SearchField } from "@/components/ui/SearchField/SearchField";
+import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
+import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { queue } from "@/components/ui/Toast/Toast";
 import { logoutUser } from "@/features/auth/actions";
 import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
@@ -17,13 +15,12 @@ import { UserFormModal } from "@/features/users/components/UserFormModal/UserFor
 import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import type { Role } from "@/generated/prisma/client";
-import { toSortQuery } from "@/lib/sort";
-import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./UserTable.module.css";
 
 interface UserTableProps {
   users?: UserRow[];
+  initialCursor?: string | null;
   sessionUserRole?: string;
 }
 
@@ -36,89 +33,13 @@ const roleClassMap: Record<Role, string> = {
   ProcessServer: styles.roleProcessServer,
 };
 
-export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProps) {
+export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
   const canManage = sessionUserRole === "Admin" || sessionUserRole === "Dev";
-  const [items, setItems] = useState<UserRow[]>(staticUsers ?? []);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(staticUsers === undefined);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
 
-  const [search, setSearch] = useState("");
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
-  const [isPending, startTransition] = useTransition();
-
-  const isLoading = isPending || isLoadingMore;
-  const useServerFetch = staticUsers === undefined;
-
-  const debouncedSearch = useDebounce(search, 300);
-  const generationRef = useRef(0);
-
-  useEffect(() => {
-    if (!useServerFetch) return;
-
-    let cancelled = false;
-    ++generationRef.current;
-
-    startTransition(async () => {
-      try {
-        const sort = toSortQuery(sortDescriptor);
-        const result = await getUsersPaginatedAction({
-          search: debouncedSearch,
-          sort,
-          pageSize: 10,
-        });
-        if (cancelled) return;
-        setItems(result.users);
-        setCursor(result.nextCursor);
-        setHasMore(result.nextCursor !== null);
-        setIsInitialLoad(false);
-      } catch {
-        if (cancelled) return;
-        setIsInitialLoad(false);
-        queue.add({
-          title: "Failed to load users",
-          description: "Could not retrieve the user list. Please try again.",
-        });
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedSearch, sortDescriptor, startTransition, useServerFetch, refreshKey]);
-
-  const handleLoadMore = useCallback(async () => {
-    if (!useServerFetch || isLoading || !hasMore || !cursor) return;
-
-    const gen = generationRef.current;
-    setIsLoadingMore(true);
-
-    try {
-      const sort = toSortQuery(sortDescriptor);
-      const result = await getUsersPaginatedAction({
-        search: debouncedSearch,
-        cursor,
-        sort,
-        pageSize: 10,
-      });
-      if (gen !== generationRef.current) return;
-      setItems((prev) => [...prev, ...result.users]);
-      setCursor(result.nextCursor);
-      setHasMore(result.nextCursor !== null);
-    } catch {
-      queue.add({
-        title: "Failed to load more users",
-        description: "Could not retrieve additional items. Please try again.",
-      });
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [useServerFetch, isLoading, hasMore, cursor, debouncedSearch, sortDescriptor]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const columns: ColumnDef<UserRow>[] = [
     {
@@ -179,51 +100,27 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
       : []),
   ];
 
-  const emptyContent =
-    debouncedSearch && items.length === 0 && !isLoading
-      ? `No users matching "${debouncedSearch}"`
-      : !debouncedSearch && items.length === 0 && !isLoading
-        ? "No users yet"
-        : undefined;
-
   return (
     <div className={styles.wrapper}>
-      <div className={styles.toolbar}>
-        <div className={styles.searchWrapper}>
-          <SearchField
-            value={search}
-            onChange={setSearch}
-            placeholder="Search users..."
-            aria-label="Search users"
-          />
-        </div>
-        {canManage && (
-          <Button
-            variant="secondary"
-            className={styles.addButton}
-            aria-label="Add user"
-            onPress={() => setModalTarget({ type: "add" })}
-          >
-            <FaPlus /> Add User
-          </Button>
-        )}
-      </div>
-      {isInitialLoad ? (
-        <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading users..." />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={items}
-          sortDescriptor={sortDescriptor}
-          onSortChange={setSortDescriptor}
-          hasMore={hasMore}
-          onLoadMore={handleLoadMore}
-          isLoading={isLoading}
-          emptyContent={emptyContent}
-        />
-      )}
+      <ServerDataTable
+        fetchAction={async (p) => {
+          const result = await getUsersPaginatedAction(p);
+          return { rows: result.users, nextCursor: result.nextCursor };
+        }}
+        columns={columns}
+        initialRows={users}
+        initialCursor={initialCursor}
+        searchPlaceholder="Search users..."
+        emptyContent="No users yet"
+        loadingMessage="Loading users..."
+        searchLabel="Search users"
+        selectionMode="none"
+        renderAddButton={canManage}
+        addButtonLabel="Add User"
+        onAddButtonPress={() => setModalTarget({ type: "add" })}
+        refreshTrigger={refreshTrigger}
+      />
+
       <UserFormModal
         mode={modalTarget?.type ?? "add"}
         user={modalTarget?.type === "edit" ? modalTarget.user : undefined}
@@ -231,7 +128,7 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
         onOpenChange={(open) => {
           if (!open) setModalTarget(null);
         }}
-        onSuccess={() => setRefreshKey((k) => k + 1)}
+        onSuccess={() => setRefreshTrigger((t) => t + 1)}
       />
 
       <ConfirmDialog
@@ -253,7 +150,7 @@ export function UserTable({ users: staticUsers, sessionUserRole }: UserTableProp
             return;
           }
           setDeletingUser(null);
-          setRefreshKey((k) => k + 1);
+          setRefreshTrigger((t) => t + 1);
           queue.add(
             { title: "User deactivated", description: deletingUser.email },
             { timeout: 5000 },

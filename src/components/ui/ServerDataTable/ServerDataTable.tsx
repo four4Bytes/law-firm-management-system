@@ -34,6 +34,8 @@ interface ServerDataTableProps<T extends { id: string }> {
   selectionBehavior?: "toggle" | "replace";
   onRowAction?: (key: string) => void;
   refreshTrigger?: number;
+  initialRows?: T[];
+  initialCursor?: string | null;
 }
 
 export function ServerDataTable<T extends { id: string }>({
@@ -50,11 +52,13 @@ export function ServerDataTable<T extends { id: string }>({
   selectionBehavior = "replace",
   onRowAction,
   refreshTrigger,
+  initialRows,
+  initialCursor,
 }: ServerDataTableProps<T>) {
-  const [items, setItems] = useState<T[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [items, setItems] = useState<T[]>(initialRows ?? []);
+  const [cursor, setCursor] = useState<string | null>(initialCursor ?? null);
+  const [hasMore, setHasMore] = useState(initialRows !== undefined ? initialCursor !== null : true);
+  const [isInitialLoad, setIsInitialLoad] = useState(initialRows === undefined);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
@@ -62,6 +66,7 @@ export function ServerDataTable<T extends { id: string }>({
 
   const isLoading = isPending || isLoadingMore;
   const debouncedSearch = useDebounce(search, 300);
+  const skipInitialFetch = useRef(initialRows !== undefined);
 
   const fetchActionRef = useRef(fetchAction);
   useEffect(() => {
@@ -71,6 +76,11 @@ export function ServerDataTable<T extends { id: string }>({
   const generationRef = useRef(0);
 
   useEffect(() => {
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
+
     let cancelled = false;
     ++generationRef.current;
 

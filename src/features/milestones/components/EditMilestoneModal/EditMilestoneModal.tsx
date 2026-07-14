@@ -1,7 +1,7 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
-import { useEffect, useState } from "react";
+import { CalendarDate, getLocalTimeZone } from "@internationalized/date";
+import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -12,11 +12,7 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
-import {
-  deleteMilestoneAction,
-  getMilestoneRowByIdAction,
-  updateMilestoneAction,
-} from "@/features/milestones/actions";
+import { deleteMilestoneAction, updateMilestoneAction } from "@/features/milestones/actions";
 import type { MilestoneRow } from "@/features/milestones/queries";
 import { MilestoneUpdatePayloadSchema } from "@/features/milestones/schemas";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
@@ -31,21 +27,21 @@ interface EditMilestoneModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
-  milestoneId: string | null;
+  milestone: MilestoneRow;
 }
 
 export function EditMilestoneModal({
   isOpen,
   onOpenChange,
   onSuccess,
-  milestoneId,
+  milestone,
 }: EditMilestoneModalProps) {
-  const [milestone, setMilestone] = useState<MilestoneRow | null>(null);
-
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState<CalendarDate>(today(getLocalTimeZone()));
-  const [status, setStatus] = useState<CaseMilestoneStatus>(CaseMilestoneStatus.Pending);
+  const [title, setTitle] = useState(milestone.title);
+  const [description, setDescription] = useState(milestone.description ?? "");
+  const [dueDate, setDueDate] = useState<CalendarDate>(toCalendarDate(milestone.due_date));
+  const [status, setStatus] = useState<CaseMilestoneStatus>(
+    milestone.status as CaseMilestoneStatus,
+  );
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -58,46 +54,18 @@ export function EditMilestoneModal({
     failureMessage: "Failed to update milestone",
   });
 
-  useEffect(() => {
-    if (!isOpen || !milestoneId) return;
-
-    const id = milestoneId;
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const data = await getMilestoneRowByIdAction(id);
-        if (cancelled) return;
-        if (data) {
-          setMilestone(data);
-          setTitle(data.title);
-          setDescription(data.description ?? "");
-          setDueDate(toCalendarDate(data.due_date));
-          setStatus(data.status as CaseMilestoneStatus);
-        } else {
-          setMilestone(null);
-        }
-      } catch {
-        if (cancelled) return;
-        setMilestone(null);
-        queue.add({ title: "Failed to load milestone" }, { timeout: 5000 });
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, milestoneId]);
+  function handleDismiss() {
+    if (isPending || isDeleting) return;
+    onOpenChange(false);
+  }
 
   async function handleSave() {
-    if (!title.trim() || !milestoneId) return;
+    if (!title.trim()) return;
 
     const date = dueDate.toDate(getLocalTimeZone());
 
     await submitForm({
-      milestoneId,
+      milestoneId: milestone.id,
       title: title.trim(),
       description: description.trim() || undefined,
       due_date: date,
@@ -106,11 +74,10 @@ export function EditMilestoneModal({
   }
 
   async function handleDelete() {
-    if (!milestoneId) return;
     setIsDeleting(true);
 
     try {
-      const result = await deleteMilestoneAction({ milestoneId });
+      const result = await deleteMilestoneAction({ milestoneId: milestone.id });
 
       setShowDeleteConfirm(false);
 
@@ -128,51 +95,20 @@ export function EditMilestoneModal({
     }
   }
 
-  const isLoadingData = isOpen && milestone == null;
   const hasChanges =
-    title.trim() !== (milestone?.title ?? "") ||
-    description.trim() !== (milestone?.description ?? "") ||
-    dueDate.compare(toCalendarDate(milestone?.due_date ?? new Date())) !== 0 ||
-    status !== (milestone?.status ?? "Pending");
+    title.trim() !== milestone.title ||
+    description.trim() !== (milestone.description ?? "") ||
+    dueDate.compare(toCalendarDate(milestone.due_date)) !== 0 ||
+    status !== (milestone.status as CaseMilestoneStatus);
 
   const isValid = title.trim().length > 0;
-
-  if (isLoadingData) {
-    return (
-      <Modal
-        title="Edit Milestone"
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading milestone" />
-        </div>
-      </Modal>
-    );
-  }
-
-  if (!milestone) {
-    return (
-      <Modal
-        title="Edit Milestone"
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <span>Milestone not found.</span>
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <>
       <Modal
         title="Edit Milestone"
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        onOpenChange={handleDismiss}
         className={styles.modal}
       >
         <div className={styles.content}>

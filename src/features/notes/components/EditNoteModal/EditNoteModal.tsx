@@ -25,7 +25,7 @@ interface EditNoteModalProps {
 
 export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNoteModalProps) {
   const [content, setContent] = useState(note.content);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { isPending, submitForm } = useModalForm<z.input<typeof NoteUpdatePayloadSchema>>({
@@ -36,6 +36,11 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
     failureMessage: "Failed to update note",
   });
 
+  function handleDismiss() {
+    if (isPending || isDeleting) return;
+    onOpenChange(false);
+  }
+
   async function handleSave() {
     if (!content.trim() || content.trim() === note.content) return;
 
@@ -43,7 +48,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
   }
 
   async function handleDelete() {
-    setIsLoading(true);
+    setIsDeleting(true);
 
     try {
       const result = await deleteNoteAction({ noteId: note.id });
@@ -60,7 +65,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
     } catch {
       queue.add({ title: "Failed to delete note. Please try again." }, { timeout: 5000 });
     } finally {
-      setIsLoading(false);
+      setIsDeleting(false);
     }
   }
 
@@ -69,7 +74,12 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
 
   return (
     <>
-      <Modal title="Edit Note" isOpen={isOpen} onOpenChange={onOpenChange} className={styles.modal}>
+      <Modal
+        title="Edit Note"
+        isOpen={isOpen}
+        onOpenChange={handleDismiss}
+        className={styles.modal}
+      >
         <div className={styles.content}>
           <TextField
             isTextArea
@@ -77,18 +87,18 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
             value={content}
             onChange={setContent}
             placeholder="Enter note content..."
-            isDisabled={isPending || isLoading}
+            isDisabled={isPending || isDeleting}
           />
           <div className={styles.actions}>
             <Button
               variant="secondary"
               onPress={handleSave}
-              isDisabled={!isValid || !hasChanges || isPending || isLoading}
+              isDisabled={!isValid || !hasChanges || isPending || isDeleting}
             >
               {isPending ? "Saving..." : "Save"}
             </Button>
-            <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isLoading}>
-              {isLoading ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
+            <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
+              {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
             </Button>
           </div>
         </div>

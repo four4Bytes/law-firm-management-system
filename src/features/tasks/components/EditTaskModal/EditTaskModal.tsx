@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -10,15 +10,10 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
-import {
-  deleteTaskAction,
-  getActiveUsersAction,
-  getTaskDetailRowByIdAction,
-  updateTaskAction,
-} from "@/features/tasks/actions";
+import { deleteTaskAction, updateTaskAction } from "@/features/tasks/actions";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
-import { TaskStatus } from "@/generated/prisma/browser";
+import { TaskStatus, type User } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditTaskModal.module.css";
@@ -29,27 +24,26 @@ interface EditTaskModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
-  taskId: string | null;
+  task: TaskDetailRow;
+  users: Pick<User, "id" | "name">[];
 }
 
-export function EditTaskModal({ isOpen, onOpenChange, onSuccess, taskId }: EditTaskModalProps) {
-  const [task, setTask] = useState<TaskDetailRow | null>(null);
-  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
-
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>(TaskStatus.Pending);
-  const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
-
-  type LoadState = "loading" | "loaded" | "not-found" | "error";
-  const [loadState, setLoadState] = useState<LoadState>("loading");
+export function EditTaskModal({
+  isOpen,
+  onOpenChange,
+  onSuccess,
+  task,
+  users,
+}: EditTaskModalProps) {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description ?? "");
+  const [status, setStatus] = useState<TaskStatus>(task.status as TaskStatus);
+  const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { isPending, submitForm, handleCancel } = useModalForm<
-    z.input<typeof TaskUpdatePayloadSchema>
-  >({
+  const { isPending, submitForm } = useModalForm<z.input<typeof TaskUpdatePayloadSchema>>({
     submit: updateTaskAction,
     onOpenChange,
     onSuccess,
@@ -57,67 +51,16 @@ export function EditTaskModal({ isOpen, onOpenChange, onSuccess, taskId }: EditT
     failureMessage: "Failed to update task",
   });
 
-  useEffect(() => {
-    if (!isOpen || !taskId) return;
-
-    const id = taskId;
-    let cancelled = false;
-
-    const resetTimer = setTimeout(() => {
-      if (cancelled) return;
-      setTask(null);
-      setTitle("");
-      setDescription("");
-      setStatus(TaskStatus.Pending);
-      setAssigneeIds(new Set());
-      setLoadState("loading");
-    }, 0);
-
-    async function load() {
-      try {
-        const [taskData, usersData] = await Promise.all([
-          getTaskDetailRowByIdAction(id),
-          getActiveUsersAction(),
-        ]);
-        if (cancelled) return;
-        if (taskData) {
-          setTask(taskData);
-          setTitle(taskData.title);
-          setDescription(taskData.description ?? "");
-          setStatus(taskData.status as TaskStatus);
-          setAssigneeIds(new Set(taskData.assignee_ids));
-          setLoadState("loaded");
-        } else {
-          setTask(null);
-          setLoadState("not-found");
-        }
-        setUsers(usersData);
-      } catch {
-        if (cancelled) return;
-        setTask(null);
-        setLoadState("error");
-        queue.add({ title: "Failed to load task" }, { timeout: 5000 });
-      }
-    }
-
-    void load();
-
-    return () => {
-      clearTimeout(resetTimer);
-      cancelled = true;
-    };
-  }, [isOpen, taskId]);
-
   function handleDismiss() {
     if (isPending || isDeleting) return;
-    handleCancel();
+    onOpenChange(false);
   }
 
   async function handleSave() {
-    if (!title.trim() || !taskId) return;
+    if (!title.trim()) return;
 
     await submitForm({
-      taskId,
+      taskId: task.id,
       title: title.trim(),
       description: description.trim() || undefined,
       status,
@@ -126,11 +69,12 @@ export function EditTaskModal({ isOpen, onOpenChange, onSuccess, taskId }: EditT
   }
 
   async function handleDelete() {
-    if (!taskId) return;
     setIsDeleting(true);
 
     try {
-      const result = await deleteTaskAction({ taskId });
+      const result = await deleteTaskAction({ taskId: task.id });
+
+      setShowDeleteConfirm(false);
 
       if (result.success) {
         queue.add({ title: "Task deleted" }, { timeout: 5000 });
@@ -147,59 +91,13 @@ export function EditTaskModal({ isOpen, onOpenChange, onSuccess, taskId }: EditT
     }
   }
 
-  const isLoadingData = isOpen && loadState === "loading";
   const hasChanges =
-    title.trim() !== (task?.title ?? "") ||
-    description.trim() !== (task?.description ?? "") ||
-    status !== (task?.status ?? "Pending") ||
-    !areSetsEqual(assigneeIds, new Set(task?.assignee_ids ?? []));
+    title.trim() !== task.title ||
+    description.trim() !== (task.description ?? "") ||
+    status !== (task.status as TaskStatus) ||
+    !areSetsEqual(assigneeIds, new Set(task.assignee_ids));
 
   const isValid = title.trim().length > 0;
-
-  if (isLoadingData) {
-    return (
-      <Modal
-        title="Edit Task"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading task" />
-        </div>
-      </Modal>
-    );
-  }
-
-  if (loadState === "error") {
-    return (
-      <Modal
-        title="Edit Task"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <span>Failed to load task. Please try again.</span>
-        </div>
-      </Modal>
-    );
-  }
-
-  if (loadState === "not-found") {
-    return (
-      <Modal
-        title="Edit Task"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <span>Task not found.</span>
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <>

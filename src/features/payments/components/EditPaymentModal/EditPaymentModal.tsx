@@ -1,7 +1,7 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
-import { useEffect, useState } from "react";
+import { CalendarDate, getLocalTimeZone } from "@internationalized/date";
+import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -12,11 +12,7 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
-import {
-  deletePaymentAction,
-  getPaymentRowByIdAction,
-  updatePaymentAction,
-} from "@/features/payments/actions";
+import { deletePaymentAction, updatePaymentAction } from "@/features/payments/actions";
 import type { PaymentRow } from "@/features/payments/queries";
 import { PaymentUpdatePayloadSchema } from "@/features/payments/schemas";
 import { PaymentStatus } from "@/generated/prisma/browser";
@@ -31,22 +27,22 @@ interface EditPaymentModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
-  paymentId: string | null;
+  payment: PaymentRow;
 }
 
 export function EditPaymentModal({
   isOpen,
   onOpenChange,
   onSuccess,
-  paymentId,
+  payment,
 }: EditPaymentModalProps) {
-  const [payment, setPayment] = useState<PaymentRow | null>(null);
-
-  const [amount, setAmount] = useState("");
-  const [paymentDate, setPaymentDate] = useState<CalendarDate>(today(getLocalTimeZone()));
-  const [status, setStatus] = useState<PaymentStatus>(PaymentStatus.Unpaid);
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [receiptNumber, setReceiptNumber] = useState("");
+  const [amount, setAmount] = useState(String(payment.amount));
+  const [paymentDate, setPaymentDate] = useState<CalendarDate>(
+    toCalendarDate(payment.payment_date),
+  );
+  const [status, setStatus] = useState<PaymentStatus>(payment.status as PaymentStatus);
+  const [paymentMethod, setPaymentMethod] = useState(payment.payment_method ?? "");
+  const [receiptNumber, setReceiptNumber] = useState(payment.receipt_number ?? "");
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -59,44 +55,16 @@ export function EditPaymentModal({
     failureMessage: "Failed to update payment",
   });
 
-  useEffect(() => {
-    if (!isOpen || !paymentId) return;
-
-    const id = paymentId;
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const data = await getPaymentRowByIdAction(id);
-        if (cancelled) return;
-        if (data) {
-          setPayment(data);
-          setAmount(String(data.amount));
-          setPaymentDate(toCalendarDate(data.payment_date));
-          setStatus(data.status as PaymentStatus);
-          setPaymentMethod(data.payment_method ?? "");
-          setReceiptNumber(data.receipt_number ?? "");
-        } else {
-          setPayment(null);
-        }
-      } catch {
-        if (cancelled) return;
-        setPayment(null);
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, paymentId]);
+  function handleDismiss() {
+    if (isPending || isDeleting) return;
+    onOpenChange(false);
+  }
 
   async function handleSave() {
-    if (!amount.trim() || !paymentId) return;
+    if (!amount.trim()) return;
 
     await submitForm({
-      paymentId,
+      paymentId: payment.id,
       amount: Number.parseFloat(amount),
       payment_date: paymentDate.toDate(getLocalTimeZone()),
       status,
@@ -106,11 +74,10 @@ export function EditPaymentModal({
   }
 
   async function handleDelete() {
-    if (!paymentId) return;
     setIsDeleting(true);
 
     try {
-      const result = await deletePaymentAction({ paymentId });
+      const result = await deletePaymentAction({ paymentId: payment.id });
 
       setShowDeleteConfirm(false);
 
@@ -128,52 +95,20 @@ export function EditPaymentModal({
     }
   }
 
-  const isLoadingData = isOpen && payment == null;
   const hasChanges =
-    amount.trim() !== String(payment?.amount ?? "") ||
-    status !== (payment?.status ?? "Unpaid") ||
-    paymentMethod.trim() !== (payment?.payment_method ?? "") ||
-    receiptNumber.trim() !== (payment?.receipt_number ?? "");
+    amount.trim() !== String(payment.amount) ||
+    status !== (payment.status as PaymentStatus) ||
+    paymentMethod.trim() !== (payment.payment_method ?? "") ||
+    receiptNumber.trim() !== (payment.receipt_number ?? "");
 
-  // Always treat date as changed if payment exists (DatePicker value comparison is complex)
   const isValid = amount.trim().length > 0;
-
-  if (isLoadingData) {
-    return (
-      <Modal
-        title="Edit Payment"
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading payment" />
-        </div>
-      </Modal>
-    );
-  }
-
-  if (!payment) {
-    return (
-      <Modal
-        title="Edit Payment"
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <span>Payment not found.</span>
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <>
       <Modal
         title="Edit Payment"
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        onOpenChange={handleDismiss}
         className={styles.modal}
       >
         <div className={styles.content}>

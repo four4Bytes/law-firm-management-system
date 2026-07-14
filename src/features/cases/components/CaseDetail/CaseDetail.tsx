@@ -6,9 +6,13 @@ import { FaArrowLeft } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
+import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { getCaseForEditAction } from "@/features/cases/actions";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
-import type { CaseOverviewData } from "@/features/cases/queries";
+import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
+import { getClientForEditAction } from "@/features/clients/actions";
+import type { ClientEditData } from "@/features/clients/queries";
 
 import styles from "./CaseDetail.module.css";
 import { CaseOverview } from "./CaseOverview";
@@ -28,7 +32,10 @@ export function CaseDetail({ overview }: Props) {
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editData, setEditData] = useState<{
+    caseData: CaseEditData;
+    clientData: ClientEditData;
+  } | null>(null);
 
   const validTabs = [
     "tasks",
@@ -49,13 +56,25 @@ export function CaseDetail({ overview }: Props) {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  async function handleEdit() {
+    try {
+      const caseData = await getCaseForEditAction(overview.id);
+      if (!caseData) throw new Error("Case not found");
+      const clientData = await getClientForEditAction(caseData.client_id);
+      if (!clientData) throw new Error("Client not found");
+      setEditData({ caseData, clientData });
+    } catch {
+      queue.add({ title: "Failed to load case data" }, { timeout: 5000 });
+    }
+  }
+
   return (
     <div className={styles.detail}>
       <Link href="/case" className={styles.backLink}>
         <FaArrowLeft /> Back to Cases
       </Link>
 
-      <CaseOverview data={overview} onEdit={() => setIsEditOpen(true)} />
+      <CaseOverview data={overview} onEdit={handleEdit} />
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Case details">
@@ -88,20 +107,22 @@ export function CaseDetail({ overview }: Props) {
         </TabPanels>
       </Tabs>
 
-      {isEditOpen && (
+      {editData && (
         <EditCaseModal
-          isOpen={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          caseId={overview.id}
+          key={editData.caseData.id}
+          isOpen={!!editData}
+          onOpenChange={() => setEditData(null)}
           onSuccess={() => {
-            setIsEditOpen(false);
+            setEditData(null);
             router.refresh();
           }}
           onDeleted={() => {
             startLoading();
-            setIsEditOpen(false);
+            setEditData(null);
             router.push("/case");
           }}
+          caseData={editData.caseData}
+          clientData={editData.clientData}
         />
       )}
     </div>

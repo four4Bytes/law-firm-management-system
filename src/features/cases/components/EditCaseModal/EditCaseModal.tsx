@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -10,14 +10,10 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
-import {
-  deleteCaseAction,
-  getCaseForEditAction,
-  updateCaseWithClientAction,
-} from "@/features/cases/actions";
+import { deleteCaseAction, updateCaseWithClientAction } from "@/features/cases/actions";
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
-import { getClientForEditAction } from "@/features/clients/actions";
+import type { ClientEditData } from "@/features/clients/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/useModalForm";
 
@@ -30,7 +26,8 @@ interface EditCaseModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   onDeleted: () => void;
-  caseId: string | null;
+  caseData: CaseEditData;
+  clientData: ClientEditData;
 }
 
 export function EditCaseModal({
@@ -38,22 +35,20 @@ export function EditCaseModal({
   onOpenChange,
   onSuccess,
   onDeleted,
-  caseId,
+  caseData,
+  clientData,
 }: EditCaseModalProps) {
-  const [caseData, setCaseData] = useState<CaseEditData | null>(null);
+  const [clientId] = useState(caseData.client_id);
+  const [clientName, setClientName] = useState(clientData.name);
+  const [clientEmail, setClientEmail] = useState(clientData.email ?? "");
+  const [clientPhone, setClientPhone] = useState(clientData.phone_number ?? "");
+  const [clientAddress, setClientAddress] = useState(clientData.address ?? "");
 
-  const [clientId, setClientId] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
+  const [caseTitle, setCaseTitle] = useState(caseData.case_title);
+  const [caseType, setCaseType] = useState(caseData.case_type);
+  const [status, setStatus] = useState<CaseStatus>(caseData.status as CaseStatus);
+  const [partiesInvolved, setPartiesInvolved] = useState(caseData.parties_involved ?? "");
 
-  const [caseTitle, setCaseTitle] = useState("");
-  const [caseType, setCaseType] = useState<string>("");
-  const [status, setStatus] = useState<CaseStatus>(CaseStatus.Open);
-  const [partiesInvolved, setPartiesInvolved] = useState("");
-
-  const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -72,63 +67,11 @@ export function EditCaseModal({
     onOpenChange(false);
   }
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      try {
-        if (!caseId) {
-          setIsLoading(false);
-          setCaseData(null);
-          return;
-        }
-        const data = await getCaseForEditAction(caseId);
-        if (cancelled) return;
-
-        if (data) {
-          setCaseData(data);
-          setClientId(data.client_id);
-          setCaseTitle(data.case_title);
-          setCaseType(data.case_type);
-          setStatus(data.status as CaseStatus);
-          setPartiesInvolved(data.parties_involved ?? "");
-
-          const clientData = await getClientForEditAction(data.client_id);
-          if (cancelled) return;
-
-          if (clientData) {
-            setClientName(clientData.name);
-            setClientEmail(clientData.email ?? "");
-            setClientPhone(clientData.phone_number ?? "");
-            setClientAddress(clientData.address ?? "");
-          }
-        } else {
-          setCaseData(null);
-        }
-      } catch {
-        if (cancelled) return;
-        setCaseData(null);
-        queue.add({ title: "Failed to load case" }, { timeout: 5000 });
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, caseId]);
-
   async function handleSave() {
-    if (!clientId || !clientName.trim() || !caseTitle.trim() || !caseId || isPending) return;
+    if (!clientId || !clientName.trim() || !caseTitle.trim() || isPending) return;
 
     await submitForm({
-      case_id: caseId,
+      case_id: caseData.id,
       client_id: clientId,
       client: {
         name: clientName.trim(),
@@ -146,11 +89,10 @@ export function EditCaseModal({
   }
 
   async function handleDelete() {
-    if (!caseId) return;
     setIsDeleting(true);
 
     try {
-      const result = await deleteCaseAction({ caseId });
+      const result = await deleteCaseAction({ caseId: caseData.id });
 
       setShowDeleteConfirm(false);
 
@@ -168,39 +110,8 @@ export function EditCaseModal({
     }
   }
 
-  const isLoadingData = isOpen && isLoading;
   const isValid =
     clientId.length > 0 && clientName.trim().length > 0 && caseTitle.trim().length > 0;
-
-  if (isLoadingData) {
-    return (
-      <Modal
-        title="Edit Case"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading case" />
-        </div>
-      </Modal>
-    );
-  }
-
-  if (!caseData) {
-    return (
-      <Modal
-        title="Edit Case"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <span>Case not found.</span>
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <>

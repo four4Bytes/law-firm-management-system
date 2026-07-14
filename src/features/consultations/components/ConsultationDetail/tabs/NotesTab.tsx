@@ -31,12 +31,8 @@ export function NotesTab({ consultationId }: Props) {
 
   async function handleRowAction(id: string) {
     try {
-      const note = await getNoteRowByIdAction(id);
-      if (note) {
-        setEditNote(note);
-      } else {
-        queue.add({ title: "Note not found" }, { timeout: 5000 });
-      }
+      const data = await getNoteRowByIdAction(id);
+      setEditNote(data);
     } catch {
       queue.add({ title: "Failed to load note" }, { timeout: 5000 });
     }

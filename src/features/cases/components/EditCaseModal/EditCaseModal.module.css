@@ -31,14 +31,6 @@
       flex: 1;
     }
   }
-
-  .loadingContainer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-2xl);
-    gap: var(--space-md);
-  }
 }
 
 @media (max-width: 48rem) {

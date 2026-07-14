@@ -1,7 +1,7 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone, Time, today } from "@internationalized/date";
-import { useEffect, useState } from "react";
+import { CalendarDate, Time } from "@internationalized/date";
+import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -13,10 +13,9 @@ import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { queue } from "@/components/ui/Toast/Toast";
-import { getClientForEditAction } from "@/features/clients/actions";
+import type { ClientEditData } from "@/features/clients/queries";
 import {
   deleteConsultationAction,
-  getConsultationForEditAction,
   updateConsultationWithClientAction,
 } from "@/features/consultations/actions";
 import type { ConsultationEditData } from "@/features/consultations/queries";
@@ -34,7 +33,8 @@ interface EditConsultationModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   onDeleted: () => void;
-  consultationId: string | null;
+  consultation: ConsultationEditData;
+  clientData: ClientEditData;
 }
 
 interface ConsultationFields {
@@ -49,24 +49,22 @@ export function EditConsultationModal({
   onOpenChange,
   onSuccess,
   onDeleted,
-  consultationId,
+  consultation,
+  clientData,
 }: EditConsultationModalProps) {
-  const [consultation, setConsultation] = useState<ConsultationEditData | null>(null);
-
-  const [clientId, setClientId] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
+  const [clientId] = useState(consultation.client_id);
+  const [clientName, setClientName] = useState(clientData.name);
+  const [clientEmail, setClientEmail] = useState(clientData.email ?? "");
+  const [clientPhone, setClientPhone] = useState(clientData.phone_number ?? "");
+  const [clientAddress, setClientAddress] = useState(clientData.address ?? "");
 
   const [fields, setFields] = useState<ConsultationFields>({
-    concern: "",
-    date: today(getLocalTimeZone()),
-    time: new Time(9, 0),
-    status: ConsultationStatus.Scheduled,
+    concern: consultation.concern,
+    date: toCalendarDate(consultation.booking_datetime),
+    time: toTimeValue(consultation.booking_datetime),
+    status: consultation.status as ConsultationStatus,
   });
 
-  const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -85,66 +83,11 @@ export function EditConsultationModal({
     onOpenChange(false);
   }
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      try {
-        if (!consultationId) {
-          setIsLoading(false);
-          setConsultation(null);
-          return;
-        }
-        const data = await getConsultationForEditAction(consultationId);
-        if (cancelled) return;
-
-        if (data) {
-          setConsultation(data);
-          setClientId(data.client_id);
-          setFields({
-            concern: data.concern,
-            date: toCalendarDate(data.booking_datetime),
-            time: toTimeValue(data.booking_datetime),
-            status: data.status as ConsultationStatus,
-          });
-
-          const clientData = await getClientForEditAction(data.client_id);
-          if (cancelled) return;
-
-          if (clientData) {
-            setClientName(clientData.name);
-            setClientEmail(clientData.email ?? "");
-            setClientPhone(clientData.phone_number ?? "");
-            setClientAddress(clientData.address ?? "");
-          }
-        } else {
-          setConsultation(null);
-        }
-      } catch {
-        if (cancelled) return;
-        setConsultation(null);
-        queue.add({ title: "Failed to load consultation" }, { timeout: 5000 });
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, consultationId]);
-
   async function handleSave() {
-    if (!clientId || !clientName.trim() || !fields.concern.trim() || !consultationId || isPending)
-      return;
+    if (!clientId || !clientName.trim() || !fields.concern.trim() || isPending) return;
 
     await submitForm({
-      consultation_id: consultationId,
+      consultation_id: consultation.id,
       client_id: clientId,
       client: {
         name: clientName.trim(),
@@ -161,12 +104,11 @@ export function EditConsultationModal({
   }
 
   async function handleDelete() {
-    if (!consultationId) return;
     setIsDeleting(true);
     setShowDeleteConfirm(false);
 
     try {
-      const result = await deleteConsultationAction({ consultationId });
+      const result = await deleteConsultationAction({ consultationId: consultation.id });
 
       if (result.success) {
         queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
@@ -182,39 +124,8 @@ export function EditConsultationModal({
     }
   }
 
-  const isLoadingData = isOpen && isLoading;
   const isValid =
     clientId.length > 0 && clientName.trim().length > 0 && fields.concern.trim().length > 0;
-
-  if (isLoadingData) {
-    return (
-      <Modal
-        title="Edit Consultation"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading consultation" />
-        </div>
-      </Modal>
-    );
-  }
-
-  if (!consultation) {
-    return (
-      <Modal
-        title="Edit Consultation"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <div className={styles.loadingContainer}>
-          <span>Consultation not found.</span>
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <>

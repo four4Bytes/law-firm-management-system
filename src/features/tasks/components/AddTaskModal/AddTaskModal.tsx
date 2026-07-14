@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { queue } from "@/components/ui/Toast/Toast";
-import { createTaskAction, getActiveUsersAction } from "@/features/tasks/actions";
+import { createTaskAction } from "@/features/tasks/actions";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
-import { TaskStatus } from "@/generated/prisma/browser";
+import { TaskStatus, type User } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddTaskModal.module.css";
@@ -22,14 +21,20 @@ interface AddTaskModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   caseId: string;
+  users: Pick<User, "id" | "name">[];
 }
 
-export function AddTaskModal({ isOpen, onOpenChange, onSuccess, caseId }: AddTaskModalProps) {
+export function AddTaskModal({
+  isOpen,
+  onOpenChange,
+  onSuccess,
+  caseId,
+  users,
+}: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.Pending);
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
-  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof TaskCreatePayloadSchema>
@@ -46,29 +51,6 @@ export function AddTaskModal({ isOpen, onOpenChange, onSuccess, caseId }: AddTas
       setAssigneeIds(new Set());
     },
   });
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const data = await getActiveUsersAction();
-        if (cancelled) return;
-        setUsers(data);
-      } catch {
-        if (cancelled) return;
-        queue.add({ title: "Failed to load assignees" }, { timeout: 5000 });
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
 
   async function handleSubmit() {
     if (!title.trim()) return;
@@ -101,7 +83,12 @@ export function AddTaskModal({ isOpen, onOpenChange, onSuccess, caseId }: AddTas
           placeholder="Optional description..."
           isDisabled={isPending}
         />
-        <Select label="Status" value={status} onChange={(k) => setStatus(String(k) as TaskStatus)}>
+        <Select
+          label="Status"
+          value={status}
+          onChange={(k) => setStatus(String(k) as TaskStatus)}
+          isDisabled={isPending}
+        >
           {STATUS_OPTIONS.map((s) => (
             <SelectItem key={s} id={s}>
               {s}

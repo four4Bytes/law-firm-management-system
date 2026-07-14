@@ -5,10 +5,13 @@ import { useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
-import type { MilestoneRow } from "@/features/cases/queries";
+import type { MilestoneRow as CaseMilestoneRow } from "@/features/cases/queries";
+import { getMilestoneRowByIdAction } from "@/features/milestones/actions";
 import { AddMilestoneModal } from "@/features/milestones/components/AddMilestoneModal/AddMilestoneModal";
 import { EditMilestoneModal } from "@/features/milestones/components/EditMilestoneModal/EditMilestoneModal";
+import type { MilestoneRow } from "@/features/milestones/queries";
 import { formatDate } from "@/lib/date";
 
 import tabStyles from "./Tab.module.css";
@@ -23,7 +26,7 @@ const statusClassMap: Record<string, string> = {
   Cancelled: tabStyles.statusCancelled,
 };
 
-const columns: ColumnDef<MilestoneRow>[] = [
+const columns: ColumnDef<CaseMilestoneRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
   {
     id: "due_date",
@@ -44,12 +47,24 @@ const columns: ColumnDef<MilestoneRow>[] = [
 
 export function MilestonesTab({ caseId }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
+  const [editMilestone, setEditMilestone] = useState<MilestoneRow | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   function handleRefresh() {
     setRefreshTrigger((n) => n + 1);
+  }
+
+  async function handleRowAction(id: string) {
+    try {
+      const data = await getMilestoneRowByIdAction(id);
+      if (data) {
+        setEditMilestone(data);
+      } else {
+        queue.add({ title: "Milestone not found" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to load milestone" }, { timeout: 5000 });
+    }
   }
 
   return (
@@ -64,10 +79,7 @@ export function MilestonesTab({ caseId }: Props) {
         renderAddButton
         addButtonLabel="Add Milestone"
         onAddButtonPress={() => setIsAddOpen(true)}
-        onRowAction={(id) => {
-          setSelectedMilestoneId(id);
-          setIsEditOpen(true);
-        }}
+        onRowAction={handleRowAction}
         refreshTrigger={refreshTrigger}
       />
 
@@ -78,12 +90,13 @@ export function MilestonesTab({ caseId }: Props) {
         caseId={caseId}
       />
 
-      {isEditOpen && selectedMilestoneId && (
+      {editMilestone && (
         <EditMilestoneModal
-          isOpen={isEditOpen}
-          onOpenChange={setIsEditOpen}
+          key={editMilestone.id}
+          isOpen={!!editMilestone}
+          onOpenChange={() => setEditMilestone(null)}
           onSuccess={handleRefresh}
-          milestoneId={selectedMilestoneId}
+          milestone={editMilestone}
         />
       )}
     </>

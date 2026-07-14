@@ -5,8 +5,10 @@ import { useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { queue } from "@/components/ui/Toast/Toast";
 import { getConsultationPaymentsPaginatedAction } from "@/features/consultations/actions";
 import type { PaymentRow } from "@/features/consultations/queries";
+import { getPaymentRowByIdAction } from "@/features/payments/actions";
 import { AddPaymentModal } from "@/features/payments/components/AddPaymentModal/AddPaymentModal";
 import { EditPaymentModal } from "@/features/payments/components/EditPaymentModal/EditPaymentModal";
 import { formatDate } from "@/lib/date";
@@ -53,12 +55,24 @@ const columns: ColumnDef<PaymentRow>[] = [
 
 export function PaymentsTab({ consultationId }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const [editPayment, setEditPayment] = useState<PaymentRow | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   function handleRefresh() {
     setRefreshTrigger((n) => n + 1);
+  }
+
+  async function handleRowAction(id: string) {
+    try {
+      const data = await getPaymentRowByIdAction(id);
+      if (data) {
+        setEditPayment(data);
+      } else {
+        queue.add({ title: "Payment not found" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to load payment" }, { timeout: 5000 });
+    }
   }
 
   return (
@@ -73,10 +87,7 @@ export function PaymentsTab({ consultationId }: Props) {
         renderAddButton
         addButtonLabel="Add Payment"
         onAddButtonPress={() => setIsAddOpen(true)}
-        onRowAction={(id) => {
-          setSelectedPaymentId(id);
-          setIsEditOpen(true);
-        }}
+        onRowAction={handleRowAction}
         refreshTrigger={refreshTrigger}
       />
 
@@ -87,12 +98,13 @@ export function PaymentsTab({ consultationId }: Props) {
         consultationId={consultationId}
       />
 
-      {isEditOpen && selectedPaymentId && (
+      {editPayment && (
         <EditPaymentModal
-          isOpen={isEditOpen}
-          onOpenChange={setIsEditOpen}
+          key={editPayment.id}
+          isOpen={!!editPayment}
+          onOpenChange={() => setEditPayment(null)}
           onSuccess={handleRefresh}
-          paymentId={selectedPaymentId}
+          payment={editPayment}
         />
       )}
     </>

@@ -90,6 +90,7 @@ export function AddPaymentModal({
           label="Status"
           value={status}
           onChange={(k) => setStatus(String(k) as PaymentStatus)}
+          isDisabled={isPending}
         >
           {STATUS_OPTIONS.map((s) => (
             <SelectItem key={s} id={s}>

@@ -6,9 +6,16 @@ import { FaArrowLeft } from "react-icons/fa6";
 
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
+import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { getClientForEditAction } from "@/features/clients/actions";
+import type { ClientEditData } from "@/features/clients/queries";
+import { getConsultationForEditAction } from "@/features/consultations/actions";
 import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
-import type { ConsultationOverviewData } from "@/features/consultations/queries";
+import type {
+  ConsultationEditData,
+  ConsultationOverviewData,
+} from "@/features/consultations/queries";
 
 import styles from "./ConsultationDetail.module.css";
 import { ConsultationOverview } from "./ConsultationOverview";
@@ -26,7 +33,10 @@ export function ConsultationDetail({ overview }: Props) {
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editData, setEditData] = useState<{
+    consultation: ConsultationEditData;
+    clientData: ClientEditData;
+  } | null>(null);
 
   const validTabs = ["notes", "attachments", "payments", "activity"] as const;
   type ValidTab = (typeof validTabs)[number];
@@ -40,13 +50,25 @@ export function ConsultationDetail({ overview }: Props) {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  async function handleEdit() {
+    try {
+      const consultation = await getConsultationForEditAction(overview.id);
+      if (!consultation) throw new Error("Consultation not found");
+      const clientData = await getClientForEditAction(consultation.client_id);
+      if (!clientData) throw new Error("Client not found");
+      setEditData({ consultation, clientData });
+    } catch {
+      queue.add({ title: "Failed to load consultation data" }, { timeout: 5000 });
+    }
+  }
+
   return (
     <div className={styles.detail}>
       <Link href="/consultation" className={styles.backLink}>
         <FaArrowLeft /> Back to Consultations
       </Link>
 
-      <ConsultationOverview data={overview} onEdit={() => setIsEditOpen(true)} />
+      <ConsultationOverview data={overview} onEdit={handleEdit} />
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Consultation details">
@@ -71,20 +93,22 @@ export function ConsultationDetail({ overview }: Props) {
         </TabPanels>
       </Tabs>
 
-      {isEditOpen && (
+      {editData && (
         <EditConsultationModal
-          isOpen={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          consultationId={overview.id}
+          key={editData.consultation.id}
+          isOpen={!!editData}
+          onOpenChange={() => setEditData(null)}
           onSuccess={() => {
-            setIsEditOpen(false);
+            setEditData(null);
             router.refresh();
           }}
           onDeleted={() => {
             startLoading();
-            setIsEditOpen(false);
+            setEditData(null);
             router.push("/consultation");
           }}
+          consultation={editData.consultation}
+          clientData={editData.clientData}
         />
       )}
     </div>

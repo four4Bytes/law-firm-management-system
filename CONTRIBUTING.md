@@ -2,6 +2,27 @@
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Tech Stack
+
+- [Next.js 16 (App Router)](https://nextjs.org/docs) — React framework with file-based routing and server components.
+- [React 19](https://react.dev) — UI library, with React Compiler for automatic memoization.
+- [TypeScript](https://www.typescriptlang.org/docs) — strict-mode typed JavaScript.
+- [pnpm](https://pnpm.io/motivation) — fast, disk-efficient package manager.
+- [PostgreSQL](https://www.postgresql.org/docs) — relational database.
+- [Prisma 7](https://www.prisma.io/docs) — ORM with `@prisma/adapter-pg` driver and Prisma Studio.
+- [NextAuth v5](https://next-auth.js.org/getting-started/introduction) — authentication (JWT sessions, Google OAuth, Prisma adapter).
+- [AWS SDK v3 (S3)](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3) — object storage via presigned URLs; [MinIO](https://min.io/docs/minio/container/index.html) for local dev.
+- [react-aria-components](https://react-spectrum.adobe.com/react-aria/index.html) — accessible headless UI primitives.
+- [react-icons](https://react-icons.github.io/react-icons) — icon library.
+- [CSS Modules](https://nextjs.org/docs/app/building-your-application/styling/css-modules) — scoped styles; [clsx](https://github.com/lukeed/clsx) for composition.
+- [Zod](https://zod.dev) — schema validation.
+- [ESLint](https://eslint.org/docs/latest) (flat config) + [Prettier](https://prettier.io/docs) — linting and formatting.
+- [Husky](https://typicode.github.io/husky) + [lint-staged](https://github.com/lint-staged/lint-staged) — pre-commit hooks.
+- [Vitest](https://vitest.dev/guide) + [Playwright](https://playwright.dev/docs/intro) — unit and browser testing.
+- [Storybook](https://storybook.js.org/docs) — component development environment.
+- [Docker](https://docs.docker.com) + [Docker Compose](https://docs.docker.com/compose) — containerized dev and production environments.
+- [GitHub Actions](https://docs.github.com/actions) — CI/CD; [Dependabot](https://docs.github.com/code-security/dependabot) — dependency updates.
+
 ## Prerequisites
 
 - Node.js 22+
@@ -238,27 +259,6 @@ additional Vercel environment variables are needed for version display.
 
 Optionally, override the version at deploy time by setting
 `NEXT_PUBLIC_APP_VERSION` in your Vercel project dashboard.
-
-## Tech Stack
-
-- [Next.js 16 (App Router)](https://nextjs.org/docs) — React framework with file-based routing and server components.
-- [React 19](https://react.dev) — UI library, with React Compiler for automatic memoization.
-- [TypeScript](https://www.typescriptlang.org/docs) — strict-mode typed JavaScript.
-- [pnpm](https://pnpm.io/motivation) — fast, disk-efficient package manager.
-- [PostgreSQL](https://www.postgresql.org/docs) — relational database.
-- [Prisma 7](https://www.prisma.io/docs) — ORM with `@prisma/adapter-pg` driver and Prisma Studio.
-- [NextAuth v5](https://next-auth.js.org/getting-started/introduction) — authentication (JWT sessions, Google OAuth, Prisma adapter).
-- [AWS SDK v3 (S3)](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3) — object storage via presigned URLs; [MinIO](https://min.io/docs/minio/container/index.html) for local dev.
-- [react-aria-components](https://react-spectrum.adobe.com/react-aria/index.html) — accessible headless UI primitives.
-- [react-icons](https://react-icons.github.io/react-icons) — icon library.
-- [CSS Modules](https://nextjs.org/docs/app/building-your-application/styling/css-modules) — scoped styles; [clsx](https://github.com/lukeed/clsx) for composition.
-- [Zod](https://zod.dev) — schema validation.
-- [ESLint](https://eslint.org/docs/latest) (flat config) + [Prettier](https://prettier.io/docs) — linting and formatting.
-- [Husky](https://typicode.github.io/husky) + [lint-staged](https://github.com/lint-staged/lint-staged) — pre-commit hooks.
-- [Vitest](https://vitest.dev/guide) + [Playwright](https://playwright.dev/docs/intro) — unit and browser testing.
-- [Storybook](https://storybook.js.org/docs) — component development environment.
-- [Docker](https://docs.docker.com) + [Docker Compose](https://docs.docker.com/compose) — containerized dev and production environments.
-- [GitHub Actions](https://docs.github.com/actions) — CI/CD; [Dependabot](https://docs.github.com/code-security/dependabot) — dependency updates.
 
 ## Using AI/LLM Coding Agents
 

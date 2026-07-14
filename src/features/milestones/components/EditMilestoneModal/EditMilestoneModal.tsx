@@ -41,6 +41,8 @@ export function EditMilestoneModal({
   milestoneId,
 }: EditMilestoneModalProps) {
   const [milestone, setMilestone] = useState<MilestoneRow | null>(null);
+  type LoadState = "loading" | "loaded" | "not-found" | "error";
+  const [loadState, setLoadState] = useState<LoadState>("loading");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -65,6 +67,7 @@ export function EditMilestoneModal({
     let cancelled = false;
 
     async function load() {
+      setLoadState("loading");
       try {
         const data = await getMilestoneRowByIdAction(id);
         if (cancelled) return;
@@ -74,12 +77,15 @@ export function EditMilestoneModal({
           setDescription(data.description ?? "");
           setDueDate(toCalendarDate(data.due_date));
           setStatus(data.status as CaseMilestoneStatus);
+          setLoadState("loaded");
         } else {
           setMilestone(null);
+          setLoadState("not-found");
         }
       } catch {
         if (cancelled) return;
         setMilestone(null);
+        setLoadState("error");
         queue.add({ title: "Failed to load milestone" }, { timeout: 5000 });
       }
     }
@@ -128,7 +134,7 @@ export function EditMilestoneModal({
     }
   }
 
-  const isLoadingData = isOpen && milestone == null;
+  const isLoadingData = isOpen && loadState === "loading";
   const hasChanges =
     title.trim() !== (milestone?.title ?? "") ||
     description.trim() !== (milestone?.description ?? "") ||
@@ -152,7 +158,22 @@ export function EditMilestoneModal({
     );
   }
 
-  if (!milestone) {
+  if (loadState === "error") {
+    return (
+      <Modal
+        title="Edit Milestone"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        className={styles.modal}
+      >
+        <div className={styles.loadingContainer}>
+          <span>Failed to load milestone. Please try again.</span>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (loadState === "not-found") {
     return (
       <Modal
         title="Edit Milestone"
@@ -166,6 +187,8 @@ export function EditMilestoneModal({
       </Modal>
     );
   }
+
+  if (!milestone) return null;
 
   return (
     <>

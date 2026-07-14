@@ -41,6 +41,8 @@ export function EditPaymentModal({
   paymentId,
 }: EditPaymentModalProps) {
   const [payment, setPayment] = useState<PaymentRow | null>(null);
+  type LoadState = "loading" | "loaded" | "not-found" | "error";
+  const [loadState, setLoadState] = useState<LoadState>("loading");
 
   const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<CalendarDate>(today(getLocalTimeZone()));
@@ -66,6 +68,7 @@ export function EditPaymentModal({
     let cancelled = false;
 
     async function load() {
+      setLoadState("loading");
       try {
         const data = await getPaymentRowByIdAction(id);
         if (cancelled) return;
@@ -76,12 +79,16 @@ export function EditPaymentModal({
           setStatus(data.status as PaymentStatus);
           setPaymentMethod(data.payment_method ?? "");
           setReceiptNumber(data.receipt_number ?? "");
+          setLoadState("loaded");
         } else {
           setPayment(null);
+          setLoadState("not-found");
         }
       } catch {
         if (cancelled) return;
         setPayment(null);
+        setLoadState("error");
+        queue.add({ title: "Failed to load payment" }, { timeout: 5000 });
       }
     }
 
@@ -128,7 +135,7 @@ export function EditPaymentModal({
     }
   }
 
-  const isLoadingData = isOpen && payment == null;
+  const isLoadingData = isOpen && loadState === "loading";
   const hasChanges =
     amount.trim() !== String(payment?.amount ?? "") ||
     status !== (payment?.status ?? "Unpaid") ||
@@ -153,7 +160,22 @@ export function EditPaymentModal({
     );
   }
 
-  if (!payment) {
+  if (loadState === "error") {
+    return (
+      <Modal
+        title="Edit Payment"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        className={styles.modal}
+      >
+        <div className={styles.loadingContainer}>
+          <span>Failed to load payment. Please try again.</span>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (loadState === "not-found") {
     return (
       <Modal
         title="Edit Payment"
@@ -167,6 +189,8 @@ export function EditPaymentModal({
       </Modal>
     );
   }
+
+  if (!payment) return null;
 
   return (
     <>

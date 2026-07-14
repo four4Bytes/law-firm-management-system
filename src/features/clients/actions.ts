@@ -13,9 +13,11 @@ import { createClient, updateClient } from "./mutations";
 import { getClientForEdit, type ClientEditData } from "./queries";
 import { ClientCreatePayloadSchema, ClientIdSchema, ClientUpdatePayloadSchema } from "./schemas";
 
+export type ClientSummary = Pick<Client, "id" | "name">;
+
 export async function createClientAction(
   payload: z.input<typeof ClientCreatePayloadSchema>,
-): Promise<ActionDataResponse<Pick<Client, "id" | "name">>> {
+): Promise<ActionDataResponse<ClientSummary>> {
   const session = await requireAuth();
 
   const parsed = ClientCreatePayloadSchema.safeParse(payload);
@@ -59,7 +61,7 @@ export async function getClientForEditAction(id: string): Promise<ClientEditData
 
 export async function updateClientAction(
   payload: z.input<typeof ClientUpdatePayloadSchema>,
-): Promise<ActionDataResponse<Pick<Client, "id" | "name">>> {
+): Promise<ActionDataResponse<ClientSummary>> {
   const session = await requireAuth();
 
   const parsed = ClientUpdatePayloadSchema.safeParse(payload);

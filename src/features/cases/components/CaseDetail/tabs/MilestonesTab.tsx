@@ -7,7 +7,7 @@ import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
-import type { MilestoneRow as CaseMilestoneRow } from "@/features/cases/queries";
+import type { CaseMilestoneListRow } from "@/features/cases/queries";
 import { getMilestoneRowByIdAction } from "@/features/milestones/actions";
 import { AddMilestoneModal } from "@/features/milestones/components/AddMilestoneModal/AddMilestoneModal";
 import { EditMilestoneModal } from "@/features/milestones/components/EditMilestoneModal/EditMilestoneModal";
@@ -26,7 +26,7 @@ const statusClassMap: Record<string, string> = {
   Cancelled: tabStyles.statusCancelled,
 };
 
-const columns: ColumnDef<CaseMilestoneRow>[] = [
+const columns: ColumnDef<CaseMilestoneListRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
   {
     id: "due_date",

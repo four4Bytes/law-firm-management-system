@@ -297,7 +297,7 @@ export const getCaseDocumentsPaginated = cache(
 
 // ----- Milestones -----
 
-export type MilestoneRow = Pick<CaseMilestone, "id" | "title" | "due_date" | "status">;
+export type CaseMilestoneListRow = Pick<CaseMilestone, "id" | "title" | "due_date" | "status">;
 
 export const getCaseMilestonesPaginated = cache(
   async ({
@@ -307,7 +307,7 @@ export const getCaseMilestonesPaginated = cache(
     pageSize = 20,
     sort,
   }: CasePageQuery): Promise<{
-    rows: MilestoneRow[];
+    rows: CaseMilestoneListRow[];
     nextCursor: string | null;
   }> => {
     const where = {
@@ -337,7 +337,7 @@ export const getCaseMilestonesPaginated = cache(
     const hasMore = milestones.length > pageSize;
     if (hasMore) milestones.pop();
 
-    const rows: MilestoneRow[] = milestones.map((m) => ({
+    const rows: CaseMilestoneListRow[] = milestones.map((m) => ({
       id: m.id,
       title: m.title,
       due_date: m.due_date,

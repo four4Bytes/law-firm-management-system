@@ -8,8 +8,9 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createTaskAction } from "@/features/tasks/actions";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
-import { TaskStatus, type User } from "@/generated/prisma/browser";
+import { TaskStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddTaskModal.module.css";
@@ -21,7 +22,7 @@ interface AddTaskModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   caseId: string;
-  users: Pick<User, "id" | "name">[];
+  users: ActiveUserSummary[];
 }
 
 export function AddTaskModal({

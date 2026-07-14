@@ -5,15 +5,20 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
-import type { User } from "@/generated/prisma/client";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 
 import { createTask, deleteTask, updateTask } from "./mutations";
-import { getActiveUsers, getTaskById, getTaskDetailRowById, type TaskDetailRow } from "./queries";
+import {
+  getActiveUsers,
+  getTaskById,
+  getTaskDetailRowById,
+  type ActiveUserSummary,
+  type TaskDetailRow,
+} from "./queries";
 import { TaskCreatePayloadSchema, TaskIdSchema, TaskUpdatePayloadSchema } from "./schemas";
 
-export async function getActiveUsersAction(): Promise<Pick<User, "id" | "name">[]> {
+export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
   await requireAuth();
   return getActiveUsers();
 }

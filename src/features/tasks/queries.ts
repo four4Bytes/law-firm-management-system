@@ -3,6 +3,8 @@ import { cache } from "react";
 import type { User } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
+export type ActiveUserSummary = Pick<User, "id" | "name">;
+
 export type TaskRow = {
   id: string;
   title: string;
@@ -17,7 +19,7 @@ export type TaskDetailRow = TaskRow & {
   assignee_ids: string[];
 };
 
-export const getActiveUsers = cache(async (): Promise<Pick<User, "id" | "name">[]> => {
+export const getActiveUsers = cache(async (): Promise<ActiveUserSummary[]> => {
   return prisma.user.findMany({
     where: { is_active: true },
     select: { id: true, name: true },

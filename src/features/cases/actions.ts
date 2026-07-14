@@ -16,9 +16,9 @@ import {
   getCaseTasksPaginated,
   type ActivityLogRow,
   type CaseEditData,
+  type CaseMilestoneListRow,
   type CaseOverviewData,
   type CaseRow,
-  type MilestoneRow,
   type NoteRow,
   type PaymentRow,
 } from "@/features/cases/queries";
@@ -121,7 +121,7 @@ export async function getCaseDocumentsPaginatedAction(
 export async function getCaseMilestonesPaginatedAction(
   params: z.input<typeof CasePageQuerySchema>,
 ): Promise<{
-  rows: MilestoneRow[];
+  rows: CaseMilestoneListRow[];
   nextCursor: string | null;
 }> {
   await requireAuth();

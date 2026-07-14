@@ -97,6 +97,7 @@ export function EditPaymentModal({
 
   const hasChanges =
     amount.trim() !== String(payment.amount) ||
+    paymentDate.compare(toCalendarDate(payment.payment_date)) !== 0 ||
     status !== (payment.status as PaymentStatus) ||
     paymentMethod.trim() !== (payment.payment_method ?? "") ||
     receiptNumber.trim() !== (payment.receipt_number ?? "");

@@ -11,9 +11,9 @@ import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { deleteTaskAction, updateTaskAction } from "@/features/tasks/actions";
-import type { TaskDetailRow } from "@/features/tasks/queries";
+import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
-import { TaskStatus, type User } from "@/generated/prisma/browser";
+import { TaskStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditTaskModal.module.css";
@@ -25,7 +25,7 @@ interface EditTaskModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   task: TaskDetailRow;
-  users: Pick<User, "id" | "name">[];
+  users: ActiveUserSummary[];
 }
 
 export function EditTaskModal({
@@ -128,6 +128,7 @@ export function EditTaskModal({
             label="Status"
             value={status}
             onChange={(k) => setStatus(String(k) as TaskStatus)}
+            isDisabled={isPending || isDeleting}
           >
             {STATUS_OPTIONS.map((s) => (
               <SelectItem key={s} id={s}>

@@ -10,8 +10,7 @@ import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import { getActiveUsersAction, getTaskDetailRowByIdAction } from "@/features/tasks/actions";
 import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
 import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTaskModal";
-import type { TaskDetailRow, TaskRow } from "@/features/tasks/queries";
-import type { User } from "@/generated/prisma/browser";
+import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { formatDateTime } from "@/lib/date";
 
 import tabStyles from "./Tab.module.css";
@@ -52,7 +51,7 @@ const columns: ColumnDef<TaskRow>[] = [
 export function TasksTab({ caseId }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editTask, setEditTask] = useState<TaskDetailRow | null>(null);
-  const [users, setUsers] = useState<Pick<User, "id" | "name">[]>([]);
+  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleRefresh = useCallback(() => setRefreshTrigger((n) => n + 1), []);

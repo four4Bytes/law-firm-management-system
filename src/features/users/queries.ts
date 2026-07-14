@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import { Role } from "@/generated/prisma/client";
+import { Role, type User } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -61,32 +61,14 @@ export const getUserByEmail = cache(
   },
 );
 
-export const getUsers = cache(
-  async (): Promise<
-    Array<{
-      id: string;
-      name: string;
-      email: string;
-      role: Role | null;
-      is_active: boolean;
-      created_at: Date;
-    }>
-  > => {
-    return prisma.user.findMany({
-      orderBy: { created_at: "desc" },
-      select: userSelect,
-    });
-  },
-);
+export const getUsers = cache(async (): Promise<UserRow[]> => {
+  return prisma.user.findMany({
+    orderBy: { created_at: "desc" },
+    select: userSelect,
+  });
+});
 
-export type UserRow = {
-  id: string;
-  name: string;
-  email: string;
-  role: Role | null;
-  is_active: boolean;
-  created_at: Date;
-};
+export type UserRow = Pick<User, "id" | "name" | "email" | "role" | "is_active" | "created_at">;
 
 export interface UserPageQuery extends PageQuery {
   includeInactive?: boolean;
@@ -100,14 +82,7 @@ export const getUsersPaginated = cache(
     includeInactive = false,
     sort,
   }: UserPageQuery): Promise<{
-    users: Array<{
-      id: string;
-      name: string;
-      email: string;
-      role: Role | null;
-      is_active: boolean;
-      created_at: Date;
-    }>;
+    users: UserRow[];
     nextCursor: string | null;
   }> => {
     const baseFilter = includeInactive ? {} : { is_active: true };

@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import type { Client } from "@/generated/prisma/client";
 import type { ActionDataResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 
@@ -12,11 +13,9 @@ import { createClient, updateClient } from "./mutations";
 import { getClientForEdit, type ClientEditData } from "./queries";
 import { ClientCreatePayloadSchema, ClientIdSchema, ClientUpdatePayloadSchema } from "./schemas";
 
-type ClientCreateResult = { id: string; name: string };
-
 export async function createClientAction(
   payload: z.input<typeof ClientCreatePayloadSchema>,
-): Promise<ActionDataResponse<ClientCreateResult>> {
+): Promise<ActionDataResponse<Pick<Client, "id" | "name">>> {
   const session = await requireAuth();
 
   const parsed = ClientCreatePayloadSchema.safeParse(payload);
@@ -60,7 +59,7 @@ export async function getClientForEditAction(id: string): Promise<ClientEditData
 
 export async function updateClientAction(
   payload: z.input<typeof ClientUpdatePayloadSchema>,
-): Promise<ActionDataResponse<ClientCreateResult>> {
+): Promise<ActionDataResponse<Pick<Client, "id" | "name">>> {
   const session = await requireAuth();
 
   const parsed = ClientUpdatePayloadSchema.safeParse(payload);

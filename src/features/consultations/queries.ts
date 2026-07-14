@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import { getDocumentsPaginated } from "@/features/documents/queries";
+import type { Consultation } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -342,13 +343,10 @@ export const getConsultationsPaginated = cache(
 
 // ----- Consultation edit data -----
 
-export type ConsultationEditData = {
-  id: string;
-  client_id: string;
-  concern: string;
-  booking_datetime: Date;
-  status: string;
-};
+export type ConsultationEditData = Pick<
+  Consultation,
+  "id" | "client_id" | "concern" | "booking_datetime" | "status"
+>;
 
 export const getConsultationEditData = cache(
   async (id: string): Promise<ConsultationEditData | null> => {

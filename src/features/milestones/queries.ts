@@ -1,14 +1,12 @@
 import { cache } from "react";
 
+import type { CaseMilestone } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export type MilestoneRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  due_date: Date;
-  status: string;
-};
+export type MilestoneRow = Pick<
+  CaseMilestone,
+  "id" | "title" | "description" | "due_date" | "status"
+>;
 
 export const getMilestoneById = cache(async (id: string) => {
   return prisma.caseMilestone.findUnique({

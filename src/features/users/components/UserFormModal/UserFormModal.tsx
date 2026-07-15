@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Form } from "react-aria-components";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -38,6 +38,7 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
   const [email, setEmail] = useState(user?.email ?? "");
   const [role, setRole] = useState<Role | null>(user?.role ?? null);
   const [pendingDevEmail, setPendingDevEmail] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const { isPending, submitForm } = useModalForm<{ email: string; role: Role; userId?: string }>({
     submit: async (args) =>
@@ -53,18 +54,29 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
 
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
-    if (isPending) return;
+    if (isPending || submittingRef.current) return;
     if (!email || !role) return;
 
-    if (mode === "add") {
-      const isDev = await checkDeveloperEmail(email);
-      if (isDev) {
-        setPendingDevEmail(email);
-        return;
-      }
-    }
+    submittingRef.current = true;
 
-    await submitForm({ email: requiredString(email), role, userId: user?.id });
+    try {
+      if (mode === "add") {
+        try {
+          const isDev = await checkDeveloperEmail(email);
+          if (isDev) {
+            setPendingDevEmail(email);
+            return;
+          }
+        } catch {
+          queue.add({ title: "Failed to verify email. Please try again." }, { timeout: 5000 });
+          return;
+        }
+      }
+
+      await submitForm({ email: requiredString(email), role, userId: user?.id });
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
   async function handleDevConfirm() {

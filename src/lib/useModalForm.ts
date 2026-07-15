@@ -59,6 +59,13 @@ export function useModalForm<TArgs>({
 }: UseModalFormOptions<TArgs>): UseModalFormReturn<TArgs> {
   const [isPending, setIsPending] = useState(false);
 
+  /**
+   * Validates (when `schema` is set) then invokes `submit`, handling toasts and lifecycle.
+   *
+   * @param args - The payload passed to the configured Server Action.
+   * @returns A promise that resolves once the action completes (or immediately when
+   * no `submit` is configured, or when schema validation fails).
+   */
   async function submitForm(args: TArgs) {
     if (!submit) return;
 

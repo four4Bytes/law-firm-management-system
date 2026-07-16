@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type SortDescriptor } from "react-aria-components";
 import { FaPlus } from "react-icons/fa6";
 
@@ -62,16 +62,11 @@ export function ServerDataTable<T extends { id: string }>({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
-  const [isPending, startTransition] = useTransition();
-  const [isClient, setIsClient] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
 
-  const isLoading = isPending || isLoadingMore;
+  const isLoading = isFetching || isLoadingMore;
   const debouncedSearch = useDebounce(search, 300);
   const skipInitialFetch = useRef(initialRows !== undefined);
-
-  useEffect(() => {
-    startTransition(() => setIsClient(true));
-  }, [startTransition]);
 
   const fetchActionRef = useRef(fetchAction);
   useEffect(() => {
@@ -89,7 +84,9 @@ export function ServerDataTable<T extends { id: string }>({
     let cancelled = false;
     ++generationRef.current;
 
-    startTransition(async () => {
+    setIsFetching(true);
+
+    async function fetchData() {
       try {
         const result = await fetchActionRef.current({
           search: debouncedSearch,
@@ -108,13 +105,17 @@ export function ServerDataTable<T extends { id: string }>({
           title: "Failed to load data",
           description: "Could not retrieve the list. Please try again.",
         });
+      } finally {
+        if (!cancelled) setIsFetching(false);
       }
-    });
+    }
+
+    void fetchData();
 
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, sortDescriptor, startTransition, refreshTrigger]);
+  }, [debouncedSearch, sortDescriptor, refreshTrigger]);
 
   const handleLoadMore = useCallback(async () => {
     if (isLoading || !hasMore || !cursor) return;
@@ -169,7 +170,7 @@ export function ServerDataTable<T extends { id: string }>({
           </Button>
         )}
       </div>
-      {isInitialLoad || !isClient ? (
+      {isInitialLoad ? (
         <div className={styles.loadingContainer}>
           <ProgressCircle aria-label={loadingMessage} />
         </div>

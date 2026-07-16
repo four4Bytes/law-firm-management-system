@@ -1,0 +1,122 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Dialog, DialogTrigger } from "react-aria-components";
+import { FaBell } from "react-icons/fa6";
+
+import { Button } from "@/components/ui/Button/Button";
+import { Popover } from "@/components/ui/Popover/Popover";
+import {
+  getUnreadNotificationsAction,
+  markAllNotificationsReadAction,
+  markNotificationReadAction,
+} from "@/features/notifications/actions";
+import { useUnreadCount } from "@/features/notifications/hooks/useUnreadCount";
+import type { NotificationRow } from "@/features/notifications/queries";
+import { timeAgo } from "@/lib/date";
+
+import styles from "./NotificationBell.module.css";
+
+interface NotificationBellProps {
+  initialUnreadCount: number;
+}
+
+export function NotificationBell({ initialUnreadCount }: NotificationBellProps) {
+  const router = useRouter();
+  const [unreadCount, setUnreadCount] = useUnreadCount(initialUnreadCount);
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (isOpen) {
+      const load = async () => {
+        setIsLoading(true);
+        try {
+          const data = await getUnreadNotificationsAction();
+          if (!cancelled) {
+            setNotifications(data);
+          }
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        }
+      };
+      void load();
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  async function handleMarkRead(notificationId: string, actionUrl: string | null) {
+    const result = await markNotificationReadAction({ notificationId });
+    if (result.success) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      if (actionUrl) {
+        router.push(actionUrl);
+      }
+    }
+  }
+
+  async function handleMarkAllRead() {
+    const result = await markAllNotificationsReadAction();
+    if (result.success) {
+      setUnreadCount(0);
+      setNotifications([]);
+    }
+  }
+
+  return (
+    <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
+      <Button variant="ghost" aria-label="Notifications" className={styles.bellButton}>
+        <FaBell className={styles.bellIcon} />
+        {unreadCount > 0 && (
+          <span className={styles.badge}>{unreadCount > 99 ? "99+" : unreadCount}</span>
+        )}
+      </Button>
+
+      <Popover placement="bottom end" className={styles.popover}>
+        <Dialog className={styles.dialog}>
+          <div className={styles.header}>
+            <span className={styles.headerTitle}>Notifications</span>
+            {notifications.length > 0 && (
+              <Button variant="ghost" className={styles.markAllButton} onPress={handleMarkAllRead}>
+                Mark all read
+              </Button>
+            )}
+          </div>
+
+          <div className={styles.list}>
+            {isLoading ? (
+              <div className={styles.loading}>Loading…</div>
+            ) : notifications.length === 0 ? (
+              <div className={styles.empty}>No notifications</div>
+            ) : (
+              notifications.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  className={styles.item}
+                  onClick={() => handleMarkRead(n.id, n.action_url)}
+                >
+                  <div className={styles.itemContent}>
+                    <span className={styles.itemTitle}>{n.title}</span>
+                    <span className={styles.itemMessage}>{n.message}</span>
+                    <time className={styles.itemTime} dateTime={n.created_at.toISOString()}>
+                      {timeAgo(n.created_at)}
+                    </time>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
+  );
+}

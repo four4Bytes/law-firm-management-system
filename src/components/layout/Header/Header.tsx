@@ -6,6 +6,7 @@ import { useState } from "react";
 import { FaUser } from "react-icons/fa6";
 
 import { SignOutButton } from "@/features/auth/components/SignOutButton/SignOutButton";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell/NotificationBell";
 import { roleLabels } from "@/features/users/constants";
 import type { Role } from "@/generated/prisma/browser";
 
@@ -15,9 +16,10 @@ interface HeaderProps {
   userImage: string | null;
   userName?: string | null;
   userRole?: Role | null;
+  initialUnreadCount: number;
 }
 
-export function Header({ userImage, userName, userRole }: HeaderProps) {
+export function Header({ userImage, userName, userRole, initialUnreadCount }: HeaderProps) {
   const pathname = usePathname();
   const [imgError, setImgError] = useState(false);
 
@@ -33,6 +35,7 @@ export function Header({ userImage, userName, userRole }: HeaderProps) {
     <header className={styles.header}>
       <h2 className={styles.pageTitle}>{getPageTitle(pathname || "")}</h2>
       <div className={styles.leftSection}>
+        <NotificationBell initialUnreadCount={initialUnreadCount} />
         <div className={styles.userSection}>
           <div className={styles.userProfile}>
             {userImage && !imgError ? (

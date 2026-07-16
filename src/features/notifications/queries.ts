@@ -67,7 +67,7 @@ export const getUnreadNotificationCount = cache(async (userId: string): Promise<
 });
 
 export const getUnreadNotifications = cache(
-  async (userId: string, limit = 5): Promise<NotificationRow[]> => {
+  async (userId: string, limit = 30): Promise<NotificationRow[]> => {
     return prisma.notification.findMany({
       where: { user_id: userId, is_read: false },
       orderBy: { created_at: "desc" },

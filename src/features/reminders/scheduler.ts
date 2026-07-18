@@ -6,6 +6,8 @@ import { getOptionalInteger } from "@/lib/env";
 import {
   claimConsultationReminder,
   claimMilestoneReminder,
+  releaseConsultationReminder,
+  releaseMilestoneReminder,
   updateConsultationsRemindedAt,
   updateMilestonesRemindedAt,
 } from "./mutations";
@@ -64,6 +66,7 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
       reminded.push(m.id);
     } catch (err) {
       console.error(`Failed to dispatch milestone reminder ${m.id}:`, err);
+      await releaseMilestoneReminder(m.id);
     }
   }
 
@@ -103,6 +106,7 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
       reminded.push(c.id);
     } catch (err) {
       console.error(`Failed to dispatch consultation reminder ${c.id}:`, err);
+      await releaseConsultationReminder(c.id);
     }
   }
 

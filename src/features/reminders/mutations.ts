@@ -28,6 +28,20 @@ export async function claimConsultationReminder(id: string): Promise<boolean> {
   return count > 0;
 }
 
+export async function releaseMilestoneReminder(id: string): Promise<void> {
+  await prisma.caseMilestone.update({
+    where: { id },
+    data: { last_reminded_at: null },
+  });
+}
+
+export async function releaseConsultationReminder(id: string): Promise<void> {
+  await prisma.consultation.update({
+    where: { id },
+    data: { last_reminded_at: null },
+  });
+}
+
 export async function updateMilestonesRemindedAt(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   await prisma.caseMilestone.updateMany({

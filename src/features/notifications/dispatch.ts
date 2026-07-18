@@ -24,6 +24,7 @@ function pickTemplate(type: NotificationType) {
       return consultationUpdatedTemplate;
     case NotificationType.MilestoneDueSoon:
     case NotificationType.MilestoneCompleted:
+    case NotificationType.MilestoneStatusChanged:
     case NotificationType.MilestoneOverdue:
       return milestoneTemplate;
     case NotificationType.TaskAssigned:

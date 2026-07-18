@@ -375,7 +375,7 @@ export async function seedMilestones(
             type:
               m.status === "Done"
                 ? NotificationType.MilestoneCompleted
-                : NotificationType.MilestoneDueSoon,
+                : NotificationType.MilestoneStatusChanged,
             title: `Milestone: ${m.title}`,
             message: `Milestone "${m.title}" for case "${m.caseTitle}" is ${m.status === "Done" ? "completed" : "due on " + dueDate.toLocaleDateString()}`,
             is_read: m.status === "Done",

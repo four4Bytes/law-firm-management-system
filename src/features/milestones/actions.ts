@@ -118,12 +118,12 @@ export async function updateMilestoneAction(
           const notificationType =
             status === "Done"
               ? NotificationType.MilestoneCompleted
-              : NotificationType.MilestoneDueSoon;
+              : NotificationType.MilestoneStatusChanged;
           await dispatchNotifications(
             {
               userIds: assigneeIds,
               type: notificationType,
-              title: `Milestone ${status === "Done" ? "completed" : "updated"}: ${title}`,
+              title: `Milestone ${status === "Done" ? "completed" : "status changed"}: ${title}`,
               message: `Milestone "${title}" status changed to ${status}`,
               actionUrl: `/case/${existing.case_id}`,
               caseId: existing.case_id,

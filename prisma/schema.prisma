@@ -53,6 +53,7 @@ enum NotificationType {
   ConsultationReminder
   MilestoneDueSoon
   MilestoneCompleted
+  MilestoneStatusChanged
   MilestoneOverdue
   TaskAssigned
   TaskStatusChanged

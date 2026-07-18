@@ -7,6 +7,7 @@ import { FaBell } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Popover } from "@/components/ui/Popover/Popover";
+import { queue } from "@/components/ui/Toast/Toast";
 import {
   getUnreadNotificationsAction,
   markAllNotificationsReadAction,
@@ -39,6 +40,10 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
           if (!cancelled) {
             setNotifications(data);
           }
+        } catch {
+          if (!cancelled) {
+            queue.add({ title: "Failed to load notifications" }, { timeout: 5000 });
+          }
         } finally {
           if (!cancelled) {
             setIsLoading(false);
@@ -53,21 +58,39 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
   }, [isOpen]);
 
   async function handleMarkRead(notificationId: string, actionUrl: string | null) {
-    const result = await markNotificationReadAction({ notificationId });
-    if (result.success) {
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-      if (actionUrl) {
-        router.push(actionUrl);
+    try {
+      const result = await markNotificationReadAction({ notificationId });
+      if (result.success) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+        if (actionUrl) {
+          router.push(actionUrl);
+        }
+      } else {
+        queue.add(
+          { title: result.error ?? "Failed to mark notification as read" },
+          { timeout: 5000 },
+        );
       }
+    } catch {
+      queue.add({ title: "Failed to mark notification as read" }, { timeout: 5000 });
     }
   }
 
   async function handleMarkAllRead() {
-    const result = await markAllNotificationsReadAction();
-    if (result.success) {
-      setUnreadCount(0);
-      setNotifications([]);
+    try {
+      const result = await markAllNotificationsReadAction();
+      if (result.success) {
+        setUnreadCount(0);
+        setNotifications([]);
+      } else {
+        queue.add(
+          { title: result.error ?? "Failed to mark all notifications as read" },
+          { timeout: 5000 },
+        );
+      }
+    } catch {
+      queue.add({ title: "Failed to mark all notifications as read" }, { timeout: 5000 });
     }
   }
 

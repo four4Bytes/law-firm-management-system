@@ -1,8 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { getRequiredEnvVar } from "@/lib/env";
-
 import { PrismaClient } from "@/generated/prisma/client";
+import { getRequiredEnvVar } from "@/lib/env";
 
 /**
  * Prisma client singleton.

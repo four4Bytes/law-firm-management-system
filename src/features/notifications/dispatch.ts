@@ -1,3 +1,5 @@
+import { createNotifications } from "@/features/notifications/mutations";
+import type { NotificationDispatchPayload } from "@/features/notifications/schemas";
 import { getUserNameById, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
@@ -10,9 +12,6 @@ import {
   taskAssignedTemplate,
   taskUpdatedTemplate,
 } from "@/lib/email-templates";
-
-import { createNotifications } from "@/features/notifications/mutations";
-import type { NotificationDispatchPayload } from "@/features/notifications/schemas";
 
 function pickTemplate(type: NotificationType) {
   switch (type) {

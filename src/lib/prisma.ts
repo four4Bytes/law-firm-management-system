@@ -16,7 +16,11 @@ import { PrismaClient } from "../generated/prisma/client";
  */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-/** Builds and returns the singleton `PrismaClient` backed by the pg adapter. */
+/**
+ * Builds and returns the singleton `PrismaClient` backed by the pg adapter.
+ *
+ * @returns The singleton PrismaClient instance with the postgres adapter.
+ */
 function createPrismaClient(): PrismaClient {
   return new PrismaClient({
     adapter: new PrismaPg({ connectionString: getRequiredEnvVar("DATABASE_URL") }),

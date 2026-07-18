@@ -497,6 +497,8 @@ describe("getCaseMilestonesPaginated", () => {
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
+    reminder_days: null,
+    last_reminded_at: null,
     ...overrides,
   });
 

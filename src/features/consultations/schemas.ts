@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { ConsultationStatus } from "@/generated/prisma/client";
+import { ConsultationStatus } from "@/generated/prisma/browser";
+import { nonNegativeInteger, requiredEnum, requiredText } from "@/lib/form-utils";
 import { ClientDataSchema, SortQuerySchema } from "@/lib/schemas";
 
 export const ConsultationPageQuerySchema = z.object({
@@ -17,9 +18,10 @@ export const ConsultationOverviewIdSchema = z.object({
 
 export const ConsultationCreatePayloadSchema = z.object({
   client_id: z.uuid(),
-  concern: z.string().trim().min(1).max(500),
+  concern: requiredText(500, "Concern"),
   booking_datetime: z.coerce.date(),
-  status: z.enum(ConsultationStatus),
+  status: requiredEnum(ConsultationStatus, "Status"),
+  reminder_days: nonNegativeInteger("Reminder days").nullable().optional(),
 });
 
 export const ConsultationUpdatePayloadSchema = ConsultationCreatePayloadSchema.extend({
@@ -31,9 +33,10 @@ export const ConsultationDeletePayloadSchema = z.object({
 });
 
 const ConsultationDataSchema = z.object({
-  concern: z.string().trim().min(1).max(500),
+  concern: requiredText(500, "Concern"),
   booking_datetime: z.coerce.date(),
-  status: z.enum(ConsultationStatus),
+  status: requiredEnum(ConsultationStatus, "Status"),
+  reminder_days: nonNegativeInteger("Reminder days").nullable().optional(),
 });
 
 export const ConsultationWithClientCreatePayloadSchema = z.object({

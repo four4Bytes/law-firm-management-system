@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -10,6 +11,12 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { createCaseWithClientAction } from "@/features/cases/actions";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
 import { CaseStatus } from "@/generated/prisma/browser";
+import {
+  createFieldValidator,
+  optionalString,
+  requiredString,
+  selectEnumHandler,
+} from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddCaseModal.module.css";
@@ -64,6 +71,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
     onSuccess,
     successMessage: "Case created",
     failureMessage: "Failed to create case. Please try again.",
+    schema: CaseWithClientCreatePayloadSchema,
     reset: () => {
       setClient(resetClient());
       setCaseFields(resetCase());
@@ -78,111 +86,131 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
     setCaseFields((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSubmit() {
-    if (!name.trim() || !caseTitle.trim() || !caseType.trim() || isPending) return;
+  async function handleSubmit(event: React.SyntheticEvent) {
+    event.preventDefault();
+    if (isPending) return;
 
     await submitForm({
       client: {
-        name: name.trim(),
-        email: email.trim() || undefined,
-        phone_number: phone.trim() || undefined,
-        address: address.trim() || undefined,
+        name: requiredString(name),
+        email: optionalString(email),
+        phone_number: optionalString(phone),
+        address: optionalString(address),
       },
       case: {
-        case_title: caseTitle.trim(),
-        case_type: caseType,
+        case_title: requiredString(caseTitle),
+        case_type: requiredString(caseType),
         status,
-        parties_involved: partiesInvolved.trim() || undefined,
+        parties_involved: optionalString(partiesInvolved),
       },
     });
   }
 
   return (
     <Modal title="New Case" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <div className={styles.columns}>
-        <div className={styles.column}>
-          <TextField
-            label="Client Name"
-            value={name}
-            onChange={(v) => setClientField("name", v)}
-            placeholder="Full name"
-            isDisabled={isPending}
-          />
-          <TextField
-            label="Email"
-            value={email}
-            onChange={(v) => setClientField("email", v)}
-            placeholder="Optional"
-            isDisabled={isPending}
-          />
-          <TextField
-            label="Phone"
-            value={phone}
-            onChange={(v) => setClientField("phone", v)}
-            placeholder="Optional"
-            isDisabled={isPending}
-          />
-          <TextField
-            label="Address"
-            value={address}
-            onChange={(v) => setClientField("address", v)}
-            placeholder="Optional"
-            isTextArea
-            rows={3}
-            isDisabled={isPending}
-          />
+      <Form onSubmit={handleSubmit}>
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            <TextField
+              label="Client Name"
+              value={name}
+              onChange={(v) => setClientField("name", v)}
+              placeholder="Full name"
+              validate={createFieldValidator(
+                CaseWithClientCreatePayloadSchema.shape.client.shape.name,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Email"
+              value={email}
+              onChange={(v) => setClientField("email", v)}
+              placeholder="Optional"
+              validate={createFieldValidator(
+                CaseWithClientCreatePayloadSchema.shape.client.shape.email,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Phone"
+              value={phone}
+              onChange={(v) => setClientField("phone", v)}
+              placeholder="Optional"
+              validate={createFieldValidator(
+                CaseWithClientCreatePayloadSchema.shape.client.shape.phone_number,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Address"
+              value={address}
+              onChange={(v) => setClientField("address", v)}
+              placeholder="Optional"
+              isTextArea
+              rows={3}
+              validate={createFieldValidator(
+                CaseWithClientCreatePayloadSchema.shape.client.shape.address,
+              )}
+              isDisabled={isPending}
+            />
+          </div>
+          <div className={styles.divider} />
+          <div className={styles.column}>
+            <TextField
+              label="Case Title"
+              value={caseTitle}
+              onChange={(v) => setCaseField("caseTitle", v)}
+              placeholder="Case title"
+              validate={createFieldValidator(
+                CaseWithClientCreatePayloadSchema.shape.case.shape.case_title,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Case Type"
+              value={caseType}
+              onChange={(v) => setCaseField("caseType", v)}
+              placeholder="e.g. Civil, Corporate"
+              validate={createFieldValidator(
+                CaseWithClientCreatePayloadSchema.shape.case.shape.case_type,
+              )}
+              isDisabled={isPending}
+            />
+            <Select
+              label="Status"
+              value={status}
+              onChange={selectEnumHandler(CaseStatus, (value) => setCaseField("status", value))}
+              isDisabled={isPending}
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} id={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </Select>
+            <TextField
+              label="Parties Involved"
+              value={partiesInvolved}
+              onChange={(v) => setCaseField("partiesInvolved", v)}
+              placeholder="Optional..."
+              isTextArea
+              rows={3}
+              validate={createFieldValidator(
+                CaseWithClientCreatePayloadSchema.shape.case.shape.parties_involved,
+              )}
+              isDisabled={isPending}
+            />
+          </div>
         </div>
-        <div className={styles.divider} />
-        <div className={styles.column}>
-          <TextField
-            label="Case Title"
-            value={caseTitle}
-            onChange={(v) => setCaseField("caseTitle", v)}
-            placeholder="Case title"
-            isDisabled={isPending}
-          />
-          <TextField
-            label="Case Type"
-            value={caseType}
-            onChange={(v) => setCaseField("caseType", v)}
-            placeholder="e.g. Civil, Corporate"
-            isDisabled={isPending}
-          />
-          <Select
-            label="Status"
-            value={status}
-            onChange={(k) => setCaseField("status", String(k) as CaseStatus)}
-            isDisabled={isPending}
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} id={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </Select>
-          <TextField
-            label="Parties Involved"
-            value={partiesInvolved}
-            onChange={(v) => setCaseField("partiesInvolved", v)}
-            placeholder="Optional..."
-            isTextArea
-            rows={3}
-            isDisabled={isPending}
-          />
+        <div className={styles.actions}>
+          <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
+            Cancel
+          </Button>
+          <Button type="submit" isDisabled={isPending} isPending={isPending}>
+            Create
+          </Button>
         </div>
-      </div>
-      <div className={styles.actions}>
-        <Button variant="secondary" onPress={handleCancel} isDisabled={isPending}>
-          Cancel
-        </Button>
-        <Button
-          onPress={handleSubmit}
-          isDisabled={!name.trim() || !caseTitle.trim() || !caseType.trim() || isPending}
-          isPending={isPending}
-        >
-          Create
-        </Button>
-      </div>
+      </Form>
     </Modal>
   );
 }

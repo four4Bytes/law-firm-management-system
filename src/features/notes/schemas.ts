@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { requiredText } from "@/lib/form-utils";
 import { exactlyOneParentRefinement, PageQuerySchema } from "@/lib/schemas";
 
 export const NotePageQuerySchema = PageQuerySchema.extend({
@@ -8,7 +9,7 @@ export const NotePageQuerySchema = PageQuerySchema.extend({
 
 export const NoteCreatePayloadSchema = z
   .object({
-    content: z.string().trim().min(1).max(10000),
+    content: requiredText(10000, "Content"),
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })

@@ -13,7 +13,7 @@ import { UploadDocumentModal } from "@/features/documents/components/UploadDocum
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
 import type { DocumentDetailRow, DocumentRow } from "@/features/documents/queries";
 import { formatDateTime } from "@/lib/date";
-import { formatFileSize, formatFileType } from "@/lib/format";
+import { formatFileSize, formatFileType } from "@/lib/file-format";
 
 interface Props {
   consultationId: string;

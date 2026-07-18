@@ -1,23 +1,24 @@
 import { z } from "zod";
 
-import { TaskStatus } from "@/generated/prisma/client";
+import { TaskStatus } from "@/generated/prisma/browser";
+import { optionalText, requiredEnum, requiredText } from "@/lib/form-utils";
 
 export const TaskIdSchema = z.object({
   taskId: z.uuid(),
 });
 
 export const TaskCreatePayloadSchema = z.object({
-  title: z.string().trim().min(1).max(500),
-  description: z.string().trim().min(1).max(10000).optional(),
-  status: z.enum(TaskStatus).optional().default(TaskStatus.Pending),
+  title: requiredText(500, "Title"),
+  description: optionalText(10000, "Description"),
+  status: requiredEnum(TaskStatus, "Status").optional().default(TaskStatus.Pending),
   case_id: z.uuid(),
   assignee_ids: z.array(z.uuid()).optional(),
 });
 
 export const TaskUpdatePayloadSchema = z.object({
   taskId: z.uuid(),
-  title: z.string().trim().min(1).max(500),
-  description: z.string().trim().min(1).max(10000).optional(),
-  status: z.enum(TaskStatus),
+  title: requiredText(500, "Title"),
+  description: optionalText(10000, "Description"),
+  status: requiredEnum(TaskStatus, "Status"),
   assignee_ids: z.array(z.uuid()).optional(),
 });

@@ -3,6 +3,7 @@
 - Never commit, push, or create PRs unless explicitly asked.
 - Read the actual file first. Don't assume you know what's in it.
 - After making changes, run `pnpm validate` + `pnpm build` and loop (fix issues, re-run until passing).
+- Stop validating/linting/building on trivial changes like DOCS, trivial CSS (e.g. spacing, colors on existing rules), TEXT, maybe format. Do NOT skip validation for substantive CSS changes (new components, layout changes, structural modifications).
 
 ## Commands
 
@@ -37,7 +38,7 @@
 
 - `src/app/page.tsx` — unauthenticated login page.
 - `src/app/(dashboard)/` — authenticated section (Sidebar + Header shared layout). Dashboard routes: `dashboard/`, `case/`, `consultation/`, `user/`.
-- API Routes — Restricted strictly to framework orchestration (`src/app/api/auth/[...nextauth]/route.ts`). Do not create custom REST endpoints under any circumstances.
+- API Routes — Restricted strictly to framework orchestration (`src/app/api/auth/[...nextauth]/route.ts`) and scheduled job webhooks (e.g. `src/app/api/cron/*/route.ts`). Do not create custom REST endpoints for application data under any circumstances.
 - Server Actions (`actions.ts`) — The primary mechanism for all data mutation, form submission, and infrastructure execution (including generating storage presigned URLs). Every structural modification to application state must route through a Server Action.
 - `src/features/` — domain logic organized by feature (`auth/`, `users/`, `consultations/`, `cases/`, etc.).
   - Each domain contains `actions.ts` (orchestration, validation, and authorization), `queries.ts` (Prisma read operations), and `mutations.ts` (Prisma write operations).
@@ -87,6 +88,7 @@
   2. The Server Action validates permissions and generates an S3 presigned URL via `@aws-sdk/client-s3`.
   3. The client receives the URL and executes a native client-side `fetch` browser payload directly to the storage bucket.
 - Never import `prisma` directly outside of `queries.ts` or `mutations.ts`.
+- Prisma client vs browser entry: Any module reachable by client components (UI components, and Zod schemas referenced at runtime in the browser) MUST import enums/models from `@/generated/prisma/browser`, never `@/generated/prisma/client`. The `client` entry imports `node:` builtins and breaks `next build` (Turbopack `node:module` error) if pulled into the client bundle.
 - Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly shared/reusable components in `src/components/ui/`.
 
 ### Testing
@@ -100,7 +102,7 @@
 
 - Input Validation with Zod: Every exported Server Action must validate its input via `z.safeParse()` before executing any business logic. Do not declare schemas inside action files; import them from feature-specific schema files (e.g., `@/features/cases/schemas`) so they can be reused by client forms.
 - String Hygiene & Parsing: Ensure all string parameters in schemas call `.trim().min(1)` and include a `.max()` constraint matching database limits to prevent malicious database exhaustion. Reject whitespace-only values.
-- Strict Parameter Assurances: Validate all structural parameters meticulously. Ensure IDs call `.uuid()` or `.cuid()`, and enforce strictly defined sets using `z.nativeEnum(PrismaEnum)`. Never accept raw string inputs to cast them inside the function body via `as`.
+  - Strict Parameter Assurances: Validate all structural parameters meticulously. Ensure IDs call `.uuid()` or `.cuid()`, and enforce strictly defined sets using `z.enum(PrismaEnum)` where `PrismaEnum` is the generated const-object enum (e.g. `TaskStatus` from `@/generated/prisma/browser`). Never accept raw string inputs to cast them inside the function body via `as`.
 - Action Response Convention:
   - Read actions (paginated queries, single-record fetches): Return data directly
     (e.g., `Promise<{ rows: T[]; nextCursor: string | null }>`). Let framework error
@@ -112,11 +114,12 @@
 - Never allow raw server exceptions to leak to the client. For writes, catch and
   return structured errors; for reads, the framework error boundary is sufficient.
 - Centralized Auth Guards: Invoke unified, centralized protection functions like `requireAuth()` (which returns a verified session) or `requireRole(...roles)` at the very top of the execution flow. Do not write inline, ad-hoc `auth()` verification logic inside individual actions.
-- Typed Payloads over Raw FormData: Client components must pass clean, typed objects to actions instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client side before triggering the transition boundary.
+- Typed Payloads over Raw FormData: Client components must pass clean, typed objects to actions instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client side before triggering the transition boundary. Shared normalization/validation helpers live in `src/lib/form-utils.ts` (`optionalString`, `requiredString`, `toDateValue`, `selectEnumHandler`, `keysToSet`, `createFieldValidator`) and the `useModalForm` hook — reuse these instead of ad-hoc trimming or `as` casts.
+- Modal form validation: Use React Aria's default `validationBehavior="native"`. Wrap a modal's fields + actions in a RAC `<Form onSubmit={handleSubmit}>` and make the submit button `type="submit"` (Cancel must be `type="button"`). On submit RAC runs each field's `validate`, blocks `onSubmit`, and shows inline errors only when invalid — errors never appear on open. **Never use `validationBehavior="aria"`**: it renders a required field's error on mount (before any interaction), which is the premature-error regression. Keep the submit button enabled so RAC surfaces inline errors on submit; rely on `useModalForm`'s `schema` guard + toast for the server-side failure path. Define user-facing validation messages in the Zod schemas via the shared builders in `form-utils` (`requiredText`, `optionalText`, `positiveNumber`, `requiredEnum`, `emailText`) — never surface raw Zod messages like "Invalid input: expected string, received undefined".
 
 ### Async & Error Handling
 
-- Prefer `async`/`await` with `try-catch` over promise chains (`.then()`/`.catch()`) across the entire codebase, especially in asynchronous code. Avoid `.then()`/`.catch()` method chaining.
+- Default to `async/await` with `try...catch` for asynchronous code. Preserve or use `.then()/.catch()` only when it is the idiomatic, clearer, or required approach for the specific code pattern.
 - Never let a promise rejection go unhandled. In client components, surface failures through the toast `queue` (`queue.add(...)`) or appropriate error UI. In Server Actions, follow the existing Action Response Convention (catch and return a structured `ActionStatusResponse`).
 - Inside `useEffect`, wrap async work in a locally-scoped `async function` and invoke it (use `void` for fire-and-forget calls to keep intent explicit).
 
@@ -125,9 +128,15 @@
 - Idiomatic, modular code is the top priority in this project, not a collection of hacks and workarounds.
 - Named exports only — no default exports, except for Next.js special files (`page.tsx`, `layout.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`, `route.tsx` etc.) which require a default export. Use inline `export default function` for these files.
 - PascalCase components/types; camelCase variables/functions/files (component dirs are PascalCase).
-- No comments unless explaining a non-obvious decision.
+- No inline `//` comments unless explaining a non-obvious decision. JSDoc on `src/lib/` helpers is the explicit exception (see Documentation).
 - Prisma schema: `snake_case` fields, `PascalCase` models/enums.
 - Husky: pre-commit runs `lint-staged` (Prettier + ESLint on staged files); pre-push runs `pnpm validate && pnpm test`.
+
+### Documentation (JSDoc)
+
+- JSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`, plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
+- Use `@param`, `@returns`, and `@typeParam` where applicable; keep descriptions terse and within the 100-char print width (Prettier reformats).
+- This convention is **scoped to `src/lib/` only**. Do not add JSDoc to feature or component code — it adds noise. Inline `//` comments remain banned (see General).
 
 ---
 

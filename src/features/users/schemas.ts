@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 import { CREATABLE_ROLES } from "@/features/users/constants";
-import { Role } from "@/generated/prisma/client";
+import { Role } from "@/generated/prisma/browser";
+import { emailText, requiredEnum } from "@/lib/form-utils";
 import { SortQuerySchema } from "@/lib/schemas";
 
 export const UserPageQuerySchema = z.object({
@@ -11,19 +12,20 @@ export const UserPageQuerySchema = z.object({
   sort: SortQuerySchema.optional(),
 });
 
+const CreatableRoleSchema = requiredEnum(Role, "Role").refine(
+  (r) => (CREATABLE_ROLES as readonly Role[]).includes(r),
+  { message: "Role is not creatable" },
+);
+
 export const CreateUserSchema = z.object({
-  email: z.email().trim().min(1).max(255),
-  role: z.enum(Role).refine((r) => CREATABLE_ROLES.includes(r), {
-    message: "Role is not creatable",
-  }),
+  email: emailText("Email"),
+  role: CreatableRoleSchema,
 });
 
 export const UpdateUserSchema = z.object({
   userId: z.uuid(),
-  email: z.email().trim().min(1).max(255),
-  role: z.enum(Role).refine((r) => CREATABLE_ROLES.includes(r), {
-    message: "Role is not creatable",
-  }),
+  email: emailText("Email"),
+  role: CreatableRoleSchema,
 });
 
 export const DeactivateUserSchema = z.object({

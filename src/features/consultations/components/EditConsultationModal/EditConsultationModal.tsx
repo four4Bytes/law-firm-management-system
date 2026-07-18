@@ -2,6 +2,7 @@
 
 import { CalendarDate, Time } from "@internationalized/date";
 import { useState } from "react";
+import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -22,6 +23,12 @@ import type { ConsultationEditData } from "@/features/consultations/queries";
 import { ConsultationWithClientUpdatePayloadSchema } from "@/features/consultations/schemas";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
+import {
+  createFieldValidator,
+  optionalString,
+  requiredString,
+  selectEnumHandler,
+} from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditConsultationModal.module.css";
@@ -76,6 +83,7 @@ export function EditConsultationModal({
     onSuccess,
     successMessage: "Consultation updated",
     failureMessage: "Failed to update consultation. Please try again.",
+    schema: ConsultationWithClientUpdatePayloadSchema,
   });
 
   function handleDismiss() {
@@ -83,20 +91,21 @@ export function EditConsultationModal({
     onOpenChange(false);
   }
 
-  async function handleSave() {
-    if (!clientId || !clientName.trim() || !fields.concern.trim() || isPending) return;
+  async function handleSave(event: React.SyntheticEvent) {
+    event.preventDefault();
+    if (isPending) return;
 
     await submitForm({
       consultation_id: consultation.id,
       client_id: clientId,
       client: {
-        name: clientName.trim(),
-        email: clientEmail.trim() || undefined,
-        phone_number: clientPhone.trim() || undefined,
-        address: clientAddress.trim() || undefined,
+        name: requiredString(clientName),
+        email: optionalString(clientEmail),
+        phone_number: optionalString(clientPhone),
+        address: optionalString(clientAddress),
       },
       consultation: {
-        concern: fields.concern.trim(),
+        concern: requiredString(fields.concern),
         booking_datetime: combineDateTime(fields.date, fields.time),
         status: fields.status,
       },
@@ -124,9 +133,6 @@ export function EditConsultationModal({
     }
   }
 
-  const isValid =
-    clientId.length > 0 && clientName.trim().length > 0 && fields.concern.trim().length > 0;
-
   return (
     <>
       <Modal
@@ -135,89 +141,108 @@ export function EditConsultationModal({
         onOpenChange={handleDismiss}
         className={styles.modal}
       >
-        <div className={styles.columns}>
-          <div className={styles.column}>
-            <TextField
-              label="Client Name"
-              value={clientName}
-              onChange={setClientName}
-              isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Email"
-              value={clientEmail}
-              onChange={setClientEmail}
-              placeholder="Optional"
-              isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Phone"
-              value={clientPhone}
-              onChange={setClientPhone}
-              placeholder="Optional"
-              isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Address"
-              value={clientAddress}
-              onChange={setClientAddress}
-              placeholder="Optional"
-              isTextArea
-              rows={3}
-              isDisabled={isPending || isDeleting}
-            />
+        <Form onSubmit={handleSave}>
+          <div className={styles.columns}>
+            <div className={styles.column}>
+              <TextField
+                label="Client Name"
+                value={clientName}
+                onChange={setClientName}
+                validate={createFieldValidator(
+                  ConsultationWithClientUpdatePayloadSchema.shape.client.shape.name,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <TextField
+                label="Email"
+                value={clientEmail}
+                onChange={setClientEmail}
+                placeholder="Optional"
+                validate={createFieldValidator(
+                  ConsultationWithClientUpdatePayloadSchema.shape.client.shape.email,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <TextField
+                label="Phone"
+                value={clientPhone}
+                onChange={setClientPhone}
+                placeholder="Optional"
+                validate={createFieldValidator(
+                  ConsultationWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <TextField
+                label="Address"
+                value={clientAddress}
+                onChange={setClientAddress}
+                placeholder="Optional"
+                isTextArea
+                rows={3}
+                validate={createFieldValidator(
+                  ConsultationWithClientUpdatePayloadSchema.shape.client.shape.address,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+            </div>
+            <div className={styles.divider} />
+            <div className={styles.column}>
+              <TextField
+                label="Concern"
+                value={fields.concern}
+                onChange={(v) => setFields((p) => ({ ...p, concern: v }))}
+                isTextArea
+                rows={4}
+                validate={createFieldValidator(
+                  ConsultationWithClientUpdatePayloadSchema.shape.consultation.shape.concern,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <DatePicker
+                label="Booking Date"
+                value={fields.date}
+                onChange={(v) => v && setFields((p) => ({ ...p, date: v }))}
+                isDisabled={isPending || isDeleting}
+              />
+              <TimeField
+                label="Booking Time"
+                value={fields.time}
+                onChange={(v) =>
+                  v && setFields((p) => ({ ...p, time: new Time(v.hour, v.minute) }))
+                }
+                isDisabled={isPending || isDeleting}
+              />
+              <Select
+                label="Status"
+                value={fields.status}
+                onChange={selectEnumHandler(ConsultationStatus, (value) =>
+                  setFields((p) => ({ ...p, status: value })),
+                )}
+                isDisabled={isPending || isDeleting}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s} id={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
           </div>
-          <div className={styles.divider} />
-          <div className={styles.column}>
-            <TextField
-              label="Concern"
-              value={fields.concern}
-              onChange={(v) => setFields((p) => ({ ...p, concern: v }))}
-              isTextArea
-              rows={4}
+          <div className={styles.actions}>
+            <Button
+              variant="secondary"
+              type="submit"
               isDisabled={isPending || isDeleting}
-            />
-            <DatePicker
-              label="Booking Date"
-              value={fields.date}
-              onChange={(v) => v && setFields((p) => ({ ...p, date: v }))}
-              isDisabled={isPending || isDeleting}
-            />
-            <TimeField
-              label="Booking Time"
-              value={fields.time}
-              onChange={(v) => v && setFields((p) => ({ ...p, time: new Time(v.hour, v.minute) }))}
-              isDisabled={isPending || isDeleting}
-            />
-            <Select
-              label="Status"
-              value={fields.status}
-              onChange={(k) =>
-                setFields((p) => ({ ...p, status: String(k) as ConsultationStatus }))
-              }
-              isDisabled={isPending || isDeleting}
+              isPending={isPending}
             >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
+              Save
+            </Button>
+            <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
+              {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
+            </Button>
           </div>
-        </div>
-        <div className={styles.actions}>
-          <Button
-            variant="secondary"
-            onPress={handleSave}
-            isDisabled={!isValid || isPending || isDeleting}
-            isPending={isPending}
-          >
-            Save
-          </Button>
-          <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
-            {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
-          </Button>
-        </div>
+        </Form>
       </Modal>
 
       <ConfirmDialog

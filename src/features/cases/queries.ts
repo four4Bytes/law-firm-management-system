@@ -483,6 +483,14 @@ export const getCaseActivityLogPaginated = cache(
 
 // ----- Case edit data -----
 
+export const getCaseAssigneeIds = cache(async (caseId: string): Promise<string[]> => {
+  const assignments = await prisma.caseAssignment.findMany({
+    where: { case_id: caseId, user: { is_active: true } },
+    select: { user_id: true },
+  });
+  return assignments.map((a) => a.user_id);
+});
+
 export type CaseEditData = Pick<
   Case,
   | "id"

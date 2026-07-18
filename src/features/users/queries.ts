@@ -1,8 +1,19 @@
 import { cache } from "react";
 
-import { Role, type User } from "@/generated/prisma/client";
+import { Role, type User } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
+
+export const getActiveUserIdsByRoles = cache(
+  async (payload: { roles: Role[] }): Promise<string[]> => {
+    const { roles } = payload;
+    const users = await prisma.user.findMany({
+      where: { is_active: true, role: { in: roles } },
+      select: { id: true },
+    });
+    return users.map((u) => u.id);
+  },
+);
 
 const userSelect = {
   id: true,
@@ -12,6 +23,27 @@ const userSelect = {
   is_active: true,
   created_at: true,
 } as const;
+
+export const getUserNameById = cache(async (payload: { id: string }): Promise<string | null> => {
+  const { id } = payload;
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  return user?.name ?? null;
+});
+
+export const getUsersByIds = cache(
+  async (payload: {
+    ids: string[];
+  }): Promise<{ id: string; name: string | null; email: string | null }[]> => {
+    const { ids } = payload;
+    return prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, email: true },
+    });
+  },
+);
 
 export const getUserById = cache(
   async (

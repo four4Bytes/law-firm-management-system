@@ -5,6 +5,8 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 
@@ -52,15 +54,39 @@ export async function createTaskAction(
       assignee_ids,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "task.created",
-        entityType: "Case",
-        entityId: case_id,
-        details: `Created task: "${title}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "task.created",
+          entityType: "Case",
+          entityId: case_id,
+          details: `Created task: "${title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log task.created audit for Case", case_id, err);
+      }
+
+      try {
+        const assigneeIds = parsed.data.assignee_ids ?? [];
+        if (assigneeIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: assigneeIds,
+              type: NotificationType.TaskAssigned,
+              title: `New task: ${title}`,
+              message: `You have been assigned a new task: "${title}"`,
+              actionUrl: `/case/${case_id}`,
+              caseId: case_id,
+              taskId: task.id,
+            },
+            session.id,
+          );
+        }
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath(`/case/${case_id}`);
 
@@ -86,15 +112,67 @@ export async function updateTaskAction(
 
     await updateTask(taskId, { title, description, status, assignee_ids });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "task.updated",
-        entityType: "Case",
-        entityId: existing.case_id,
-        details: `Updated task: "${title}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "task.updated",
+          entityType: "Case",
+          entityId: existing.case_id,
+          details: `Updated task: "${title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log task.updated audit for Case", existing.case_id, err);
+      }
+
+      if (existing.status !== status) {
+        try {
+          const assigneeIds =
+            parsed.data.assignee_ids ?? existing.taskAssignments.map((a) => a.user_id);
+          if (assigneeIds.length > 0) {
+            await dispatchNotifications(
+              {
+                userIds: assigneeIds,
+                type: NotificationType.TaskStatusChanged,
+                title: `Task updated: ${title}`,
+                message: `Task "${title}" status: ${status}`,
+                actionUrl: `/case/${existing.case_id}`,
+                caseId: existing.case_id,
+                taskId: existing.id,
+              },
+              session.id,
+            );
+          }
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+
+      if (parsed.data.assignee_ids) {
+        const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
+        const newAssigneeIds = parsed.data.assignee_ids.filter(
+          (id) => !existingAssigneeIds.includes(id),
+        );
+        if (newAssigneeIds.length > 0) {
+          try {
+            await dispatchNotifications(
+              {
+                userIds: newAssigneeIds,
+                type: NotificationType.TaskAssigned,
+                title: `Task assigned: ${title}`,
+                message: `You have been assigned to task: "${title}"`,
+                actionUrl: `/case/${existing.case_id}`,
+                caseId: existing.case_id,
+                taskId: existing.id,
+              },
+              session.id,
+            );
+          } catch (err) {
+            console.error("Failed to dispatch notification:", err);
+          }
+        }
+      }
+    });
 
     revalidatePath(`/case/${existing.case_id}`);
 

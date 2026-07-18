@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
@@ -47,7 +47,7 @@ export function UploadDocumentModal({
   consultationId,
 }: UploadDocumentModalProps) {
   const [fileEntries, setFileEntries] = useState<FileEntry[]>([]);
-  const [isPending, startTransition] = useTransition();
+  const [isUploading, setIsUploading] = useState(false);
 
   const hasUploading = fileEntries.some((e) => e.status === "uploading");
   const pendingEntries = fileEntries.filter((e) => e.status === "pending");
@@ -69,7 +69,7 @@ export function UploadDocumentModal({
   }
 
   function handleClose(open: boolean) {
-    if (isPending || hasUploading) return;
+    if (isUploading || hasUploading) return;
     if (!open) {
       if (failedEntries.length > 0) {
         queue.add({
@@ -135,27 +135,28 @@ export function UploadDocumentModal({
     return failed;
   }
 
-  function finishUploads(targets: FileEntry[], externalFailedCount = 0) {
-    startTransition(async () => {
-      try {
-        const failed = await runUploads(targets);
+  async function finishUploads(targets: FileEntry[], externalFailedCount = 0) {
+    setIsUploading(true);
+    try {
+      const failed = await runUploads(targets);
 
-        if (failed === 0 && externalFailedCount === 0) {
-          queue.add(
-            { title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded` },
-            { timeout: 5000 },
-          );
-          resetState();
-          onOpenChange(false);
-          onSuccess();
-        }
-      } catch {
-        queue.add({
-          title: "Upload failed",
-          description: "An unexpected error occurred. Please try again.",
-        });
+      if (failed === 0 && externalFailedCount === 0) {
+        queue.add(
+          { title: `${targets.length} file${targets.length > 1 ? "s" : ""} uploaded` },
+          { timeout: 5000 },
+        );
+        resetState();
+        onOpenChange(false);
+        onSuccess();
       }
-    });
+    } catch {
+      queue.add({
+        title: "Upload failed",
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   function handleSubmitAll() {
@@ -182,7 +183,7 @@ export function UploadDocumentModal({
   }
 
   const hasFiles = fileEntries.length > 0;
-  const isBusy = isPending || hasUploading || uploadingEntries.length > 0;
+  const isBusy = isUploading || hasUploading || uploadingEntries.length > 0;
 
   return (
     <Modal title="Upload Attachment" isOpen={isOpen} onOpenChange={handleClose}>

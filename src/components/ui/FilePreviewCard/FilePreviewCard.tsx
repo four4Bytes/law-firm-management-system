@@ -12,7 +12,12 @@ import {
 } from "react-icons/fa6";
 import type { IconType } from "react-icons/lib";
 
-import { classifyFileType, formatFileSize, type FileCategory } from "@/lib/format";
+import {
+  classifyFileType,
+  formatFileSize,
+  truncateFilename,
+  type FileCategory,
+} from "@/lib/file-format";
 
 import styles from "./FilePreviewCard.module.css";
 
@@ -67,7 +72,9 @@ export function FilePreviewCard({
           <Icon className={styles.icon} />
         </div>
         <div className={styles.info}>
-          <span className={styles.fileName}>{file_name}</span>
+          <span className={styles.fileName} aria-label={file_name}>
+            {truncateFilename(file_name)}
+          </span>
           <div className={styles.meta}>
             <span>{label}</span>
             <span className={styles.separator} aria-hidden="true">

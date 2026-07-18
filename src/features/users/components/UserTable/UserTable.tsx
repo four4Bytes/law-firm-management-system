@@ -122,15 +122,17 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         refreshTrigger={refreshTrigger}
       />
 
-      <UserFormModal
-        mode={modalTarget?.type ?? "add"}
-        user={modalTarget?.type === "edit" ? modalTarget.user : undefined}
-        isOpen={modalTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setModalTarget(null);
-        }}
-        onSuccess={() => setRefreshTrigger((t) => t + 1)}
-      />
+      {modalTarget && (
+        <UserFormModal
+          mode={modalTarget.type}
+          user={modalTarget.type === "edit" ? modalTarget.user : undefined}
+          isOpen
+          onOpenChange={(open) => {
+            if (!open) setModalTarget(null);
+          }}
+          onSuccess={() => setRefreshTrigger((t) => t + 1)}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={!!deletingUser}

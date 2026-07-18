@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -12,6 +13,7 @@ import { queue } from "@/components/ui/Toast/Toast";
 import { deleteNoteAction, updateNoteAction } from "@/features/notes/actions";
 import type { NoteRow } from "@/features/notes/queries";
 import { NoteUpdatePayloadSchema } from "@/features/notes/schemas";
+import { createFieldValidator, requiredString } from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditNoteModal.module.css";
@@ -34,6 +36,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
     onSuccess,
     successMessage: "Note updated",
     failureMessage: "Failed to update note",
+    schema: NoteUpdatePayloadSchema,
   });
 
   function handleDismiss() {
@@ -41,10 +44,11 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
     onOpenChange(false);
   }
 
-  async function handleSave() {
-    if (!content.trim() || content.trim() === note.content) return;
+  async function handleSave(event: React.SyntheticEvent) {
+    event.preventDefault();
+    if (isPending) return;
 
-    await submitForm({ noteId: note.id, content: content.trim() });
+    await submitForm({ noteId: note.id, content: requiredString(content) });
   }
 
   async function handleDelete() {
@@ -70,7 +74,6 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
   }
 
   const hasChanges = content.trim() !== note.content;
-  const isValid = content.trim().length > 0;
 
   return (
     <>
@@ -80,29 +83,35 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
         onOpenChange={handleDismiss}
         className={styles.modal}
       >
-        <div className={styles.content}>
-          <TextField
-            isTextArea
-            rows={5}
-            value={content}
-            onChange={setContent}
-            placeholder="Enter note content..."
-            isDisabled={isPending || isDeleting}
-          />
-          <div className={styles.actions}>
-            <Button
-              variant="secondary"
-              onPress={handleSave}
-              isDisabled={!isValid || !hasChanges || isPending || isDeleting}
-              isPending={isPending}
-            >
-              Save
-            </Button>
-            <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
-              {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
-            </Button>
+        <Form onSubmit={handleSave}>
+          <div className={styles.content}>
+            <TextField
+              isTextArea
+              rows={5}
+              value={content}
+              onChange={setContent}
+              placeholder="Enter note content..."
+              validate={createFieldValidator(NoteUpdatePayloadSchema.shape.content)}
+              isDisabled={isPending || isDeleting}
+            />
+            <div className={styles.actions}>
+              <Button
+                variant="secondary"
+                type="submit"
+                isDisabled={!hasChanges || isPending || isDeleting}
+                isPending={isPending}
+              >
+                Save
+              </Button>
+              <Button
+                onPress={() => setShowDeleteConfirm(true)}
+                isDisabled={isPending || isDeleting}
+              >
+                {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
+              </Button>
+            </div>
           </div>
-        </div>
+        </Form>
       </Modal>
 
       <ConfirmDialog

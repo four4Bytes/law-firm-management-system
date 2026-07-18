@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { CaseStatus } from "@/generated/prisma/client";
+import { CaseStatus } from "@/generated/prisma/browser";
+import { optionalText, requiredEnum, requiredText } from "@/lib/form-utils";
 import { ClientDataSchema, SortQuerySchema } from "@/lib/schemas";
 
 export const CasePageQuerySchema = z.object({
@@ -17,10 +18,10 @@ export const CaseOverviewIdSchema = z.object({
 
 export const CaseCreatePayloadSchema = z.object({
   client_id: z.uuid(),
-  case_title: z.string().trim().min(1).max(255),
-  case_type: z.string().trim().min(1).max(255),
-  status: z.enum(CaseStatus),
-  parties_involved: z.string().trim().min(1).max(2000).optional(),
+  case_title: requiredText(255, "Case title"),
+  case_type: requiredText(255, "Case type"),
+  status: requiredEnum(CaseStatus, "Status"),
+  parties_involved: optionalText(2000, "Parties involved"),
   source_consultation_id: z.uuid().optional(),
 });
 
@@ -33,10 +34,10 @@ export const CaseDeletePayloadSchema = z.object({
 });
 
 const CaseDataSchema = z.object({
-  case_title: z.string().trim().min(1).max(255),
-  case_type: z.string().trim().min(1).max(255),
-  status: z.enum(CaseStatus),
-  parties_involved: z.string().trim().min(1).max(2000).optional(),
+  case_title: requiredText(255, "Case title"),
+  case_type: requiredText(255, "Case type"),
+  status: requiredEnum(CaseStatus, "Status"),
+  parties_involved: optionalText(2000, "Parties involved"),
 });
 
 export const CaseWithClientCreatePayloadSchema = z.object({

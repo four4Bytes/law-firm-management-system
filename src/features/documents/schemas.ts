@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { requiredText } from "@/lib/form-utils";
 import { exactlyOneParentRefinement, SortQuerySchema } from "@/lib/schemas";
 
 export const DocumentPageQuerySchema = z.object({
@@ -13,8 +14,8 @@ export const DocumentPageQuerySchema = z.object({
 
 export const DocumentUploadPayloadSchema = z
   .object({
-    file_name: z.string().trim().min(1).max(500),
-    file_type: z.string().trim().min(1).max(100),
+    file_name: requiredText(500, "File name"),
+    file_type: requiredText(100, "File type"),
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })
@@ -24,10 +25,10 @@ export const DocumentUploadPayloadSchema = z
 
 export const DocumentConfirmPayloadSchema = z
   .object({
-    file_name: z.string().trim().min(1).max(500),
-    file_type: z.string().trim().min(1).max(100),
+    file_name: requiredText(500, "File name"),
+    file_type: requiredText(100, "File type"),
     file_size: z.coerce.number().int().positive(),
-    file_path: z.string().trim().min(1).max(1000),
+    file_path: requiredText(1000, "File path"),
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })

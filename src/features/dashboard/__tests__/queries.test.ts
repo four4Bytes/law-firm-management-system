@@ -42,6 +42,8 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
+  reminder_days: null,
+  last_reminded_at: null,
   client: { name: "Jane Client" },
   ...overrides,
 });
@@ -56,6 +58,8 @@ const mockMilestone = (overrides: Record<string, unknown> = {}) => ({
   created_by_user_id: "u1",
   created_at: new Date("2024-05-01"),
   updated_at: new Date("2024-05-01"),
+  reminder_days: null,
+  last_reminded_at: null,
   case: { case_title: "Smith vs Jones" },
   ...overrides,
 });

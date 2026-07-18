@@ -15,7 +15,7 @@ async function cleanDatabase() {
   await prisma.auditLog.deleteMany();
   await prisma.document.deleteMany();
   await prisma.note.deleteMany();
-  await prisma.milestoneNotification.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.caseMilestone.deleteMany();
   await prisma.taskReviewer.deleteMany();
   await prisma.taskAssignment.deleteMany();

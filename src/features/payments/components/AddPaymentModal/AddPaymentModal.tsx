@@ -2,6 +2,7 @@
 
 import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
 import { useState } from "react";
+import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -12,6 +13,12 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { createPaymentAction } from "@/features/payments/actions";
 import { PaymentCreatePayloadSchema } from "@/features/payments/schemas";
 import { PaymentStatus } from "@/generated/prisma/browser";
+import {
+  createFieldValidator,
+  optionalString,
+  selectEnumHandler,
+  toDateValue,
+} from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddPaymentModal.module.css";
@@ -47,6 +54,7 @@ export function AddPaymentModal({
     onSuccess,
     successMessage: "Payment added",
     failureMessage: "Failed to add payment",
+    schema: PaymentCreatePayloadSchema,
     reset: () => {
       setAmount("");
       setPaymentDate(today(getLocalTimeZone()));
@@ -56,15 +64,16 @@ export function AddPaymentModal({
     },
   });
 
-  async function handleSubmit() {
-    if (!amount.trim()) return;
+  async function handleSubmit(event: React.SyntheticEvent) {
+    event.preventDefault();
+    if (isPending) return;
 
     await submitForm({
       amount: Number.parseFloat(amount),
-      payment_date: paymentDate.toDate(getLocalTimeZone()),
+      payment_date: toDateValue(paymentDate),
       status,
-      payment_method: paymentMethod.trim() || undefined,
-      receipt_number: receiptNumber.trim() || undefined,
+      payment_method: optionalString(paymentMethod),
+      receipt_number: optionalString(receiptNumber),
       case_id: caseId ?? null,
       consultation_id: consultationId ?? null,
     });
@@ -72,59 +81,60 @@ export function AddPaymentModal({
 
   return (
     <Modal title="Add Payment" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <div className={styles.content}>
-        <TextField
-          label="Amount"
-          value={amount}
-          onChange={setAmount}
-          placeholder="0.00"
-          isDisabled={isPending}
-        />
-        <DateField
-          label="Payment Date"
-          value={paymentDate}
-          onChange={(v) => v && setPaymentDate(v)}
-          isDisabled={isPending}
-        />
-        <Select
-          label="Status"
-          value={status}
-          onChange={(k) => setStatus(String(k) as PaymentStatus)}
-          isDisabled={isPending}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <SelectItem key={s} id={s}>
-              {s}
-            </SelectItem>
-          ))}
-        </Select>
-        <TextField
-          label="Payment Method"
-          value={paymentMethod}
-          onChange={setPaymentMethod}
-          placeholder="e.g. Cash, Credit Card, Bank Transfer"
-          isDisabled={isPending}
-        />
-        <TextField
-          label="Receipt Number"
-          value={receiptNumber}
-          onChange={setReceiptNumber}
-          placeholder="Optional receipt number"
-          isDisabled={isPending}
-        />
-        <div className={styles.actions}>
-          <Button variant="secondary" onPress={handleCancel} isDisabled={isPending}>
-            Cancel
-          </Button>
-          <Button
-            onPress={handleSubmit}
-            isDisabled={!amount.trim() || isPending}
-            isPending={isPending}
+      <Form onSubmit={handleSubmit}>
+        <div className={styles.content}>
+          <TextField
+            label="Amount"
+            value={amount}
+            onChange={setAmount}
+            placeholder="0.00"
+            validate={createFieldValidator(PaymentCreatePayloadSchema.shape.amount)}
+            isDisabled={isPending}
+          />
+          <DateField
+            label="Payment Date"
+            value={paymentDate}
+            onChange={(v) => v && setPaymentDate(v)}
+            isDisabled={isPending}
+          />
+          <Select
+            label="Status"
+            value={status}
+            onChange={selectEnumHandler(PaymentStatus, setStatus)}
+            isDisabled={isPending}
           >
-            Save Payment
-          </Button>
+            {STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s} id={s}>
+                {s}
+              </SelectItem>
+            ))}
+          </Select>
+          <TextField
+            label="Payment Method"
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+            placeholder="e.g. Cash, Credit Card, Bank Transfer"
+            validate={createFieldValidator(PaymentCreatePayloadSchema.shape.payment_method)}
+            isDisabled={isPending}
+          />
+          <TextField
+            label="Receipt Number"
+            value={receiptNumber}
+            onChange={setReceiptNumber}
+            placeholder="Optional receipt number"
+            validate={createFieldValidator(PaymentCreatePayloadSchema.shape.receipt_number)}
+            isDisabled={isPending}
+          />
+          <div className={styles.actions}>
+            <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" isDisabled={isPending} isPending={isPending}>
+              Save Payment
+            </Button>
+          </div>
         </div>
-      </div>
+      </Form>
     </Modal>
   );
 }

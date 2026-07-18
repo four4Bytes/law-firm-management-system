@@ -47,6 +47,19 @@ enum CaseMilestoneStatus {
   Cancelled
 }
 
+enum NotificationType {
+  ConsultationCreated
+  ConsultationUpdated
+  ConsultationReminder
+  MilestoneDueSoon
+  MilestoneCompleted
+  MilestoneStatusChanged
+  MilestoneOverdue
+  TaskAssigned
+  TaskStatusChanged
+  CaseAssigned
+}
+
 enum PaymentStatus {
   Unpaid
   Partial
@@ -87,20 +100,20 @@ model User {
   emailVerified DateTime? @map("email_verified")
   image         String?
 
-  accounts               Account[]
-  consultations          Consultation[]
-  cases                  Case[]
-  createdTasks           Task[]                  @relation("TaskCreator")
-  caseAssignments        CaseAssignment[]
-  taskAssignments        TaskAssignment[]
-  milestoneNotifications MilestoneNotification[]
-  payments               Payment[]
-  documents              Document[]
-  notes                  Note[]
-  caseMilestones         CaseMilestone[]
-  auditLogs              AuditLog[]
-  taskReviewsAssigned    TaskReviewer[]          @relation("ReviewerUser")
-  taskReviewsDelegated   TaskReviewer[]          @relation("DelegatorUser")
+  accounts             Account[]
+  consultations        Consultation[]
+  cases                Case[]
+  createdTasks         Task[]           @relation("TaskCreator")
+  caseAssignments      CaseAssignment[]
+  taskAssignments      TaskAssignment[]
+  notifications        Notification[]
+  payments             Payment[]
+  documents            Document[]
+  notes                Note[]
+  caseMilestones       CaseMilestone[]
+  auditLogs            AuditLog[]
+  taskReviewsAssigned  TaskReviewer[]   @relation("ReviewerUser")
+  taskReviewsDelegated TaskReviewer[]   @relation("DelegatorUser")
 
   @@index([is_active])
   @@index([created_at])
@@ -128,13 +141,16 @@ model Consultation {
   status             ConsultationStatus
   created_at         DateTime           @default(now())
   updated_at         DateTime           @updatedAt
+  reminder_days      Int?
+  last_reminded_at   DateTime?
 
-  client    Client     @relation(fields: [client_id], references: [id])
-  createdBy User       @relation(fields: [created_by_user_id], references: [id])
-  payments  Payment[]
-  documents Document[]
-  notes     Note[]
-  cases     Case[]
+  client        Client         @relation(fields: [client_id], references: [id])
+  createdBy     User           @relation(fields: [created_by_user_id], references: [id])
+  payments      Payment[]
+  documents     Document[]
+  notes         Note[]
+  cases         Case[]
+  notifications Notification[]
 
   @@index([booking_datetime])
   @@index([status, booking_datetime])
@@ -161,6 +177,7 @@ model Case {
   payments           Payment[]
   documents          Document[]
   notes              Note[]
+  notifications      Notification[]
 
   @@index([created_at])
   @@index([status])
@@ -208,6 +225,7 @@ model Task {
   taskReviewers   TaskReviewer[]
   documents       Document[]
   notes           Note[]
+  notifications   Notification[]
 
   @@index([case_id, updated_at])
 }
@@ -238,26 +256,40 @@ model CaseMilestone {
   created_by_user_id String              @db.Uuid
   created_at         DateTime            @default(now())
   updated_at         DateTime            @updatedAt
+  reminder_days      Int?
+  last_reminded_at   DateTime?
 
-  case          Case                    @relation(fields: [case_id], references: [id], onDelete: Cascade)
-  createdBy     User                    @relation(fields: [created_by_user_id], references: [id])
-  notifications MilestoneNotification[]
+  case          Case           @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  createdBy     User           @relation(fields: [created_by_user_id], references: [id])
+  notifications Notification[]
 
   @@index([case_id, due_date])
   @@index([status, due_date])
 }
 
-model MilestoneNotification {
-  id           String   @id @default(uuid()) @db.Uuid
-  milestone_id String   @db.Uuid
-  user_id      String   @db.Uuid
-  is_read      Boolean  @default(false)
-  notified_at  DateTime @default(now())
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+model Notification {
+  id              String           @id @default(uuid()) @db.Uuid
+  user_id         String           @db.Uuid
+  type            NotificationType
+  title           String
+  message         String
+  is_read         Boolean          @default(false)
+  action_url      String?
+  case_id         String?          @db.Uuid
+  consultation_id String?          @db.Uuid
+  milestone_id    String?          @db.Uuid
+  task_id         String?          @db.Uuid
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
 
-  milestone CaseMilestone @relation(fields: [milestone_id], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  case         Case?          @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  consultation Consultation?  @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  milestone    CaseMilestone? @relation(fields: [milestone_id], references: [id], onDelete: Cascade)
+  task         Task?          @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, is_read, created_at])
+  @@index([user_id, created_at])
 }
 
 model Payment {

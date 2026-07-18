@@ -1,7 +1,8 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone } from "@internationalized/date";
+import { CalendarDate } from "@internationalized/date";
 import { useState } from "react";
+import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -17,6 +18,13 @@ import type { MilestoneRow } from "@/features/milestones/queries";
 import { MilestoneUpdatePayloadSchema } from "@/features/milestones/schemas";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
 import { toCalendarDate } from "@/lib/date";
+import {
+  createFieldValidator,
+  optionalString,
+  requiredString,
+  selectEnumHandler,
+  toDateValue,
+} from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditMilestoneModal.module.css";
@@ -52,6 +60,7 @@ export function EditMilestoneModal({
     onSuccess,
     successMessage: "Milestone updated",
     failureMessage: "Failed to update milestone",
+    schema: MilestoneUpdatePayloadSchema,
   });
 
   function handleDismiss() {
@@ -59,16 +68,15 @@ export function EditMilestoneModal({
     onOpenChange(false);
   }
 
-  async function handleSave() {
-    if (!title.trim()) return;
-
-    const date = dueDate.toDate(getLocalTimeZone());
+  async function handleSave(event: React.SyntheticEvent) {
+    event.preventDefault();
+    if (isPending) return;
 
     await submitForm({
       milestoneId: milestone.id,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      due_date: date,
+      title: requiredString(title),
+      description: optionalString(description),
+      due_date: toDateValue(dueDate),
       status,
     });
   }
@@ -101,8 +109,6 @@ export function EditMilestoneModal({
     dueDate.compare(toCalendarDate(milestone.due_date)) !== 0 ||
     status !== (milestone.status as CaseMilestoneStatus);
 
-  const isValid = title.trim().length > 0;
-
   return (
     <>
       <Modal
@@ -111,54 +117,62 @@ export function EditMilestoneModal({
         onOpenChange={handleDismiss}
         className={styles.modal}
       >
-        <div className={styles.content}>
-          <TextField
-            label="Title"
-            value={title}
-            onChange={setTitle}
-            placeholder="Milestone title"
-            isDisabled={isPending || isDeleting}
-          />
-          <TextField
-            label="Description"
-            value={description}
-            onChange={setDescription}
-            placeholder="Optional description"
-            isTextArea
-            rows={3}
-            isDisabled={isPending || isDeleting}
-          />
-          <DateField
-            label="Due Date"
-            value={dueDate}
-            onChange={(v) => v && setDueDate(v)}
-            isDisabled={isPending || isDeleting}
-          />
-          <Select
-            label="Status"
-            value={status}
-            onChange={(k) => setStatus(String(k) as CaseMilestoneStatus)}
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} id={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </Select>
-          <div className={styles.actions}>
-            <Button
-              variant="secondary"
-              onPress={handleSave}
-              isDisabled={!isValid || (!hasChanges && !isPending) || isPending || isDeleting}
-              isPending={isPending}
+        <Form onSubmit={handleSave}>
+          <div className={styles.content}>
+            <TextField
+              label="Title"
+              value={title}
+              onChange={setTitle}
+              placeholder="Milestone title"
+              validate={createFieldValidator(MilestoneUpdatePayloadSchema.shape.title)}
+              isDisabled={isPending || isDeleting}
+            />
+            <TextField
+              label="Description"
+              value={description}
+              onChange={setDescription}
+              placeholder="Optional description"
+              isTextArea
+              rows={3}
+              validate={createFieldValidator(MilestoneUpdatePayloadSchema.shape.description)}
+              isDisabled={isPending || isDeleting}
+            />
+            <DateField
+              label="Due Date"
+              value={dueDate}
+              onChange={(v) => v && setDueDate(v)}
+              isDisabled={isPending || isDeleting}
+            />
+            <Select
+              label="Status"
+              value={status}
+              onChange={selectEnumHandler(CaseMilestoneStatus, setStatus)}
+              isDisabled={isPending || isDeleting}
             >
-              Save
-            </Button>
-            <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
-              {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
-            </Button>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} id={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </Select>
+            <div className={styles.actions}>
+              <Button
+                variant="secondary"
+                type="submit"
+                isDisabled={!hasChanges || isPending || isDeleting}
+                isPending={isPending}
+              >
+                Save
+              </Button>
+              <Button
+                onPress={() => setShowDeleteConfirm(true)}
+                isDisabled={isPending || isDeleting}
+              >
+                {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
+              </Button>
+            </div>
           </div>
-        </div>
+        </Form>
       </Modal>
 
       <ConfirmDialog

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -15,6 +16,12 @@ import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
+import {
+  createFieldValidator,
+  optionalString,
+  requiredString,
+  selectEnumHandler,
+} from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditCaseModal.module.css";
@@ -59,6 +66,7 @@ export function EditCaseModal({
       onSuccess,
       successMessage: "Case updated",
       failureMessage: "Failed to update case. Please try again.",
+      schema: CaseWithClientUpdatePayloadSchema,
     },
   );
 
@@ -67,23 +75,24 @@ export function EditCaseModal({
     onOpenChange(false);
   }
 
-  async function handleSave() {
-    if (!clientId || !clientName.trim() || !caseTitle.trim() || isPending) return;
+  async function handleSave(event: React.SyntheticEvent) {
+    event.preventDefault();
+    if (isPending) return;
 
     await submitForm({
       case_id: caseData.id,
       client_id: clientId,
       client: {
-        name: clientName.trim(),
-        email: clientEmail.trim() || undefined,
-        phone_number: clientPhone.trim() || undefined,
-        address: clientAddress.trim() || undefined,
+        name: requiredString(clientName),
+        email: optionalString(clientEmail),
+        phone_number: optionalString(clientPhone),
+        address: optionalString(clientAddress),
       },
       case: {
-        case_title: caseTitle.trim(),
-        case_type: caseType,
+        case_title: requiredString(caseTitle),
+        case_type: requiredString(caseType),
         status,
-        parties_involved: partiesInvolved.trim() || undefined,
+        parties_involved: optionalString(partiesInvolved),
       },
     });
   }
@@ -110,9 +119,6 @@ export function EditCaseModal({
     }
   }
 
-  const isValid =
-    clientId.length > 0 && clientName.trim().length > 0 && caseTitle.trim().length > 0;
-
   return (
     <>
       <Modal
@@ -121,88 +127,111 @@ export function EditCaseModal({
         onOpenChange={handleDismiss}
         className={styles.modal}
       >
-        <div className={styles.columns}>
-          <div className={styles.column}>
-            <TextField
-              label="Client Name"
-              value={clientName}
-              onChange={setClientName}
-              isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Email"
-              value={clientEmail}
-              onChange={setClientEmail}
-              placeholder="Optional"
-              isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Phone"
-              value={clientPhone}
-              onChange={setClientPhone}
-              placeholder="Optional"
-              isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Address"
-              value={clientAddress}
-              onChange={setClientAddress}
-              placeholder="Optional"
-              isTextArea
-              rows={3}
-              isDisabled={isPending || isDeleting}
-            />
+        <Form onSubmit={handleSave}>
+          <div className={styles.columns}>
+            <div className={styles.column}>
+              <TextField
+                label="Client Name"
+                value={clientName}
+                onChange={setClientName}
+                validate={createFieldValidator(
+                  CaseWithClientUpdatePayloadSchema.shape.client.shape.name,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <TextField
+                label="Email"
+                value={clientEmail}
+                onChange={setClientEmail}
+                placeholder="Optional"
+                validate={createFieldValidator(
+                  CaseWithClientUpdatePayloadSchema.shape.client.shape.email,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <TextField
+                label="Phone"
+                value={clientPhone}
+                onChange={setClientPhone}
+                placeholder="Optional"
+                validate={createFieldValidator(
+                  CaseWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <TextField
+                label="Address"
+                value={clientAddress}
+                onChange={setClientAddress}
+                placeholder="Optional"
+                isTextArea
+                rows={3}
+                validate={createFieldValidator(
+                  CaseWithClientUpdatePayloadSchema.shape.client.shape.address,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+            </div>
+            <div className={styles.divider} />
+            <div className={styles.column}>
+              <TextField
+                label="Case Title"
+                value={caseTitle}
+                onChange={setCaseTitle}
+                validate={createFieldValidator(
+                  CaseWithClientUpdatePayloadSchema.shape.case.shape.case_title,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <TextField
+                label="Case Type"
+                value={caseType}
+                onChange={setCaseType}
+                placeholder="e.g. Civil, Corporate"
+                validate={createFieldValidator(
+                  CaseWithClientUpdatePayloadSchema.shape.case.shape.case_type,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+              <Select
+                label="Status"
+                value={status}
+                onChange={selectEnumHandler(CaseStatus, setStatus)}
+                isDisabled={isPending || isDeleting}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s} id={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </Select>
+              <TextField
+                label="Parties Involved"
+                value={partiesInvolved}
+                onChange={setPartiesInvolved}
+                isTextArea
+                rows={3}
+                validate={createFieldValidator(
+                  CaseWithClientUpdatePayloadSchema.shape.case.shape.parties_involved,
+                )}
+                isDisabled={isPending || isDeleting}
+              />
+            </div>
           </div>
-          <div className={styles.divider} />
-          <div className={styles.column}>
-            <TextField
-              label="Case Title"
-              value={caseTitle}
-              onChange={setCaseTitle}
+          <div className={styles.actions}>
+            <Button
+              variant="secondary"
+              type="submit"
               isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Case Type"
-              value={caseType}
-              onChange={setCaseType}
-              placeholder="e.g. Civil, Corporate"
-              isDisabled={isPending || isDeleting}
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={(k) => setStatus(String(k) as CaseStatus)}
-              isDisabled={isPending || isDeleting}
+              isPending={isPending}
             >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
-            <TextField
-              label="Parties Involved"
-              value={partiesInvolved}
-              onChange={setPartiesInvolved}
-              isTextArea
-              rows={3}
-              isDisabled={isPending || isDeleting}
-            />
+              Save
+            </Button>
+            <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
+              {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
+            </Button>
           </div>
-        </div>
-        <div className={styles.actions}>
-          <Button
-            variant="secondary"
-            onPress={handleSave}
-            isDisabled={!isValid || isPending || isDeleting}
-            isPending={isPending}
-          >
-            Save
-          </Button>
-          <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
-            {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
-          </Button>
-        </div>
+        </Form>
       </Modal>
 
       <ConfirmDialog

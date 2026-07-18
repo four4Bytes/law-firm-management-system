@@ -20,6 +20,9 @@ import {
   type PaymentRow,
 } from "@/features/consultations/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { getActiveUserIdsByRoles } from "@/features/users/queries";
+import { NotificationType, Role } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { PageQuerySchema } from "@/lib/schemas";
@@ -157,7 +160,7 @@ export async function createConsultationAction(
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { client_id, concern, booking_datetime, status } = parsed.data;
+  const { client_id, concern, booking_datetime, status, reminder_days } = parsed.data;
 
   let createdConsultation: { id: string };
   try {
@@ -167,17 +170,43 @@ export async function createConsultationAction(
       booking_datetime,
       status,
       created_by_user_id: session.id,
+      reminder_days,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "consultation.created",
-        entityType: "Consultation",
-        entityId: createdConsultation.id,
-        details: `Created consultation: "${concern}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "consultation.created",
+          entityType: "Consultation",
+          entityId: createdConsultation.id,
+          details: `Created consultation: "${concern}"`,
+        });
+      } catch (err) {
+        console.error(
+          "Failed to log consultation.created audit for Consultation",
+          createdConsultation.id,
+          err,
+        );
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        await dispatchNotifications(
+          {
+            userIds: adminIds,
+            type: NotificationType.ConsultationCreated,
+            title: "New consultation booked",
+            message: `A consultation was scheduled for ${concern.substring(0, 100)}`,
+            actionUrl: `/consultation/${createdConsultation.id}`,
+            consultationId: createdConsultation.id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath("/consultation");
 
@@ -204,15 +233,40 @@ export async function createConsultationWithClientAction(
       created_by_user_id: session.id,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "consultation.created",
-        entityType: "Consultation",
-        entityId: createdWithClient.id,
-        details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "consultation.created",
+          entityType: "Consultation",
+          entityId: createdWithClient.id,
+          details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
+        });
+      } catch (err) {
+        console.error(
+          "Failed to log consultation.created audit for Consultation",
+          createdWithClient.id,
+          err,
+        );
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        await dispatchNotifications(
+          {
+            userIds: adminIds,
+            type: NotificationType.ConsultationCreated,
+            title: "New consultation booked",
+            message: `A consultation was scheduled for ${parsed.data.consultation.concern.substring(0, 100)}`,
+            actionUrl: `/consultation/${createdWithClient.id}`,
+            consultationId: createdWithClient.id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath("/consultation");
 
@@ -232,23 +286,56 @@ export async function updateConsultationAction(
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { consultationId, client_id, concern, booking_datetime, status } = parsed.data;
+  const { consultationId, client_id, concern, booking_datetime, status, reminder_days } =
+    parsed.data;
 
   try {
     const existing = await getConsultationEditData(consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    await updateConsultation({ consultationId, client_id, concern, booking_datetime, status });
+    await updateConsultation({
+      consultationId,
+      client_id,
+      concern,
+      booking_datetime,
+      status,
+      reminder_days,
+    });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "consultation.updated",
-        entityType: "Consultation",
-        entityId: consultationId,
-        details: `Updated consultation: "${concern}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "consultation.updated",
+          entityType: "Consultation",
+          entityId: consultationId,
+          details: `Updated consultation: "${concern}"`,
+        });
+      } catch (err) {
+        console.error(
+          "Failed to log consultation.updated audit for Consultation",
+          consultationId,
+          err,
+        );
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        await dispatchNotifications(
+          {
+            userIds: adminIds,
+            type: NotificationType.ConsultationUpdated,
+            title: "Consultation updated",
+            message: `Consultation was updated: "${concern.substring(0, 100)}"`,
+            actionUrl: `/consultation/${consultationId}`,
+            consultationId,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath(`/consultation/${consultationId}`);
     revalidatePath("/consultation");
@@ -279,15 +366,40 @@ export async function updateConsultationWithClientAction(
       consultation,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "consultation.updated",
-        entityType: "Consultation",
-        entityId: consultation_id,
-        details: `Updated consultation: "${consultation.concern}" with client: "${client.name}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "consultation.updated",
+          entityType: "Consultation",
+          entityId: consultation_id,
+          details: `Updated consultation: "${consultation.concern}" with client: "${client.name}"`,
+        });
+      } catch (err) {
+        console.error(
+          "Failed to log consultation.updated audit for Consultation",
+          consultation_id,
+          err,
+        );
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        await dispatchNotifications(
+          {
+            userIds: adminIds,
+            type: NotificationType.ConsultationUpdated,
+            title: "Consultation updated",
+            message: `Consultation was updated: "${consultation.concern.substring(0, 100)}"`,
+            actionUrl: `/consultation/${consultation_id}`,
+            consultationId: consultation_id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath(`/consultation/${consultation_id}`);
     revalidatePath("/consultation");

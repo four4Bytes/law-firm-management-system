@@ -39,6 +39,8 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
+  reminder_days: null,
+  last_reminded_at: null,
   client: { name: "Jane Client" },
   createdBy: { name: "John Lawyer" },
   ...overrides,
@@ -202,6 +204,8 @@ describe("getConsultationOverviewById", () => {
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
+    reminder_days: null,
+    last_reminded_at: null,
     client: {
       id: "c1",
       name: "Jane Client",
@@ -556,6 +560,8 @@ describe("getConsultationEditData", () => {
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
+    reminder_days: null,
+    last_reminded_at: null,
   };
 
   it("returns the mapped consultation edit data", async () => {

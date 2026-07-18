@@ -35,9 +35,10 @@
     cursor: wait;
   }
 
-  &[data-focus] {
+  &[data-focus-visible] {
+    border-color: var(--color-brand-accent);
     outline: 2px solid var(--color-brand-accent--focus);
-    outline-offset: 2px;
+    outline-offset: -1px;
   }
 
   /* Secondary */

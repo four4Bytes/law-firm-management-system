@@ -7,6 +7,16 @@ import { getUserByEmail } from "@/features/users/queries";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * NextAuth configuration (Google OAuth + Prisma adapter + JWT sessions).
+ *
+ * The `signIn` callback gates access by developer-email allowlist and
+ * active-user status; the `jwt`/`session` callbacks project the database `id`
+ * and `role` onto the token and session so downstream guards can read them.
+ *
+ * Exports the route `handlers`, `signIn`/`signOut` helpers, and the `auth()`
+ * session getter.
+ */
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [

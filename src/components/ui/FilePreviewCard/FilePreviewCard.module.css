@@ -64,7 +64,9 @@
         font-size: var(--font-size-md);
         font-weight: var(--font-weight-semi-bold);
         color: var(--color-text-primary);
-        word-break: break-word;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .meta {

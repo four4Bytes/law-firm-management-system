@@ -1,23 +1,28 @@
 import { z } from "zod";
 
-import { CaseMilestoneStatus } from "@/generated/prisma/client";
+import { CaseMilestoneStatus } from "@/generated/prisma/browser";
+import { nonNegativeInteger, optionalText, requiredEnum, requiredText } from "@/lib/form-utils";
 
 export const MilestoneIdSchema = z.object({
   milestoneId: z.uuid(),
 });
 
 export const MilestoneCreatePayloadSchema = z.object({
-  title: z.string().trim().min(1).max(500),
-  description: z.string().trim().min(1).max(10000).optional(),
+  title: requiredText(500, "Title"),
+  description: optionalText(10000, "Description"),
   due_date: z.coerce.date(),
-  status: z.enum(CaseMilestoneStatus).optional().default(CaseMilestoneStatus.Pending),
+  status: requiredEnum(CaseMilestoneStatus, "Status")
+    .optional()
+    .default(CaseMilestoneStatus.Pending),
   case_id: z.uuid(),
+  reminder_days: nonNegativeInteger("Reminder days").nullable().optional(),
 });
 
 export const MilestoneUpdatePayloadSchema = z.object({
   milestoneId: z.uuid(),
-  title: z.string().trim().min(1).max(500),
-  description: z.string().trim().min(1).max(10000).optional(),
+  title: requiredText(500, "Title"),
+  description: optionalText(10000, "Description"),
   due_date: z.coerce.date(),
-  status: z.enum(CaseMilestoneStatus),
+  status: requiredEnum(CaseMilestoneStatus, "Status"),
+  reminder_days: nonNegativeInteger("Reminder days").nullable().optional(),
 });

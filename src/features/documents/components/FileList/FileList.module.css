@@ -13,6 +13,7 @@
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
+    overflow: hidden;
 
     .fileIcon {
       flex-shrink: 0;
@@ -46,6 +47,7 @@
     .failedIcon {
       flex-shrink: 0;
       color: var(--color-danger);
+      font-size: var(--icon-size-sm);
     }
   }
 }

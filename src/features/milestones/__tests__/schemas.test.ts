@@ -122,6 +122,54 @@ describe("MilestoneCreatePayloadSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts valid reminder_days", () => {
+    const result = MilestoneCreatePayloadSchema.safeParse({
+      title: "Test",
+      due_date: "2024-07-15",
+      case_id: uuid,
+      reminder_days: 0,
+    });
+    expect(result.success).toBe(true);
+
+    const result2 = MilestoneCreatePayloadSchema.safeParse({
+      title: "Test",
+      due_date: "2024-07-15",
+      case_id: uuid,
+      reminder_days: 14,
+    });
+    expect(result2.success).toBe(true);
+  });
+
+  it("accepts null reminder_days", () => {
+    const result = MilestoneCreatePayloadSchema.safeParse({
+      title: "Test",
+      due_date: "2024-07-15",
+      case_id: uuid,
+      reminder_days: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects negative reminder_days", () => {
+    const result = MilestoneCreatePayloadSchema.safeParse({
+      title: "Test",
+      due_date: "2024-07-15",
+      case_id: uuid,
+      reminder_days: -1,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects non-integer reminder_days", () => {
+    const result = MilestoneCreatePayloadSchema.safeParse({
+      title: "Test",
+      due_date: "2024-07-15",
+      case_id: uuid,
+      reminder_days: 3.5,
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("MilestoneUpdatePayloadSchema", () => {
@@ -171,6 +219,28 @@ describe("MilestoneUpdatePayloadSchema", () => {
       title: "Test",
       due_date: "2024-08-01",
       status: "Pending",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts valid reminder_days in update", () => {
+    const result = MilestoneUpdatePayloadSchema.safeParse({
+      milestoneId: uuid,
+      title: "Test",
+      due_date: "2024-08-01",
+      status: "Pending",
+      reminder_days: 7,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects negative reminder_days in update", () => {
+    const result = MilestoneUpdatePayloadSchema.safeParse({
+      milestoneId: uuid,
+      title: "Test",
+      due_date: "2024-08-01",
+      status: "Pending",
+      reminder_days: -5,
     });
     expect(result.success).toBe(false);
   });

@@ -5,6 +5,9 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import { getCaseAssigneeIds } from "@/features/cases/queries";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 
@@ -37,7 +40,7 @@ export async function createMilestoneAction(
     return { success: false, error: "Invalid milestone data" };
   }
 
-  const { title, description, due_date, status, case_id } = parsed.data;
+  const { title, description, due_date, status, case_id, reminder_days } = parsed.data;
 
   try {
     const milestone = await createMilestone({
@@ -47,17 +50,22 @@ export async function createMilestoneAction(
       status,
       case_id,
       created_by_user_id: session.id,
+      reminder_days,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "milestone.created",
-        entityType: "Case",
-        entityId: case_id,
-        details: `Created milestone: "${title}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "milestone.created",
+          entityType: "Case",
+          entityId: case_id,
+          details: `Created milestone: "${title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log milestone.created audit for Case", case_id, err);
+      }
+    });
 
     revalidatePath(`/case/${case_id}`);
 
@@ -77,7 +85,7 @@ export async function updateMilestoneAction(
     return { success: false, error: "Invalid milestone data" };
   }
 
-  const { milestoneId, title, description, due_date, status } = parsed.data;
+  const { milestoneId, title, description, due_date, status, reminder_days } = parsed.data;
 
   try {
     const existing = await getMilestoneById(milestoneId);
@@ -88,17 +96,46 @@ export async function updateMilestoneAction(
       description: description || undefined,
       due_date,
       status,
+      reminder_days,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "milestone.updated",
-        entityType: "Case",
-        entityId: existing.case_id,
-        details: `Updated milestone: "${title}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "milestone.updated",
+          entityType: "Case",
+          entityId: existing.case_id,
+          details: `Updated milestone: "${title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log milestone.updated audit for Case", existing.case_id, err);
+      }
+
+      if (existing.status !== status) {
+        try {
+          const assigneeIds = await getCaseAssigneeIds(existing.case_id);
+          const notificationType =
+            status === "Done"
+              ? NotificationType.MilestoneCompleted
+              : NotificationType.MilestoneStatusChanged;
+          await dispatchNotifications(
+            {
+              userIds: assigneeIds,
+              type: notificationType,
+              title: `Milestone ${status === "Done" ? "completed" : "status changed"}: ${title}`,
+              message: `Milestone "${title}" status changed to ${status}`,
+              actionUrl: `/case/${existing.case_id}`,
+              caseId: existing.case_id,
+              milestoneId: existing.id,
+            },
+            session.id,
+          );
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+    });
 
     revalidatePath(`/case/${existing.case_id}`);
 

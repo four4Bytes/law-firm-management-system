@@ -10,6 +10,7 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { queue } from "@/components/ui/Toast/Toast";
 import { deleteDocumentAction, getDocumentDownloadUrlAction } from "@/features/documents/actions";
 import type { DocumentDetailRow } from "@/features/documents/queries";
+import { truncateFilename } from "@/lib/file-format";
 
 import styles from "./ViewAttachmentModal.module.css";
 
@@ -75,7 +76,7 @@ export function ViewAttachmentModal({
   return (
     <>
       <Modal
-        title={doc.file_name}
+        title={truncateFilename(doc.file_name)}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         className={styles.modal}

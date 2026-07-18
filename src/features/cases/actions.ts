@@ -23,7 +23,10 @@ import {
   type PaymentRow,
 } from "@/features/cases/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
 import type { TaskRow } from "@/features/tasks/queries";
+import { getActiveUserIdsByRoles } from "@/features/users/queries";
+import { NotificationType, Role } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { PageQuerySchema } from "@/lib/schemas";
@@ -202,15 +205,36 @@ export async function createCaseAction(
       created_by_user_id: session.id,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "case.created",
-        entityType: "Case",
-        entityId: createdCase.id,
-        details: `Created case: "${case_title}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "case.created",
+          entityType: "Case",
+          entityId: createdCase.id,
+          details: `Created case: "${case_title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log case.created audit for Case", createdCase.id, err);
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        await dispatchNotifications(
+          {
+            userIds: adminIds,
+            type: NotificationType.CaseAssigned,
+            title: `New case: ${case_title}`,
+            message: `A new case "${case_title}" was created`,
+            actionUrl: `/case/${createdCase.id}`,
+            caseId: createdCase.id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath("/case");
 
@@ -240,15 +264,36 @@ export async function createCaseWithClientAction(
       created_by_user_id: session.id,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "case.created",
-        entityType: "Case",
-        entityId: createdWithClient.id,
-        details: `Created case: "${caseData.case_title}" with client: "${client.name}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "case.created",
+          entityType: "Case",
+          entityId: createdWithClient.id,
+          details: `Created case: "${caseData.case_title}" with client: "${client.name}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log case.created audit for Case", createdWithClient.id, err);
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        await dispatchNotifications(
+          {
+            userIds: adminIds,
+            type: NotificationType.CaseAssigned,
+            title: `New case: ${caseData.case_title}`,
+            message: `A new case "${caseData.case_title}" was created for client "${client.name}"`,
+            actionUrl: `/case/${createdWithClient.id}`,
+            caseId: createdWithClient.id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath("/case");
 

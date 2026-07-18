@@ -1,4 +1,4 @@
-import { CaseMilestoneStatus } from "@/generated/prisma/client";
+import { CaseMilestoneStatus, NotificationType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 interface MilestoneData {
@@ -369,11 +369,19 @@ export async function seedMilestones(
     for (const email of m.notifyEmails) {
       const userId = userByEmail[email];
       if (userId) {
-        await prisma.milestoneNotification.create({
+        await prisma.notification.create({
           data: {
-            milestone_id: milestone.id,
             user_id: userId,
+            type:
+              m.status === "Done"
+                ? NotificationType.MilestoneCompleted
+                : NotificationType.MilestoneStatusChanged,
+            title: `Milestone: ${m.title}`,
+            message: `Milestone "${m.title}" for case "${m.caseTitle}" is ${m.status === "Done" ? "completed" : "due on " + dueDate.toLocaleDateString()}`,
             is_read: m.status === "Done",
+            milestone_id: milestone.id,
+            case_id: caseByTitle[m.caseTitle],
+            action_url: `/case/${caseByTitle[m.caseTitle]}`,
           },
         });
       }

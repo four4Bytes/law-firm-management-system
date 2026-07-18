@@ -127,7 +127,8 @@ export async function updateTaskAction(
 
       if (existing.status !== status) {
         try {
-          const assigneeIds = parsed.data.assignee_ids ?? [];
+          const assigneeIds =
+            parsed.data.assignee_ids ?? existing.taskAssignments.map((a) => a.user_id);
           if (assigneeIds.length > 0) {
             await dispatchNotifications(
               {

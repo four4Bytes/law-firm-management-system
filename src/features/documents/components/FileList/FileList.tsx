@@ -35,7 +35,7 @@ export function FileList({ entries, isBusy, onRemove }: FileListProps) {
       {entries.map((entry) => (
         <div key={entry.id} className={styles.fileRow}>
           <FaRegFileLines className={styles.fileIcon} aria-hidden="true" />
-          <span className={styles.fileName} title={entry.file.name}>
+          <span className={styles.fileName} aria-label={entry.file.name}>
             {truncateFilename(entry.file.name)}
           </span>
           <span className={styles.fileSize}>{formatFileSize(entry.file.size)}</span>
@@ -59,11 +59,7 @@ export function FileList({ entries, isBusy, onRemove }: FileListProps) {
           {entry.status === "done" && <FaCheck className={styles.doneIcon} aria-label="Uploaded" />}
 
           {entry.status === "failed" && (
-            <FaXmark
-              className={styles.failedIcon}
-              aria-label="Upload failed"
-              title={entry.error ?? "Upload failed"}
-            />
+            <FaXmark className={styles.failedIcon} aria-label={entry.error ?? "Upload failed"} />
           )}
         </div>
       ))}

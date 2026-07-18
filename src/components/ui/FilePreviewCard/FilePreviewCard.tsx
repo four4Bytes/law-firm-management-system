@@ -72,7 +72,7 @@ export function FilePreviewCard({
           <Icon className={styles.icon} />
         </div>
         <div className={styles.info}>
-          <span className={styles.fileName} title={file_name}>
+          <span className={styles.fileName} aria-label={file_name}>
             {truncateFilename(file_name)}
           </span>
           <div className={styles.meta}>

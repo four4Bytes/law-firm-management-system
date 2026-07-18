@@ -47,6 +47,7 @@
     .failedIcon {
       flex-shrink: 0;
       color: var(--color-danger);
+      font-size: var(--icon-size-sm);
     }
   }
 }

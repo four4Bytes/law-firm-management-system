@@ -1,6 +1,6 @@
 {
   "name": "law-firm-management-system",
-  "version": "2026.07.19.0",
+  "version": "2026.07.19.1",
   "private": true,
   "packageManager": "pnpm@11.10.0",
   "scripts": {

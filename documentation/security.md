@@ -27,9 +27,24 @@ The system uses **Google OAuth 2.0** as its sole authentication provider. There 
 
 ### Developer Email Bypass
 
-The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email addresses that can sign in without being pre-registered in the User table. Each sign-in creates or updates a "Developer Account" user record if one doesn't exist.
+The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email addresses that can sign in without being pre-registered in the User table. Each sign-in creates or updates a user record with the `Dev` role if one doesn't exist.
 
-See `src/lib/developer-emails.ts`.
+**Purpose:** Bootstrapping — since there is no registration page, the first user(s) must get in somehow. The developer bypass is that mechanism.
+
+**Lifecycle:**
+
+1. Add your email(s) to `DEVELOPER_EMAILS` in `.env.dev`.
+2. Sign in via Google OAuth — a `Dev`-role user is created automatically.
+3. Use the `Dev` account to create the first `Admin` users (via the user management UI).
+4. Once `Admin` users exist, either:
+   - The `Dev` user deactivates or removes themselves, or
+   - An `Admin` deactivates or removes the `Dev` user.
+
+The `Dev` role has no permissions beyond user management (`CRUD` on `User`). It cannot create cases, consultations, or any other business data. See [Specification — Global Permissions](./specification.md#global-permissions).
+
+On startup, `src/instrumentation.ts` reads `DEVELOPER_EMAILS` and creates `Dev`-role users for any emails not yet in the database. This ensures the bootstrap flow works even when the app is deployed fresh.
+
+See `src/lib/developer-emails.ts` and `src/features/users/mutations.ts:upsertDeveloperUser`.
 
 ## Authorization
 

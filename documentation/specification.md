@@ -7,7 +7,7 @@ A web-based case management system for **Anino Law & Real Estate Firm**. Manages
 ## Role Hierarchy
 
 ```
-DEV - Initial user to bootstap the app
+DEV - Initial user to bootstrap the app
 
 ADMIN
   → BRANCH MANAGER
@@ -50,10 +50,10 @@ ADMIN
 **Notes:**
 
 - Activity Logs are immutable — created automatically by the system. No role can create, update, or delete log entries. All roles are limited to read-only access.
-- Client profiles are generated during case/consultation creation. They cannot be initialized as standalone records and are restricted to UPDATE only once created.
-- Documents attached to a consultation are stored separately — they do not appear in the case Attachments tab.
-- The Global Attachment tab displays all files across the entire case, including sub-task files, with status, timestamp, and link to the originating task.
-- Payment data is strictly locked to Admin and BranchManager.
+- Client profiles can be created standalone or during case/consultation creation.
+- Documents attached to a consultation are stored separately — they do not appear in the case Attachments tab (planned).
+- The Global Attachment tab displays all files across the entire case, including sub-task files, with status, timestamp, and link to the originating task (planned).
+- Payment data is restricted to Admin and BranchManager (planned — currently uses `requireAuth()` only).
 
 ## Entity Lifecycle
 
@@ -77,9 +77,9 @@ Cases can optionally link to a source consultation via `source_consultation_id`.
 
 **Rules:**
 
-- Only Admin, BranchManager, Lawyer, or Paralegal can create tasks.
-- Tasks must have at least one assignee at creation. No floating tasks.
-- Assigning a Paralegal or Process Server to a task opens conditional read-only access to the parent case.
+- Only Admin, BranchManager, Lawyer, or Paralegal can create tasks (planned — not enforced).
+- Tasks must have at least one assignee at creation (planned — `assignee_ids` is currently optional in the schema).
+- Assigning a Paralegal or Process Server to a task opens conditional read-only access to the parent case (planned — not implemented).
 
 **Review Chain (planned):**
 
@@ -102,7 +102,9 @@ Milestones track `due_date` and `reminder_days`. Overdue milestones trigger noti
 
 Payments can be linked to a Case or a Consultation.
 
-## Allowed File Types
+## Allowed File Types (planned)
+
+No file type or size enforcement is currently implemented in the code. The table below documents the target allowed types.
 
 | Category  | Extensions                                       |
 | --------- | ------------------------------------------------ |

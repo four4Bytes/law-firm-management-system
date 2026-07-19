@@ -39,7 +39,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Variable               | Required | Description                                                                                         |
 | ---------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET`          | Yes      | Generate with `pnpx auth secret`                                                                    |
+| `AUTH_SECRET`          | Yes      | Generate with `pnpm dlx auth secret`                                                                |
 | `AUTH_GOOGLE_ID`       | Yes      | Google OAuth client ID                                                                              |
 | `AUTH_GOOGLE_SECRET`   | Yes      | Google OAuth client secret                                                                          |
 | `DEVELOPER_EMAILS`     | Yes      | Comma-separated emails that bypass Google OAuth in dev                                              |

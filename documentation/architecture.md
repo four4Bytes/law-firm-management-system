@@ -105,7 +105,7 @@ File uploads never stream through the Next.js runtime:
 | Concern              | Mechanism                                                                                                                          |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **Auth**             | `requireAuth()` — centralized, returns verified session                                                                            |
-| **Role enforcement** | `requireRole(...roles)` — at top of every action flow                                                                              |
+| **Role enforcement** | `requireRole(...roles)` — available, used where role-specific access is known                                                      |
 | **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                |
 | **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                 |
 | **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                          |
@@ -129,10 +129,11 @@ See [AGENTS.md](../AGENTS.md) for the full conventions reference covering:
 
 The sidebar displays the current version via `NEXT_PUBLIC_APP_VERSION`:
 
-| Context               | Value                             |
-| --------------------- | --------------------------------- |
-| CI release build      | CalVer tag (e.g. `v2026.07.12.0`) |
-| Local dev             | `0.0.0-dev`                       |
-| Docker build (no arg) | `0.0.0-dev`                       |
+| Context                 | Value                                           |
+| ----------------------- | ----------------------------------------------- |
+| CI release build        | CalVer tag (e.g. `v2026.07.12.0`)               |
+| Local dev (env var set) | `0.0.0-dev` (via `.env.example`)                |
+| Local dev (no env var)  | Falls back to `version` field in `package.json` |
+| Docker build (no arg)   | `0.0.0-dev` (Dockerfile `ARG` default)          |
 
 Override locally: `NEXT_PUBLIC_APP_VERSION=my-branch pnpm dev`

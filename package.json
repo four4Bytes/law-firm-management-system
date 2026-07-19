@@ -46,11 +46,11 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "prettier --write",
-      "eslint --fix"
+      "prettier --write --cache",
+      "eslint --fix --cache"
     ],
     "*.{json,css,md}": [
-      "prettier --write"
+      "prettier --write --cache"
     ]
   },
   "devDependencies": {

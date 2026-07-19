@@ -11,7 +11,7 @@ The system is designed to streamline law firm operations by managing the lifecyc
 - Document management
 - Payment recording and tracking
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local development and setup instructions.
+See [`documentation/`](./documentation/README.md) for development, architecture, and deployment guides.
 
 ## Project Status
 

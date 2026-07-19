@@ -1,26 +1,30 @@
 # Specification
 
-> **Status:** Planned / in progress. RBAC enforcement is not yet implemented. The tables below describe the target permissions model.
+> **Status:** RBAC is not yet implemented — the tables below are the planned model, not the current state. The final scope and behavior still need confirmation.
 
 A web-based case management system for **Anino Law & Real Estate Firm**. Manages end-to-end case workflows — from client consultation and intake to task delegation, document management, milestone tracking, and payment recording.
 
 ## Role Hierarchy
 
 ```
-DEV ───────────── Bootstrap user (app setup only)
-  │
-ADMIN ─────────── Full system access
-  │
-BRANCH MANAGER ── Operational control (no delete)
-  │
-LAWYER ────────── Case work, task creation, consultation acceptance
-  │
-PARALEGAL �─────── Task execution, conditional case read
-  │
-PROCESS SERVER ── Task execution, conditional case read
+DEV - Initial user to bootstap the app
+
+ADMIN
+  → BRANCH MANAGER
+    → LAWYER
+      → PARALEGAL
+        → PROCESS SERVER
+
 ```
 
-**Legend:** `C` = Create, `R` = Read (unrestricted), `R*` = Conditional Read, `U` = Update, `D` = Delete, `-` = No Access
+**Legend:**
+
+- `C` = Create
+- `R` = Read (Unrestricted global access)
+- `R*` = Conditional Read (Access granted only if the user is explicitly assigned to a task or review node within that case)
+- `U` = Update
+- `D` = Delete
+- `-` = No Access
 
 ## Global Permissions
 
@@ -45,44 +49,31 @@ PROCESS SERVER ── Task execution, conditional case read
 
 **Notes:**
 
-- Activity Logs in this table refer to case-scoped logs. System-wide logs (Global table) are restricted differently.
-- Client profiles are auto-generated during case/consultation creation. They cannot be initialized as standalone records and are restricted to UPDATE only once created.
-- Payment data is strictly locked to Admin and BranchManager.
+- Activity Logs are immutable — created automatically by the system. No role can create, update, or delete log entries. All roles are limited to read-only access.
+- Client profiles are generated during case/consultation creation. They cannot be initialized as standalone records and are restricted to UPDATE only once created.
 - Documents attached to a consultation are stored separately — they do not appear in the case Attachments tab.
 - The Global Attachment tab displays all files across the entire case, including sub-task files, with status, timestamp, and link to the originating task.
+- Payment data is strictly locked to Admin and BranchManager.
 
 ## Entity Lifecycle
 
-### Consultation Flow
+Statuses are defined in `prisma/schema.prisma` as enums. The code validates against these values but does not enforce a state machine — any valid status can be set at any time.
 
-```
-Created ──→ Scheduled ──→ Completed → [Accepted → Case]
-                │                            │
-                └──→ Cancelled               └──→ Rejected
-```
+### Consultation
 
-- Only Admin, Branch Manager, and Lawyer can accept a consultation and escalate it to a case.
-- Consultations track `reminder_days` and `last_reminded_at` for automated notifications.
+`Scheduled`, `Completed`, `Accepted`, `Rejected`, `Cancelled`
 
-### Case Lifecycle
+Consultations track `reminder_days` and `last_reminded_at` for automated notifications.
 
-```
-Open ──→ Ongoing ──→ Closed
-  │                   │
-  └──→ Terminated     └──→ Settled
-```
+### Case
 
-- Cases are created from consultations or directly (if appropriate).
-- Cases have assigned users via `CaseAssignment` (unique per user-case pair).
+`Open`, `Ongoing`, `Closed`, `Terminated`, `Settled`
 
-### Task Workflow
+Cases can optionally link to a source consultation via `source_consultation_id`. Cases have assigned users via `CaseAssignment` (unique per user-case pair).
 
-```
-Pending ──→ Ongoing ──→ Submitted ──→ Accepted
-                              │
-                              └──→ Rejected
-       ──→ Cancelled
-```
+### Task
+
+`Pending`, `Ongoing`, `Submitted`, `Accepted`, `Rejected`, `Cancelled`
 
 **Rules:**
 
@@ -90,7 +81,7 @@ Pending ──→ Ongoing ──→ Submitted ──→ Accepted
 - Tasks must have at least one assignee at creation. No floating tasks.
 - Assigning a Paralegal or Process Server to a task opens conditional read-only access to the parent case.
 
-**Review Chain:**
+**Review Chain (planned):**
 
 1. Task is set to `Pending` or `Ongoing`. Assignees update details and upload files.
 2. Assignees mark the task as done → state changes to `Submitted`. Task files lock from further assignee edits while review is pending.
@@ -99,25 +90,15 @@ Pending ──→ Ongoing ──→ Submitted ──→ Accepted
    - **Further review:** Delegate the decision by assigning a new reviewer.
 4. The new reviewer gets full read context of the parent case and write access only to update this task's status. They can accept, reject, or delegate further.
 
-### Milestone Status
+### Milestone
 
-```
-Pending ──→ Done
-  │
-  └──→ Cancelled
-```
+`Pending`, `Done`, `Cancelled`
 
 Milestones track `due_date` and `reminder_days`. Overdue milestones trigger notifications.
 
-### Payment Status
+### Payment
 
-```
-Unpaid ──→ Partial ──→ Paid
-  │                     │
-  └─────────────────────┘
-                    │
-             Refunded
-```
+`Unpaid`, `Partial`, `Paid`, `Refunded`
 
 Payments can be linked to a Case or a Consultation.
 

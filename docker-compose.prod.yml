@@ -39,9 +39,6 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      # Server-side encryption at rest (SSE-S3). MINIO_KMS_AUTO_ENCRYPTION=on
-      # transparently encrypts every new object with the master key below.
-      # Data is encrypted on disk without any app code changes.
       MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY}
       MINIO_KMS_AUTO_ENCRYPTION: "on"
     command: server /data --console-address ":9001"

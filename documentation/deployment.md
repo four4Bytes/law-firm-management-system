@@ -19,12 +19,14 @@ Examples: `v2026.07.12.0`, `v2026.07.12.1`, `v2026.08.01.0`
 
 ```
 dev  ──(work)──>  dev ──(PR)──> main ──(merge)──> auto-tag + GitHub Release
+                                                      └── Docker build & push to GHCR
 ```
 
 1. Work is committed to `dev` (or feature branches off `dev`).
 2. When ready, open a pull request from `dev` → `main`.
 3. On merge to `main`, CI runs (`build` → `validate` → `test`).
 4. If CI passes, a **CalVer tag** is created and a **GitHub Release** is published with auto-generated release notes.
+5. A Docker image is built and pushed to **GitHub Container Registry** with the CalVer tag and `latest`.
 
 ### Cutting a Release
 
@@ -57,17 +59,46 @@ Every PR targeting `dev` or `main` is automatically reviewed by [CodeRabbit](htt
 
 No local configuration — enabled at the GitHub organization level.
 
-## Docker Production Build
+## Docker Image
 
-```bash
-# Build with default version (0.0.0-dev)
-docker build -t law-firm:latest .
+The project builds and publishes a Docker image automatically on every push to `main` as part of the CI & Release workflow.
 
-# Override version (e.g. staging build)
-NEXT_PUBLIC_APP_VERSION=staging-2026.07.12 docker build -t law-firm:latest .
+### Registry
+
+```
+ghcr.io/four4Bytes/law-firm-management-system
 ```
 
-The app version is read from `package.json` at build time by default.
+| Tag          | Example         | Description                     |
+| ------------ | --------------- | ------------------------------- |
+| **CalVer**   | `v2026.07.20.0` | Matches the GitHub Release tag  |
+| **`latest`** | `latest`        | Points to the most recent build |
+
+### Pulling the image
+
+The package is **public**:
+
+```bash
+docker pull ghcr.io/four4Bytes/law-firm-management-system:latest
+```
+
+### Build
+
+The Docker image is built using the `Dockerfile` at the project root. The `NEXT_PUBLIC_APP_VERSION` build arg is automatically set by CI to the CalVer version (from `needs.release.outputs.version`, without the `v` prefix).
+
+To build locally for testing:
+
+```bash
+docker build -t law-firm:latest .
+```
+
+### Local pull authentication (optional)
+
+If you need to pull a private image or push to GHCR locally, authenticate using a [GitHub personal access token](https://github.com/settings/tokens) with `read:packages` / `write:packages` scope:
+
+```bash
+echo "<token>" | docker login ghcr.io -u <username> --password-stdin
+```
 
 ### Production Stack
 

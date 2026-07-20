@@ -1,16 +1,15 @@
+x-image: &app-image ghcr.io/four4Bytes/law-firm-management-system:latest
+
 services:
   db:
     image: postgres:16-alpine
     container_name: postgres-prod
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-testing}
-      POSTGRES_USER: ${POSTGRES_USER:-testing}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-testing}
+    env_file: .env.prod
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-testing} -d ${POSTGRES_DB:-testing}"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -18,9 +17,7 @@ services:
       - "5432"
 
   migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: *app-image
     container_name: prisma-migrate
     restart: "no"
     depends_on:
@@ -29,20 +26,14 @@ services:
     env_file: .env.prod
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://testing:testing@db:5432/testing
     command: ["pnpm", "prisma", "migrate", "deploy"]
 
   minio:
     image: minio/minio:latest
     container_name: minio-prod
     restart: unless-stopped
+    env_file: .env.prod
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      # Server-side encryption at rest (SSE-S3). MINIO_KMS_AUTO_ENCRYPTION=on
-      # transparently encrypts every new object with the master key below.
-      # Data is encrypted on disk without any app code changes.
-      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY}
       MINIO_KMS_AUTO_ENCRYPTION: "on"
     command: server /data --console-address ":9001"
     volumes:
@@ -61,18 +52,17 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+    env_file: .env.prod
     entrypoint: >
       /bin/sh -c "
-        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc alias set local http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD &&
         mc mb --ignore-existing local/law-firm-files &&
         mc encrypt set sse-s3 local/law-firm-files &&
         echo 'Bucket law-firm-files created successfully'
       "
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: *app-image
     container_name: nextjs-prod
     restart: unless-stopped
     depends_on:
@@ -87,7 +77,6 @@ services:
       HOSTNAME: 0.0.0.0
       AUTH_TRUST_HOST: true
       AUTH_URL: http://localhost:3000
-      DATABASE_URL: postgres://testing:testing@db:5432/testing
     ports:
       - "3000:3000"
 

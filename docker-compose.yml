@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: postgres
     restart: no
-    env_file: .env
+    env_file: .env.dev
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-testing}
       POSTGRES_USER: ${POSTGRES_USER:-testing}
@@ -17,13 +17,10 @@ services:
     image: minio/minio:latest
     container_name: minio
     restart: unless-stopped
-    env_file: .env
+    env_file: .env.dev
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      # Server-side encryption at rest (SSE-S3). MINIO_KMS_AUTO_ENCRYPTION=on
-      # transparently encrypts every new object with the master key below.
-      # Data is encrypted on disk without any app code changes.
       MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY}
       MINIO_KMS_AUTO_ENCRYPTION: "on"
     ports:
@@ -43,9 +40,10 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+    env_file: .env.dev
     entrypoint: >
       /bin/sh -c "
-        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc alias set local http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD &&
         mc mb --ignore-existing local/law-firm-files &&
         mc encrypt set sse-s3 local/law-firm-files &&
         echo 'Bucket law-firm-files created successfully'

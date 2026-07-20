@@ -17,4 +17,4 @@ jobs:
         run: |
           curl -sSf -o /dev/null -X GET \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://law-firm-management-system-vert.vercel.app/api/cron/reminders
+            https://law-firm-management-system.r4ppz.dev/api/cron/reminders

@@ -84,7 +84,7 @@ docker pull ghcr.io/four4Bytes/law-firm-management-system:latest
 
 ### Build
 
-The Docker image is built using the `Dockerfile` at the project root. The `NEXT_PUBLIC_APP_VERSION` build arg is automatically set to the CalVer tag during CI.
+The Docker image is built using the `Dockerfile` at the project root. The `NEXT_PUBLIC_APP_VERSION` build arg is automatically set by CI to the CalVer version (from `needs.release.outputs.version`, without the `v` prefix).
 
 To build locally for testing:
 
@@ -97,7 +97,7 @@ docker build -t law-firm:latest .
 If you need to pull a private image or push to GHCR locally, authenticate using a [GitHub personal access token](https://github.com/settings/tokens) with `read:packages` / `write:packages` scope:
 
 ```bash
-echo <token> | docker login ghcr.io -u <username> --password-stdin
+echo "<token>" | docker login ghcr.io -u <username> --password-stdin
 ```
 
 ### Production Stack

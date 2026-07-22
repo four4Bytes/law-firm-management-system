@@ -38,16 +38,17 @@ export function CaseDetail({ overview }: Props) {
   } | null>(null);
 
   const validTabs = [
+    "attachments",
     "tasks",
     "notes",
-    "attachments",
     "milestones",
     "payments",
     "activity",
   ] as const;
   type ValidTab = (typeof validTabs)[number];
   const tabParam = searchParams.get("tab");
-  const selectedKey = tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "tasks";
+  const selectedKey =
+    tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "attachments";
 
   const handleSelectionChange = (key: React.Key) => {
     startLoading();
@@ -78,9 +79,9 @@ export function CaseDetail({ overview }: Props) {
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Case details">
+          <Tab id="attachments">Attachments</Tab>
           <Tab id="tasks">Tasks</Tab>
           <Tab id="notes">Notes</Tab>
-          <Tab id="attachments">Attachments</Tab>
           <Tab id="milestones">Milestone</Tab>
           <Tab id="payments">Payment Log</Tab>
           <Tab id="activity">Activity Log</Tab>

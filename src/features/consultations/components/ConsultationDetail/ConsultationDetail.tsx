@@ -38,10 +38,11 @@ export function ConsultationDetail({ overview }: Props) {
     clientData: ClientEditData;
   } | null>(null);
 
-  const validTabs = ["notes", "attachments", "payments", "activity"] as const;
+  const validTabs = ["attachments", "notes", "payments", "activity"] as const;
   type ValidTab = (typeof validTabs)[number];
   const tabParam = searchParams.get("tab");
-  const selectedKey = tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "notes";
+  const selectedKey =
+    tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "attachments";
 
   const handleSelectionChange = (key: React.Key) => {
     startLoading();
@@ -72,8 +73,8 @@ export function ConsultationDetail({ overview }: Props) {
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Consultation details">
-          <Tab id="notes">Notes</Tab>
           <Tab id="attachments">Attachments</Tab>
+          <Tab id="notes">Notes</Tab>
           <Tab id="payments">Payment Log</Tab>
           <Tab id="activity">Activity Log</Tab>
         </TabList>

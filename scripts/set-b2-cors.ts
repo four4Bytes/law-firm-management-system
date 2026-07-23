@@ -1,3 +1,12 @@
+/**
+ * Applies permissive CORS rules to the project's S3-compatible storage bucket.
+ *
+ * Required env vars (via .env): S3_SECRET_KEY, S3_ACCESS_KEY_ID, S3_ENDPOINT,
+ * S3_REGION, S3_BUCKET.
+ *
+ * Usage:
+ *   pnpm tsx scripts/set-b2-cors.ts
+ */
 import "dotenv/config";
 
 import { PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";

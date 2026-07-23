@@ -3,7 +3,7 @@ import { cache } from "react";
 
 import { getDocumentsPaginated } from "@/features/documents/queries";
 import type { TaskRow } from "@/features/tasks/queries";
-import type { Case, CaseMilestone } from "@/generated/prisma/browser";
+import type { CaseMilestone } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -433,16 +433,16 @@ export const getCaseAssigneeIds = cache(async (caseId: string): Promise<string[]
   return assignments.map((a) => a.user_id);
 });
 
-export type CaseEditData = Pick<
-  Case,
-  | "id"
-  | "client_id"
-  | "case_title"
-  | "case_type"
-  | "status"
-  | "parties_involved"
-  | "source_consultation_id"
->;
+export interface CaseEditData {
+  id: string;
+  client_id: string;
+  case_title: string;
+  case_type: string;
+  status: string;
+  parties_involved: string | null;
+  source_consultation_id: string | null;
+  assignee_ids: string[];
+}
 
 export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | null> => {
   const data = await prisma.case.findUnique({
@@ -455,8 +455,22 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       status: true,
       parties_involved: true,
       source_consultation_id: true,
+      caseAssignments: {
+        select: { user_id: true },
+      },
     },
   });
 
-  return data;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    client_id: data.client_id,
+    case_title: data.case_title,
+    case_type: data.case_type,
+    status: data.status,
+    parties_involved: data.parties_involved,
+    source_consultation_id: data.source_consultation_id,
+    assignee_ids: data.caseAssignments.map((a) => a.user_id),
+  };
 });

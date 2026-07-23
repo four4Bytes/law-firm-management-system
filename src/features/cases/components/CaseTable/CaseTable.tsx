@@ -2,14 +2,16 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
-import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
+import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
 import type { CaseRow } from "@/features/cases/queries";
+import { getActiveUsersAction } from "@/features/tasks/actions";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
 
 import styles from "./CaseTable.module.css";
 
@@ -66,6 +68,12 @@ export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+
+  const openAddModal = useCallback(async () => {
+    setUsers(await getActiveUsersAction());
+    setIsAddOpen(true);
+  }, []);
 
   return (
     <>
@@ -89,7 +97,7 @@ export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
         }}
         renderAddButton
         addButtonLabel="Add Case"
-        onAddButtonPress={() => setIsAddOpen(true)}
+        onAddButtonPress={openAddModal}
         refreshTrigger={refreshTrigger}
       />
 
@@ -101,6 +109,7 @@ export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
             setIsAddOpen(false);
             setRefreshTrigger((t) => t + 1);
           }}
+          users={users}
         />
       )}
     </>

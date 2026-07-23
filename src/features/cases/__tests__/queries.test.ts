@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getEntityActivityLogPaginated } from "@/features/audit/queries";
-import { Case } from "@/generated/prisma/browser";
+import { type Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -830,8 +830,10 @@ describe("getEntityActivityLogPaginated (Case)", () => {
   });
 });
 
+type CaseWithAssignments = Case & { caseAssignments: { user_id: string }[] };
+
 describe("getCaseEditData", () => {
-  const caseEditRecord: Case = {
+  const caseEditRecord: CaseWithAssignments = {
     id: "1",
     client_id: "c1",
     case_title: "Smith vs Jones",
@@ -842,6 +844,7 @@ describe("getCaseEditData", () => {
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
+    caseAssignments: [],
   };
 
   it("returns the mapped case edit data", async () => {
@@ -857,6 +860,7 @@ describe("getCaseEditData", () => {
       status: "Open",
       parties_involved: "Smith (Plaintiff)",
       source_consultation_id: null,
+      assignee_ids: [],
     });
     expect(prisma.case.findUnique).toHaveBeenCalledWith({
       where: { id: "1" },
@@ -868,6 +872,9 @@ describe("getCaseEditData", () => {
         status: true,
         parties_involved: true,
         source_consultation_id: true,
+        caseAssignments: {
+          select: { user_id: true },
+        },
       },
     });
   });

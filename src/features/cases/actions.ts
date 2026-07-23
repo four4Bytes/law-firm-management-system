@@ -173,8 +173,15 @@ export async function createCaseAction(
     return { success: false, error: "Invalid case data" };
   }
 
-  const { client_id, case_title, case_type, status, parties_involved, source_consultation_id } =
-    parsed.data;
+  const {
+    client_id,
+    case_title,
+    case_type,
+    status,
+    parties_involved,
+    source_consultation_id,
+    assignee_ids,
+  } = parsed.data;
 
   let createdCase: { id: string };
   try {
@@ -185,6 +192,7 @@ export async function createCaseAction(
       status,
       parties_involved: parties_involved || undefined,
       source_consultation_id,
+      assignee_ids,
       created_by_user_id: session.id,
     });
 
@@ -205,9 +213,14 @@ export async function createCaseAction(
         const adminIds = await getActiveUserIdsByRoles({
           roles: notificationRoleConfig[NotificationType.CaseAssigned],
         });
+
+        const notifyIds = assignee_ids?.length
+          ? [...new Set([...adminIds, ...assignee_ids])]
+          : adminIds;
+
         await dispatchNotifications(
           {
-            userIds: adminIds,
+            userIds: notifyIds,
             type: NotificationType.CaseAssigned,
             title: `New case: ${case_title}`,
             message: `A new case "${case_title}" was created`,
@@ -266,9 +279,14 @@ export async function createCaseWithClientAction(
         const adminIds = await getActiveUserIdsByRoles({
           roles: notificationRoleConfig[NotificationType.CaseAssigned],
         });
+
+        const notifyIds = caseData.assignee_ids?.length
+          ? [...new Set([...adminIds, ...caseData.assignee_ids])]
+          : adminIds;
+
         await dispatchNotifications(
           {
-            userIds: adminIds,
+            userIds: notifyIds,
             type: NotificationType.CaseAssigned,
             title: `New case: ${caseData.case_title}`,
             message: `A new case "${caseData.case_title}" was created for client "${client.name}"`,
@@ -308,6 +326,7 @@ export async function updateCaseAction(
     status,
     parties_involved,
     source_consultation_id,
+    assignee_ids,
   } = parsed.data;
 
   try {
@@ -322,6 +341,7 @@ export async function updateCaseAction(
       status,
       parties_involved: parties_involved || undefined,
       source_consultation_id,
+      assignee_ids,
     });
 
     after(() =>

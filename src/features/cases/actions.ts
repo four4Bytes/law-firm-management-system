@@ -26,9 +26,10 @@ import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/qu
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import type { TaskRow } from "@/features/tasks/queries";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";
-import { NotificationType, Role } from "@/generated/prisma/browser";
+import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -219,7 +220,9 @@ export async function createCaseAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.CaseAssigned],
+        });
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -278,7 +281,9 @@ export async function createCaseWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.CaseAssigned],
+        });
         await dispatchNotifications(
           {
             userIds: adminIds,

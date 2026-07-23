@@ -31,6 +31,9 @@ const columns: ColumnDef<AuditLogRow>[] = [
       if (!config) return type;
       if (!config.href) return config.label;
       const r = row as AuditLogRow;
+      if (!r.entityExists) {
+        return <span className={styles.deleted}>{config.label} (Deleted)</span>;
+      }
       return (
         <Link href={config.href(r.entityId)} className={styles.entityLink}>
           {config.label}

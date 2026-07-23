@@ -10,6 +10,7 @@ export type AuditLogRow = {
   actor: string;
   entityType: string;
   entityId: string;
+  entityExists: boolean;
   details: string | null;
   created_at: Date;
 };
@@ -37,6 +38,7 @@ async function findAuditLogs(
     actor: l.actor.name,
     entityType: l.entity_type,
     entityId: l.entity_id,
+    entityExists: true,
     details: l.details,
     created_at: l.created_at,
   }));
@@ -53,6 +55,36 @@ function buildSearchWhere(search: string): Record<string, unknown> {
   };
 }
 
+async function enrichEntityExistence(rows: AuditLogRow[]): Promise<void> {
+  const caseIds = rows.filter((r) => r.entityType === "Case").map((r) => r.entityId);
+  const consultationIds = rows
+    .filter((r) => r.entityType === "Consultation")
+    .map((r) => r.entityId);
+
+  const [existingCases, existingConsultations] = await Promise.all([
+    caseIds.length > 0
+      ? prisma.case.findMany({ where: { id: { in: caseIds } }, select: { id: true } })
+      : [],
+    consultationIds.length > 0
+      ? prisma.consultation.findMany({
+          where: { id: { in: consultationIds } },
+          select: { id: true },
+        })
+      : [],
+  ]);
+
+  const existingCaseIds = new Set(existingCases.map((c) => c.id));
+  const existingConsultationIds = new Set(existingConsultations.map((c) => c.id));
+
+  for (const row of rows) {
+    if (row.entityType === "Case") {
+      row.entityExists = existingCaseIds.has(row.entityId);
+    } else if (row.entityType === "Consultation") {
+      row.entityExists = existingConsultationIds.has(row.entityId);
+    }
+  }
+}
+
 export async function getAuditLogPaginated(
   params: z.input<typeof AuditLogPageQuerySchema>,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
@@ -63,6 +95,7 @@ export async function getAuditLogPaginated(
   if (search) where.OR = buildSearchWhere(search).OR;
 
   const { rows, hasMore } = await findAuditLogs(where, pageSize, cursor);
+  await enrichEntityExistence(rows);
   return { rows, nextCursor: hasMore ? rows[rows.length - 1].id : null };
 }
 
@@ -79,5 +112,6 @@ export async function getEntityActivityLogPaginated(
   if (search) where.OR = buildSearchWhere(search).OR;
 
   const { rows, hasMore } = await findAuditLogs(where, pageSize, cursor);
+  await enrichEntityExistence(rows);
   return { rows, nextCursor: hasMore ? rows[rows.length - 1].id : null };
 }

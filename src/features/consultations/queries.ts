@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getDocumentsPaginated } from "@/features/documents/queries";
@@ -48,7 +49,7 @@ export type ConsultationOverviewData = {
 
 export const getConsultationOverviewById = cache(
   async (id: string): Promise<ConsultationOverviewData> => {
-    const data = await prisma.consultation.findUniqueOrThrow({
+    const data = await prisma.consultation.findUnique({
       where: { id },
       include: {
         client: true,
@@ -56,6 +57,8 @@ export const getConsultationOverviewById = cache(
         cases: { select: { id: true, case_title: true }, take: 1 },
       },
     });
+
+    if (!data) notFound();
 
     return {
       id: data.id,

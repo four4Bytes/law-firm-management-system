@@ -15,7 +15,7 @@ import {
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requireAuth, requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 
 import {
@@ -31,7 +31,7 @@ export async function getUsersPaginatedAction(
   users: UserRow[];
   nextCursor: string | null;
 }> {
-  await requireRole("Admin", "Dev");
+  await requireAuth();
 
   const parsed = UserPageQuerySchema.safeParse(params);
   if (!parsed.success) {

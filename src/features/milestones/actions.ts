@@ -112,28 +112,38 @@ export async function updateMilestoneAction(
         console.error("Failed to log milestone.updated audit for Case", existing.case_id, err);
       }
 
-      if (existing.status !== status) {
-        try {
-          const assigneeIds = await getCaseAssigneeIds(existing.case_id);
-          const notificationType =
-            status === "Done"
-              ? NotificationType.MilestoneCompleted
-              : NotificationType.MilestoneStatusChanged;
-          await dispatchNotifications(
-            {
-              userIds: assigneeIds,
-              type: notificationType,
-              title: `Milestone ${status === "Done" ? "completed" : "status changed"}: ${title}`,
-              message: `Milestone "${title}" status changed to ${status}`,
-              actionUrl: `/case/${existing.case_id}`,
-              caseId: existing.case_id,
-              milestoneId: existing.id,
-            },
-            session.id,
-          );
-        } catch (err) {
-          console.error("Failed to dispatch notification:", err);
-        }
+      try {
+        const assigneeIds = await getCaseAssigneeIds(existing.case_id);
+        if (assigneeIds.length === 0) return;
+
+        const notificationType =
+          status === "Done"
+            ? NotificationType.MilestoneCompleted
+            : existing.status !== status
+              ? NotificationType.MilestoneStatusChanged
+              : NotificationType.MilestoneDueSoon;
+
+        const label =
+          status === "Done"
+            ? "completed"
+            : existing.status !== status
+              ? "status changed"
+              : "updated";
+
+        await dispatchNotifications(
+          {
+            userIds: assigneeIds,
+            type: notificationType,
+            title: `Milestone ${label}: ${title}`,
+            message: `Milestone "${title}" was ${label}`,
+            actionUrl: `/case/${existing.case_id}`,
+            caseId: existing.case_id,
+            milestoneId: existing.id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
       }
     });
 

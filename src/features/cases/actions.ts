@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
+  getCaseAssigneeIds,
   getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
@@ -344,15 +345,45 @@ export async function updateCaseAction(
       assignee_ids,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "case.updated",
-        entityType: "Case",
-        entityId: caseId,
-        details: `Updated case: "${case_title}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "case.updated",
+          entityType: "Case",
+          entityId: caseId,
+          details: `Updated case: "${case_title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log case.updated audit for Case", caseId, err);
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.CaseAssigned],
+        });
+
+        const currentAssigneeIds = assignee_ids?.length
+          ? assignee_ids
+          : await getCaseAssigneeIds(caseId);
+
+        const notifyIds = [...new Set([...adminIds, ...currentAssigneeIds])];
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.CaseAssigned,
+            title: `Case updated: ${case_title}`,
+            message: `Case "${case_title}" was updated`,
+            actionUrl: `/case/${caseId}`,
+            caseId,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath(`/case/${caseId}`);
     revalidatePath("/case");
@@ -383,15 +414,45 @@ export async function updateCaseWithClientAction(
       case: caseData,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "case.updated",
-        entityType: "Case",
-        entityId: case_id,
-        details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "case.updated",
+          entityType: "Case",
+          entityId: case_id,
+          details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log case.updated audit for Case", case_id, err);
+      }
+
+      try {
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.CaseAssigned],
+        });
+
+        const currentAssigneeIds = caseData.assignee_ids?.length
+          ? caseData.assignee_ids
+          : await getCaseAssigneeIds(case_id);
+
+        const notifyIds = [...new Set([...adminIds, ...currentAssigneeIds])];
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.CaseAssigned,
+            title: `Case updated: ${caseData.case_title}`,
+            message: `Case "${caseData.case_title}" was updated for client "${client.name}"`,
+            actionUrl: `/case/${case_id}`,
+            caseId: case_id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath(`/case/${case_id}`);
     revalidatePath("/case");

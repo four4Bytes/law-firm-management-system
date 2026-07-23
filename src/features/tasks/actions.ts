@@ -81,6 +81,7 @@ export async function createTaskAction(
               taskId: task.id,
             },
             session.id,
+            assigneeIds.includes(session.id),
           );
         }
       } catch (err) {

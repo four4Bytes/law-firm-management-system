@@ -9,17 +9,18 @@
 
     .selectedAssignees {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: var(--space-xs);
-      max-height: 7rem;
-      overflow-y: auto;
-      padding-left: var(--space-lg);
       margin: 0;
-      font-size: var(--font-size-sm);
-      color: var(--color-text-primary);
+      padding: 0;
+      list-style: none;
 
       .selectedAssignee {
-        padding: var(--space-xs) 0;
+        background: var(--color-surface-hover);
+        color: var(--color-text-primary);
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-sm);
       }
     }
 

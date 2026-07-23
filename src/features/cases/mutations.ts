@@ -16,12 +16,20 @@ export async function createCase(
   data: CaseCreatePayload & { created_by_user_id: string },
   tx?: TransactionClient,
 ) {
+  const { assignee_ids, ...rest } = data;
   const client = tx || prisma;
-  return client.case.create({ data });
+  return client.case.create({
+    data: {
+      ...rest,
+      ...(assignee_ids?.length
+        ? { caseAssignments: { create: assignee_ids.map((user_id) => ({ user_id })) } }
+        : {}),
+    },
+  });
 }
 
 export async function updateCase(data: CaseUpdatePayload, tx?: TransactionClient) {
-  const { caseId, ...rest } = data;
+  const { caseId, assignee_ids, ...rest } = data;
   const client = tx || prisma;
 
   return client.case.update({
@@ -29,6 +37,14 @@ export async function updateCase(data: CaseUpdatePayload, tx?: TransactionClient
     data: {
       ...rest,
       parties_involved: rest.parties_involved ? rest.parties_involved : null,
+      ...(assignee_ids !== undefined
+        ? {
+            caseAssignments: {
+              deleteMany: {},
+              create: assignee_ids.map((user_id) => ({ user_id })),
+            },
+          }
+        : {}),
     },
   });
 }
@@ -57,6 +73,7 @@ export async function createCaseWithClient(
         case_type: data.case.case_type,
         status: data.case.status,
         parties_involved: data.case.parties_involved || undefined,
+        assignee_ids: data.case.assignee_ids,
         created_by_user_id: data.created_by_user_id,
       },
       tx,
@@ -95,6 +112,7 @@ export async function updateCaseWithClient(
         case_type: data.case.case_type,
         status: data.case.status,
         parties_involved: data.case.parties_involved || undefined,
+        assignee_ids: data.case.assignee_ids,
       },
       tx,
     );

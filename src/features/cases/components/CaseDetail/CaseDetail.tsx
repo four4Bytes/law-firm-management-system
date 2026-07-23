@@ -13,6 +13,8 @@ import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCas
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
+import { getActiveUsersAction } from "@/features/tasks/actions";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
 
 import styles from "./CaseDetail.module.css";
 import { CaseOverview } from "./CaseOverview";
@@ -35,6 +37,7 @@ export function CaseDetail({ overview }: Props) {
   const [editData, setEditData] = useState<{
     caseData: CaseEditData;
     clientData: ClientEditData;
+    users: ActiveUserSummary[];
   } | null>(null);
 
   const validTabs = [
@@ -59,11 +62,14 @@ export function CaseDetail({ overview }: Props) {
 
   async function handleEdit() {
     try {
-      const caseData = await getCaseForEditAction(overview.id);
+      const [caseData, users] = await Promise.all([
+        getCaseForEditAction(overview.id),
+        getActiveUsersAction(),
+      ]);
       if (!caseData) throw new Error("Case not found");
       const clientData = await getClientForEditAction(caseData.client_id);
       if (!clientData) throw new Error("Client not found");
-      setEditData({ caseData, clientData });
+      setEditData({ caseData, clientData, users });
     } catch {
       queue.add({ title: "Failed to load case data" }, { timeout: 5000 });
     }
@@ -124,6 +130,7 @@ export function CaseDetail({ overview }: Props) {
           }}
           caseData={editData.caseData}
           clientData={editData.clientData}
+          users={editData.users}
         />
       )}
     </div>

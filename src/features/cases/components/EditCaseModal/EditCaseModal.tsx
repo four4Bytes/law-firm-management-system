@@ -15,9 +15,11 @@ import { deleteCaseAction, updateCaseWithClientAction } from "@/features/cases/a
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
+  keysToSet,
   optionalString,
   requiredString,
   selectEnumHandler,
@@ -35,6 +37,7 @@ interface EditCaseModalProps {
   onDeleted: () => void;
   caseData: CaseEditData;
   clientData: ClientEditData;
+  users: ActiveUserSummary[];
 }
 
 export function EditCaseModal({
@@ -44,6 +47,7 @@ export function EditCaseModal({
   onDeleted,
   caseData,
   clientData,
+  users,
 }: EditCaseModalProps) {
   const [clientId] = useState(caseData.client_id);
   const [clientName, setClientName] = useState(clientData.name);
@@ -55,6 +59,7 @@ export function EditCaseModal({
   const [caseType, setCaseType] = useState(caseData.case_type);
   const [status, setStatus] = useState<CaseStatus>(caseData.status as CaseStatus);
   const [partiesInvolved, setPartiesInvolved] = useState(caseData.parties_involved ?? "");
+  const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(caseData.assignee_ids));
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -93,6 +98,7 @@ export function EditCaseModal({
         case_type: requiredString(caseType),
         status,
         parties_involved: optionalString(partiesInvolved),
+        assignee_ids: Array.from(assigneeIds),
       },
     });
   }
@@ -165,7 +171,8 @@ export function EditCaseModal({
                 onChange={setClientAddress}
                 placeholder="Optional"
                 isTextArea
-                rows={3}
+                rows={6}
+                className={styles.addressField}
                 validate={createFieldValidator(
                   CaseWithClientUpdatePayloadSchema.shape.client.shape.address,
                 )}
@@ -205,6 +212,28 @@ export function EditCaseModal({
                   </SelectItem>
                 ))}
               </Select>
+              <Select
+                label="Assignees"
+                selectionMode="multiple"
+                value={Array.from(assigneeIds)}
+                onChange={(keys) => setAssigneeIds(keysToSet(keys))}
+                placeholder="Select assignees..."
+                items={users}
+                isDisabled={isPending || isDeleting}
+              >
+                {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
+              </Select>
+              {assigneeIds.size > 0 && (
+                <ul className={styles.selectedAssignees}>
+                  {users
+                    .filter((u) => assigneeIds.has(u.id))
+                    .map((u) => (
+                      <li key={u.id} className={styles.selectedAssignee}>
+                        {u.name}
+                      </li>
+                    ))}
+                </ul>
+              )}
               <TextField
                 label="Parties Involved"
                 value={partiesInvolved}

@@ -49,9 +49,9 @@ services:
         echo 'Bucket law-firm-files created successfully'
       "
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
-    container_name: mailhog
+  mailpit:
+    image: axllent/mailpit:v1.24
+    container_name: mailpit
     restart: unless-stopped
     ports:
       - "1025:1025"

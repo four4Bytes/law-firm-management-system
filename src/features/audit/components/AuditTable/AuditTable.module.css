@@ -1,0 +1,16 @@
+.entityLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.entityLink:hover {
+  text-decoration: underline;
+}
+
+.linkIcon {
+  font-size: var(--font-size-xs);
+}

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { getEntityActivityLogPaginated } from "@/features/audit/queries";
 import { Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
-  getCaseActivityLogPaginated,
   getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
@@ -718,7 +718,7 @@ describe("getCasePaymentsPaginated", () => {
   });
 });
 
-describe("getCaseActivityLogPaginated", () => {
+describe("getEntityActivityLogPaginated (Case)", () => {
   const mockLog = (overrides: Record<string, unknown> = {}) => ({
     id: "l1",
     action: "CREATE",
@@ -743,13 +743,19 @@ describe("getCaseActivityLogPaginated", () => {
     ];
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue(logs);
 
-    const result = await getCaseActivityLogPaginated({ caseId: "1", pageSize: 10 });
+    const result = await getEntityActivityLogPaginated({
+      entityType: "Case",
+      entityId: "1",
+      pageSize: 10,
+    });
 
     expect(result.rows).toHaveLength(2);
     expect(result.rows[0]).toEqual({
       id: "l1",
       action: "CREATE",
       actor: "Bob Lawyer",
+      entityType: "Case",
+      entityId: "1",
       details: "Case created",
       created_at: logs[0].created_at,
     });
@@ -758,7 +764,7 @@ describe("getCaseActivityLogPaginated", () => {
   it("queries with correct entity filter", async () => {
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue([mockLog()]);
 
-    await getCaseActivityLogPaginated({ caseId: "1" });
+    await getEntityActivityLogPaginated({ entityType: "Case", entityId: "1" });
 
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -770,7 +776,7 @@ describe("getCaseActivityLogPaginated", () => {
   it("filters by search on action and details", async () => {
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue([mockLog()]);
 
-    await getCaseActivityLogPaginated({ caseId: "1", search: "created" });
+    await getEntityActivityLogPaginated({ entityType: "Case", entityId: "1", search: "created" });
 
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -790,7 +796,11 @@ describe("getCaseActivityLogPaginated", () => {
     const logs = Array.from({ length: 4 }, (_, i) => mockLog({ id: String(i + 1) }));
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue(logs);
 
-    const result = await getCaseActivityLogPaginated({ caseId: "1", pageSize: 3 });
+    const result = await getEntityActivityLogPaginated({
+      entityType: "Case",
+      entityId: "1",
+      pageSize: 3,
+    });
 
     expect(result.rows).toHaveLength(3);
     expect(result.nextCursor).toBe("3");
@@ -799,7 +809,7 @@ describe("getCaseActivityLogPaginated", () => {
   it("returns empty when no logs", async () => {
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue([]);
 
-    const result = await getCaseActivityLogPaginated({ caseId: "1" });
+    const result = await getEntityActivityLogPaginated({ entityType: "Case", entityId: "1" });
 
     expect(result.rows).toEqual([]);
   });

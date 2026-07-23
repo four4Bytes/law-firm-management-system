@@ -31,6 +31,7 @@ export function Header({ userImage, userName, userRole, initialUnreadCount }: He
     if (path.startsWith("/case")) return "Case Management";
     if (path.startsWith("/consultation")) return "Consultation Management";
     if (path.startsWith("/user")) return "User Management";
+    if (path.startsWith("/audit")) return "Activity Log";
     return "";
   };
 

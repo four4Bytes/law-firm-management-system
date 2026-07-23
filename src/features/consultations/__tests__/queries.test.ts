@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { getEntityActivityLogPaginated } from "@/features/audit/queries";
 import { Consultation } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
-  getConsultationActivityLogPaginated,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
@@ -463,7 +463,7 @@ describe("getConsultationPaymentsPaginated", () => {
   });
 });
 
-describe("getConsultationActivityLogPaginated", () => {
+describe("getEntityActivityLogPaginated (Consultation)", () => {
   const mockLog = (overrides: Record<string, unknown> = {}) => ({
     id: "l1",
     action: "CREATE",
@@ -488,13 +488,19 @@ describe("getConsultationActivityLogPaginated", () => {
     ];
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue(logs);
 
-    const result = await getConsultationActivityLogPaginated({ consultationId: "1", pageSize: 10 });
+    const result = await getEntityActivityLogPaginated({
+      entityType: "Consultation",
+      entityId: "1",
+      pageSize: 10,
+    });
 
     expect(result.rows).toHaveLength(2);
     expect(result.rows[0]).toEqual({
       id: "l1",
       action: "CREATE",
       actor: "John Lawyer",
+      entityType: "Consultation",
+      entityId: "1",
       details: "Consultation created",
       created_at: logs[0].created_at,
     });
@@ -503,7 +509,7 @@ describe("getConsultationActivityLogPaginated", () => {
   it("filters by entity type and id", async () => {
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue([mockLog()]);
 
-    await getConsultationActivityLogPaginated({ consultationId: "1" });
+    await getEntityActivityLogPaginated({ entityType: "Consultation", entityId: "1" });
 
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -515,7 +521,11 @@ describe("getConsultationActivityLogPaginated", () => {
   it("filters by search on action and details", async () => {
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue([mockLog()]);
 
-    await getConsultationActivityLogPaginated({ consultationId: "1", search: "created" });
+    await getEntityActivityLogPaginated({
+      entityType: "Consultation",
+      entityId: "1",
+      search: "created",
+    });
 
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -535,7 +545,11 @@ describe("getConsultationActivityLogPaginated", () => {
     const logs = Array.from({ length: 4 }, (_, i) => mockLog({ id: String(i + 1) }));
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue(logs);
 
-    const result = await getConsultationActivityLogPaginated({ consultationId: "1", pageSize: 3 });
+    const result = await getEntityActivityLogPaginated({
+      entityType: "Consultation",
+      entityId: "1",
+      pageSize: 3,
+    });
 
     expect(result.rows).toHaveLength(3);
     expect(result.nextCursor).toBe("3");
@@ -544,7 +558,10 @@ describe("getConsultationActivityLogPaginated", () => {
   it("returns empty when no logs", async () => {
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue([]);
 
-    const result = await getConsultationActivityLogPaginated({ consultationId: "1" });
+    const result = await getEntityActivityLogPaginated({
+      entityType: "Consultation",
+      entityId: "1",
+    });
 
     expect(result.rows).toEqual([]);
   });

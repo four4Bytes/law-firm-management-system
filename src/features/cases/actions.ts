@@ -6,7 +6,6 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
-  getCaseActivityLogPaginated,
   getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
@@ -14,7 +13,6 @@ import {
   getCasePaymentsPaginated,
   getCasesPaginated,
   getCaseTasksPaginated,
-  type ActivityLogRow,
   type CaseEditData,
   type CaseMilestoneListRow,
   type CaseOverviewData,
@@ -152,22 +150,6 @@ export async function getCasePaymentsPaginatedAction(
   }
 
   return getCasePaymentsPaginated(parsed.data);
-}
-
-export async function getCaseActivityLogPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: ActivityLogRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getCaseActivityLogPaginated(parsed.data);
 }
 
 export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {

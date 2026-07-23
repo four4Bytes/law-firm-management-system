@@ -6,13 +6,11 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
-  getConsultationActivityLogPaginated,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationPaymentsPaginated,
   getConsultationsPaginated,
-  type ActivityLogRow,
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
@@ -120,22 +118,6 @@ export async function getConsultationPaymentsPaginatedAction(
   }
 
   return getConsultationPaymentsPaginated(parsed.data);
-}
-
-export async function getConsultationActivityLogPaginatedAction(
-  params: z.input<typeof ConsultationPageQuerySchema>,
-): Promise<{
-  rows: ActivityLogRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = ConsultationPageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getConsultationActivityLogPaginated(parsed.data);
 }
 
 export async function getConsultationForEditAction(

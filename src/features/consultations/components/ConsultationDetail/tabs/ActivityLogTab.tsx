@@ -2,15 +2,15 @@
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { getConsultationActivityLogPaginatedAction } from "@/features/consultations/actions";
-import type { ActivityLogRow } from "@/features/consultations/queries";
+import { getEntityActivityLogAction } from "@/features/audit/actions";
+import type { AuditLogRow } from "@/features/audit/queries";
 import { formatDateTime } from "@/lib/date";
 
 interface Props {
   consultationId: string;
 }
 
-const columns: ColumnDef<ActivityLogRow>[] = [
+const columns: ColumnDef<AuditLogRow>[] = [
   { id: "action", name: "Action", isRowHeader: true },
   { id: "actor", name: "Actor" },
   { id: "details", name: "Details" },
@@ -20,7 +20,9 @@ const columns: ColumnDef<ActivityLogRow>[] = [
 export function ActivityLogTab({ consultationId }: Props) {
   return (
     <ServerDataTable
-      fetchAction={(p) => getConsultationActivityLogPaginatedAction({ consultationId, ...p })}
+      fetchAction={(p) =>
+        getEntityActivityLogAction({ entityType: "Consultation", entityId: consultationId, ...p })
+      }
       columns={columns}
       searchPlaceholder="Search activity..."
       emptyContent="No activity yet"

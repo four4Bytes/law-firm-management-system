@@ -4,7 +4,16 @@ import clsx from "clsx";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { FaBars, FaComments, FaFolderOpen, FaHouse, FaUser, FaUsers, FaX } from "react-icons/fa6";
+import {
+  FaBars,
+  FaClockRotateLeft,
+  FaComments,
+  FaFolderOpen,
+  FaHouse,
+  FaUser,
+  FaUsers,
+  FaX,
+} from "react-icons/fa6";
 
 import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
 import { Button } from "@/components/ui/Button/Button";
@@ -21,6 +30,7 @@ const navItems = [
   { label: "Consultations", href: "/consultation", icon: FaComments },
   { label: "Cases", href: "/case", icon: FaFolderOpen },
   { label: "Users", href: "/user", icon: FaUsers },
+  { label: "Activity Log", href: "/audit", icon: FaClockRotateLeft },
 ] as const;
 
 interface SidebarProps {

@@ -218,67 +218,6 @@ export const getConsultationPaymentsPaginated = cache(
   },
 );
 
-// ----- Activity Log -----
-
-export type ActivityLogRow = {
-  id: string;
-  action: string;
-  actor: string;
-  details: string | null;
-  created_at: Date;
-};
-
-export const getConsultationActivityLogPaginated = cache(
-  async ({
-    consultationId,
-    search = "",
-    cursor,
-    pageSize = 20,
-  }: ConsultationPageQuery): Promise<{
-    rows: ActivityLogRow[];
-    nextCursor: string | null;
-  }> => {
-    const where: Record<string, unknown> = {
-      entity_type: "Consultation",
-      entity_id: consultationId,
-    };
-
-    if (search) {
-      where.OR = [
-        { action: { contains: search, mode: "insensitive" as const } },
-        { details: { contains: search, mode: "insensitive" as const } },
-      ];
-    }
-
-    const logs = await prisma.auditLog.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy: { created_at: "desc" },
-      include: {
-        actor: { select: { name: true } },
-      },
-    });
-
-    const hasMore = logs.length > pageSize;
-    if (hasMore) logs.pop();
-
-    const rows: ActivityLogRow[] = logs.map((l) => ({
-      id: l.id,
-      action: l.action,
-      actor: l.actor.name,
-      details: l.details,
-      created_at: l.created_at,
-    }));
-
-    return {
-      rows,
-      nextCursor: hasMore ? logs[logs.length - 1].id : null,
-    };
-  },
-);
-
 export const getConsultationsPaginated = cache(
   async ({
     search = "",

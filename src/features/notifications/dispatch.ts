@@ -40,8 +40,16 @@ function pickTemplate(type: NotificationType) {
 export async function dispatchNotifications(
   payload: NotificationDispatchPayload,
   actorUserId: string,
+  notifyActor: boolean = false,
 ): Promise<{ count: number }> {
-  const result = await createNotifications(payload);
+  const userIds = notifyActor
+    ? payload.userIds
+    : payload.userIds.filter((id) => id !== actorUserId);
+
+  if (userIds.length === 0) return { count: 0 };
+
+  const filteredPayload = { ...payload, userIds };
+  const result = await createNotifications(filteredPayload);
 
   let actorName = "System";
   let recipients: Awaited<ReturnType<typeof getUsersByIds>> = [];
@@ -53,7 +61,7 @@ export async function dispatchNotifications(
   }
 
   try {
-    recipients = await getUsersByIds({ ids: payload.userIds });
+    recipients = await getUsersByIds({ ids: filteredPayload.userIds });
   } catch (err) {
     console.error("Failed to resolve recipients:", err);
   }

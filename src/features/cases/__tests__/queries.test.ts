@@ -275,7 +275,7 @@ describe("getCaseOverviewById", () => {
         address: "123 Rizal St.",
       },
       createdBy: { name: "Bob Lawyer" },
-      assignTo: "Bob Lawyer, Carol Paralegal",
+      assignTo: ["Bob Lawyer", "Carol Paralegal"],
       latestMilestone: { title: "File complaint", status: "Pending" },
       sourceConsultation: { id: "con1", concern: "Breach of contract" },
     });

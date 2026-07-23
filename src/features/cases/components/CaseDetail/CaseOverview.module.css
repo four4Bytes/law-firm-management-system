@@ -102,6 +102,23 @@
             font-weight: var(--font-weight-normal);
             color: var(--color-text-primary);
           }
+
+          .assignedStaff {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-xs);
+            margin: 0;
+            padding: 0;
+            list-style: none;
+
+            .assignedChip {
+              background: var(--color-surface-hover);
+              color: var(--color-text-primary);
+              padding: var(--space-xs) var(--space-sm);
+              border-radius: var(--radius-sm);
+              font-size: var(--font-size-sm);
+            }
+          }
         }
       }
     }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getEntityActivityLogPaginated } from "@/features/audit/queries";
 import { Case } from "@/generated/prisma/browser";
@@ -14,10 +14,14 @@ import {
   getCaseTasksPaginated,
 } from "../queries";
 
+vi.mock("next/navigation", () => ({
+  notFound: vi.fn(),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     auditLog: { findMany: vi.fn() },
-    case: { findMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
+    case: { findMany: vi.fn(), findUnique: vi.fn() },
     caseMilestone: { findMany: vi.fn() },
     note: { findMany: vi.fn() },
     payment: { findMany: vi.fn() },
@@ -252,7 +256,7 @@ describe("getCaseOverviewById", () => {
 
   it("returns mapped overview data", async () => {
     const data = mockFullCase();
-    vi.mocked(prisma.case.findUniqueOrThrow).mockResolvedValue(data);
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(data);
 
     const result = await getCaseOverviewById("1");
 
@@ -275,7 +279,7 @@ describe("getCaseOverviewById", () => {
       latestMilestone: { title: "File complaint", status: "Pending" },
       sourceConsultation: { id: "con1", concern: "Breach of contract" },
     });
-    expect(prisma.case.findUniqueOrThrow).toHaveBeenCalledWith({
+    expect(prisma.case.findUnique).toHaveBeenCalledWith({
       where: { id: "1" },
       include: {
         client: true,
@@ -292,7 +296,7 @@ describe("getCaseOverviewById", () => {
       milestones: [],
       sourceConsultation: null,
     });
-    vi.mocked(prisma.case.findUniqueOrThrow).mockResolvedValue(data);
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(data);
 
     const result = await getCaseOverviewById("1");
 
@@ -300,11 +304,16 @@ describe("getCaseOverviewById", () => {
     expect(result.sourceConsultation).toBeNull();
   });
 
-  it("propagates database errors", async () => {
-    const error = new Error("not found");
-    vi.mocked(prisma.case.findUniqueOrThrow).mockRejectedValue(error);
+  it("calls notFound when case does not exist", async () => {
+    const { notFound } = await import("next/navigation");
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
+    const notFoundMock = vi.mocked(notFound);
+    notFoundMock.mockImplementation(() => {
+      throw new Error("NEXT_NOT_FOUND");
+    });
 
-    await expect(getCaseOverviewById("999")).rejects.toThrow(error);
+    await expect(getCaseOverviewById("999")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(notFoundMock).toHaveBeenCalledOnce();
   });
 });
 
@@ -719,6 +728,10 @@ describe("getCasePaymentsPaginated", () => {
 });
 
 describe("getEntityActivityLogPaginated (Case)", () => {
+  beforeEach(() => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([]);
+  });
+
   const mockLog = (overrides: Record<string, unknown> = {}) => ({
     id: "l1",
     action: "CREATE",
@@ -742,6 +755,7 @@ describe("getEntityActivityLogPaginated (Case)", () => {
       }),
     ];
     vi.mocked(prisma.auditLog.findMany).mockResolvedValue(logs);
+    vi.mocked(prisma.case.findMany).mockResolvedValue([]);
 
     const result = await getEntityActivityLogPaginated({
       entityType: "Case",
@@ -756,6 +770,7 @@ describe("getEntityActivityLogPaginated (Case)", () => {
       actor: "Bob Lawyer",
       entityType: "Case",
       entityId: "1",
+      entityExists: false,
       details: "Case created",
       created_at: logs[0].created_at,
     });

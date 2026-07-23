@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getDocumentsPaginated } from "@/features/documents/queries";
@@ -122,7 +123,7 @@ export type CaseOverviewData = {
 };
 
 export const getCaseOverviewById = cache(async (id: string): Promise<CaseOverviewData> => {
-  const data = await prisma.case.findUniqueOrThrow({
+  const data = await prisma.case.findUnique({
     where: { id },
     include: {
       client: true,
@@ -139,6 +140,8 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       },
     },
   });
+
+  if (!data) notFound();
 
   return {
     id: data.id,

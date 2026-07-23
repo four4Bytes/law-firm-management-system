@@ -11,6 +11,11 @@
   text-decoration: underline;
 }
 
+.deleted {
+  color: var(--color-text-disabled, var(--color-text-secondary));
+  font-style: italic;
+}
+
 .linkIcon {
   font-size: var(--font-size-xs);
 }

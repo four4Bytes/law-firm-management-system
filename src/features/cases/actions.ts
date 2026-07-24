@@ -264,7 +264,10 @@ export async function createCaseAction(
     revalidatePath("/case");
 
     return { success: true, data: { caseId: createdCase.id } };
-  } catch {
+  } catch (error) {
+    if ((error as { code?: string })?.code === "P2002") {
+      return { success: false, error: "A case already exists for this consultation" };
+    }
     return { success: false, error: "Failed to create case" };
   }
 }

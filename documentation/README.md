@@ -10,5 +10,4 @@
 | [Security](./security.md)               | AuthN/AuthZ, input validation, action security, file upload safety, audit logging |
 | [Deployment](./deployment.md)           | Release process, Docker, Vercel, storage encryption, reminders                    |
 
-For a quickstart:
-`CONTRIBUTING.md` at the project root has the bare steps to get running in 5 minutes.
+For a quickstart, see [Getting Started](./getting-started.md).

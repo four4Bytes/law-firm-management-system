@@ -92,8 +92,8 @@ export function EditConsultationModal({
     void (async () => {
       try {
         setUsers(await getActiveUsersAction());
-      } catch (err) {
-        console.error(err);
+      } catch {
+        queue.add({ title: "Failed to load active users. Please try again." }, { timeout: 5000 });
       }
     })();
   }, [isOpen]);

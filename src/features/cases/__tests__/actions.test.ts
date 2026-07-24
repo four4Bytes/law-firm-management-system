@@ -142,6 +142,22 @@ describe("createCaseAction", () => {
     });
   });
 
+  it("returns duplicate error on P2002 unique constraint violation", async () => {
+    vi.mocked(prisma.case.create).mockRejectedValue(
+      Object.assign(new Error("Unique constraint"), { code: "P2002" }),
+    );
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "A case already exists for this consultation",
+    });
+  });
+
   it("returns an error when a case already exists for the consultation", async () => {
     vi.mocked(prisma.case.findFirst).mockResolvedValue({ ...caseRecord, id: "existing-1" });
 

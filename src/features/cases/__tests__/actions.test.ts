@@ -25,7 +25,13 @@ vi.mock("next/server", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    case: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    case: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
   },
 }));
 
@@ -134,6 +140,21 @@ describe("createCaseAction", () => {
       success: false,
       error: "Failed to create case",
     });
+  });
+
+  it("returns an error when a case already exists for the consultation", async () => {
+    vi.mocked(prisma.case.findFirst).mockResolvedValue({ ...caseRecord, id: "existing-1" });
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "A case already exists for this consultation",
+    });
+    expect(prisma.case.create).not.toHaveBeenCalled();
   });
 });
 

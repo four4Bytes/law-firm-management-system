@@ -203,7 +203,7 @@ describe("deleteCaseAction", () => {
     vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
 
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({ success: true });
-    expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid } });
+    expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
     expect(revalidatePath).toHaveBeenCalledWith("/case");
   });
 });

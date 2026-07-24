@@ -118,7 +118,7 @@ describe("createCaseAction", () => {
 
     const result = await createCaseAction(validPayload);
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, data: { caseId: "1" } });
     expect(prisma.case.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ case_type: "Civil", created_by_user_id: "u1" }),

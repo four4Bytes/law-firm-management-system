@@ -25,7 +25,7 @@ async function findAuditLogs(
     skip: cursor ? 1 : 0,
     ...(cursor ? { cursor: { id: cursor } } : {}),
     where,
-    orderBy: { created_at: "desc" },
+    orderBy: [{ created_at: "desc" }, { id: "desc" }],
     include: { actor: { select: { name: true } } },
   });
 

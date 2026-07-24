@@ -79,8 +79,8 @@ export function CaseOverview({ data, onEdit }: Props) {
               <span className={styles.label}>Assigned Staff</span>
               {data.assignTo.length > 0 ? (
                 <ul className={styles.assignedStaff}>
-                  {data.assignTo.map((name, i) => (
-                    <li key={i} className={styles.assignedChip}>
+                  {data.assignTo.map(({ id, name }) => (
+                    <li key={id} className={styles.assignedChip}>
                       {name}
                     </li>
                   ))}

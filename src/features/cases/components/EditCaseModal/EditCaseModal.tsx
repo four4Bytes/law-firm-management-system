@@ -12,6 +12,7 @@ import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { deleteCaseAction, updateCaseWithClientAction } from "@/features/cases/actions";
+import { AssigneeSelect } from "@/features/cases/components/AssigneeSelect/AssigneeSelect";
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
@@ -19,7 +20,6 @@ import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
-  keysToSet,
   optionalString,
   requiredString,
   selectEnumHandler,
@@ -212,28 +212,12 @@ export function EditCaseModal({
                   </SelectItem>
                 ))}
               </Select>
-              <Select
-                label="Assignees"
-                selectionMode="multiple"
-                value={Array.from(assigneeIds)}
-                onChange={(keys) => setAssigneeIds(keysToSet(keys))}
-                placeholder="Select assignees..."
-                items={users}
+              <AssigneeSelect
+                users={users}
+                assigneeIds={assigneeIds}
+                onChange={setAssigneeIds}
                 isDisabled={isPending || isDeleting}
-              >
-                {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
-              </Select>
-              {assigneeIds.size > 0 && (
-                <ul className={styles.selectedAssignees}>
-                  {users
-                    .filter((u) => assigneeIds.has(u.id))
-                    .map((u) => (
-                      <li key={u.id} className={styles.selectedAssignee}>
-                        {u.name}
-                      </li>
-                    ))}
-                </ul>
-              )}
+              />
               <TextField
                 label="Parties Involved"
                 value={partiesInvolved}

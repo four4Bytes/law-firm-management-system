@@ -236,7 +236,10 @@ describe("getCaseOverviewById", () => {
       updated_at: new Date("2024-06-01"),
     },
     createdBy: { name: "Bob Lawyer" },
-    caseAssignments: [{ user: { name: "Bob Lawyer" } }, { user: { name: "Carol Paralegal" } }],
+    caseAssignments: [
+      { user: { id: "u1", name: "Bob Lawyer" } },
+      { user: { id: "u2", name: "Carol Paralegal" } },
+    ],
     milestones: [
       {
         title: "File complaint",
@@ -275,7 +278,10 @@ describe("getCaseOverviewById", () => {
         address: "123 Rizal St.",
       },
       createdBy: { name: "Bob Lawyer" },
-      assignTo: ["Bob Lawyer", "Carol Paralegal"],
+      assignTo: [
+        { id: "u1", name: "Bob Lawyer" },
+        { id: "u2", name: "Carol Paralegal" },
+      ],
       latestMilestone: { title: "File complaint", status: "Pending" },
       sourceConsultation: { id: "con1", concern: "Breach of contract" },
     });
@@ -284,7 +290,7 @@ describe("getCaseOverviewById", () => {
       include: {
         client: true,
         createdBy: { select: { name: true } },
-        caseAssignments: { include: { user: { select: { name: true } } } },
+        caseAssignments: { include: { user: { select: { id: true, name: true } } } },
         milestones: { orderBy: { created_at: "desc" }, take: 1 },
         sourceConsultation: { select: { id: true, concern: true } },
       },

@@ -9,12 +9,12 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createCaseWithClientAction } from "@/features/cases/actions";
+import { AssigneeSelect } from "@/features/cases/components/AssigneeSelect/AssigneeSelect";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
-  keysToSet,
   optionalString,
   requiredString,
   selectEnumHandler,
@@ -195,28 +195,12 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
                 </SelectItem>
               ))}
             </Select>
-            <Select
-              label="Assignees"
-              selectionMode="multiple"
-              value={Array.from(assigneeIds)}
-              onChange={(keys) => setAssigneeIds(keysToSet(keys))}
-              placeholder="Select assignees..."
-              items={users}
+            <AssigneeSelect
+              users={users}
+              assigneeIds={assigneeIds}
+              onChange={setAssigneeIds}
               isDisabled={isPending}
-            >
-              {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
-            </Select>
-            {assigneeIds.size > 0 && (
-              <ul className={styles.selectedAssignees}>
-                {users
-                  .filter((u) => assigneeIds.has(u.id))
-                  .map((u) => (
-                    <li key={u.id} className={styles.selectedAssignee}>
-                      {u.name}
-                    </li>
-                  ))}
-              </ul>
-            )}
+            />
             <TextField
               label="Parties Involved"
               value={partiesInvolved}

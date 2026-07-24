@@ -117,7 +117,7 @@ export type CaseOverviewData = {
     address: string | null;
   };
   createdBy: { name: string };
-  assignTo: string[];
+  assignTo: { id: string; name: string }[];
   latestMilestone: { title: string; status: string } | null;
   sourceConsultation: { id: string; concern: string } | null;
 };
@@ -129,7 +129,7 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       client: true,
       createdBy: { select: { name: true } },
       caseAssignments: {
-        include: { user: { select: { name: true } } },
+        include: { user: { select: { id: true, name: true } } },
       },
       milestones: {
         orderBy: { created_at: "desc" },
@@ -158,7 +158,7 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       address: data.client.address,
     },
     createdBy: data.createdBy,
-    assignTo: data.caseAssignments.map((a) => a.user.name),
+    assignTo: data.caseAssignments.map((a) => ({ id: a.user.id, name: a.user.name })),
     latestMilestone: data.milestones[0]
       ? { title: data.milestones[0].title, status: data.milestones[0].status }
       : null,

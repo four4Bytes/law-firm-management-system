@@ -36,6 +36,16 @@ function escapeHtml(str: string): string {
 }
 
 function resolveActionUrl(url: string): string | null {
+  /**
+   * Resolves a relative or absolute URL to a fully qualified URL.
+   *
+   * Prepends the APP_ORIGIN environment variable to relative paths.
+   * Passes through http/https URLs unchanged. Returns null for unhandled
+   * formats such as protocol-relative or mailto URLs.
+   *
+   * @param url - The URL to resolve (relative `/path` or absolute `http(s)://`).
+   * @returns The fully qualified URL string, or null if the format is unsupported.
+   */
   if (url.startsWith("/")) {
     const origin = getRequiredEnvVar("APP_ORIGIN").replace(/\/+$/, "");
     return `${origin}${url}`;
@@ -87,15 +97,19 @@ ${body}
 }
 
 function text(content: string, muted?: boolean): string {
+  return `<p style="${muted ? s.textMuted : s.text}">${escapeHtml(content)}</p>`;
+}
+
+function rawText(content: string, muted?: boolean): string {
   return `<p style="${muted ? s.textMuted : s.text}">${content}</p>`;
 }
 
 function greeting(name: string): string {
-  return text(`Hi ${escapeHtml(name)},`);
+  return text(`Hi ${name},`);
 }
 
 function quoted(content: string): string {
-  return text(`&ldquo;${escapeHtml(content)}&rdquo;`, true);
+  return rawText(`&ldquo;${escapeHtml(content)}&rdquo;`, true);
 }
 
 function strongLabel(label: string): string {
@@ -125,7 +139,7 @@ export function consultationCreatedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "New Consultation Scheduled",
     greeting(ctx.toName) +
-      text(`${escapeHtml(ctx.actorName)} has scheduled a new consultation.`) +
+      text(`${ctx.actorName} has scheduled a new consultation.`) +
       quoted(ctx.message) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
   );
@@ -136,7 +150,7 @@ export function consultationUpdatedTemplate(ctx: TemplateContext): string {
     "Consultation Updated",
     greeting(ctx.toName) +
       text("A consultation has been updated.") +
-      text(escapeHtml(ctx.message), true) +
+      text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
   );
 }
@@ -145,7 +159,7 @@ export function milestoneTemplate(ctx: TemplateContext): string {
   return emailLayout(
     ctx.title,
     greeting(ctx.toName) +
-      text(escapeHtml(ctx.message)) +
+      text(ctx.message) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
   );
 }
@@ -154,8 +168,8 @@ export function taskAssignedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "Task Assigned",
     greeting(ctx.toName) +
-      text(`${escapeHtml(ctx.actorName)} has assigned you a task: ${strongLabel(ctx.title)}.`) +
-      text(escapeHtml(ctx.message), true) +
+      rawText(`${escapeHtml(ctx.actorName)} has assigned you a task: ${strongLabel(ctx.title)}.`) +
+      text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
   );
 }
@@ -164,8 +178,8 @@ export function taskUpdatedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "Task Updated",
     greeting(ctx.toName) +
-      text(`A task has been updated: ${strongLabel(ctx.title)}.`) +
-      text(escapeHtml(ctx.message), true) +
+      rawText(`A task has been updated: ${strongLabel(ctx.title)}.`) +
+      text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
   );
 }
@@ -174,8 +188,8 @@ export function caseAssignedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "New Case Created",
     greeting(ctx.toName) +
-      text(`${escapeHtml(ctx.actorName)} created a new case: ${strongLabel(ctx.title)}.`) +
-      text(escapeHtml(ctx.message), true) +
+      rawText(`${escapeHtml(ctx.actorName)} created a new case: ${strongLabel(ctx.title)}.`) +
+      text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
   );
 }

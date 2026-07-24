@@ -55,6 +55,7 @@ enum NotificationType {
   MilestoneCompleted
   MilestoneStatusChanged
   MilestoneOverdue
+  MilestoneUpdated
   TaskAssigned
   TaskStatusChanged
   CaseAssigned

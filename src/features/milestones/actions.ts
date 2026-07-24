@@ -116,19 +116,18 @@ export async function updateMilestoneAction(
         const assigneeIds = await getCaseAssigneeIds(existing.case_id);
         if (assigneeIds.length === 0) return;
 
-        const notificationType =
-          status === "Done"
-            ? NotificationType.MilestoneCompleted
-            : existing.status !== status
-              ? NotificationType.MilestoneStatusChanged
-              : NotificationType.MilestoneDueSoon;
-
-        const label =
-          status === "Done"
-            ? "completed"
-            : existing.status !== status
-              ? "status changed"
-              : "updated";
+        let notificationType: NotificationType;
+        let label: string;
+        if (status === "Done") {
+          notificationType = NotificationType.MilestoneCompleted;
+          label = "completed";
+        } else if (existing.status !== status) {
+          notificationType = NotificationType.MilestoneStatusChanged;
+          label = "status changed";
+        } else {
+          notificationType = NotificationType.MilestoneUpdated;
+          label = "updated";
+        }
 
         await dispatchNotifications(
           {

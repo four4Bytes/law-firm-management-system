@@ -163,6 +163,7 @@ export function EditConsultationModal({
 
     queue.add({ title: "Consultation updated" }, { timeout: 5000 });
     setIsSaving(false);
+    onSuccess();
     setShowCaseModal(true);
   }
 
@@ -319,7 +320,6 @@ export function EditConsultationModal({
         onSuccess={(caseId) => {
           setShowCaseModal(false);
           onOpenChange(false);
-          onSuccess();
           router.push(`/case/${caseId}`);
         }}
         consultationId={consultation.id}

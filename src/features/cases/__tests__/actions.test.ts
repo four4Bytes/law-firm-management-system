@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Case } from "@/generated/prisma/browser";
+import { type Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -29,9 +29,11 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+type CaseWithAssignments = Case & { caseAssignments: { user_id: string }[] };
+
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
-const caseRecord: Case = {
+const caseRecord: CaseWithAssignments = {
   id: "1",
   client_id: uuid,
   case_title: "Smith vs Jones",
@@ -42,6 +44,7 @@ const caseRecord: Case = {
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
+  caseAssignments: [],
 };
 
 beforeEach(() => {
@@ -54,7 +57,16 @@ describe("getCaseForEditAction", () => {
 
     const result = await getCaseForEditAction(uuid);
 
-    expect(result).toEqual(caseRecord);
+    expect(result).toEqual({
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [],
+    });
     expect(prisma.case.findUnique).toHaveBeenCalledWith({
       where: { id: uuid },
       select: {
@@ -65,6 +77,9 @@ describe("getCaseForEditAction", () => {
         status: true,
         parties_involved: true,
         source_consultation_id: true,
+        caseAssignments: {
+          select: { user_id: true },
+        },
       },
     });
   });
@@ -188,7 +203,7 @@ describe("deleteCaseAction", () => {
     vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
 
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({ success: true });
-    expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid } });
+    expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
     expect(revalidatePath).toHaveBeenCalledWith("/case");
   });
 });

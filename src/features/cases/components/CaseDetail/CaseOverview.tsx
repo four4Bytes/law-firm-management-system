@@ -77,7 +77,17 @@ export function CaseOverview({ data, onEdit }: Props) {
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>
-              <span className={styles.value}>{data.assignTo || "—"}</span>
+              {data.assignTo.length > 0 ? (
+                <ul className={styles.assignedStaff}>
+                  {data.assignTo.map((name, i) => (
+                    <li key={i} className={styles.assignedChip}>
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className={styles.value}>—</span>
+              )}
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Parties Involved</span>

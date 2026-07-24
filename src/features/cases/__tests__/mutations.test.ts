@@ -33,6 +33,7 @@ it("createCase merges created_by_user_id into the create payload", async () => {
       status: "Open",
       created_by_user_id: "u1",
     },
+    select: { id: true },
   });
 });
 
@@ -55,6 +56,7 @@ it("updateCase strips id and maps empty parties_involved to null", async () => {
       status: "Open",
       parties_involved: null,
     },
+    select: { id: true },
   });
 });
 
@@ -77,6 +79,7 @@ it("updateCase passes a defined parties_involved through", async () => {
       status: "Open",
       parties_involved: "Smith (Plaintiff)",
     },
+    select: { id: true },
   });
 });
 
@@ -101,6 +104,7 @@ it("createCase passes through parties_involved and source_consultation_id when p
       source_consultation_id: uuid,
       created_by_user_id: "u1",
     },
+    select: { id: true },
   });
 });
 
@@ -124,11 +128,12 @@ it("updateCase passes through source_consultation_id", async () => {
       source_consultation_id: uuid,
       parties_involved: null,
     },
+    select: { id: true },
   });
 });
 
 it("deleteCase calls delete with the id", async () => {
   await deleteCase(uuid);
 
-  expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid } });
+  expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
 });

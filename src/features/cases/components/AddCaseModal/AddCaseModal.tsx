@@ -10,9 +10,11 @@ import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createCaseWithClientAction } from "@/features/cases/actions";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
+  keysToSet,
   optionalString,
   requiredString,
   selectEnumHandler,
@@ -27,6 +29,7 @@ interface AddCaseModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
+  users: ActiveUserSummary[];
 }
 
 interface ClientFields {
@@ -56,9 +59,10 @@ function resetCase(): CaseFields {
   };
 }
 
-export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalProps) {
+export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCaseModalProps) {
   const [client, setClient] = useState<ClientFields>(resetClient());
   const [caseFields, setCaseFields] = useState<CaseFields>(resetCase());
+  const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
 
   const { name, email, phone, address } = client;
   const { caseTitle, caseType, status, partiesInvolved } = caseFields;
@@ -75,6 +79,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
     reset: () => {
       setClient(resetClient());
       setCaseFields(resetCase());
+      setAssigneeIds(new Set());
     },
   });
 
@@ -102,6 +107,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
         case_type: requiredString(caseType),
         status,
         parties_involved: optionalString(partiesInvolved),
+        assignee_ids: Array.from(assigneeIds),
       },
     });
   }
@@ -147,7 +153,8 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
               onChange={(v) => setClientField("address", v)}
               placeholder="Optional"
               isTextArea
-              rows={3}
+              rows={6}
+              className={styles.addressField}
               validate={createFieldValidator(
                 CaseWithClientCreatePayloadSchema.shape.client.shape.address,
               )}
@@ -188,6 +195,28 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess }: AddCaseModalPr
                 </SelectItem>
               ))}
             </Select>
+            <Select
+              label="Assignees"
+              selectionMode="multiple"
+              value={Array.from(assigneeIds)}
+              onChange={(keys) => setAssigneeIds(keysToSet(keys))}
+              placeholder="Select assignees..."
+              items={users}
+              isDisabled={isPending}
+            >
+              {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
+            </Select>
+            {assigneeIds.size > 0 && (
+              <ul className={styles.selectedAssignees}>
+                {users
+                  .filter((u) => assigneeIds.has(u.id))
+                  .map((u) => (
+                    <li key={u.id} className={styles.selectedAssignee}>
+                      {u.name}
+                    </li>
+                  ))}
+              </ul>
+            )}
             <TextField
               label="Parties Involved"
               value={partiesInvolved}

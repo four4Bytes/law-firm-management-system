@@ -1,8 +1,9 @@
+import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getDocumentsPaginated } from "@/features/documents/queries";
 import type { TaskRow } from "@/features/tasks/queries";
-import type { Case, CaseMilestone } from "@/generated/prisma/browser";
+import type { CaseMilestone } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -116,13 +117,13 @@ export type CaseOverviewData = {
     address: string | null;
   };
   createdBy: { name: string };
-  assignTo: string;
+  assignTo: string[];
   latestMilestone: { title: string; status: string } | null;
   sourceConsultation: { id: string; concern: string } | null;
 };
 
 export const getCaseOverviewById = cache(async (id: string): Promise<CaseOverviewData> => {
-  const data = await prisma.case.findUniqueOrThrow({
+  const data = await prisma.case.findUnique({
     where: { id },
     include: {
       client: true,
@@ -140,6 +141,8 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
     },
   });
 
+  if (!data) notFound();
+
   return {
     id: data.id,
     case_title: data.case_title,
@@ -155,7 +158,7 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       address: data.client.address,
     },
     createdBy: data.createdBy,
-    assignTo: data.caseAssignments.map((a) => a.user.name).join(", "),
+    assignTo: data.caseAssignments.map((a) => a.user.name),
     latestMilestone: data.milestones[0]
       ? { title: data.milestones[0].title, status: data.milestones[0].status }
       : null,
@@ -420,67 +423,6 @@ export const getCasePaymentsPaginated = cache(
   },
 );
 
-// ----- Activity Log -----
-
-export type ActivityLogRow = {
-  id: string;
-  action: string;
-  actor: string;
-  details: string | null;
-  created_at: Date;
-};
-
-export const getCaseActivityLogPaginated = cache(
-  async ({
-    caseId,
-    search = "",
-    cursor,
-    pageSize = 20,
-  }: CasePageQuery): Promise<{
-    rows: ActivityLogRow[];
-    nextCursor: string | null;
-  }> => {
-    const where: Record<string, unknown> = {
-      entity_type: "Case",
-      entity_id: caseId,
-    };
-
-    if (search) {
-      where.OR = [
-        { action: { contains: search, mode: "insensitive" as const } },
-        { details: { contains: search, mode: "insensitive" as const } },
-      ];
-    }
-
-    const logs = await prisma.auditLog.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy: { created_at: "desc" },
-      include: {
-        actor: { select: { name: true } },
-      },
-    });
-
-    const hasMore = logs.length > pageSize;
-    if (hasMore) logs.pop();
-
-    const rows: ActivityLogRow[] = logs.map((l) => ({
-      id: l.id,
-      action: l.action,
-      actor: l.actor.name,
-      details: l.details,
-      created_at: l.created_at,
-    }));
-
-    return {
-      rows,
-      nextCursor: hasMore ? logs[logs.length - 1].id : null,
-    };
-  },
-);
-
 // ----- Case edit data -----
 
 export const getCaseAssigneeIds = cache(async (caseId: string): Promise<string[]> => {
@@ -491,16 +433,16 @@ export const getCaseAssigneeIds = cache(async (caseId: string): Promise<string[]
   return assignments.map((a) => a.user_id);
 });
 
-export type CaseEditData = Pick<
-  Case,
-  | "id"
-  | "client_id"
-  | "case_title"
-  | "case_type"
-  | "status"
-  | "parties_involved"
-  | "source_consultation_id"
->;
+export interface CaseEditData {
+  id: string;
+  client_id: string;
+  case_title: string;
+  case_type: string;
+  status: string;
+  parties_involved: string | null;
+  source_consultation_id: string | null;
+  assignee_ids: string[];
+}
 
 export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | null> => {
   const data = await prisma.case.findUnique({
@@ -513,8 +455,22 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       status: true,
       parties_involved: true,
       source_consultation_id: true,
+      caseAssignments: {
+        select: { user_id: true },
+      },
     },
   });
 
-  return data;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    client_id: data.client_id,
+    case_title: data.case_title,
+    case_type: data.case_type,
+    status: data.status,
+    parties_involved: data.parties_involved,
+    source_consultation_id: data.source_consultation_id,
+    assignee_ids: data.caseAssignments.map((a) => a.user_id),
+  };
 });

@@ -15,13 +15,25 @@ type TransactionClient = Omit<
 export async function createCase(
   data: CaseCreatePayload & { created_by_user_id: string },
   tx?: TransactionClient,
-) {
+): Promise<{ id: string }> {
+  const { assignee_ids, ...rest } = data;
   const client = tx || prisma;
-  return client.case.create({ data });
+  return client.case.create({
+    data: {
+      ...rest,
+      ...(assignee_ids?.length
+        ? { caseAssignments: { create: assignee_ids.map((user_id) => ({ user_id })) } }
+        : {}),
+    },
+    select: { id: true },
+  });
 }
 
-export async function updateCase(data: CaseUpdatePayload, tx?: TransactionClient) {
-  const { caseId, ...rest } = data;
+export async function updateCase(
+  data: CaseUpdatePayload,
+  tx?: TransactionClient,
+): Promise<{ id: string }> {
+  const { caseId, assignee_ids, ...rest } = data;
   const client = tx || prisma;
 
   return client.case.update({
@@ -29,17 +41,26 @@ export async function updateCase(data: CaseUpdatePayload, tx?: TransactionClient
     data: {
       ...rest,
       parties_involved: rest.parties_involved ? rest.parties_involved : null,
+      ...(assignee_ids !== undefined
+        ? {
+            caseAssignments: {
+              deleteMany: {},
+              create: assignee_ids.map((user_id) => ({ user_id })),
+            },
+          }
+        : {}),
     },
+    select: { id: true },
   });
 }
 
-export async function deleteCase(id: string) {
-  return prisma.case.delete({ where: { id } });
+export async function deleteCase(id: string): Promise<{ id: string }> {
+  return prisma.case.delete({ where: { id }, select: { id: true } });
 }
 
 export async function createCaseWithClient(
   data: CaseWithClientCreatePayload & { created_by_user_id: string },
-) {
+): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
     const newClient = await tx.client.create({
       data: {
@@ -57,6 +78,7 @@ export async function createCaseWithClient(
         case_type: data.case.case_type,
         status: data.case.status,
         parties_involved: data.case.parties_involved || undefined,
+        assignee_ids: data.case.assignee_ids,
         created_by_user_id: data.created_by_user_id,
       },
       tx,
@@ -66,7 +88,7 @@ export async function createCaseWithClient(
 
 export async function updateCaseWithClient(
   data: CaseWithClientUpdatePayload & { case_id: string; client_id: string },
-) {
+): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
     const caseRecord = await tx.case.findUnique({
       where: { id: data.case_id },
@@ -95,6 +117,7 @@ export async function updateCaseWithClient(
         case_type: data.case.case_type,
         status: data.case.status,
         parties_involved: data.case.parties_involved || undefined,
+        assignee_ids: data.case.assignee_ids,
       },
       tx,
     );

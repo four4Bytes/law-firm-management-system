@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
-  getCaseActivityLogPaginated,
+  getCaseAssigneeIds,
   getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
@@ -14,7 +14,6 @@ import {
   getCasePaymentsPaginated,
   getCasesPaginated,
   getCaseTasksPaginated,
-  type ActivityLogRow,
   type CaseEditData,
   type CaseMilestoneListRow,
   type CaseOverviewData,
@@ -26,9 +25,10 @@ import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/qu
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import type { TaskRow } from "@/features/tasks/queries";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";
-import { NotificationType, Role } from "@/generated/prisma/browser";
+import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -47,6 +47,30 @@ import {
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
+
+/**
+ * Helper: loads role-based recipients for CaseAssigned notifications and merges
+ * with optional assignee IDs, falling back to existing DB assignees when a
+ * caseId is given and no new assigneeIds are provided.
+ */
+async function resolveNotifyIds(payload: { assigneeIds?: string[]; caseId?: string }) {
+  const { assigneeIds, caseId } = payload;
+
+  const roleIds = await getActiveUserIdsByRoles({
+    roles: notificationRoleConfig[NotificationType.CaseAssigned],
+  });
+
+  if (assigneeIds?.length) {
+    return [...new Set([...roleIds, ...assigneeIds])];
+  }
+
+  if (caseId) {
+    const existingIds = await getCaseAssigneeIds(caseId);
+    return [...new Set([...roleIds, ...existingIds])];
+  }
+
+  return roleIds;
+}
 
 export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
   cases: CaseRow[];
@@ -153,22 +177,6 @@ export async function getCasePaymentsPaginatedAction(
   return getCasePaymentsPaginated(parsed.data);
 }
 
-export async function getCaseActivityLogPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: ActivityLogRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getCaseActivityLogPaginated(parsed.data);
-}
-
 export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {
   await requireAuth();
 
@@ -190,8 +198,15 @@ export async function createCaseAction(
     return { success: false, error: "Invalid case data" };
   }
 
-  const { client_id, case_title, case_type, status, parties_involved, source_consultation_id } =
-    parsed.data;
+  const {
+    client_id,
+    case_title,
+    case_type,
+    status,
+    parties_involved,
+    source_consultation_id,
+    assignee_ids,
+  } = parsed.data;
 
   let createdCase: { id: string };
   try {
@@ -202,6 +217,7 @@ export async function createCaseAction(
       status,
       parties_involved: parties_involved || undefined,
       source_consultation_id,
+      assignee_ids,
       created_by_user_id: session.id,
     });
 
@@ -219,10 +235,11 @@ export async function createCaseAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const notifyIds = await resolveNotifyIds({ assigneeIds: assignee_ids });
+
         await dispatchNotifications(
           {
-            userIds: adminIds,
+            userIds: notifyIds,
             type: NotificationType.CaseAssigned,
             title: `New case: ${case_title}`,
             message: `A new case "${case_title}" was created`,
@@ -278,10 +295,11 @@ export async function createCaseWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const notifyIds = await resolveNotifyIds({ assigneeIds: caseData.assignee_ids });
+
         await dispatchNotifications(
           {
-            userIds: adminIds,
+            userIds: notifyIds,
             type: NotificationType.CaseAssigned,
             title: `New case: ${caseData.case_title}`,
             message: `A new case "${caseData.case_title}" was created for client "${client.name}"`,
@@ -321,6 +339,7 @@ export async function updateCaseAction(
     status,
     parties_involved,
     source_consultation_id,
+    assignee_ids,
   } = parsed.data;
 
   try {
@@ -335,17 +354,43 @@ export async function updateCaseAction(
       status,
       parties_involved: parties_involved || undefined,
       source_consultation_id,
+      assignee_ids,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "case.updated",
-        entityType: "Case",
-        entityId: caseId,
-        details: `Updated case: "${case_title}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "case.updated",
+          entityType: "Case",
+          entityId: caseId,
+          details: `Updated case: "${case_title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log case.updated audit for Case", caseId, err);
+      }
+
+      try {
+        const notifyIds = await resolveNotifyIds({
+          assigneeIds: assignee_ids,
+          caseId,
+        });
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.CaseAssigned,
+            title: `Case updated: ${case_title}`,
+            message: `Case "${case_title}" was updated`,
+            actionUrl: `/case/${caseId}`,
+            caseId,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath(`/case/${caseId}`);
     revalidatePath("/case");
@@ -376,15 +421,40 @@ export async function updateCaseWithClientAction(
       case: caseData,
     });
 
-    after(() =>
-      createAuditLog({
-        actorUserId: session.id,
-        action: "case.updated",
-        entityType: "Case",
-        entityId: case_id,
-        details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
-      }).catch(console.error),
-    );
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "case.updated",
+          entityType: "Case",
+          entityId: case_id,
+          details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log case.updated audit for Case", case_id, err);
+      }
+
+      try {
+        const notifyIds = await resolveNotifyIds({
+          assigneeIds: caseData.assignee_ids,
+          caseId: case_id,
+        });
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.CaseAssigned,
+            title: `Case updated: ${caseData.case_title}`,
+            message: `Case "${caseData.case_title}" was updated for client "${client.name}"`,
+            actionUrl: `/case/${case_id}`,
+            caseId: case_id,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
 
     revalidatePath(`/case/${case_id}`);
     revalidatePath("/case");

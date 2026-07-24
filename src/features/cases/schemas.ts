@@ -23,6 +23,7 @@ export const CaseCreatePayloadSchema = z.object({
   status: requiredEnum(CaseStatus, "Status"),
   parties_involved: optionalText(2000, "Parties involved"),
   source_consultation_id: z.uuid().optional(),
+  assignee_ids: z.array(z.uuid()).optional(),
 });
 
 export const CaseUpdatePayloadSchema = CaseCreatePayloadSchema.extend({
@@ -38,6 +39,7 @@ const CaseDataSchema = z.object({
   case_type: requiredText(255, "Case type"),
   status: requiredEnum(CaseStatus, "Status"),
   parties_involved: optionalText(2000, "Parties involved"),
+  assignee_ids: z.array(z.uuid()).optional(),
 });
 
 export const CaseWithClientCreatePayloadSchema = z.object({

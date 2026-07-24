@@ -1,14 +1,17 @@
 /**
  * Plain-HTML email template functions for notification types.
  *
- * Each template accepts a {@link TemplateContext} and returns a full HTML
- * document wrapped in the shared {@link emailLayout}. Avoids React rendering
- * on the server (Turbopack blocks `react-dom/server`).
+ * Each exported template accepts a {@link TemplateContext} and returns a
+ * complete HTML string. Styles are defined in the shared `s` object and
+ * applied via inline style attributes — the only reliable approach for
+ * email clients.
  */
 
 import { getRequiredEnvVar } from "@/lib/env";
 
-interface TemplateContext {
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface TemplateContext {
   /** Display name of the recipient. */
   toName: string;
   /** Display name of the user who triggered the notification. */
@@ -21,12 +24,13 @@ interface TemplateContext {
   actionUrl?: string;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 /**
- * HTML-escapes a plain-text string for safe interpolation into HTML
- * elements and attribute values.
+ * Escapes HTML special characters to their entity equivalents.
  *
- * @param str - The raw string to escape.
- * @returns The escaped string safe for HTML insertion.
+ * @param str - The string to escape.
+ * @returns The escaped string safe for HTML interpolation.
  */
 function escapeHtml(str: string): string {
   return str
@@ -38,48 +42,71 @@ function escapeHtml(str: string): string {
 }
 
 /**
- * Resolves a notification action URL to an absolute link for email CTAs.
+ * Resolves a relative or absolute URL to a fully qualified URL.
  *
- * - Relative paths (starting with `/`) are prefixed with the configured app origin.
- * - Already-absolute HTTPS/HTTP URLs are passed through as-is.
- * - Anything else is treated as invalid and returns `null` (no button rendered).
+ * Prepends the APP_ORIGIN environment variable to relative paths.
+ * Passes through http/https URLs unchanged. Returns null for unhandled
+ * formats such as protocol-relative or mailto URLs.
  *
- * @param url - The raw action URL from the notification payload.
- * @returns The resolved absolute URL, or `null` if the URL is not usable.
+ * @param url - The URL to resolve (relative `/path` or absolute `http(s)://`).
+ * @returns The fully qualified URL string, or null if the format is unsupported.
  */
 function resolveActionUrl(url: string): string | null {
   if (url.startsWith("/")) {
     const origin = getRequiredEnvVar("APP_ORIGIN").replace(/\/+$/, "");
     return `${origin}${url}`;
   }
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return null;
 }
 
+// ── Stylesheet ────────────────────────────────────────────────────────────────
+
+const s = {
+  body: "margin:0;padding:40px 0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif",
+  container: "max-width:600px;margin:0 auto;background-color:#ffffff",
+  header: "padding:24px 32px;background-color:#1a3a5c",
+  headerTitle: "color:#ffffff;font-size:20px;margin:0",
+  bodyContent: "padding:48px 48px 64px",
+  heading: "color:#1a3a5c;font-size:18px;margin:0 0 16px",
+  footer:
+    "padding:24px 48px;background-color:#f4f4f4;color:#666666;font-size:12px;text-align:center",
+  footerText: "margin:0",
+  text: "color:#333333;line-height:1.8;margin:0 0 20px",
+  textMuted: "color:#555555;font-style:italic;line-height:1.8;margin:0 0 20px",
+  buttonTable: "margin:24px 0",
+  buttonCell: "background-color:#1a3a5c;border-radius:6px",
+  buttonLink:
+    "display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600",
+} as const;
+
+// ── HTML Builders ─────────────────────────────────────────────────────────────
+
 /**
- * Wraps body content in the firm's branded email layout.
+ * Wraps content in a full HTML email document with shared header and footer.
  *
- * @param title - The page-level heading shown inside the email body.
- * @param body - Inner HTML content.
- * @returns A complete HTML document string.
+ * The header displays the firm name; the footer contains the automated-notice
+ * disclaimer. The caller provides a `title` for the email heading element and
+ * the pre-built `body` HTML string (typically composed from other helpers).
+ *
+ * @param title - Heading text displayed below the firm header.
+ * @param body  - Pre-rendered HTML content (paragraphs, buttons, etc.).
+ * @returns A complete `<!DOCTYPE html>` document as a string.
  */
 function emailLayout(title: string, body: string): string {
-  const safeTitle = escapeHtml(title);
   return `<!DOCTYPE html>
 <html>
-<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif">
-<div style="max-width:600px;margin:0 auto;background-color:#ffffff">
-<div style="padding:24px 32px;background-color:#1a3a5c">
-<h1 style="color:#ffffff;font-size:20px;margin:0">Anino Law &amp; Real Estate Firm</h1>
+<body style="${s.body}">
+<div style="${s.container}">
+<div style="${s.header}">
+<h1 style="${s.headerTitle}">Anino Law &amp; Real Estate Firm</h1>
 </div>
-<div style="padding:32px">
-<h2 style="color:#1a3a5c;font-size:18px;margin:0 0 16px">${safeTitle}</h2>
+<div style="${s.bodyContent}">
+<h2 style="${s.heading}">${escapeHtml(title)}</h2>
 ${body}
 </div>
-<div style="padding:16px 32px;background-color:#f4f4f4;color:#666666;font-size:12px;text-align:center">
-<p style="margin:0">This is an automated notification from Anino Law &amp; Real Estate Firm. Please do not reply directly to this email.</p>
+<div style="${s.footer}">
+<p style="${s.footerText}">This is an automated notification from Anino Law &amp; Real Estate Firm. Please do not reply directly to this email.</p>
 </div>
 </div>
 </body>
@@ -87,127 +114,200 @@ ${body}
 }
 
 /**
- * Renders a call-to-action button linking to a resource.
+ * Renders an HTML paragraph with auto-escaped content.
  *
- * @param url - The target URL.
- * @param label - Button label text.
- * @returns An HTML table string styled as a button.
+ * This is the default paragraph helper. User-provided text is escaped before
+ * insertion to prevent XSS in email clients. Pass pre-escaped content through
+ * {@link rawText} instead.
+ *
+ * @param content - The text to display (will be HTML-escaped).
+ * @param muted   - When true, applies muted/italic styling for secondary text.
+ * @returns A `<p>` element as an HTML string.
+ */
+function text(content: string, muted?: boolean): string {
+  return `<p style="${muted ? s.textMuted : s.text}">${escapeHtml(content)}</p>`;
+}
+
+/**
+ * Renders an HTML paragraph from pre-escaped or raw HTML content.
+ *
+ * Unlike {@link text}, this helper does **not** escape its input. Use it only
+ * when the content is already escaped (e.g., output from {@link strongLabel})
+ * or intentionally contains HTML markup (e.g., the curly-quote entities in
+ * {@link quoted}).
+ *
+ * @param content - Pre-escaped HTML or markup string (inserted as-is).
+ * @param muted   - When true, applies muted/italic styling for secondary text.
+ * @returns A `<p>` element as an HTML string.
+ */
+function rawText(content: string, muted?: boolean): string {
+  return `<p style="${muted ? s.textMuted : s.text}">${content}</p>`;
+}
+
+/**
+ * Builds a greeting paragraph ("Hi {name},").
+ *
+ * Delegates to {@link text} for escaping and paragraph wrapping.
+ *
+ * @param name - The recipient's display name (will be HTML-escaped).
+ * @returns A `<p>` element prefixed with "Hi " and suffixed with ",".
+ */
+function greeting(name: string): string {
+  return text(`Hi ${name},`);
+}
+
+/**
+ * Wraps content in curly quotation marks within a muted paragraph.
+ *
+ * The content is escaped, then surrounded by `&ldquo;` and `&rdquo;` entities.
+ * The result is rendered via {@link rawText} to avoid double-escaping the
+ * quote entities.
+ *
+ * @param content - The text to quote (will be HTML-escaped).
+ * @returns A muted `<p>` element with curly-quoted content.
+ */
+function quoted(content: string): string {
+  return rawText(`&ldquo;${escapeHtml(content)}&rdquo;`, true);
+}
+
+/**
+ * Wraps a label in a `<strong>` element with auto-escaped content.
+ *
+ * @param label - The text to embolden (will be HTML-escaped).
+ * @returns A `<strong>` element as an HTML string.
+ */
+function strongLabel(label: string): string {
+  return `<strong>${escapeHtml(label)}</strong>`;
+}
+
+/**
+ * Renders an email-friendly action button as an HTML table.
+ *
+ * The URL is resolved through {@link resolveActionUrl}. If the URL format
+ * is unsupported the button is silently omitted (returns empty string).
+ * Both the URL and label are escaped before insertion.
+ *
+ * @param url   - Relative or absolute URL for the button link.
+ * @param label - Visible button text.
+ * @returns An HTML `<a>` wrapped in a `<table>`/`<tr>`/`<td>` structure,
+ *          or an empty string if the URL cannot be resolved.
  */
 function button(url: string, label: string): string {
   const resolvedUrl = resolveActionUrl(url);
   if (!resolvedUrl) return "";
-  const safeUrl = escapeHtml(resolvedUrl);
-  const safeLabel = escapeHtml(label);
-  return `<table cellpadding="0" cellspacing="0" style="margin:24px 0"><tr><td style="background-color:#1a3a5c;border-radius:4px"><a href="${safeUrl}" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-size:14px">${safeLabel}</a></td></tr></table>`;
+
+  return `<table cellpadding="0" cellspacing="0" style="${s.buttonTable}"><tbody><tr><td style="${s.buttonCell}"><a href="${escapeHtml(resolvedUrl)}" style="${s.buttonLink}">${escapeHtml(label)}</a></td></tr></tbody></table>`;
 }
 
+// ── Templates ─────────────────────────────────────────────────────────────────
+
 /**
- * Email template for consultation reminders with upcoming-consultation heading.
+ * Renders the email body for a consultation-reminder notification.
  *
- * @param ctx - Template context.
- * @returns A complete HTML email string.
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
  */
 export function consultationReminderTemplate(ctx: TemplateContext): string {
-  const body = `
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">Hi ${escapeHtml(ctx.toName)},</p>
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">This is a reminder that you have an upcoming consultation.</p>
-<p style="color:#555555;line-height:1.6;margin:0 0 12px;font-style:italic">&ldquo;${escapeHtml(ctx.message)}&rdquo;</p>
-${ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""}`.trim();
-
-  return emailLayout("Upcoming Consultation Reminder", body);
+  return emailLayout(
+    "Upcoming Consultation Reminder",
+    greeting(ctx.toName) +
+      text("This is a reminder that you have an upcoming consultation.") +
+      quoted(ctx.message) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
+  );
 }
 
 /**
- * Email template for when a consultation is created.
+ * Renders the email body for a consultation-created notification.
  *
- * @param ctx - Template context.
- * @returns A complete HTML email string.
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
  */
 export function consultationCreatedTemplate(ctx: TemplateContext): string {
-  const body = `
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">Hi ${escapeHtml(ctx.toName)},</p>
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.actorName)} has scheduled a new consultation.</p>
-<p style="color:#555555;line-height:1.6;margin:0 0 12px;font-style:italic">&ldquo;${escapeHtml(ctx.message)}&rdquo;</p>
-${ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""}`.trim();
-
-  return emailLayout("New Consultation Scheduled", body);
+  return emailLayout(
+    "New Consultation Scheduled",
+    greeting(ctx.toName) +
+      text(`${ctx.actorName} has scheduled a new consultation.`) +
+      quoted(ctx.message) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
+  );
 }
 
 /**
- * Email template for when a consultation is updated.
+ * Renders the email body for a consultation-updated notification.
  *
- * @param ctx - Template context.
- * @returns A complete HTML email string.
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
  */
 export function consultationUpdatedTemplate(ctx: TemplateContext): string {
-  const body = `
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">Hi ${escapeHtml(ctx.toName)},</p>
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">A consultation has been updated.</p>
-<p style="color:#555555;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.message)}</p>
-${ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""}`.trim();
-
-  return emailLayout("Consultation Updated", body);
+  return emailLayout(
+    "Consultation Updated",
+    greeting(ctx.toName) +
+      text("A consultation has been updated.") +
+      text(ctx.message, true) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
+  );
 }
 
 /**
- * Email template for milestone notifications (created, due-soon, completed).
+ * Renders the email body for a milestone notification.
  *
- * @param ctx - Template context.
- * @returns A complete HTML email string.
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
  */
 export function milestoneTemplate(ctx: TemplateContext): string {
-  const body = `
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">Hi ${escapeHtml(ctx.toName)},</p>
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.message)}</p>
-${ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""}`.trim();
-
-  return emailLayout(ctx.title, body);
+  return emailLayout(
+    ctx.title,
+    greeting(ctx.toName) +
+      text(ctx.message) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
+  );
 }
 
 /**
- * Email template for when a task is assigned to a user.
+ * Renders the email body for a task-assigned notification.
  *
- * @param ctx - Template context.
- * @returns A complete HTML email string.
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
  */
 export function taskAssignedTemplate(ctx: TemplateContext): string {
-  const body = `
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">Hi ${escapeHtml(ctx.toName)},</p>
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.actorName)} has assigned you a task: <strong>${escapeHtml(ctx.title)}</strong>.</p>
-<p style="color:#555555;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.message)}</p>
-${ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""}`.trim();
-
-  return emailLayout("Task Assigned", body);
+  return emailLayout(
+    "Task Assigned",
+    greeting(ctx.toName) +
+      rawText(`${escapeHtml(ctx.actorName)} has assigned you a task: ${strongLabel(ctx.title)}.`) +
+      text(ctx.message, true) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
+  );
 }
 
 /**
- * Email template for when a task's status or details are updated.
+ * Renders the email body for a task-updated notification.
  *
- * @param ctx - Template context.
- * @returns A complete HTML email string.
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
  */
 export function taskUpdatedTemplate(ctx: TemplateContext): string {
-  const body = `
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">Hi ${escapeHtml(ctx.toName)},</p>
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">A task has been updated: <strong>${escapeHtml(ctx.title)}</strong>.</p>
-<p style="color:#555555;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.message)}</p>
-${ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""}`.trim();
-
-  return emailLayout("Task Updated", body);
+  return emailLayout(
+    "Task Updated",
+    greeting(ctx.toName) +
+      rawText(`A task has been updated: ${strongLabel(ctx.title)}.`) +
+      text(ctx.message, true) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
+  );
 }
 
 /**
- * Email template for when a new case is created.
+ * Renders the email body for a case-assigned notification.
  *
- * @param ctx - Template context.
- * @returns A complete HTML email string.
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
  */
 export function caseAssignedTemplate(ctx: TemplateContext): string {
-  const body = `
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">Hi ${escapeHtml(ctx.toName)},</p>
-<p style="color:#333333;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.actorName)} created a new case: <strong>${escapeHtml(ctx.title)}</strong>.</p>
-<p style="color:#555555;line-height:1.6;margin:0 0 12px">${escapeHtml(ctx.message)}</p>
-${ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""}`.trim();
-
-  return emailLayout("New Case Created", body);
+  return emailLayout(
+    "New Case Created",
+    greeting(ctx.toName) +
+      rawText(`${escapeHtml(ctx.actorName)} created a new case: ${strongLabel(ctx.title)}.`) +
+      text(ctx.message, true) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
+  );
 }

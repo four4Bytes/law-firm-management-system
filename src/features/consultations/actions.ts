@@ -6,13 +6,11 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
-  getConsultationActivityLogPaginated,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationPaymentsPaginated,
   getConsultationsPaginated,
-  type ActivityLogRow,
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
@@ -22,9 +20,10 @@ import {
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";
-import { NotificationType, Role } from "@/generated/prisma/browser";
+import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -121,22 +120,6 @@ export async function getConsultationPaymentsPaginatedAction(
   return getConsultationPaymentsPaginated(parsed.data);
 }
 
-export async function getConsultationActivityLogPaginatedAction(
-  params: z.input<typeof ConsultationPageQuerySchema>,
-): Promise<{
-  rows: ActivityLogRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = ConsultationPageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getConsultationActivityLogPaginated(parsed.data);
-}
-
 export async function getConsultationForEditAction(
   id: string,
 ): Promise<ConsultationEditData | null> {
@@ -191,7 +174,9 @@ export async function createConsultationAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.ConsultationCreated],
+        });
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -251,7 +236,9 @@ export async function createConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.ConsultationCreated],
+        });
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -320,7 +307,9 @@ export async function updateConsultationAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.ConsultationUpdated],
+        });
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -384,7 +373,9 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({ roles: [Role.Admin, Role.BranchManager] });
+        const adminIds = await getActiveUserIdsByRoles({
+          roles: notificationRoleConfig[NotificationType.ConsultationUpdated],
+        });
         await dispatchNotifications(
           {
             userIds: adminIds,

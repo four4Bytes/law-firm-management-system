@@ -48,6 +48,30 @@ import {
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
 
+/**
+ * Helper: loads role-based recipients for CaseAssigned notifications and merges
+ * with optional assignee IDs, falling back to existing DB assignees when a
+ * caseId is given and no new assigneeIds are provided.
+ */
+async function resolveNotifyIds(payload: { assigneeIds?: string[]; caseId?: string }) {
+  const { assigneeIds, caseId } = payload;
+
+  const roleIds = await getActiveUserIdsByRoles({
+    roles: notificationRoleConfig[NotificationType.CaseAssigned],
+  });
+
+  if (assigneeIds?.length) {
+    return [...new Set([...roleIds, ...assigneeIds])];
+  }
+
+  if (caseId) {
+    const existingIds = await getCaseAssigneeIds(caseId);
+    return [...new Set([...roleIds, ...existingIds])];
+  }
+
+  return roleIds;
+}
+
 export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
   cases: CaseRow[];
   nextCursor: string | null;
@@ -211,13 +235,7 @@ export async function createCaseAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.CaseAssigned],
-        });
-
-        const notifyIds = assignee_ids?.length
-          ? [...new Set([...adminIds, ...assignee_ids])]
-          : adminIds;
+        const notifyIds = await resolveNotifyIds({ assigneeIds: assignee_ids });
 
         await dispatchNotifications(
           {
@@ -277,13 +295,7 @@ export async function createCaseWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.CaseAssigned],
-        });
-
-        const notifyIds = caseData.assignee_ids?.length
-          ? [...new Set([...adminIds, ...caseData.assignee_ids])]
-          : adminIds;
+        const notifyIds = await resolveNotifyIds({ assigneeIds: caseData.assignee_ids });
 
         await dispatchNotifications(
           {
@@ -359,15 +371,10 @@ export async function updateCaseAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.CaseAssigned],
+        const notifyIds = await resolveNotifyIds({
+          assigneeIds: assignee_ids,
+          caseId,
         });
-
-        const currentAssigneeIds = assignee_ids?.length
-          ? assignee_ids
-          : await getCaseAssigneeIds(caseId);
-
-        const notifyIds = [...new Set([...adminIds, ...currentAssigneeIds])];
 
         await dispatchNotifications(
           {
@@ -428,15 +435,10 @@ export async function updateCaseWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.CaseAssigned],
+        const notifyIds = await resolveNotifyIds({
+          assigneeIds: caseData.assignee_ids,
+          caseId: case_id,
         });
-
-        const currentAssigneeIds = caseData.assignee_ids?.length
-          ? caseData.assignee_ids
-          : await getCaseAssigneeIds(case_id);
-
-        const notifyIds = [...new Set([...adminIds, ...currentAssigneeIds])];
 
         await dispatchNotifications(
           {

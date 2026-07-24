@@ -22,7 +22,10 @@ import {
   updateConsultationWithClientAction,
 } from "@/features/consultations/actions";
 import type { ConsultationEditData } from "@/features/consultations/queries";
-import { ConsultationWithClientUpdatePayloadSchema } from "@/features/consultations/schemas";
+import {
+  ConsultationWithClientUpdatePayload,
+  ConsultationWithClientUpdatePayloadSchema,
+} from "@/features/consultations/schemas";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
@@ -111,26 +114,30 @@ export function EditConsultationModal({
     onOpenChange(false);
   }
 
+  function buildConsultationPayload() {
+    return {
+      consultation_id: consultation.id,
+      client_id: clientId,
+      client: {
+        name: requiredString(clientName),
+        email: optionalString(clientEmail),
+        phone_number: optionalString(clientPhone),
+        address: optionalString(clientAddress),
+      },
+      consultation: {
+        concern: requiredString(fields.concern),
+        booking_datetime: combineDateTime(fields.date, fields.time),
+        status: fields.status,
+      },
+    } satisfies ConsultationWithClientUpdatePayload;
+  }
+
   async function handleSave(event: React.SyntheticEvent) {
     event.preventDefault();
     if (isPending || isDeleting || isSaving) return;
 
     if (fields.status !== ConsultationStatus.Accepted) {
-      await submitForm({
-        consultation_id: consultation.id,
-        client_id: clientId,
-        client: {
-          name: requiredString(clientName),
-          email: optionalString(clientEmail),
-          phone_number: optionalString(clientPhone),
-          address: optionalString(clientAddress),
-        },
-        consultation: {
-          concern: requiredString(fields.concern),
-          booking_datetime: combineDateTime(fields.date, fields.time),
-          status: fields.status,
-        },
-      });
+      await submitForm(buildConsultationPayload());
       return;
     }
 
@@ -138,21 +145,7 @@ export function EditConsultationModal({
 
     let result: ActionStatusResponse;
     try {
-      result = await updateConsultationWithClientAction({
-        consultation_id: consultation.id,
-        client_id: clientId,
-        client: {
-          name: requiredString(clientName),
-          email: optionalString(clientEmail),
-          phone_number: optionalString(clientPhone),
-          address: optionalString(clientAddress),
-        },
-        consultation: {
-          concern: requiredString(fields.concern),
-          booking_datetime: combineDateTime(fields.date, fields.time),
-          status: fields.status,
-        },
-      });
+      result = await updateConsultationWithClientAction(buildConsultationPayload());
     } catch {
       queue.add({ title: "Failed to update consultation. Please try again." }, { timeout: 5000 });
       setIsSaving(false);

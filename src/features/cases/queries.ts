@@ -444,6 +444,15 @@ export interface CaseEditData {
   assignee_ids: string[];
 }
 
+export const getCaseBySourceConsultationId = cache(
+  async (sourceConsultationId: string): Promise<{ id: string } | null> => {
+    return prisma.case.findFirst({
+      where: { source_consultation_id: sourceConsultationId },
+      select: { id: true },
+    });
+  },
+);
+
 export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | null> => {
   const data = await prisma.case.findUnique({
     where: { id },

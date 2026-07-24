@@ -118,7 +118,7 @@ export async function updateMilestoneAction(
 
         let notificationType: NotificationType;
         let label: string;
-        if (status === "Done") {
+        if (status === "Done" && existing.status !== "Done") {
           notificationType = NotificationType.MilestoneCompleted;
           label = "completed";
         } else if (existing.status !== status) {

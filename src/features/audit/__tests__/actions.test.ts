@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+
+import { EntityActivityLogQuerySchema } from "@/features/audit/schemas";
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: "Admin", name: "n" }),
@@ -69,13 +72,17 @@ describe("getEntityActivityLogAction", () => {
 
   it("throws on missing entityType", async () => {
     await expect(
-      getEntityActivityLogAction({ entityId: "550e8400-e29b-41d4-a716-446655440000" }),
+      getEntityActivityLogAction({
+        entityId: "550e8400-e29b-41d4-a716-446655440000",
+      } as unknown as z.input<typeof EntityActivityLogQuerySchema>),
     ).rejects.toThrow("Invalid query parameters");
   });
 
   it("throws on missing entityId", async () => {
-    await expect(getEntityActivityLogAction({ entityType: "Case" })).rejects.toThrow(
-      "Invalid query parameters",
-    );
+    await expect(
+      getEntityActivityLogAction({ entityType: "Case" } as unknown as z.input<
+        typeof EntityActivityLogQuerySchema
+      >),
+    ).rejects.toThrow("Invalid query parameters");
   });
 });

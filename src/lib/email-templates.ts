@@ -26,6 +26,12 @@ export interface TemplateContext {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Escapes HTML special characters to their entity equivalents.
+ *
+ * @param str - The string to escape.
+ * @returns The escaped string safe for HTML interpolation.
+ */
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -35,17 +41,17 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
+/**
+ * Resolves a relative or absolute URL to a fully qualified URL.
+ *
+ * Prepends the APP_ORIGIN environment variable to relative paths.
+ * Passes through http/https URLs unchanged. Returns null for unhandled
+ * formats such as protocol-relative or mailto URLs.
+ *
+ * @param url - The URL to resolve (relative `/path` or absolute `http(s)://`).
+ * @returns The fully qualified URL string, or null if the format is unsupported.
+ */
 function resolveActionUrl(url: string): string | null {
-  /**
-   * Resolves a relative or absolute URL to a fully qualified URL.
-   *
-   * Prepends the APP_ORIGIN environment variable to relative paths.
-   * Passes through http/https URLs unchanged. Returns null for unhandled
-   * formats such as protocol-relative or mailto URLs.
-   *
-   * @param url - The URL to resolve (relative `/path` or absolute `http(s)://`).
-   * @returns The fully qualified URL string, or null if the format is unsupported.
-   */
   if (url.startsWith("/")) {
     const origin = getRequiredEnvVar("APP_ORIGIN").replace(/\/+$/, "");
     return `${origin}${url}`;
@@ -76,6 +82,17 @@ const s = {
 
 // ── HTML Builders ─────────────────────────────────────────────────────────────
 
+/**
+ * Wraps content in a full HTML email document with shared header and footer.
+ *
+ * The header displays the firm name; the footer contains the automated-notice
+ * disclaimer. The caller provides a `title` for the email heading element and
+ * the pre-built `body` HTML string (typically composed from other helpers).
+ *
+ * @param title - Heading text displayed below the firm header.
+ * @param body  - Pre-rendered HTML content (paragraphs, buttons, etc.).
+ * @returns A complete `<!DOCTYPE html>` document as a string.
+ */
 function emailLayout(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -96,26 +113,85 @@ ${body}
 </html>`;
 }
 
+/**
+ * Renders an HTML paragraph with auto-escaped content.
+ *
+ * This is the default paragraph helper. User-provided text is escaped before
+ * insertion to prevent XSS in email clients. Pass pre-escaped content through
+ * {@link rawText} instead.
+ *
+ * @param content - The text to display (will be HTML-escaped).
+ * @param muted   - When true, applies muted/italic styling for secondary text.
+ * @returns A `<p>` element as an HTML string.
+ */
 function text(content: string, muted?: boolean): string {
   return `<p style="${muted ? s.textMuted : s.text}">${escapeHtml(content)}</p>`;
 }
 
+/**
+ * Renders an HTML paragraph from pre-escaped or raw HTML content.
+ *
+ * Unlike {@link text}, this helper does **not** escape its input. Use it only
+ * when the content is already escaped (e.g., output from {@link strongLabel})
+ * or intentionally contains HTML markup (e.g., the curly-quote entities in
+ * {@link quoted}).
+ *
+ * @param content - Pre-escaped HTML or markup string (inserted as-is).
+ * @param muted   - When true, applies muted/italic styling for secondary text.
+ * @returns A `<p>` element as an HTML string.
+ */
 function rawText(content: string, muted?: boolean): string {
   return `<p style="${muted ? s.textMuted : s.text}">${content}</p>`;
 }
 
+/**
+ * Builds a greeting paragraph ("Hi {name},").
+ *
+ * Delegates to {@link text} for escaping and paragraph wrapping.
+ *
+ * @param name - The recipient's display name (will be HTML-escaped).
+ * @returns A `<p>` element prefixed with "Hi " and suffixed with ",".
+ */
 function greeting(name: string): string {
   return text(`Hi ${name},`);
 }
 
+/**
+ * Wraps content in curly quotation marks within a muted paragraph.
+ *
+ * The content is escaped, then surrounded by `&ldquo;` and `&rdquo;` entities.
+ * The result is rendered via {@link rawText} to avoid double-escaping the
+ * quote entities.
+ *
+ * @param content - The text to quote (will be HTML-escaped).
+ * @returns A muted `<p>` element with curly-quoted content.
+ */
 function quoted(content: string): string {
   return rawText(`&ldquo;${escapeHtml(content)}&rdquo;`, true);
 }
 
+/**
+ * Wraps a label in a `<strong>` element with auto-escaped content.
+ *
+ * @param label - The text to embolden (will be HTML-escaped).
+ * @returns A `<strong>` element as an HTML string.
+ */
 function strongLabel(label: string): string {
   return `<strong>${escapeHtml(label)}</strong>`;
 }
 
+/**
+ * Renders an email-friendly action button as an HTML table.
+ *
+ * The URL is resolved through {@link resolveActionUrl}. If the URL format
+ * is unsupported the button is silently omitted (returns empty string).
+ * Both the URL and label are escaped before insertion.
+ *
+ * @param url   - Relative or absolute URL for the button link.
+ * @param label - Visible button text.
+ * @returns An HTML `<a>` wrapped in a `<table>`/`<tr>`/`<td>` structure,
+ *          or an empty string if the URL cannot be resolved.
+ */
 function button(url: string, label: string): string {
   const resolvedUrl = resolveActionUrl(url);
   if (!resolvedUrl) return "";
@@ -125,6 +201,12 @@ function button(url: string, label: string): string {
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
+/**
+ * Renders the email body for a consultation-reminder notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
 export function consultationReminderTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "Upcoming Consultation Reminder",
@@ -135,6 +217,12 @@ export function consultationReminderTemplate(ctx: TemplateContext): string {
   );
 }
 
+/**
+ * Renders the email body for a consultation-created notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
 export function consultationCreatedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "New Consultation Scheduled",
@@ -145,6 +233,12 @@ export function consultationCreatedTemplate(ctx: TemplateContext): string {
   );
 }
 
+/**
+ * Renders the email body for a consultation-updated notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
 export function consultationUpdatedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "Consultation Updated",
@@ -155,6 +249,12 @@ export function consultationUpdatedTemplate(ctx: TemplateContext): string {
   );
 }
 
+/**
+ * Renders the email body for a milestone notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
 export function milestoneTemplate(ctx: TemplateContext): string {
   return emailLayout(
     ctx.title,
@@ -164,6 +264,12 @@ export function milestoneTemplate(ctx: TemplateContext): string {
   );
 }
 
+/**
+ * Renders the email body for a task-assigned notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
 export function taskAssignedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "Task Assigned",
@@ -174,6 +280,12 @@ export function taskAssignedTemplate(ctx: TemplateContext): string {
   );
 }
 
+/**
+ * Renders the email body for a task-updated notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
 export function taskUpdatedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "Task Updated",
@@ -184,6 +296,12 @@ export function taskUpdatedTemplate(ctx: TemplateContext): string {
   );
 }
 
+/**
+ * Renders the email body for a case-assigned notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
 export function caseAssignedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "New Case Created",

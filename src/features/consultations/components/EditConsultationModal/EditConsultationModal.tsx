@@ -163,7 +163,6 @@ export function EditConsultationModal({
 
     queue.add({ title: "Consultation updated" }, { timeout: 5000 });
     setIsSaving(false);
-    onSuccess();
     setShowCaseModal(true);
   }
 
@@ -316,7 +315,13 @@ export function EditConsultationModal({
 
       <CreateCaseFromConsultationModal
         isOpen={showCaseModal}
-        onOpenChange={setShowCaseModal}
+        onOpenChange={(open) => {
+          setShowCaseModal(open);
+          if (!open) {
+            onSuccess();
+            onOpenChange(false);
+          }
+        }}
         onSuccess={(caseId) => {
           setShowCaseModal(false);
           onOpenChange(false);

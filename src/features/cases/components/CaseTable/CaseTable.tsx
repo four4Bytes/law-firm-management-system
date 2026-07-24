@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
@@ -71,8 +72,13 @@ export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
   const openAddModal = useCallback(async () => {
-    setUsers(await getActiveUsersAction());
-    setIsAddOpen(true);
+    try {
+      const users = await getActiveUsersAction();
+      setUsers(users);
+      setIsAddOpen(true);
+    } catch {
+      queue.add({ title: "Failed to load users" }, { timeout: 5000 });
+    }
   }, []);
 
   return (

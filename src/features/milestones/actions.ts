@@ -134,7 +134,10 @@ export async function updateMilestoneAction(
             userIds: assigneeIds,
             type: notificationType,
             title: `Milestone ${label}: ${title}`,
-            message: `Milestone "${title}" was ${label}`,
+            message:
+              notificationType === NotificationType.MilestoneStatusChanged
+                ? `Milestone "${title}" status changed`
+                : `Milestone "${title}" was ${label}`,
             actionUrl: `/case/${existing.case_id}`,
             caseId: existing.case_id,
             milestoneId: existing.id,

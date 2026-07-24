@@ -25,7 +25,13 @@ vi.mock("next/server", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    case: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    case: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
   },
 }));
 
@@ -118,7 +124,7 @@ describe("createCaseAction", () => {
 
     const result = await createCaseAction(validPayload);
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, data: { caseId: "1" } });
     expect(prisma.case.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ case_type: "Civil", created_by_user_id: "u1" }),
@@ -134,6 +140,37 @@ describe("createCaseAction", () => {
       success: false,
       error: "Failed to create case",
     });
+  });
+
+  it("returns duplicate error on P2002 unique constraint violation", async () => {
+    vi.mocked(prisma.case.create).mockRejectedValue(
+      Object.assign(new Error("Unique constraint"), { code: "P2002" }),
+    );
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "A case already exists for this consultation",
+    });
+  });
+
+  it("returns an error when a case already exists for the consultation", async () => {
+    vi.mocked(prisma.case.findFirst).mockResolvedValue({ ...caseRecord, id: "existing-1" });
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "A case already exists for this consultation",
+    });
+    expect(prisma.case.create).not.toHaveBeenCalled();
   });
 });
 

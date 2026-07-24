@@ -160,7 +160,7 @@ model Consultation {
 model Case {
   id                     String     @id @default(uuid()) @db.Uuid
   client_id              String     @db.Uuid
-  source_consultation_id String?    @db.Uuid
+  source_consultation_id String?    @unique @db.Uuid
   case_title             String
   case_type              String
   parties_involved       String?

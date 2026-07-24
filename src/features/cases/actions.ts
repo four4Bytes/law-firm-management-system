@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import {
   getCaseAssigneeIds,
+  getCaseBySourceConsultationId,
   getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
@@ -26,7 +27,7 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import type { TaskRow } from "@/features/tasks/queries";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import type { ActionStatusResponse } from "@/lib/action-response";
+import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
@@ -190,7 +191,7 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
 
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
-): Promise<ActionStatusResponse> {
+): Promise<ActionDataResponse<{ caseId: string }>> {
   const session = await requireAuth();
 
   const parsed = CaseCreatePayloadSchema.safeParse(payload);
@@ -207,6 +208,13 @@ export async function createCaseAction(
     source_consultation_id,
     assignee_ids,
   } = parsed.data;
+
+  if (source_consultation_id) {
+    const existing = await getCaseBySourceConsultationId(source_consultation_id);
+    if (existing) {
+      return { success: false, error: "A case already exists for this consultation" };
+    }
+  }
 
   let createdCase: { id: string };
   try {
@@ -255,8 +263,11 @@ export async function createCaseAction(
 
     revalidatePath("/case");
 
-    return { success: true };
-  } catch {
+    return { success: true, data: { caseId: createdCase.id } };
+  } catch (error) {
+    if ((error as { code?: string })?.code === "P2002") {
+      return { success: false, error: "A case already exists for this consultation" };
+    }
     return { success: false, error: "Failed to create case" };
   }
 }

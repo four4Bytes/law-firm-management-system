@@ -32,7 +32,7 @@ const columns: ColumnDef<PaymentRow>[] = [
     name: "Amount",
     isRowHeader: true,
     allowsSorting: true,
-    render: (value) => `$${(value as number).toFixed(2)}`,
+    render: (value) => `₱${(value as number).toFixed(2)}`,
   },
   {
     id: "payment_date",

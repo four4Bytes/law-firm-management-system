@@ -55,7 +55,7 @@ export async function createPaymentAction(
         action: "payment.created",
         entityType: case_id ? "Case" : "Consultation",
         entityId: (case_id ?? consultation_id)!,
-        details: `Created payment: $${Number(amount).toFixed(2)}`,
+        details: `Created payment: ₱${Number(amount).toFixed(2)}`,
       }).catch(console.error),
     );
 
@@ -97,7 +97,7 @@ export async function updatePaymentAction(
         action: "payment.updated",
         entityType: existing.case_id ? "Case" : "Consultation",
         entityId: (existing.case_id ?? existing.consultation_id)!,
-        details: `Updated payment: $${Number(amount).toFixed(2)}`,
+        details: `Updated payment: ₱${Number(amount).toFixed(2)}`,
       }).catch(console.error),
     );
 
@@ -133,7 +133,7 @@ export async function deletePaymentAction(
         action: "payment.deleted",
         entityType: existing.case_id ? "Case" : "Consultation",
         entityId: (existing.case_id ?? existing.consultation_id)!,
-        details: `Deleted payment: $${Number(existing.amount).toFixed(2)}`,
+        details: `Deleted payment: ₱${Number(existing.amount).toFixed(2)}`,
       }).catch(console.error),
     );
 

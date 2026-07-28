@@ -10,8 +10,18 @@ import { requireRole } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
-import { getPaymentById, getPaymentRowById, type PaymentRow } from "./queries";
-import { PaymentCreatePayloadSchema, PaymentIdSchema, PaymentUpdatePayloadSchema } from "./schemas";
+import {
+  getPaymentById,
+  getPaymentRowById,
+  getPaymentsPaginated,
+  type PaymentRow,
+} from "./queries";
+import {
+  PaymentCreatePayloadSchema,
+  PaymentIdSchema,
+  PaymentPageQuerySchema,
+  PaymentUpdatePayloadSchema,
+} from "./schemas";
 
 export async function getPaymentRowByIdAction(paymentId: string): Promise<PaymentRow | null> {
   await requireRole("Admin", "Dev", "BranchManager");
@@ -22,6 +32,22 @@ export async function getPaymentRowByIdAction(paymentId: string): Promise<Paymen
   }
 
   return getPaymentRowById(parsed.data.paymentId);
+}
+
+export async function getPaymentsPaginatedAction(
+  params: z.input<typeof PaymentPageQuerySchema>,
+): Promise<{
+  rows: PaymentRow[];
+  nextCursor: string | null;
+}> {
+  await requireRole("Admin", "Dev", "BranchManager");
+
+  const parsed = PaymentPageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getPaymentsPaginated(parsed.data);
 }
 
 export async function createPaymentAction(

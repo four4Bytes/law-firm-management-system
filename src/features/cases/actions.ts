@@ -12,7 +12,6 @@ import {
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
   getCaseOverviewById,
-  getCasePaymentsPaginated,
   getCasesPaginated,
   getCaseTasksPaginated,
   type CaseEditData,
@@ -20,7 +19,6 @@ import {
   type CaseOverviewData,
   type CaseRow,
   type NoteRow,
-  type PaymentRow,
 } from "@/features/cases/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
@@ -28,7 +26,7 @@ import type { TaskRow } from "@/features/tasks/queries";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requireRole } from "@/lib/auth-guards";
+import { requireAuth } from "@/lib/auth-guards";
 import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
 
@@ -160,22 +158,6 @@ export async function getCaseMilestonesPaginatedAction(
   }
 
   return getCaseMilestonesPaginated(parsed.data);
-}
-
-export async function getCasePaymentsPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: PaymentRow[];
-  nextCursor: string | null;
-}> {
-  await requireRole("Admin", "Dev", "BranchManager");
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getCasePaymentsPaginated(parsed.data);
 }
 
 export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {

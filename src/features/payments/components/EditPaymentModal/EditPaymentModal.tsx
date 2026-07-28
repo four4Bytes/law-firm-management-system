@@ -47,7 +47,7 @@ export function EditPaymentModal({
   const [paymentDate, setPaymentDate] = useState<CalendarDate>(
     toCalendarDate(payment.payment_date),
   );
-  const [status, setStatus] = useState<PaymentStatus>(payment.status as PaymentStatus);
+  const [status, setStatus] = useState<PaymentStatus>(payment.status);
   const [paymentMethod, setPaymentMethod] = useState(payment.payment_method ?? "");
   const [receiptNumber, setReceiptNumber] = useState(payment.receipt_number ?? "");
 
@@ -107,7 +107,7 @@ export function EditPaymentModal({
   const hasChanges =
     amount.trim() !== String(payment.amount) ||
     paymentDate.compare(toCalendarDate(payment.payment_date)) !== 0 ||
-    status !== (payment.status as PaymentStatus) ||
+    status !== payment.status ||
     paymentMethod.trim() !== (payment.payment_method ?? "") ||
     receiptNumber.trim() !== (payment.receipt_number ?? "");
 

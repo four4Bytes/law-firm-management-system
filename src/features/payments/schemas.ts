@@ -2,7 +2,16 @@ import { z } from "zod";
 
 import { PaymentStatus } from "@/generated/prisma/browser";
 import { optionalText, positiveNumber, requiredEnum } from "@/lib/form-utils";
-import { exactlyOneParentRefinement } from "@/lib/schemas";
+import { exactlyOneParentRefinement, SortQuerySchema } from "@/lib/schemas";
+
+export const PaymentPageQuerySchema = z.object({
+  caseId: z.uuid().optional(),
+  consultationId: z.uuid().optional(),
+  search: z.string().trim().max(500).optional().default(""),
+  cursor: z.uuid().optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+  sort: SortQuerySchema.optional(),
+});
 
 export const PaymentIdSchema = z.object({
   paymentId: z.uuid(),

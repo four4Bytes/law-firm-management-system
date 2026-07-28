@@ -6,11 +6,10 @@ import { useRef, useState } from "react";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { queue } from "@/components/ui/Toast/Toast";
-import { getCasePaymentsPaginatedAction } from "@/features/cases/actions";
-import type { PaymentRow } from "@/features/cases/queries";
-import { getPaymentRowByIdAction } from "@/features/payments/actions";
+import { getPaymentRowByIdAction, getPaymentsPaginatedAction } from "@/features/payments/actions";
 import { AddPaymentModal } from "@/features/payments/components/AddPaymentModal/AddPaymentModal";
 import { EditPaymentModal } from "@/features/payments/components/EditPaymentModal/EditPaymentModal";
+import type { PaymentRow } from "@/features/payments/queries";
 import { formatDate } from "@/lib/date";
 
 import tabStyles from "./Tab.module.css";
@@ -82,7 +81,7 @@ export function PaymentsTab({ caseId }: Props) {
   return (
     <>
       <ServerDataTable
-        fetchAction={(p) => getCasePaymentsPaginatedAction({ caseId, ...p })}
+        fetchAction={(p) => getPaymentsPaginatedAction({ caseId, ...p })}
         columns={columns}
         searchPlaceholder="Search payments..."
         emptyContent="No payments yet"

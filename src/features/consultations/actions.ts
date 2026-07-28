@@ -22,7 +22,7 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth, requireRole } from "@/lib/auth-guards";
 import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
 
@@ -110,7 +110,7 @@ export async function getConsultationPaymentsPaginatedAction(
   rows: PaymentRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  await requireRole("Admin", "Dev", "BranchManager");
 
   const parsed = ConsultationPageQuerySchema.safeParse(params);
   if (!parsed.success) {

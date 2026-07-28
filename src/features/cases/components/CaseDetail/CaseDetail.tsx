@@ -15,6 +15,8 @@ import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { Role } from "@/generated/prisma/browser";
+import { hasRole } from "@/lib/role-utils";
 
 import styles from "./CaseDetail.module.css";
 import { CaseOverview } from "./CaseOverview";
@@ -27,9 +29,10 @@ import { TasksTab } from "./tabs/TasksTab";
 
 interface Props {
   overview: CaseOverviewData;
+  userRole?: string | null;
 }
 
-export function CaseDetail({ overview }: Props) {
+export function CaseDetail({ overview, userRole }: Props) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
@@ -40,15 +43,11 @@ export function CaseDetail({ overview }: Props) {
     users: ActiveUserSummary[];
   } | null>(null);
 
-  const validTabs = [
-    "attachments",
-    "tasks",
-    "notes",
-    "milestones",
-    "payments",
-    "activity",
-  ] as const;
-  type ValidTab = (typeof validTabs)[number];
+  const canViewPayments = hasRole(userRole, Role.Admin, Role.Dev, Role.BranchManager);
+
+  const allTabs = ["attachments", "tasks", "notes", "milestones", "payments", "activity"] as const;
+  type ValidTab = (typeof allTabs)[number];
+  const validTabs = allTabs.filter((t) => t !== "payments" || canViewPayments);
   const tabParam = searchParams.get("tab");
   const selectedKey =
     tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "attachments";
@@ -89,7 +88,7 @@ export function CaseDetail({ overview }: Props) {
           <Tab id="tasks">Tasks</Tab>
           <Tab id="notes">Notes</Tab>
           <Tab id="milestones">Milestone</Tab>
-          <Tab id="payments">Payment Log</Tab>
+          {canViewPayments && <Tab id="payments">Payment Log</Tab>}
           <Tab id="activity">Activity Log</Tab>
         </TabList>
         <TabPanels>
@@ -105,9 +104,11 @@ export function CaseDetail({ overview }: Props) {
           <TabPanel id="milestones">
             <MilestonesTab caseId={overview.id} />
           </TabPanel>
-          <TabPanel id="payments">
-            <PaymentsTab caseId={overview.id} />
-          </TabPanel>
+          {canViewPayments && (
+            <TabPanel id="payments">
+              <PaymentsTab caseId={overview.id} />
+            </TabPanel>
+          )}
           <TabPanel id="activity">
             <ActivityLogTab caseId={overview.id} />
           </TabPanel>

@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireRole } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
@@ -14,7 +14,7 @@ import { getPaymentById, getPaymentRowById, type PaymentRow } from "./queries";
 import { PaymentCreatePayloadSchema, PaymentIdSchema, PaymentUpdatePayloadSchema } from "./schemas";
 
 export async function getPaymentRowByIdAction(paymentId: string): Promise<PaymentRow | null> {
-  await requireAuth();
+  await requireRole("Admin", "Dev", "BranchManager");
 
   const parsed = PaymentIdSchema.safeParse({ paymentId });
   if (!parsed.success) {
@@ -27,7 +27,7 @@ export async function getPaymentRowByIdAction(paymentId: string): Promise<Paymen
 export async function createPaymentAction(
   payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
-  const session = await requireAuth();
+  const session = await requireRole("Admin", "Dev", "BranchManager");
 
   const parsed = PaymentCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -70,7 +70,7 @@ export async function createPaymentAction(
 export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  const session = await requireRole("Admin", "Dev", "BranchManager");
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -112,7 +112,7 @@ export async function updatePaymentAction(
 export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  const session = await requireRole("Admin", "Dev", "BranchManager");
 
   const parsed = PaymentIdSchema.safeParse(payload);
   if (!parsed.success) {

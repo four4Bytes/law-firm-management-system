@@ -90,6 +90,7 @@
 - Never import `prisma` directly outside of `queries.ts` or `mutations.ts`.
 - Prisma client vs browser entry: Any module reachable by client components (UI components, and Zod schemas referenced at runtime in the browser) MUST import enums/models from `@/generated/prisma/browser`, never `@/generated/prisma/client`. The `client` entry imports `node:` builtins and breaks `next build` (Turbopack `node:module` error) if pulled into the client bundle.
 - Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly shared/reusable components in `src/components/ui/`.
+- Client-side role checks: Use `hasRole(userRole, ...roles)` from `@/lib/role-utils` for UI presentation (show/hide tabs, buttons, columns). This is a pure boolean check — never use it for enforcement. All security boundaries must remain server-side in Server Actions via `requireRole`.
 
 ### Testing
 

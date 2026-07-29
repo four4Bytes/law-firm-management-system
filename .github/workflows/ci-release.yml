@@ -49,9 +49,17 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Generate Bot Token
+        id: bot-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          token: ${{ steps.bot-token.outputs.token }}
 
       - name: Generate CalVer version
         id: calver
@@ -85,9 +93,10 @@ jobs:
       - name: Create CalVer tag and release
         if: steps.calver.outputs.version != ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.bot-token.outputs.token }}
           TAG: ${{ steps.calver.outputs.tag }}
         run: |
+          # Resolve the exact commit SHA after our version bump commit
           COMMIT_SHA=$(git rev-parse HEAD)
 
           # Fetch the native release notes compiled from the resolved release commit

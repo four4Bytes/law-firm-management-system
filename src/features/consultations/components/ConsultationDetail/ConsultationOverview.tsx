@@ -14,6 +14,7 @@ interface Props {
   data: ConsultationOverviewData;
   onEdit?: () => void;
   onDelete?: () => void;
+  isEditPending?: boolean;
 }
 
 const statusClassMap: Record<string, string> = {
@@ -24,7 +25,7 @@ const statusClassMap: Record<string, string> = {
   Cancelled: styles.statusCancelled,
 };
 
-export function ConsultationOverview({ data, onEdit, onDelete }: Props) {
+export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
@@ -34,7 +35,12 @@ export function ConsultationOverview({ data, onEdit, onDelete }: Props) {
           {(onEdit || onDelete) && (
             <div className={styles.headerActions}>
               {onEdit && (
-                <Button variant="ghost" aria-label="Edit consultation" onPress={onEdit}>
+                <Button
+                  variant="ghost"
+                  aria-label="Edit consultation"
+                  onPress={onEdit}
+                  isPending={isEditPending}
+                >
                   <FaPenToSquare />
                 </Button>
               )}

@@ -45,6 +45,7 @@ export function CaseDetail({ overview, userRole }: Props) {
   } | null>(null);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditPending, setIsEditPending] = useState(false);
 
   const canViewPayments = hasRole(userRole, Role.Admin, Role.Dev, Role.BranchManager);
 
@@ -63,6 +64,7 @@ export function CaseDetail({ overview, userRole }: Props) {
   };
 
   async function handleEdit() {
+    setIsEditPending(true);
     try {
       const [caseData, users] = await Promise.all([
         getCaseForEditAction(overview.id),
@@ -74,6 +76,8 @@ export function CaseDetail({ overview, userRole }: Props) {
       setEditData({ caseData, clientData, users });
     } catch {
       queue.add({ title: "Failed to load case data" }, { timeout: 5000 });
+    } finally {
+      setIsEditPending(false);
     }
   }
 
@@ -105,6 +109,7 @@ export function CaseDetail({ overview, userRole }: Props) {
         data={overview}
         onEdit={handleEdit}
         onDelete={() => setShowDeleteConfirm(true)}
+        isEditPending={isEditPending}
       />
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>

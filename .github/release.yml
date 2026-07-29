@@ -1,32 +1,25 @@
 changelog:
-  exclude:
-    labels:
-      - skip-release
-    authors:
-      - github-actions[bot]
-      - dependabot[bot]
-
   categories:
-    - title: "🚀 New Features"
+    - title: "New Features"
       labels:
         - feature
         - feat
 
-    - title: "🐛 Bug Fixes"
+    - title: "Bug Fixes"
       labels:
         - bug
         - fix
 
-    - title: "🧰 Maintenance & CI"
+    - title: "Maintenance & CI"
       labels:
         - chore
         - ci
         - refactor
 
-    - title: "📦 Dependency Updates"
+    - title: "Dependency Updates"
       labels:
         - dependencies
 
-    - title: "🏡 Other Changes"
+    - title: "Other Changes"
       labels:
         - "*"

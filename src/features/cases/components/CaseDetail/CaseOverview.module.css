@@ -69,7 +69,10 @@
         color: var(--color-text-inverse);
       }
 
-      .editButton {
+      .headerActions {
+        display: flex;
+        flex-direction: row;
+        gap: var(--space-xs);
         margin-left: auto;
       }
     }

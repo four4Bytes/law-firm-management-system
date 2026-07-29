@@ -5,13 +5,10 @@ import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { queue } from "@/components/ui/Toast/Toast";
-import { deleteCaseAction, updateCaseWithClientAction } from "@/features/cases/actions";
+import { updateCaseWithClientAction } from "@/features/cases/actions";
 import { AssigneeSelect } from "@/features/cases/components/AssigneeSelect/AssigneeSelect";
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
@@ -34,7 +31,6 @@ interface EditCaseModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
-  onDeleted: () => void;
   caseData: CaseEditData;
   clientData: ClientEditData;
   users: ActiveUserSummary[];
@@ -44,7 +40,6 @@ export function EditCaseModal({
   isOpen,
   onOpenChange,
   onSuccess,
-  onDeleted,
   caseData,
   clientData,
   users,
@@ -61,9 +56,6 @@ export function EditCaseModal({
   const [partiesInvolved, setPartiesInvolved] = useState(caseData.parties_involved ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(caseData.assignee_ids));
 
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
   const { isPending, submitForm } = useModalForm<z.input<typeof CaseWithClientUpdatePayloadSchema>>(
     {
       submit: updateCaseWithClientAction,
@@ -76,7 +68,7 @@ export function EditCaseModal({
   );
 
   function handleDismiss() {
-    if (isPending || isDeleting) return;
+    if (isPending) return;
     onOpenChange(false);
   }
 
@@ -103,160 +95,115 @@ export function EditCaseModal({
     });
   }
 
-  async function handleDelete() {
-    setIsDeleting(true);
-
-    try {
-      const result = await deleteCaseAction({ caseId: caseData.id });
-
-      setShowDeleteConfirm(false);
-
-      if (result.success) {
-        queue.add({ title: "Case deleted" }, { timeout: 5000 });
-        onOpenChange(false);
-        onDeleted();
-      } else {
-        queue.add({ title: result.error ?? "Failed to delete case" }, { timeout: 5000 });
-      }
-    } catch {
-      queue.add({ title: "Failed to delete case. Please try again." }, { timeout: 5000 });
-    } finally {
-      setIsDeleting(false);
-    }
-  }
-
   return (
-    <>
-      <Modal
-        title="Edit Case"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <Form onSubmit={handleSave}>
-          <div className={styles.columns}>
-            <div className={styles.column}>
-              <TextField
-                label="Client Name"
-                value={clientName}
-                onChange={setClientName}
-                validate={createFieldValidator(
-                  CaseWithClientUpdatePayloadSchema.shape.client.shape.name,
-                )}
-                isDisabled={isPending || isDeleting}
-              />
-              <TextField
-                label="Email"
-                value={clientEmail}
-                onChange={setClientEmail}
-                placeholder="Optional"
-                validate={createFieldValidator(
-                  CaseWithClientUpdatePayloadSchema.shape.client.shape.email,
-                )}
-                isDisabled={isPending || isDeleting}
-              />
-              <TextField
-                label="Phone"
-                value={clientPhone}
-                onChange={setClientPhone}
-                placeholder="Optional"
-                validate={createFieldValidator(
-                  CaseWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
-                )}
-                isDisabled={isPending || isDeleting}
-              />
-              <TextField
-                label="Address"
-                value={clientAddress}
-                onChange={setClientAddress}
-                placeholder="Optional"
-                isTextArea
-                rows={6}
-                className={styles.addressField}
-                validate={createFieldValidator(
-                  CaseWithClientUpdatePayloadSchema.shape.client.shape.address,
-                )}
-                isDisabled={isPending || isDeleting}
-              />
-            </div>
-            <div className={styles.divider} />
-            <div className={styles.column}>
-              <TextField
-                label="Case Title"
-                value={caseTitle}
-                onChange={setCaseTitle}
-                validate={createFieldValidator(
-                  CaseWithClientUpdatePayloadSchema.shape.case.shape.case_title,
-                )}
-                isDisabled={isPending || isDeleting}
-              />
-              <TextField
-                label="Case Type"
-                value={caseType}
-                onChange={setCaseType}
-                placeholder="e.g. Civil, Corporate"
-                validate={createFieldValidator(
-                  CaseWithClientUpdatePayloadSchema.shape.case.shape.case_type,
-                )}
-                isDisabled={isPending || isDeleting}
-              />
-              <Select
-                label="Status"
-                value={status}
-                onChange={selectEnumHandler(CaseStatus, setStatus)}
-                isDisabled={isPending || isDeleting}
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s} id={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </Select>
-              <AssigneeSelect
-                users={users}
-                assigneeIds={assigneeIds}
-                onChange={setAssigneeIds}
-                isDisabled={isPending || isDeleting}
-              />
-              <TextField
-                label="Parties Involved"
-                value={partiesInvolved}
-                onChange={setPartiesInvolved}
-                isTextArea
-                rows={3}
-                validate={createFieldValidator(
-                  CaseWithClientUpdatePayloadSchema.shape.case.shape.parties_involved,
-                )}
-                isDisabled={isPending || isDeleting}
-              />
-            </div>
+    <Modal title="Edit Case" isOpen={isOpen} onOpenChange={handleDismiss} className={styles.modal}>
+      <Form onSubmit={handleSave}>
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            <TextField
+              label="Client Name"
+              value={clientName}
+              onChange={setClientName}
+              validate={createFieldValidator(
+                CaseWithClientUpdatePayloadSchema.shape.client.shape.name,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Email"
+              value={clientEmail}
+              onChange={setClientEmail}
+              placeholder="Optional"
+              validate={createFieldValidator(
+                CaseWithClientUpdatePayloadSchema.shape.client.shape.email,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Phone"
+              value={clientPhone}
+              onChange={setClientPhone}
+              placeholder="Optional"
+              validate={createFieldValidator(
+                CaseWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Address"
+              value={clientAddress}
+              onChange={setClientAddress}
+              placeholder="Optional"
+              isTextArea
+              rows={6}
+              className={styles.addressField}
+              validate={createFieldValidator(
+                CaseWithClientUpdatePayloadSchema.shape.client.shape.address,
+              )}
+              isDisabled={isPending}
+            />
           </div>
-          <div className={styles.actions}>
-            <Button
-              variant="secondary"
-              type="submit"
-              isDisabled={isPending || isDeleting}
-              isPending={isPending}
+          <div className={styles.divider} />
+          <div className={styles.column}>
+            <TextField
+              label="Case Title"
+              value={caseTitle}
+              onChange={setCaseTitle}
+              validate={createFieldValidator(
+                CaseWithClientUpdatePayloadSchema.shape.case.shape.case_title,
+              )}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Case Type"
+              value={caseType}
+              onChange={setCaseType}
+              placeholder="e.g. Civil, Corporate"
+              validate={createFieldValidator(
+                CaseWithClientUpdatePayloadSchema.shape.case.shape.case_type,
+              )}
+              isDisabled={isPending}
+            />
+            <Select
+              label="Status"
+              value={status}
+              onChange={selectEnumHandler(CaseStatus, setStatus)}
+              isDisabled={isPending}
             >
-              Save
-            </Button>
-            <Button onPress={() => setShowDeleteConfirm(true)} isDisabled={isPending || isDeleting}>
-              {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
-            </Button>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} id={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </Select>
+            <AssigneeSelect
+              users={users}
+              assigneeIds={assigneeIds}
+              onChange={setAssigneeIds}
+              isDisabled={isPending}
+            />
+            <TextField
+              label="Parties Involved"
+              value={partiesInvolved}
+              onChange={setPartiesInvolved}
+              isTextArea
+              rows={3}
+              validate={createFieldValidator(
+                CaseWithClientUpdatePayloadSchema.shape.case.shape.parties_involved,
+              )}
+              isDisabled={isPending}
+            />
           </div>
-        </Form>
-      </Modal>
-
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        title="Delete Case"
-        confirmLabel="Delete"
-        onConfirm={handleDelete}
-      >
-        This permanently deletes the case and ALL its tasks, milestones, notes, documents,
-        assignments, and payments. This action cannot be undone.
-      </ConfirmDialog>
-    </>
+        </div>
+        <div className={styles.actions}>
+          <Button variant="secondary" type="button" onPress={handleDismiss} isDisabled={isPending}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" isDisabled={isPending} isPending={isPending}>
+            Save
+          </Button>
+        </div>
+      </Form>
+    </Modal>
   );
 }

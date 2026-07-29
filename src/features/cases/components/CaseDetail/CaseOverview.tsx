@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { FaCalendarCheck, FaPenToSquare } from "react-icons/fa6";
+import { FaCalendarCheck, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
@@ -13,6 +13,8 @@ import styles from "./CaseOverview.module.css";
 interface Props {
   data: CaseOverviewData;
   onEdit?: () => void;
+  onDelete?: () => void;
+  isEditPending?: boolean;
 }
 
 const statusClassMap: Record<string, string> = {
@@ -26,22 +28,31 @@ const statusClassMap: Record<string, string> = {
   Cancelled: styles.statusCancelled,
 };
 
-export function CaseOverview({ data, onEdit }: Props) {
+export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
         <div className={styles.header}>
           <h2 className={styles.title}>{data.case_title}</h2>
           <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
-          {onEdit && (
-            <Button
-              variant="ghost"
-              aria-label="Edit case"
-              className={styles.editButton}
-              onPress={onEdit}
-            >
-              <FaPenToSquare /> Edit
-            </Button>
+          {(onEdit || onDelete) && (
+            <div className={styles.headerActions}>
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  aria-label="Edit case"
+                  onPress={onEdit}
+                  isPending={isEditPending}
+                >
+                  <FaPenToSquare />
+                </Button>
+              )}
+              {onDelete && (
+                <Button variant="ghost" aria-label="Delete case" onPress={onDelete}>
+                  <FaTrash />
+                </Button>
+              )}
+            </div>
           )}
         </div>
 

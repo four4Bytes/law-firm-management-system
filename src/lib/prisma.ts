@@ -15,6 +15,12 @@ import { getRequiredEnvVar } from "@/lib/env";
  */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+/** Transaction client type shared across mutation files for `$transaction` reuse. */
+export type TransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 /**
  * Builds and returns the singleton `PrismaClient` backed by the pg adapter.
  *

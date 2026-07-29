@@ -2,7 +2,9 @@ import { prisma } from "@/lib/prisma";
 
 import type { ClientCreatePayload, ClientUpdatePayload } from "./schemas";
 
-export async function createClient(data: ClientCreatePayload) {
+export async function createClient(
+  data: ClientCreatePayload,
+): Promise<{ id: string; name: string }> {
   return prisma.client.create({
     data: {
       name: data.name,
@@ -14,7 +16,9 @@ export async function createClient(data: ClientCreatePayload) {
   });
 }
 
-export async function updateClient(data: ClientUpdatePayload) {
+export async function updateClient(
+  data: ClientUpdatePayload,
+): Promise<{ id: string; name: string }> {
   return prisma.client.update({
     where: { id: data.clientId },
     data: {

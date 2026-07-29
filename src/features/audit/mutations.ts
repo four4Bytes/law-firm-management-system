@@ -9,17 +9,13 @@ export interface AuditLogPayload {
 }
 
 export async function createAuditLog(payload: AuditLogPayload): Promise<void> {
-  try {
-    await prisma.auditLog.create({
-      data: {
-        actor_user_id: payload.actorUserId,
-        action: payload.action,
-        entity_type: payload.entityType,
-        entity_id: payload.entityId,
-        details: payload.details ?? null,
-      },
-    });
-  } catch (err) {
-    throw err;
-  }
+  await prisma.auditLog.create({
+    data: {
+      actor_user_id: payload.actorUserId,
+      action: payload.action,
+      entity_type: payload.entityType,
+      entity_id: payload.entityId,
+      details: payload.details ?? null,
+    },
+  });
 }

@@ -1,4 +1,4 @@
-import type { Role } from "@/generated/prisma/client";
+import type { Role } from "@/generated/prisma/browser";
 
 export const CREATABLE_ROLES = [
   "Admin",

@@ -19,7 +19,7 @@ export const NoteCreatePayloadSchema = z
 
 export const NoteUpdatePayloadSchema = z.object({
   noteId: z.uuid(),
-  content: z.string().trim().min(1).max(10000),
+  content: requiredText(10000, "Content"),
 });
 
 export const NoteIdSchema = z.object({

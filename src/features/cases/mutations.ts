@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 
 import type {
   CaseCreatePayload,
@@ -6,11 +6,6 @@ import type {
   CaseWithClientCreatePayload,
   CaseWithClientUpdatePayload,
 } from "./schemas";
-
-type TransactionClient = Omit<
-  typeof prisma,
-  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
->;
 
 export async function createCase(
   data: CaseCreatePayload & { created_by_user_id: string },

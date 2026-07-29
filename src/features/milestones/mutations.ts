@@ -1,4 +1,4 @@
-import { type CaseMilestoneStatus } from "@/generated/prisma/client";
+import { type CaseMilestoneStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 export interface MilestoneCreateData {
@@ -8,6 +8,14 @@ export interface MilestoneCreateData {
   status: CaseMilestoneStatus;
   case_id: string;
   created_by_user_id: string;
+  reminder_days?: number | null;
+}
+
+export interface MilestoneUpdateData {
+  title: string;
+  description?: string | null;
+  due_date: Date;
+  status: CaseMilestoneStatus;
   reminder_days?: number | null;
 }
 
@@ -28,13 +36,7 @@ export async function createMilestone(data: MilestoneCreateData): Promise<{ id: 
 
 export async function updateMilestone(
   id: string,
-  data: {
-    title: string;
-    description?: string | null;
-    due_date: Date;
-    status: CaseMilestoneStatus;
-    reminder_days?: number | null;
-  },
+  data: MilestoneUpdateData,
 ): Promise<{ id: string }> {
   return prisma.caseMilestone.update({
     where: { id },

@@ -12,9 +12,9 @@ export interface DocumentCreatePayload {
 }
 
 export async function createDocument(params: DocumentCreatePayload): Promise<{ id: string }> {
-  return prisma.document.create({ data: params });
+  return prisma.document.create({ data: params, select: { id: true } });
 }
 
 export async function deleteDocument(id: string): Promise<{ id: string }> {
-  return prisma.document.delete({ where: { id } });
+  return prisma.document.delete({ where: { id }, select: { id: true } });
 }

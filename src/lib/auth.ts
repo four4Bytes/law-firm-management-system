@@ -75,8 +75,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user && token) {
         session.user.role = token.role ?? null;
-        session.user.id = token.id as string;
-        session.user.image = token.picture as string | null;
+        session.user.id = token.id ?? session.user.id;
+        session.user.image = token.picture ?? null;
       }
       return session;
     },

@@ -1,4 +1,4 @@
-import { type PaymentStatus } from "@/generated/prisma/client";
+import { type PaymentStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 export interface PaymentCreateData {
@@ -10,6 +10,14 @@ export interface PaymentCreateData {
   case_id?: string | null;
   consultation_id?: string | null;
   created_by_user_id: string;
+}
+
+export interface PaymentUpdateData {
+  amount: number;
+  payment_date: Date;
+  status: PaymentStatus;
+  payment_method?: string | null;
+  receipt_number?: string | null;
 }
 
 export async function createPayment(data: PaymentCreateData): Promise<{ id: string }> {
@@ -28,16 +36,7 @@ export async function createPayment(data: PaymentCreateData): Promise<{ id: stri
   });
 }
 
-export async function updatePayment(
-  id: string,
-  data: {
-    amount: number;
-    payment_date: Date;
-    status: PaymentStatus;
-    payment_method?: string | null;
-    receipt_number?: string | null;
-  },
-): Promise<{ id: string }> {
+export async function updatePayment(id: string, data: PaymentUpdateData): Promise<{ id: string }> {
   return prisma.payment.update({
     where: { id },
     data: {

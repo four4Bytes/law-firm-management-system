@@ -18,9 +18,9 @@ import {
   type CaseMilestoneListRow,
   type CaseOverviewData,
   type CaseRow,
-  type NoteRow,
 } from "@/features/cases/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
+import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import type { TaskRow } from "@/features/tasks/queries";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";

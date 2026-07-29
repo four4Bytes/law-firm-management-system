@@ -13,9 +13,9 @@ import {
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
-  type NoteRow,
 } from "@/features/consultations/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
+import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { getActiveUserIdsByRoles } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";

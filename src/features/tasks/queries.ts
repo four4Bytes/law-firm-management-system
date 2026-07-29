@@ -1,23 +1,18 @@
 import { cache } from "react";
 
-import type { User } from "@/generated/prisma/client";
+import type { Task, User } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 export type ActiveUserSummary = Pick<User, "id" | "name">;
 
-export type TaskRow = {
-  id: string;
-  title: string;
-  status: string;
+export type TaskRow = Pick<Task, "id" | "title" | "status" | "updated_at"> & {
   assignTo: string;
-  updated_at: Date;
 };
 
-export type TaskDetailRow = TaskRow & {
-  description: string | null;
-  created_at: Date;
-  assignee_ids: string[];
-};
+export type TaskDetailRow = TaskRow &
+  Pick<Task, "description" | "created_at"> & {
+    assignee_ids: string[];
+  };
 
 export const getActiveUsers = cache(async (): Promise<ActiveUserSummary[]> => {
   return prisma.user.findMany({

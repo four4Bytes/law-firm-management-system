@@ -19,19 +19,32 @@ import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
 import { Button } from "@/components/ui/Button/Button";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { roleLabels } from "@/features/users/constants";
-import type { Role } from "@/generated/prisma/browser";
+import { Role } from "@/generated/prisma/browser";
+import { hasRole } from "@/lib/role-utils";
 
 import { toggleSidebarAction } from "./actions";
 import { useSidebar } from "./sidebar-context";
 import styles from "./Sidebar.module.css";
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType;
+  roles?: readonly Role[];
+}
+
+const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: FaHouse },
   { label: "Consultations", href: "/consultation", icon: FaComments },
   { label: "Cases", href: "/case", icon: FaFolderOpen },
   { label: "Users", href: "/user", icon: FaUsers },
-  { label: "Activity Log", href: "/audit", icon: FaClockRotateLeft },
-] as const;
+  {
+    label: "Activity Log",
+    href: "/audit",
+    icon: FaClockRotateLeft,
+    roles: [Role.Admin, Role.Dev, Role.BranchManager],
+  },
+];
 
 interface SidebarProps {
   initialCollapsed?: boolean;
@@ -89,21 +102,23 @@ export function Sidebar({ initialCollapsed = false, userName, userRole, userImag
           <h1 className={styles.desc}>Management System</h1>
         </div>
         <nav className={styles.navContainer}>
-          {navItems.map((item) => (
-            <Button
-              key={item.href}
-              variant="navigation"
-              className={styles.navButton}
-              onPress={() => handleNavClick(item.href)}
-              data-active={pathname.startsWith(item.href)}
-              title={collapsed ? item.label : undefined}
-            >
-              <span>
-                <item.icon />
-              </span>
-              <span className={styles.navLabel}>{item.label}</span>
-            </Button>
-          ))}
+          {navItems
+            .filter((item) => !item.roles || hasRole(userRole, ...item.roles))
+            .map((item) => (
+              <Button
+                key={item.href}
+                variant="navigation"
+                className={styles.navButton}
+                onPress={() => handleNavClick(item.href)}
+                data-active={pathname.startsWith(item.href)}
+                title={collapsed ? item.label : undefined}
+              >
+                <span>
+                  <item.icon />
+                </span>
+                <span className={styles.navLabel}>{item.label}</span>
+              </Button>
+            ))}
         </nav>
         <div className={styles.profileSection}>
           <div className={styles.profileAvatar}>

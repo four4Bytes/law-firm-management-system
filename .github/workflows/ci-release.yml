@@ -88,8 +88,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.calver.outputs.tag }}
         run: |
+          # Fetch the native release notes compiled from the "dev" branch
+          gh api repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name="$TAG" \
+            -f target_commitish="dev" \
+            --jq .body > changelog.md
+
+          # Create the release on "main" using those notes
           gh release create "$TAG" \
-            --generate-notes \
+            --notes-file changelog.md \
             --target "$(git rev-parse HEAD)" \
             --title "$TAG"
 

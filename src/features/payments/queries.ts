@@ -39,7 +39,7 @@ export const getPaymentsPaginated = cache(
       ];
     }
 
-    const defaultOrderBy = { payment_date: "desc" } as const;
+    const defaultOrderBy = [{ payment_date: "desc" as const }, { id: "asc" as const }];
 
     const orderBy =
       sort?.column === "amount"

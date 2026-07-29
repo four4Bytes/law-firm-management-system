@@ -223,14 +223,26 @@ describe("getPaymentsPaginated", () => {
     );
   });
 
-  it("handles cursor pagination", async () => {
+  it("handles cursor pagination with no duplicate or skipped IDs", async () => {
     const payments = Array.from({ length: 4 }, (_, i) => mockPayment({ id: String(i + 1) }));
-    vi.mocked(prisma.payment.findMany).mockResolvedValue(payments as never[]);
+    const lastPayment = payments[payments.length - 1];
 
-    const result = await getPaymentsPaginated({ caseId: "c1", pageSize: 3 });
+    vi.mocked(prisma.payment.findMany).mockResolvedValueOnce(payments as never[]);
+    const page1 = await getPaymentsPaginated({ caseId: "c1", pageSize: 3 });
 
-    expect(result.rows).toHaveLength(3);
-    expect(result.nextCursor).toBe("3");
+    expect(page1.rows).toHaveLength(3);
+    expect(page1.nextCursor).toBe("3");
+
+    vi.mocked(prisma.payment.findMany).mockResolvedValueOnce([lastPayment] as never[]);
+    const page2 = await getPaymentsPaginated({
+      caseId: "c1",
+      pageSize: 3,
+      cursor: page1.nextCursor!,
+    });
+
+    expect(page2.rows).toHaveLength(1);
+    expect(page2.rows[0].id).toBe("4");
+    expect(page2.nextCursor).toBeNull();
   });
 
   it("returns empty when none exist", async () => {

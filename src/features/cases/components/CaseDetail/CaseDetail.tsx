@@ -4,11 +4,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
-import { getCaseForEditAction } from "@/features/cases/actions";
+import { deleteCaseAction, getCaseForEditAction } from "@/features/cases/actions";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
 import { getClientForEditAction } from "@/features/clients/actions";
@@ -43,6 +44,9 @@ export function CaseDetail({ overview, userRole }: Props) {
     users: ActiveUserSummary[];
   } | null>(null);
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditPending, setIsEditPending] = useState(false);
+
   const canViewPayments = hasRole(userRole, Role.Admin, Role.Dev, Role.BranchManager);
 
   const allTabs = ["attachments", "tasks", "notes", "milestones", "payments", "activity"] as const;
@@ -60,6 +64,7 @@ export function CaseDetail({ overview, userRole }: Props) {
   };
 
   async function handleEdit() {
+    setIsEditPending(true);
     try {
       const [caseData, users] = await Promise.all([
         getCaseForEditAction(overview.id),
@@ -71,6 +76,25 @@ export function CaseDetail({ overview, userRole }: Props) {
       setEditData({ caseData, clientData, users });
     } catch {
       queue.add({ title: "Failed to load case data" }, { timeout: 5000 });
+    } finally {
+      setIsEditPending(false);
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      const result = await deleteCaseAction({ caseId: overview.id });
+
+      if (result.success) {
+        setShowDeleteConfirm(false);
+        queue.add({ title: "Case deleted" }, { timeout: 5000 });
+        startLoading();
+        router.push("/case");
+      } else {
+        queue.add({ title: result.error ?? "Failed to delete case" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to delete case. Please try again." }, { timeout: 5000 });
     }
   }
 
@@ -80,7 +104,12 @@ export function CaseDetail({ overview, userRole }: Props) {
         <FaArrowLeft /> Back to Cases
       </Link>
 
-      <CaseOverview data={overview} onEdit={handleEdit} />
+      <CaseOverview
+        data={overview}
+        onEdit={handleEdit}
+        onDelete={() => setShowDeleteConfirm(true)}
+        isEditPending={isEditPending}
+      />
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Case details">
@@ -124,16 +153,22 @@ export function CaseDetail({ overview, userRole }: Props) {
             setEditData(null);
             router.refresh();
           }}
-          onDeleted={() => {
-            startLoading();
-            setEditData(null);
-            router.push("/case");
-          }}
           caseData={editData.caseData}
           clientData={editData.clientData}
           users={editData.users}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Case"
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+      >
+        This permanently deletes the case and ALL its tasks, milestones, notes, documents,
+        assignments, and payments. This action cannot be undone.
+      </ConfirmDialog>
     </div>
   );
 }

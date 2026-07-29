@@ -7,20 +7,15 @@ import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { CreateCaseFromConsultationModal } from "@/features/cases/components/CreateCaseFromConsultationModal/CreateCaseFromConsultationModal";
 import type { ClientEditData } from "@/features/clients/queries";
-import {
-  deleteConsultationAction,
-  updateConsultationWithClientAction,
-} from "@/features/consultations/actions";
+import { updateConsultationWithClientAction } from "@/features/consultations/actions";
 import type { ConsultationEditData } from "@/features/consultations/queries";
 import {
   ConsultationWithClientUpdatePayload,
@@ -47,7 +42,6 @@ interface EditConsultationModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
-  onDeleted: () => void;
   consultation: ConsultationEditData;
   clientData: ClientEditData;
 }
@@ -63,7 +57,6 @@ export function EditConsultationModal({
   isOpen,
   onOpenChange,
   onSuccess,
-  onDeleted,
   consultation,
   clientData,
 }: EditConsultationModalProps) {
@@ -80,8 +73,6 @@ export function EditConsultationModal({
     status: consultation.status as ConsultationStatus,
   });
 
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCaseModal, setShowCaseModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
@@ -110,7 +101,7 @@ export function EditConsultationModal({
   });
 
   function handleDismiss() {
-    if (isPending || isDeleting || isSaving) return;
+    if (isPending || isSaving) return;
     onOpenChange(false);
   }
 
@@ -134,7 +125,7 @@ export function EditConsultationModal({
 
   async function handleSave(event: React.SyntheticEvent) {
     event.preventDefault();
-    if (isPending || isDeleting || isSaving) return;
+    if (isPending || isSaving) return;
 
     if (fields.status !== ConsultationStatus.Accepted) {
       await submitForm(buildConsultationPayload());
@@ -166,27 +157,6 @@ export function EditConsultationModal({
     setShowCaseModal(true);
   }
 
-  async function handleDelete() {
-    setIsDeleting(true);
-    setShowDeleteConfirm(false);
-
-    try {
-      const result = await deleteConsultationAction({ consultationId: consultation.id });
-
-      if (result.success) {
-        queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
-        onOpenChange(false);
-        onDeleted();
-      } else {
-        queue.add({ title: result.error ?? "Failed to delete consultation" }, { timeout: 5000 });
-      }
-    } catch {
-      queue.add({ title: "Failed to delete consultation. Please try again." }, { timeout: 5000 });
-    } finally {
-      setIsDeleting(false);
-    }
-  }
-
   return (
     <>
       <Modal
@@ -205,7 +175,7 @@ export function EditConsultationModal({
                 validate={createFieldValidator(
                   ConsultationWithClientUpdatePayloadSchema.shape.client.shape.name,
                 )}
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               />
               <TextField
                 label="Email"
@@ -215,7 +185,7 @@ export function EditConsultationModal({
                 validate={createFieldValidator(
                   ConsultationWithClientUpdatePayloadSchema.shape.client.shape.email,
                 )}
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               />
               <TextField
                 label="Phone"
@@ -225,7 +195,7 @@ export function EditConsultationModal({
                 validate={createFieldValidator(
                   ConsultationWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
                 )}
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               />
               <TextField
                 label="Address"
@@ -237,7 +207,7 @@ export function EditConsultationModal({
                 validate={createFieldValidator(
                   ConsultationWithClientUpdatePayloadSchema.shape.client.shape.address,
                 )}
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               />
             </div>
             <div className={styles.divider} />
@@ -251,13 +221,13 @@ export function EditConsultationModal({
                 validate={createFieldValidator(
                   ConsultationWithClientUpdatePayloadSchema.shape.consultation.shape.concern,
                 )}
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               />
               <DatePicker
                 label="Booking Date"
                 value={fields.date}
                 onChange={(v) => v && setFields((p) => ({ ...p, date: v }))}
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               />
               <TimeField
                 label="Booking Time"
@@ -265,7 +235,7 @@ export function EditConsultationModal({
                 onChange={(v) =>
                   v && setFields((p) => ({ ...p, time: new Time(v.hour, v.minute) }))
                 }
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               />
               <Select
                 label="Status"
@@ -273,7 +243,7 @@ export function EditConsultationModal({
                 onChange={selectEnumHandler(ConsultationStatus, (value) =>
                   setFields((p) => ({ ...p, status: value })),
                 )}
-                isDisabled={isPending || isDeleting || isSaving}
+                isDisabled={isPending || isSaving}
               >
                 {STATUS_OPTIONS.map((s) => (
                   <SelectItem key={s} id={s}>
@@ -286,32 +256,23 @@ export function EditConsultationModal({
           <div className={styles.actions}>
             <Button
               variant="secondary"
+              type="button"
+              onPress={handleDismiss}
+              isDisabled={isPending || isSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
               type="submit"
-              isDisabled={isPending || isDeleting || isSaving}
+              isDisabled={isPending || isSaving}
               isPending={isPending || isSaving}
             >
               Save
             </Button>
-            <Button
-              onPress={() => setShowDeleteConfirm(true)}
-              isDisabled={isPending || isDeleting || isSaving}
-            >
-              {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
-            </Button>
           </div>
         </Form>
       </Modal>
-
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        title="Delete Consultation"
-        confirmLabel="Delete"
-        onConfirm={handleDelete}
-      >
-        This permanently deletes the consultation and ALL its notes, documents, and payments. Linked
-        cases are kept (unlinked). This action cannot be undone.
-      </ConfirmDialog>
 
       <CreateCaseFromConsultationModal
         isOpen={showCaseModal}

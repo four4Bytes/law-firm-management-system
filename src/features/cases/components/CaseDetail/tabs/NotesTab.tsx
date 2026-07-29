@@ -6,10 +6,10 @@ import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseNotesPaginatedAction } from "@/features/cases/actions";
-import type { NoteRow } from "@/features/cases/queries";
 import { getNoteRowByIdAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
 import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
+import type { NoteRow } from "@/features/notes/queries";
 import { formatDateTime } from "@/lib/date";
 
 interface Props {

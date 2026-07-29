@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 
 import type {
   ConsultationCreatePayload,
@@ -7,36 +7,35 @@ import type {
   ConsultationWithClientUpdatePayload,
 } from "./schemas";
 
-type TransactionClient = Omit<
-  typeof prisma,
-  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
->;
-
 export async function createConsultation(
   data: ConsultationCreatePayload & { created_by_user_id: string },
   tx?: TransactionClient,
-) {
+): Promise<{ id: string }> {
   const client = tx || prisma;
-  return client.consultation.create({ data });
+  return client.consultation.create({ data, select: { id: true } });
 }
 
-export async function updateConsultation(data: ConsultationUpdatePayload, tx?: TransactionClient) {
+export async function updateConsultation(
+  data: ConsultationUpdatePayload,
+  tx?: TransactionClient,
+): Promise<{ id: string }> {
   const { consultationId, ...rest } = data;
   const client = tx || prisma;
 
   return client.consultation.update({
     where: { id: consultationId },
     data: rest,
+    select: { id: true },
   });
 }
 
-export async function deleteConsultation(id: string) {
-  return prisma.consultation.delete({ where: { id } });
+export async function deleteConsultation(id: string): Promise<{ id: string }> {
+  return prisma.consultation.delete({ where: { id }, select: { id: true } });
 }
 
 export async function createConsultationWithClient(
   data: ConsultationWithClientCreatePayload & { created_by_user_id: string },
-) {
+): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
     const newClient = await tx.client.create({
       data: {
@@ -62,7 +61,7 @@ export async function createConsultationWithClient(
 
 export async function updateConsultationWithClient(
   data: ConsultationWithClientUpdatePayload & { consultation_id: string; client_id: string },
-) {
+): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
     // Verify that the consultation belongs to the specified client
     const consultation = await tx.consultation.findUnique({

@@ -1,4 +1,4 @@
-import { type TaskStatus } from "@/generated/prisma/client";
+import { type TaskStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 export interface TaskCreateData {
@@ -7,6 +7,13 @@ export interface TaskCreateData {
   status: TaskStatus;
   case_id: string;
   created_by_user_id: string;
+  assignee_ids?: string[];
+}
+
+export interface TaskUpdateData {
+  title?: string;
+  description?: string | null;
+  status?: TaskStatus;
   assignee_ids?: string[];
 }
 
@@ -24,15 +31,7 @@ export async function createTask(data: TaskCreateData): Promise<{ id: string }> 
   });
 }
 
-export async function updateTask(
-  id: string,
-  data: {
-    title?: string;
-    description?: string | null;
-    status?: TaskStatus;
-    assignee_ids?: string[];
-  },
-): Promise<{ id: string }> {
+export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id: string }> {
   const { assignee_ids, ...taskData } = data;
 
   return prisma.task.update({

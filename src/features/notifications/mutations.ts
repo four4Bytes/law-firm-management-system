@@ -1,11 +1,6 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 
 import type { NotificationDispatchPayload } from "./schemas";
-
-type TransactionClient = Omit<
-  typeof prisma,
-  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
->;
 
 export async function createNotifications(
   data: NotificationDispatchPayload,

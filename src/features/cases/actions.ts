@@ -12,7 +12,6 @@ import {
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
   getCaseOverviewById,
-  getCasePaymentsPaginated,
   getCasesPaginated,
   getCaseTasksPaginated,
   type CaseEditData,
@@ -20,7 +19,6 @@ import {
   type CaseOverviewData,
   type CaseRow,
   type NoteRow,
-  type PaymentRow,
 } from "@/features/cases/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
@@ -160,22 +158,6 @@ export async function getCaseMilestonesPaginatedAction(
   }
 
   return getCaseMilestonesPaginated(parsed.data);
-}
-
-export async function getCasePaymentsPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: PaymentRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getCasePaymentsPaginated(parsed.data);
 }
 
 export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {

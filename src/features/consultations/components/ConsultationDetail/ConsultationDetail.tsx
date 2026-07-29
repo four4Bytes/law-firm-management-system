@@ -16,6 +16,8 @@ import type {
   ConsultationEditData,
   ConsultationOverviewData,
 } from "@/features/consultations/queries";
+import { Role } from "@/generated/prisma/browser";
+import { hasRole } from "@/lib/role-utils";
 
 import styles from "./ConsultationDetail.module.css";
 import { ConsultationOverview } from "./ConsultationOverview";
@@ -26,9 +28,10 @@ import { PaymentsTab } from "./tabs/PaymentsTab";
 
 interface Props {
   overview: ConsultationOverviewData;
+  userRole?: Role | null;
 }
 
-export function ConsultationDetail({ overview }: Props) {
+export function ConsultationDetail({ overview, userRole }: Props) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
@@ -38,8 +41,11 @@ export function ConsultationDetail({ overview }: Props) {
     clientData: ClientEditData;
   } | null>(null);
 
-  const validTabs = ["attachments", "notes", "payments", "activity"] as const;
-  type ValidTab = (typeof validTabs)[number];
+  const canViewPayments = hasRole(userRole, Role.Admin, Role.Dev, Role.BranchManager);
+
+  const allTabs = ["attachments", "notes", "payments", "activity"] as const;
+  type ValidTab = (typeof allTabs)[number];
+  const validTabs = allTabs.filter((t) => t !== "payments" || canViewPayments);
   const tabParam = searchParams.get("tab");
   const selectedKey =
     tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "attachments";
@@ -75,7 +81,7 @@ export function ConsultationDetail({ overview }: Props) {
         <TabList aria-label="Consultation details">
           <Tab id="attachments">Attachments</Tab>
           <Tab id="notes">Notes</Tab>
-          <Tab id="payments">Payment Log</Tab>
+          {canViewPayments && <Tab id="payments">Payment Log</Tab>}
           <Tab id="activity">Activity Log</Tab>
         </TabList>
         <TabPanels>
@@ -85,9 +91,11 @@ export function ConsultationDetail({ overview }: Props) {
           <TabPanel id="attachments">
             {selectedKey === "attachments" && <AttachmentsTab consultationId={overview.id} />}
           </TabPanel>
-          <TabPanel id="payments">
-            {selectedKey === "payments" && <PaymentsTab consultationId={overview.id} />}
-          </TabPanel>
+          {canViewPayments && (
+            <TabPanel id="payments">
+              {selectedKey === "payments" && <PaymentsTab consultationId={overview.id} />}
+            </TabPanel>
+          )}
           <TabPanel id="activity">
             {selectedKey === "activity" && <ActivityLogTab consultationId={overview.id} />}
           </TabPanel>

@@ -15,6 +15,7 @@ import { UserFormModal } from "@/features/users/components/UserFormModal/UserFor
 import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
+import { hasRole } from "@/lib/role-utils";
 
 import styles from "./UserTable.module.css";
 
@@ -36,7 +37,7 @@ const roleClassMap: Record<Role, string> = {
 type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
 
 export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
-  const canManage = sessionUserRole === Role.Admin || sessionUserRole === Role.Dev;
+  const canManage = hasRole(sessionUserRole, Role.Admin, Role.Dev);
 
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
@@ -77,7 +78,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
               const user = row as UserRow;
               return (
                 <div className={styles.actions}>
-                  {user.role !== "Dev" && (
+                  {user.role !== Role.Dev && (
                     <Button
                       variant="ghost"
                       aria-label={`Edit ${user.name}`}

@@ -9,13 +9,11 @@ import {
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
-  getConsultationPaymentsPaginated,
   getConsultationsPaginated,
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
   type NoteRow,
-  type PaymentRow,
 } from "@/features/consultations/queries";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
@@ -102,22 +100,6 @@ export async function getConsultationDocumentsPaginatedAction(
   }
 
   return getDocumentsPaginated(parsed.data);
-}
-
-export async function getConsultationPaymentsPaginatedAction(
-  params: z.input<typeof ConsultationPageQuerySchema>,
-): Promise<{
-  rows: PaymentRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = ConsultationPageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getConsultationPaymentsPaginated(parsed.data);
 }
 
 export async function getConsultationForEditAction(

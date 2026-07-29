@@ -6,15 +6,25 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
-import { getPaymentById, getPaymentRowById, type PaymentRow } from "./queries";
-import { PaymentCreatePayloadSchema, PaymentIdSchema, PaymentUpdatePayloadSchema } from "./schemas";
+import {
+  getPaymentById,
+  getPaymentRowById,
+  getPaymentsPaginated,
+  type PaymentRow,
+} from "./queries";
+import {
+  PaymentCreatePayloadSchema,
+  PaymentIdSchema,
+  PaymentPageQuerySchema,
+  PaymentUpdatePayloadSchema,
+} from "./schemas";
 
 export async function getPaymentRowByIdAction(paymentId: string): Promise<PaymentRow | null> {
-  await requireAuth();
+  await requireRole("Admin", "Dev", "BranchManager");
 
   const parsed = PaymentIdSchema.safeParse({ paymentId });
   if (!parsed.success) {
@@ -24,10 +34,31 @@ export async function getPaymentRowByIdAction(paymentId: string): Promise<Paymen
   return getPaymentRowById(parsed.data.paymentId);
 }
 
+export async function getPaymentsPaginatedAction(
+  params: z.input<typeof PaymentPageQuerySchema>,
+): Promise<{
+  rows: PaymentRow[];
+  nextCursor: string | null;
+}> {
+  await requireRole("Admin", "Dev", "BranchManager");
+
+  const parsed = PaymentPageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  return getPaymentsPaginated(parsed.data);
+}
+
 export async function createPaymentAction(
   payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
-  const session = await requireAuth();
+  let session: AuthenticatedUser;
+  try {
+    session = await requireRole("Admin", "Dev", "BranchManager");
+  } catch {
+    return { success: false, error: "You don't have permission to create payments." };
+  }
 
   const parsed = PaymentCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -70,7 +101,12 @@ export async function createPaymentAction(
 export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  let session: AuthenticatedUser;
+  try {
+    session = await requireRole("Admin", "Dev", "BranchManager");
+  } catch {
+    return { success: false, error: "You don't have permission to update payments." };
+  }
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -112,7 +148,12 @@ export async function updatePaymentAction(
 export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  let session: AuthenticatedUser;
+  try {
+    session = await requireRole("Admin", "Dev", "BranchManager");
+  } catch {
+    return { success: false, error: "You don't have permission to delete payments." };
+  }
 
   const parsed = PaymentIdSchema.safeParse(payload);
   if (!parsed.success) {

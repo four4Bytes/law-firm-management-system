@@ -93,19 +93,18 @@ jobs:
       - name: Create CalVer tag and release
         if: steps.calver.outputs.version != ''
         env:
-          GH_TOKEN: ${{ steps.bot-token.outputs.token }}
+          GH_TOKEN: ${{ steps.bot-token.outputs.token }} # Use the bot token here
           TAG: ${{ steps.calver.outputs.tag }}
         run: |
-          # Resolve the exact commit SHA after our version bump commit
           COMMIT_SHA=$(git rev-parse HEAD)
 
-          # Fetch the native release notes compiled from the resolved release commit
+          # Fetch the native release notes targeting the "dev" branch (finds feature -> dev PRs)
           gh api repos/${{ github.repository }}/releases/generate-notes \
             -f tag_name="$TAG" \
-            -f target_commitish="$COMMIT_SHA" \
+            -f target_commitish="dev" \
             --jq .body > changelog.md
 
-          # Create the release targeting the same resolved commit
+          # Create the release on "main" targeting the resolved main commit SHA
           gh release create "$TAG" \
             --notes-file changelog.md \
             --target "$COMMIT_SHA" \

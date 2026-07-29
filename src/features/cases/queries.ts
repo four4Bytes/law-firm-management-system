@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { getDocumentsPaginated } from "@/features/documents/queries";
+import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
+import type { NoteRow } from "@/features/notes/queries";
 import type { TaskRow } from "@/features/tasks/queries";
-import type { CaseMilestone } from "@/generated/prisma/browser";
+import type { Case, CaseMilestone } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -225,13 +226,6 @@ export const getCaseTasksPaginated = cache(
 
 // ----- Notes -----
 
-export type NoteRow = {
-  id: string;
-  content: string;
-  author: string;
-  created_at: Date;
-};
-
 export const getCaseNotesPaginated = cache(
   async ({
     caseId,
@@ -275,15 +269,6 @@ export const getCaseNotesPaginated = cache(
 );
 
 // ----- Documents (Attachments) -----
-
-export type DocumentRow = {
-  id: string;
-  file_name: string;
-  file_type: string;
-  file_size: number | null;
-  uploadedBy: string;
-  created_at: Date;
-};
 
 export const getCaseDocumentsPaginated = cache(
   async ({
@@ -364,16 +349,16 @@ export const getCaseAssigneeIds = cache(async (caseId: string): Promise<string[]
   return assignments.map((a) => a.user_id);
 });
 
-export interface CaseEditData {
-  id: string;
-  client_id: string;
-  case_title: string;
-  case_type: string;
-  status: string;
-  parties_involved: string | null;
-  source_consultation_id: string | null;
-  assignee_ids: string[];
-}
+export type CaseEditData = Pick<
+  Case,
+  | "id"
+  | "client_id"
+  | "case_title"
+  | "case_type"
+  | "status"
+  | "parties_involved"
+  | "source_consultation_id"
+> & { assignee_ids: string[] };
 
 export const getCaseBySourceConsultationId = cache(
   async (sourceConsultationId: string): Promise<{ id: string } | null> => {

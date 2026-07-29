@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { getDocumentsPaginated } from "@/features/documents/queries";
-import type { Consultation } from "@/generated/prisma/client";
+import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
+import type { NoteRow } from "@/features/notes/queries";
+import type { Consultation } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -81,13 +82,6 @@ export const getConsultationOverviewById = cache(
 
 // ----- Notes -----
 
-export type NoteRow = {
-  id: string;
-  content: string;
-  author: string;
-  created_at: Date;
-};
-
 export const getConsultationNotesPaginated = cache(
   async ({
     consultationId,
@@ -129,15 +123,6 @@ export const getConsultationNotesPaginated = cache(
 );
 
 // ----- Documents (Attachments) -----
-
-export type DocumentRow = {
-  id: string;
-  file_name: string;
-  file_type: string;
-  file_size: number | null;
-  uploadedBy: string;
-  created_at: Date;
-};
 
 export const getConsultationDocumentsPaginated = cache(
   async ({

@@ -29,7 +29,7 @@ import { TasksTab } from "./tabs/TasksTab";
 
 interface Props {
   overview: CaseOverviewData;
-  userRole?: string | null;
+  userRole?: Role | null;
 }
 
 export function CaseDetail({ overview, userRole }: Props) {

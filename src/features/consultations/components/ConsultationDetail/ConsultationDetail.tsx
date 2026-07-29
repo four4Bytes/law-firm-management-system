@@ -28,7 +28,7 @@ import { PaymentsTab } from "./tabs/PaymentsTab";
 
 interface Props {
   overview: ConsultationOverviewData;
-  userRole?: string | null;
+  userRole?: Role | null;
 }
 
 export function ConsultationDetail({ overview, userRole }: Props) {

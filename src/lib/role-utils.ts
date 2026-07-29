@@ -15,7 +15,7 @@ import { type Role } from "@/generated/prisma/browser";
  * @param roles    - One or more allowed {@link Role} values.
  * @returns `true` when `userRole` matches any of the given roles.
  */
-export function hasRole(userRole: string | null | undefined, ...roles: Role[]): boolean {
+export function hasRole(userRole: Role | null | undefined, ...roles: Role[]): boolean {
   if (!userRole) return false;
-  return roles.includes(userRole as Role);
+  return roles.includes(userRole);
 }

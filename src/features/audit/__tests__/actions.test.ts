@@ -3,8 +3,11 @@ import { z } from "zod";
 
 import { EntityActivityLogQuerySchema } from "@/features/audit/schemas";
 
+const mockUser = { id: "u1", email: "e", role: "Admin", name: "n" } as const;
+
 vi.mock("@/lib/auth-guards", () => ({
-  requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: "Admin", name: "n" }),
+  requireAuth: vi.fn().mockResolvedValue(mockUser),
+  requireRole: vi.fn().mockResolvedValue(mockUser),
 }));
 
 const getAuditLogPaginated = vi.fn();

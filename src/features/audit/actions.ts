@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth, requireRole } from "@/lib/auth-guards";
 
 import { AuditLogRow, getAuditLogPaginated, getEntityActivityLogPaginated } from "./queries";
 import { AuditLogPageQuerySchema, EntityActivityLogQuerySchema } from "./schemas";
@@ -10,7 +10,7 @@ import { AuditLogPageQuerySchema, EntityActivityLogQuerySchema } from "./schemas
 export async function getAuditLogAction(
   params: z.input<typeof AuditLogPageQuerySchema>,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
-  await requireAuth();
+  await requireRole("Admin", "Dev", "BranchManager");
 
   const parsed = AuditLogPageQuerySchema.safeParse(params);
   if (!parsed.success) throw new Error("Invalid query parameters");

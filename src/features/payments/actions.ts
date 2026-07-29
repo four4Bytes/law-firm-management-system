@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireRole } from "@/lib/auth-guards";
+import { requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
@@ -53,7 +53,12 @@ export async function getPaymentsPaginatedAction(
 export async function createPaymentAction(
   payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
-  const session = await requireRole("Admin", "Dev", "BranchManager");
+  let session: AuthenticatedUser;
+  try {
+    session = await requireRole("Admin", "Dev", "BranchManager");
+  } catch {
+    return { success: false, error: "You don't have permission to create payments." };
+  }
 
   const parsed = PaymentCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -96,7 +101,12 @@ export async function createPaymentAction(
 export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireRole("Admin", "Dev", "BranchManager");
+  let session: AuthenticatedUser;
+  try {
+    session = await requireRole("Admin", "Dev", "BranchManager");
+  } catch {
+    return { success: false, error: "You don't have permission to update payments." };
+  }
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -138,7 +148,12 @@ export async function updatePaymentAction(
 export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireRole("Admin", "Dev", "BranchManager");
+  let session: AuthenticatedUser;
+  try {
+    session = await requireRole("Admin", "Dev", "BranchManager");
+  } catch {
+    return { success: false, error: "You don't have permission to delete payments." };
+  }
 
   const parsed = PaymentIdSchema.safeParse(payload);
   if (!parsed.success) {

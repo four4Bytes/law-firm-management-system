@@ -85,9 +85,8 @@ export function CaseDetail({ overview, userRole }: Props) {
     try {
       const result = await deleteCaseAction({ caseId: overview.id });
 
-      setShowDeleteConfirm(false);
-
       if (result.success) {
+        setShowDeleteConfirm(false);
         queue.add({ title: "Case deleted" }, { timeout: 5000 });
         startLoading();
         router.push("/case");

@@ -83,9 +83,8 @@ export function ConsultationDetail({ overview, userRole }: Props) {
     try {
       const result = await deleteConsultationAction({ consultationId: overview.id });
 
-      setShowDeleteConfirm(false);
-
       if (result.success) {
+        setShowDeleteConfirm(false);
         queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
         startLoading();
         router.push("/consultation");

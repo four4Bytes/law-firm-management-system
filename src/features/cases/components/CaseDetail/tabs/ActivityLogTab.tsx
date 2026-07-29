@@ -28,6 +28,7 @@ export function ActivityLogTab({ caseId }: Props) {
       emptyContent="No activity yet"
       loadingMessage="Loading activity log..."
       searchLabel="Search activity"
+      selectionMode="none"
     />
   );
 }

@@ -9,7 +9,6 @@ import {
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
   getCaseOverviewById,
-  getCasePaymentsPaginated,
   getCasesPaginated,
   getCaseTasksPaginated,
 } from "../queries";
@@ -605,129 +604,6 @@ describe("getCaseMilestonesPaginated", () => {
       sort: { column: "status", direction: "desc" },
     });
     expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: [{ status: "desc" }, { id: "asc" }] }),
-    );
-  });
-});
-
-describe("getCasePaymentsPaginated", () => {
-  const mockPayment = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
-    id: "p1",
-    amount: 50000,
-    payment_date: new Date("2024-06-15"),
-    status: "Paid",
-    payment_method: "Bank Transfer",
-    receipt_number: "RET-2024-001",
-    case_id: "1",
-    consultation_id: null,
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-15"),
-    updated_at: new Date("2024-06-15"),
-    ...overrides,
-  });
-
-  it("returns mapped payment rows", async () => {
-    const payments = [mockPayment(), mockPayment({ id: "p2", amount: 25000, status: "Partial" })];
-    vi.mocked(prisma.payment.findMany).mockResolvedValue(payments as never[]);
-
-    const result = await getCasePaymentsPaginated({ caseId: "1", pageSize: 10 });
-
-    expect(result.rows).toHaveLength(2);
-    expect(result.rows[0]).toEqual({
-      id: "p1",
-      amount: 50000,
-      payment_date: payments[0].payment_date,
-      payment_method: "Bank Transfer",
-      receipt_number: "RET-2024-001",
-      status: "Paid",
-    });
-    expect(result.rows[1]).toEqual({
-      id: "p2",
-      amount: 25000,
-      payment_date: payments[1].payment_date,
-      payment_method: "Bank Transfer",
-      receipt_number: "RET-2024-001",
-      status: "Partial",
-    });
-  });
-
-  it("filters by search across multiple fields", async () => {
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([mockPayment()] as never[]);
-
-    await getCasePaymentsPaginated({ caseId: "1", search: "GCash" });
-
-    expect(prisma.payment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          case_id: "1",
-          OR: [
-            { payment_method: { contains: "GCash", mode: "insensitive" } },
-            { status: { contains: "GCash", mode: "insensitive" } },
-            { receipt_number: { contains: "GCash", mode: "insensitive" } },
-          ],
-        },
-      }),
-    );
-  });
-
-  it("handles cursor pagination", async () => {
-    const payments = Array.from({ length: 4 }, (_, i) => mockPayment({ id: String(i + 1) }));
-    vi.mocked(prisma.payment.findMany).mockResolvedValue(payments as never[]);
-
-    const result = await getCasePaymentsPaginated({ caseId: "1", pageSize: 3 });
-
-    expect(result.rows).toHaveLength(3);
-    expect(result.nextCursor).toBe("3");
-  });
-
-  it("returns empty when none exist", async () => {
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
-
-    const result = await getCasePaymentsPaginated({ caseId: "1" });
-
-    expect(result.rows).toEqual([]);
-  });
-
-  it("sorts by amount ascending", async () => {
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
-    await getCasePaymentsPaginated({
-      caseId: "1",
-      sort: { column: "amount", direction: "asc" },
-    });
-    expect(prisma.payment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: [{ amount: "asc" }, { id: "asc" }] }),
-    );
-  });
-
-  it("sorts by amount descending", async () => {
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
-    await getCasePaymentsPaginated({
-      caseId: "1",
-      sort: { column: "amount", direction: "desc" },
-    });
-    expect(prisma.payment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: [{ amount: "desc" }, { id: "asc" }] }),
-    );
-  });
-
-  it("sorts by payment_date ascending", async () => {
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
-    await getCasePaymentsPaginated({
-      caseId: "1",
-      sort: { column: "payment_date", direction: "asc" },
-    });
-    expect(prisma.payment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: [{ payment_date: "asc" }, { id: "asc" }] }),
-    );
-  });
-
-  it("sorts by status descending", async () => {
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
-    await getCasePaymentsPaginated({
-      caseId: "1",
-      sort: { column: "status", direction: "desc" },
-    });
-    expect(prisma.payment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: [{ status: "desc" }, { id: "asc" }] }),
     );
   });

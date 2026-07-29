@@ -34,6 +34,7 @@ it("createConsultation merges created_by_user_id into the create payload", async
       status: "Scheduled",
       created_by_user_id: "u1",
     },
+    select: { id: true },
   });
 });
 
@@ -54,11 +55,15 @@ it("updateConsultation strips id from the update data", async () => {
       booking_datetime: booking,
       status: "Scheduled",
     },
+    select: { id: true },
   });
 });
 
 it("deleteConsultation calls delete with the id", async () => {
   await deleteConsultation(uuid);
 
-  expect(prisma.consultation.delete).toHaveBeenCalledWith({ where: { id: uuid } });
+  expect(prisma.consultation.delete).toHaveBeenCalledWith({
+    where: { id: uuid },
+    select: { id: true },
+  });
 });

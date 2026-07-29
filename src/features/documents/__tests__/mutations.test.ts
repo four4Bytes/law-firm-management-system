@@ -46,6 +46,7 @@ it("creates a document", async () => {
       case_id: "c1",
       uploaded_by_user_id: "u1",
     },
+    select: { id: true },
   });
 });
 
@@ -77,6 +78,7 @@ it("creates a document linked to a consultation", async () => {
     data: expect.objectContaining({
       consultation_id: "con1",
     }),
+    select: { id: true },
   });
 });
 
@@ -98,7 +100,10 @@ it("deletes a document", async () => {
   const result = await deleteDocument("d1");
 
   expect(result.id).toBe("d1");
-  expect(prisma.document.delete).toHaveBeenCalledWith({ where: { id: "d1" } });
+  expect(prisma.document.delete).toHaveBeenCalledWith({
+    where: { id: "d1" },
+    select: { id: true },
+  });
 });
 
 it("propagates error when deleting nonexistent document", async () => {

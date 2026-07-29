@@ -178,7 +178,10 @@ describe("deleteConsultationAction", () => {
     vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
 
     expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({ success: true });
-    expect(prisma.consultation.delete).toHaveBeenCalledWith({ where: { id: uuid } });
+    expect(prisma.consultation.delete).toHaveBeenCalledWith({
+      where: { id: uuid },
+      select: { id: true },
+    });
     expect(revalidatePath).toHaveBeenCalledWith("/consultation");
   });
 });

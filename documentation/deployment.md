@@ -164,36 +164,38 @@ Each record is only reminded once per day via the `last_reminded_at` field.
 | Deployment                    | Trigger                                 | Details                                                                                   |
 | ----------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Docker (local or self-hosted) | `node-cron` in `src/instrumentation.ts` | Runs on schedule inside the long-lived Next.js process (guarded by `process.env.VERCEL`). |
-| Vercel (serverless)           | GitHub Actions workflow                 | Scheduled via `.github/workflows/reminder-cron.yml`. Sends `GET /api/cron/reminders`.     |
+| Vercel (serverless)           | Vercel Cron Jobs                        | Scheduled via `vercel.json` crons config. Sends `GET /api/cron/reminders`.                |
 
 ### Environment variables
 
-| Variable                | Required       | Default | Description                                                                                                                         |
-| ----------------------- | -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS` | No             | `3`     | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                                 |
-| `CRON_SECRET`           | Yes (all envs) | —       | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Must match between Vercel and GitHub Secrets. |
+| Variable                | Required       | Default | Description                                                                                                                |
+| ----------------------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_REMINDER_DAYS` | No             | `3`     | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                        |
+| `CRON_SECRET`           | Yes (all envs) | —       | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables. |
 
-### Setting up with GitHub Actions
+### Setting up with Vercel Cron Jobs
 
-On Vercel's free (Hobby) plan, native cron jobs are limited to once per day. The project uses a
-**GitHub Actions workflow** to trigger the reminder endpoint on a flexible schedule — no platform
-upgrade required.
+1. **Create `vercel.json`** in the project root with the cron job definition:
 
-1. **Generate a `CRON_SECRET`** (if you don't have one):
+   ```json
+   {
+     "crons": [
+       {
+         "path": "/api/cron/reminders",
+         "schedule": "0 0 * * *"
+       }
+     ]
+   }
+   ```
+
+2. **Generate a `CRON_SECRET`** (if you don't have one):
 
    ```bash
    openssl rand -hex 32
    ```
 
-2. **Add it to Vercel** — Project Dashboard → Settings → Environment Variables → add `CRON_SECRET`.
+3. **Add it to Vercel** — Project Dashboard → Settings → Environment Variables → add `CRON_SECRET`.
 
-3. **Add it to GitHub** — Repository → Settings → Secrets and variables → Actions → **New repository secret** → name `CRON_SECRET`, paste the same value.
+4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
-4. **Set the deployment URL** in `.github/workflows/reminder-cron.yml`:
-
-   Replace `https://your-app.vercel.app` with your actual Vercel production URL.
-
-5. **Push the workflow file** to `main` (or any branch). GitHub Actions registers the schedule automatically.
-
-The workflow is configured at `0 */4 * * *` (every 4 hours). To adjust the cadence or trigger a run
-manually, go to the **Actions** tab → **Reminder Cron** → **Run workflow**.
+The cron runs daily at midnight (`0 0 * * *`). To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.

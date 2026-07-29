@@ -53,13 +53,12 @@
 
 ### Styling
 
-- Use only CSS custom properties from `variables.css`.
 - Token system: primitives (`--raw-*`) → semantic tokens (`--color-*`, `--space-*`, etc.).
 - Style exclusively via CSS Modules, imported as `styles` and composed with `clsx`.
 - Never use inline styles (except storybooks) or global element selectors.
 - Nesting in CSS Modules must mirror the component or document hierarchy (parent element nests children).
 - Accept and forward external `className` props for overrides.
-- Use only semantic tokens from `variables.css`; no hardcoded values.
+- Prefer semantic tokens from `variables.css`. Hardcoded values are fine for one-off cases (single-use spacing, border-radius, etc.) — creating a variable for a value used only once is overengineering. Extract to `variables.css` when the same value appears twice or more.
 
 - Responsives:
 - Desktop first aproach CSS - mobile will be added later.

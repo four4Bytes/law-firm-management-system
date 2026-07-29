@@ -88,9 +88,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.calver.outputs.tag }}
         run: |
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          # Fetch the native release notes compiled from the resolved release commit
+          gh api repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name="$TAG" \
+            -f target_commitish="$COMMIT_SHA" \
+            --jq .body > changelog.md
+
+          # Create the release targeting the same resolved commit
           gh release create "$TAG" \
-            --generate-notes \
-            --target "$(git rev-parse HEAD)" \
+            --notes-file changelog.md \
+            --target "$COMMIT_SHA" \
             --title "$TAG"
 
   docker:

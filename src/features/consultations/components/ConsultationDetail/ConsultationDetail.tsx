@@ -4,13 +4,17 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
-import { getConsultationForEditAction } from "@/features/consultations/actions";
+import {
+  deleteConsultationAction,
+  getConsultationForEditAction,
+} from "@/features/consultations/actions";
 import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
 import type {
   ConsultationEditData,
@@ -41,6 +45,8 @@ export function ConsultationDetail({ overview, userRole }: Props) {
     clientData: ClientEditData;
   } | null>(null);
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const canViewPayments = hasRole(userRole, Role.Admin, Role.Dev, Role.BranchManager);
 
   const allTabs = ["attachments", "notes", "payments", "activity"] as const;
@@ -69,13 +75,35 @@ export function ConsultationDetail({ overview, userRole }: Props) {
     }
   }
 
+  async function handleDelete() {
+    try {
+      const result = await deleteConsultationAction({ consultationId: overview.id });
+
+      setShowDeleteConfirm(false);
+
+      if (result.success) {
+        queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
+        startLoading();
+        router.push("/consultation");
+      } else {
+        queue.add({ title: result.error ?? "Failed to delete consultation" }, { timeout: 5000 });
+      }
+    } catch {
+      queue.add({ title: "Failed to delete consultation. Please try again." }, { timeout: 5000 });
+    }
+  }
+
   return (
     <div className={styles.detail}>
       <Link href="/consultation" className={styles.backLink}>
         <FaArrowLeft /> Back to Consultations
       </Link>
 
-      <ConsultationOverview data={overview} onEdit={handleEdit} />
+      <ConsultationOverview
+        data={overview}
+        onEdit={handleEdit}
+        onDelete={() => setShowDeleteConfirm(true)}
+      />
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Consultation details">
@@ -111,15 +139,21 @@ export function ConsultationDetail({ overview, userRole }: Props) {
             setEditData(null);
             router.refresh();
           }}
-          onDeleted={() => {
-            startLoading();
-            setEditData(null);
-            router.push("/consultation");
-          }}
           consultation={editData.consultation}
           clientData={editData.clientData}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Consultation"
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+      >
+        This permanently deletes the consultation and ALL its notes, documents, and payments. Linked
+        cases are kept (unlinked). This action cannot be undone.
+      </ConfirmDialog>
     </div>
   );
 }

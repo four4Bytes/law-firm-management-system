@@ -111,6 +111,18 @@ export async function updateTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
+    const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
+    if (
+      existing.title === title &&
+      existing.description === (description ?? null) &&
+      existing.status === status &&
+      (!assignee_ids ||
+        (existingAssigneeIds.length === assignee_ids.length &&
+          existingAssigneeIds.every((id) => assignee_ids.includes(id))))
+    ) {
+      return { success: true };
+    }
+
     await updateTask(taskId, { title, description, status, assignee_ids });
 
     after(async () => {

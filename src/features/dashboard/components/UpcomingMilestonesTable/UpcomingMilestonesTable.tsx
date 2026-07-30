@@ -6,28 +6,29 @@ import { useEffect, useState, useTransition } from "react";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
-import type { UpcomingConsultationRow } from "@/features/dashboard/queries";
-import { formatDateTime } from "@/lib/date";
+import type { UpcomingMilestoneRow } from "@/features/dashboard/queries";
+import { formatDate } from "@/lib/date";
 
-import styles from "./UpcomingConsultationsTable.module.css";
+import styles from "./UpcomingMilestonesTable.module.css";
 
-interface UpcomingConsultationsTableProps {
-  consultations: UpcomingConsultationRow[];
+interface UpcomingMilestonesTableProps {
+  milestones: UpcomingMilestoneRow[];
 }
 
-const columns: ColumnDef<UpcomingConsultationRow>[] = [
-  { id: "clientName", name: "Client Name", isRowHeader: true },
-  { id: "concern", name: "Concern" },
+const columns: ColumnDef<UpcomingMilestoneRow>[] = [
+  { id: "caseTitle", name: "Case Title", isRowHeader: true },
+  { id: "milestoneTitle", name: "Milestone" },
   {
-    id: "booking_datetime",
-    name: "Date & Time",
-    render: (value) => formatDateTime(value as Date),
+    id: "due_date",
+    name: "Due Date",
+    render: (value) => formatDate(value as Date),
   },
 ];
 
-export function UpcomingConsultationsTable({ consultations }: UpcomingConsultationsTableProps) {
+export function UpcomingMilestonesTable({ milestones }: UpcomingMilestonesTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
+  const milestoneCaseMap = new Map(milestones.map((m) => [m.id, m.caseId]));
   const [isClient, setIsClient] = useState(false);
   const [, startTransition] = useTransition();
   useEffect(() => {
@@ -37,9 +38,9 @@ export function UpcomingConsultationsTable({ consultations }: UpcomingConsultati
   if (!isClient) {
     return (
       <div className={styles.wrapper}>
-        <h3 className={styles.heading}>Upcoming Consultations</h3>
+        <h3 className={styles.heading}>Upcoming Milestones</h3>
         <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading upcoming consultations..." />
+          <ProgressCircle aria-label="Loading upcoming milestones..." />
         </div>
       </div>
     );
@@ -47,16 +48,19 @@ export function UpcomingConsultationsTable({ consultations }: UpcomingConsultati
 
   return (
     <div className={styles.wrapper}>
-      <h3 className={styles.heading}>Upcoming Consultations</h3>
+      <h3 className={styles.heading}>Upcoming Milestones</h3>
       <DataTable
         columns={columns}
-        rows={consultations}
+        rows={milestones}
         emptyContent={"No data yet"}
         selectionMode="single"
         selectionBehavior="replace"
         onRowAction={(id) => {
-          startLoading();
-          router.push(`/consultation/${id}`);
+          const caseId = milestoneCaseMap.get(id);
+          if (caseId) {
+            startLoading();
+            router.push(`/case/${caseId}?tab=milestones`);
+          }
         }}
       />
     </div>

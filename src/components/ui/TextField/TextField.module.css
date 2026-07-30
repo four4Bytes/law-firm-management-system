@@ -47,7 +47,6 @@
 
     &[data-disabled] {
       color: var(--color-text-muted);
-      opacity: var(--opacity-disabled);
       cursor: not-allowed;
 
       &::placeholder {
@@ -60,7 +59,7 @@
     min-height: 110px;
     max-height: 300px;
     padding: var(--space-sm);
-    line-height: var(--line-height-md);
+    line-height: var(--line-height-normal);
     resize: vertical;
     font-family: inherit;
   }

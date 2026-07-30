@@ -241,7 +241,7 @@
 
         .profileRole {
           font-size: var(--font-size-xs);
-          font-weight: var(--font-weight-regular);
+          font-weight: var(--font-weight-normal);
           color: var(--color-brand-accent);
           overflow: hidden;
           text-overflow: ellipsis;

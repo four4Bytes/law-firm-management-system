@@ -32,6 +32,7 @@ const caseSelect = {
   id: true,
   case_title: true,
   case_type: true,
+  status: true,
   created_at: true,
   client: { select: { name: true } },
   caseAssignments: {
@@ -40,7 +41,7 @@ const caseSelect = {
   milestones: {
     orderBy: { created_at: "desc" as const },
     take: 1,
-    select: { title: true, status: true },
+    select: { title: true },
   },
 } as const;
 
@@ -85,7 +86,7 @@ describe("getCasesPaginated", () => {
       clientName: "Alice Client",
       assignTo: "Bob Lawyer",
       latestMilestone: "File complaint",
-      status: "Pending",
+      status: "Open",
       created_at: cases[0].created_at,
     });
     expect(result.cases[1]).toEqual({
@@ -95,7 +96,7 @@ describe("getCasesPaginated", () => {
       clientName: "Carol Client",
       assignTo: "Bob Lawyer, Dave Paralegal",
       latestMilestone: "Draft will",
-      status: "Pending",
+      status: "Open",
       created_at: cases[1].created_at,
     });
     expect(prisma.case.findMany).toHaveBeenCalledWith({
@@ -113,7 +114,7 @@ describe("getCasesPaginated", () => {
     const result = await getCasesPaginated({});
 
     expect(result.cases[0].latestMilestone).toBe("");
-    expect(result.cases[0].status).toBeNull();
+    expect(result.cases[0].status).toBe("Open");
   });
 
   it("returns next cursor when there are more results", async () => {

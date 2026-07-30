@@ -46,7 +46,6 @@
 
     &[data-disabled] {
       color: var(--color-text-muted);
-      opacity: var(--opacity-disabled);
       cursor: not-allowed;
     }
 
@@ -92,7 +91,7 @@
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
 
-      &:hover {
+      &[data-hovered] {
         color: var(--color-text-primary);
       }
 

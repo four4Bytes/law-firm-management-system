@@ -1,12 +1,12 @@
 "use server";
 
 import {
-  getOverdueMilestones,
   getRecentCases,
   getUpcomingConsultations,
-  type OverdueMilestoneRow,
+  getUpcomingMilestones,
   type RecentCaseRow,
   type UpcomingConsultationRow,
+  type UpcomingMilestoneRow,
 } from "@/features/dashboard/queries";
 import { requireAuth } from "@/lib/auth-guards";
 import { LimitSchema } from "@/lib/schemas";
@@ -35,7 +35,7 @@ export async function getUpcomingConsultationsAction(
   return getUpcomingConsultations(parsed.data ?? 10);
 }
 
-export async function getOverdueMilestonesAction(limit?: number): Promise<OverdueMilestoneRow[]> {
+export async function getUpcomingMilestonesAction(limit?: number): Promise<UpcomingMilestoneRow[]> {
   await requireAuth();
 
   const parsed = LimitSchema.safeParse(limit);
@@ -43,5 +43,5 @@ export async function getOverdueMilestonesAction(limit?: number): Promise<Overdu
     throw new Error("Invalid limit parameter");
   }
 
-  return getOverdueMilestones(parsed.data);
+  return getUpcomingMilestones(parsed.data);
 }

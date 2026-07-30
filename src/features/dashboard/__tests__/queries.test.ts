@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 import {
   getDashboardStats,
-  getOverdueMilestones,
   getRecentCases,
   getUpcomingConsultations,
+  getUpcomingMilestones,
 } from "../queries";
 
 vi.mock("@/lib/prisma", () => ({
@@ -52,12 +52,12 @@ const mockMilestone = (overrides: Record<string, unknown> = {}) => ({
   id: "1",
   title: "File complaint",
   description: null,
-  due_date: new Date("2024-05-01"),
+  due_date: new Date("2099-01-01"),
   status: "Pending" as const,
   case_id: "c1",
   created_by_user_id: "u1",
-  created_at: new Date("2024-05-01"),
-  updated_at: new Date("2024-05-01"),
+  created_at: new Date("2099-01-01"),
+  updated_at: new Date("2099-01-01"),
   reminder_days: null,
   last_reminded_at: null,
   case: { case_title: "Smith vs Jones" },
@@ -236,19 +236,20 @@ describe("getUpcomingConsultations", () => {
   });
 });
 
-describe("getOverdueMilestones", () => {
-  it("returns overdue milestones with mapped fields", async () => {
+describe("getUpcomingMilestones", () => {
+  it("returns upcoming milestones with mapped fields", async () => {
     const milestones = [
       mockMilestone({ id: "1", title: "Milestone A" }),
       mockMilestone({ id: "2", title: "Milestone B" }),
     ];
     vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue(milestones);
 
-    const result = await getOverdueMilestones();
+    const result = await getUpcomingMilestones();
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
       id: "1",
+      caseId: "c1",
       caseTitle: "Smith vs Jones",
       milestoneTitle: "Milestone A",
       due_date: milestones[0].due_date,
@@ -257,11 +258,12 @@ describe("getOverdueMilestones", () => {
       take: 5,
       where: {
         status: "Pending",
-        due_date: { lt: expect.any(Date) },
+        due_date: { gte: expect.any(Date) },
       },
       orderBy: { due_date: "asc" },
       select: {
         id: true,
+        case_id: true,
         title: true,
         due_date: true,
         case: { select: { case_title: true } },
@@ -269,18 +271,39 @@ describe("getOverdueMilestones", () => {
     });
   });
 
-  it("returns empty array when none overdue", async () => {
+  it("returns empty array when none upcoming", async () => {
     vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
 
-    const result = await getOverdueMilestones();
+    const result = await getUpcomingMilestones();
 
     expect(result).toEqual([]);
+  });
+
+  it("includes milestones due earlier today (startOfDay boundary)", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2025-06-15T15:00:00Z"));
+      const earlierToday = new Date("2025-06-15T09:00:00Z");
+      const milestone = mockMilestone({
+        id: "1",
+        due_date: earlierToday,
+        title: "Today Milestone",
+      });
+      vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([milestone]);
+
+      const result = await getUpcomingMilestones();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].milestoneTitle).toBe("Today Milestone");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("propagates database errors", async () => {
     const error = new Error("connection failed");
     vi.mocked(prisma.caseMilestone.findMany).mockRejectedValue(error);
 
-    await expect(getOverdueMilestones()).rejects.toThrow(error);
+    await expect(getUpcomingMilestones()).rejects.toThrow(error);
   });
 });

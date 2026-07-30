@@ -1,9 +1,9 @@
 import { DashboardContent } from "@/features/dashboard/components/DashboardContent/DashboardContent";
 import {
   getDashboardStats,
-  getOverdueMilestones,
   getRecentCases,
   getUpcomingConsultations,
+  getUpcomingMilestones,
 } from "@/features/dashboard/queries";
 
 import styles from "./page.module.css";
@@ -13,18 +13,18 @@ function fulfilledOrNull<T>(result: PromiseSettledResult<T>): T | null {
 }
 
 export default async function DashboardPage() {
-  const [statsResult, recentCasesResult, upcomingConsultationsResult, overdueMilestonesResult] =
+  const [statsResult, recentCasesResult, upcomingConsultationsResult, upcomingMilestonesResult] =
     await Promise.allSettled([
       getDashboardStats(),
-      getRecentCases(),
+      getRecentCases(10),
       getUpcomingConsultations(),
-      getOverdueMilestones(),
+      getUpcomingMilestones(),
     ]);
 
   const stats = fulfilledOrNull(statsResult);
   const recentCases = fulfilledOrNull(recentCasesResult);
   const upcomingConsultations = fulfilledOrNull(upcomingConsultationsResult);
-  const overdueMilestones = fulfilledOrNull(overdueMilestonesResult);
+  const upcomingMilestones = fulfilledOrNull(upcomingMilestonesResult);
 
   return (
     <div className={styles.wrapper}>
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
         stats={stats}
         recentCases={recentCases}
         upcomingConsultations={upcomingConsultations}
-        overdueMilestones={overdueMilestones}
+        upcomingMilestones={upcomingMilestones}
       />
     </div>
   );

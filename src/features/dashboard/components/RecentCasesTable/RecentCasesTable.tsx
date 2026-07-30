@@ -1,10 +1,12 @@
 "use client";
 
 import clsx from "clsx";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import type { RecentCaseRow } from "@/features/dashboard/queries";
 
 import styles from "./RecentCasesTable.module.css";
@@ -38,6 +40,8 @@ const columns: ColumnDef<RecentCaseRow>[] = [
 ];
 
 export function RecentCasesTable({ cases }: RecentCasesTableProps) {
+  const router = useRouter();
+  const { startLoading } = useNavigationProgress();
   const [isClient, setIsClient] = useState(false);
   const [, startTransition] = useTransition();
   useEffect(() => {
@@ -58,7 +62,17 @@ export function RecentCasesTable({ cases }: RecentCasesTableProps) {
   return (
     <div className={styles.wrapper}>
       <h3 className={styles.heading}>Recent Cases</h3>
-      <DataTable columns={columns} rows={cases} emptyContent={"No data yet"} />
+      <DataTable
+        columns={columns}
+        rows={cases}
+        emptyContent={"No data yet"}
+        selectionMode="single"
+        selectionBehavior="replace"
+        onRowAction={(id) => {
+          startLoading();
+          router.push(`/case/${id}`);
+        }}
+      />
     </div>
   );
 }

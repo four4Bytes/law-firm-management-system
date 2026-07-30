@@ -91,6 +91,16 @@ export async function updateMilestoneAction(
     const existing = await getMilestoneById(milestoneId);
     if (!existing) return { success: false, error: "Milestone not found" };
 
+    if (
+      existing.title === title &&
+      existing.description === (description || null) &&
+      existing.due_date.getTime() === due_date.getTime() &&
+      existing.status === status &&
+      existing.reminder_days === (reminder_days ?? existing.reminder_days)
+    ) {
+      return { success: true };
+    }
+
     await updateMilestone(milestoneId, {
       title,
       description: description || undefined,

@@ -21,10 +21,11 @@ const caseSelect = {
   caseAssignments: {
     select: { user: { select: { name: true } } },
   },
+  status: true,
   milestones: {
     orderBy: { created_at: "desc" as const },
     take: 1,
-    select: { title: true, status: true },
+    select: { title: true },
   },
 } as const;
 
@@ -35,7 +36,7 @@ export type CaseRow = {
   clientName: string;
   assignTo: string;
   latestMilestone: string;
-  status: string | null;
+  status: string;
   created_at: Date;
 };
 
@@ -90,7 +91,7 @@ export const getCasesPaginated = cache(
       clientName: c.client.name,
       assignTo: c.caseAssignments.map((a) => a.user.name).join(", "),
       latestMilestone: c.milestones[0]?.title ?? "",
-      status: c.milestones[0]?.status ?? null,
+      status: c.status,
       created_at: c.created_at,
     }));
 

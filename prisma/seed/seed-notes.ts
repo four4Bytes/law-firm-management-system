@@ -355,6 +355,55 @@ const notes: NoteData[] = [
     createdByEmail: "maya.fernandez@aninolaw.com",
     daysAgo: 6,
   },
+  {
+    content:
+      "Client called to confirm trademark registration consultation. She runs a small food business and needs to protect her brand. Sent her the trademark application checklist and fee schedule.",
+    consultationClientEmail: "kristine.aguilar@email.com",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    daysAgo: 7,
+  },
+  {
+    content:
+      "Consultation completed. Client's credit card debt is with BDO's external counsel. The bank hasn't filed suit yet but demand letter was sent. Recommended negotiating a reduced lump-sum settlement. Client agreed to engage us for negotiations.",
+    consultationClientEmail: "carmela.torres@email.com",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    daysAgo: 3,
+  },
+  {
+    content:
+      "Witness judicial affidavits drafted and submitted for partner review. Three witnesses covering contract execution, delivery attempts, and non-payment confirmation.",
+    caseTitle: "Reyes vs. San Miguel Logistics",
+    createdByEmail: "jessica.lim@aninolaw.com",
+    daysAgo: 1,
+  },
+  {
+    content:
+      "NLRC mandatory conference reset to next month due to respondent counsel's scheduling conflict. Client informed.",
+    caseTitle: "Castillo Illegal Dismissal Complaint",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    daysAgo: 1,
+  },
+  {
+    content:
+      "Filed reply to BPI's opposition to TRO. Argued that the bank failed to properly notify client of the foreclosure sale as required under Act 3135. Court to hear arguments on Friday.",
+    caseTitle: "Santos Foreclosure Defense",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    daysAgo: 0,
+  },
+  {
+    content:
+      "Barangay mediation failed — Felipe Dimagiba refused to acknowledge the boundary encroachment despite the geodetic survey evidence. Will proceed with filing complaint in court.",
+    caseTitle: "Lopez Property Boundary Litigation",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    daysAgo: 6,
+  },
+  {
+    content:
+      "LBAA decision received — assessed value reduced from PHP 5.0M to PHP 3.2M. Client very satisfied with the result. Assessment order to be forwarded to City Assessor for implementation.",
+    caseTitle: "Hernandez Property Tax Protest",
+    createdByEmail: "gina.reyes@aninolaw.com",
+    daysAgo: 1,
+  },
 ];
 
 export async function seedNotes(

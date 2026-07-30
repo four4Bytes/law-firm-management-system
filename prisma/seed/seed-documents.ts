@@ -353,6 +353,38 @@ const documents: DocumentData[] = [
     uploadedByEmail: "sofia.villanueva@aninolaw.com",
     daysAgo: 1,
   },
+  {
+    fileName: "Intake-Form-Carmela-Torres.pdf",
+    fileType: "application/pdf",
+    fileSize: 320000,
+    consultationClientEmail: "carmela.torres@email.com",
+    uploadedByEmail: "marco.lopez@aninolaw.com",
+    daysAgo: 3,
+  },
+  {
+    fileName: "NLRC-Notice-of-Conference-Castillo.pdf",
+    fileType: "application/pdf",
+    fileSize: 540000,
+    caseTitle: "Castillo Illegal Dismissal Complaint",
+    uploadedByEmail: "miguel.cruz@aninolaw.com",
+    daysAgo: 2,
+  },
+  {
+    fileName: "Reply-to-Opposition-TRO-Santos.pdf",
+    fileType: "application/pdf",
+    fileSize: 980000,
+    taskTitle: "File Reply to Bank's Opposition to TRO Application",
+    uploadedByEmail: "marco.lopez@aninolaw.com",
+    daysAgo: 1,
+  },
+  {
+    fileName: "Barangay-Mediation-Certificate-Lopez.pdf",
+    fileType: "application/pdf",
+    fileSize: 420000,
+    caseTitle: "Lopez Property Boundary Litigation",
+    uploadedByEmail: "marco.lopez@aninolaw.com",
+    daysAgo: 6,
+  },
 ];
 
 export async function seedDocuments(

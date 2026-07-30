@@ -17,9 +17,11 @@ import type { ActiveUserSummary } from "@/features/tasks/queries";
 import styles from "./CaseTable.module.css";
 
 const statusClassMap: Record<string, string> = {
-  Pending: styles.statusPending,
-  Done: styles.statusDone,
-  Cancelled: styles.statusCancelled,
+  Open: styles.statusOpen,
+  Ongoing: styles.statusOngoing,
+  Closed: styles.statusClosed,
+  Terminated: styles.statusTerminated,
+  Settled: styles.statusSettled,
 };
 
 const columns: ColumnDef<CaseRow>[] = [

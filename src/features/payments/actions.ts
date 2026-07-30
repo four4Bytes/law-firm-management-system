@@ -119,6 +119,16 @@ export async function updatePaymentAction(
     const existing = await getPaymentById(paymentId);
     if (!existing) return { success: false, error: "Payment not found" };
 
+    if (
+      Number(existing.amount) === amount &&
+      existing.payment_date.getTime() === payment_date.getTime() &&
+      existing.status === status &&
+      existing.payment_method === (payment_method || null) &&
+      existing.receipt_number === (receipt_number || null)
+    ) {
+      return { success: true };
+    }
+
     await updatePayment(paymentId, {
       amount,
       payment_date,

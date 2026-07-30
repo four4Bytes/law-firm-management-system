@@ -1,10 +1,11 @@
+import { type Role } from "@/generated/prisma/browser";
 import { auth } from "@/lib/auth";
 
 /** Minimal authenticated-user projection shared by the auth guards. */
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  role: string;
+  role: Role;
   name: string;
 }
 
@@ -28,7 +29,7 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
   return {
     id: user.id,
     email: user.email,
-    role: user.role,
+    role: user.role as Role,
     name: user.name,
   };
 }
@@ -40,7 +41,7 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
  * @returns The authenticated user when authorized.
  * @throws `"Unauthorized"` if no session, or `"Forbidden"` if the role is not allowed.
  */
-export async function requireRole(...roles: string[]): Promise<AuthenticatedUser> {
+export async function requireRole(...roles: Role[]): Promise<AuthenticatedUser> {
   const user = await requireAuth();
   if (!roles.includes(user.role)) {
     throw new Error("Forbidden");

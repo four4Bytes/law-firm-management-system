@@ -9,6 +9,8 @@ interface MilestoneData {
   daysFromNow: number;
   createdByEmail: string;
   notifyEmails: string[];
+  reminderDays?: number;
+  lastRemindedDaysAgo?: number;
 }
 
 const milestones: MilestoneData[] = [
@@ -20,6 +22,7 @@ const milestones: MilestoneData[] = [
     daysFromNow: 7,
     createdByEmail: "david.tan@aninolaw.com",
     notifyEmails: ["david.tan@aninolaw.com", "catherine.diaz@aninolaw.com"],
+    reminderDays: 7,
   },
   {
     caseTitle: "Dela Cruz Property Title Transfer",
@@ -29,6 +32,7 @@ const milestones: MilestoneData[] = [
     daysFromNow: 14,
     createdByEmail: "david.tan@aninolaw.com",
     notifyEmails: ["david.tan@aninolaw.com", "catherine.diaz@aninolaw.com"],
+    reminderDays: 14,
   },
   {
     caseTitle: "Gonzales Legal Separation",
@@ -65,6 +69,7 @@ const milestones: MilestoneData[] = [
     daysFromNow: 21,
     createdByEmail: "miguel.cruz@aninolaw.com",
     notifyEmails: ["miguel.cruz@aninolaw.com"],
+    reminderDays: 21,
   },
   {
     caseTitle: "Alcantara Annulment Proceedings",
@@ -138,6 +143,8 @@ const milestones: MilestoneData[] = [
     daysFromNow: 7,
     createdByEmail: "marco.lopez@aninolaw.com",
     notifyEmails: ["marco.lopez@aninolaw.com"],
+    reminderDays: 7,
+    lastRemindedDaysAgo: 0,
   },
   {
     caseTitle: "Villanueva Corporation Registration",
@@ -211,6 +218,7 @@ const milestones: MilestoneData[] = [
     daysFromNow: 28,
     createdByEmail: "gina.reyes@aninolaw.com",
     notifyEmails: ["gina.reyes@aninolaw.com"],
+    reminderDays: 28,
   },
   {
     caseTitle: "Ramirez Corp — Series A Funding",
@@ -219,7 +227,7 @@ const milestones: MilestoneData[] = [
     status: "Pending",
     daysFromNow: 10,
     createdByEmail: "angela.mercado@aninolaw.com",
-    notifyEmails: ["angela.mercado@aninolaw.com", "sofia.ramirez@email.com"],
+    notifyEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
   },
   {
     caseTitle: "Ramirez Corp — Series A Funding",
@@ -343,6 +351,69 @@ const milestones: MilestoneData[] = [
     createdByEmail: "gina.reyes@aninolaw.com",
     notifyEmails: ["gina.reyes@aninolaw.com", "kevin.garcia@aninolaw.com"],
   },
+  {
+    caseTitle: "Lopez Property Boundary Litigation",
+    title: "Barangay Mediation Attempt",
+    description:
+      "Barangay mediation between Antonio Lopez and Felipe Dimagiba — failed, no settlement reached",
+    status: "Cancelled",
+    daysFromNow: -7,
+    createdByEmail: "marco.lopez@aninolaw.com",
+    notifyEmails: ["marco.lopez@aninolaw.com"],
+  },
+  {
+    caseTitle: "Hernandez Property Tax Protest",
+    title: "Tax Reduction Approved by LBAA",
+    description:
+      "Local Board of Assessment Appeals approved reduction of assessed value from PHP 5.0M to PHP 3.2M",
+    status: "Done",
+    daysFromNow: -1,
+    createdByEmail: "gina.reyes@aninolaw.com",
+    notifyEmails: ["gina.reyes@aninolaw.com", "kevin.garcia@aninolaw.com"],
+  },
+  {
+    caseTitle: "Castillo Illegal Dismissal Complaint",
+    title: "NLRC Decision on Illegal Dismissal",
+    description:
+      "NLRC Labor Arbiter expected to render decision on illegal dismissal complaint including back wages and separation pay",
+    status: "Pending",
+    daysFromNow: 45,
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    notifyEmails: ["miguel.cruz@aninolaw.com", "jessica.lim@aninolaw.com"],
+  },
+  {
+    caseTitle: "Dela Cruz Property Title Transfer",
+    title: "Tax Declaration Update from BIR",
+    description:
+      "Submit updated tax declaration to BIR RDO 39 for issuance of Certificate Authorizing Registration — overdue by 2 days",
+    status: "Pending",
+    daysFromNow: -2,
+    createdByEmail: "david.tan@aninolaw.com",
+    notifyEmails: ["david.tan@aninolaw.com", "catherine.diaz@aninolaw.com"],
+    reminderDays: 3,
+  },
+  {
+    caseTitle: "Ramirez Corp — Series A Funding",
+    title: "Due Diligence Document Submission",
+    description:
+      "Submit all outstanding due diligence documents requested by Kairus Capital — overdue by 1 day, risk of delaying investment closing",
+    status: "Pending",
+    daysFromNow: -1,
+    createdByEmail: "angela.mercado@aninolaw.com",
+    notifyEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
+    reminderDays: 7,
+  },
+  {
+    caseTitle: "Santos Foreclosure Defense",
+    title: "Loan Restructuring Negotiation Deadline",
+    description:
+      "Deadline to finalize loan restructuring agreement with BPI — only 2 days remaining before TRO expires",
+    status: "Pending",
+    daysFromNow: 2,
+    createdByEmail: "marco.lopez@aninolaw.com",
+    notifyEmails: ["marco.lopez@aninolaw.com"],
+    reminderDays: 3,
+  },
 ];
 
 export async function seedMilestones(
@@ -355,6 +426,11 @@ export async function seedMilestones(
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + m.daysFromNow);
 
+    const remindedAt =
+      m.lastRemindedDaysAgo !== undefined
+        ? new Date(Date.now() - m.lastRemindedDaysAgo * 86_400_000)
+        : undefined;
+
     const milestone = await prisma.caseMilestone.create({
       data: {
         case_id: caseByTitle[m.caseTitle],
@@ -363,6 +439,8 @@ export async function seedMilestones(
         due_date: dueDate,
         status: m.status,
         created_by_user_id: userByEmail[m.createdByEmail],
+        reminder_days: m.reminderDays ?? null,
+        last_reminded_at: remindedAt ?? null,
       },
     });
 

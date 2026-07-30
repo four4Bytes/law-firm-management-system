@@ -7,6 +7,7 @@ import { seedConsultations } from "./seed-consultations";
 import { seedDocuments } from "./seed-documents";
 import { seedMilestones } from "./seed-milestones";
 import { seedNotes } from "./seed-notes";
+import { seedNotifications } from "./seed-notifications";
 import { seedPayments } from "./seed-payments";
 import { seedTasks } from "./seed-tasks";
 import { seedUsers } from "./seed-users";
@@ -44,6 +45,7 @@ async function main() {
   await seedNotes(userByEmail, clients, cases);
   await seedDocuments(userByEmail, clients, cases, tasks);
   await seedAuditLogs(userByEmail);
+  await seedNotifications(userByEmail, clients, cases, tasks);
 }
 
 main()

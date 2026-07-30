@@ -158,6 +158,18 @@ const clients: SeedClient[] = [
     address: "741 Shaw Blvd., Greenfield, Mandaluyong City",
     phone: "09175678903",
   },
+  {
+    name: "Jose R. Mercado",
+    email: "jose.mercado@email.com",
+    address: "159 C. Palanca St., Legazpi Village, Makati City",
+    phone: "09171234570",
+  },
+  {
+    name: "Diana F. Navarro",
+    email: "diana.navarro@email.com",
+    address: "753 West Ave., Brgy. West Triangle, Quezon City",
+    phone: "09182345681",
+  },
 ];
 
 export async function seedClients(): Promise<{ id: string; email: string }[]> {

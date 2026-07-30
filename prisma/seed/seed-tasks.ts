@@ -388,6 +388,54 @@ const tasks: TaskData[] = [
     createdByEmail: "marco.lopez@aninolaw.com",
     assigneeEmails: ["marco.lopez@aninolaw.com"],
   },
+  {
+    caseTitle: "Dela Cruz Property Title Transfer",
+    title: "Coordinate with Registry of Deeds for Title Transfer",
+    description:
+      "Process the transfer of TCT from seller to buyer once deed of sale is notarized and taxes are paid",
+    status: "Pending",
+    createdByEmail: "david.tan@aninolaw.com",
+    assigneeEmails: ["jessica.lim@aninolaw.com"],
+  },
+  {
+    caseTitle: "Reyes vs. San Miguel Logistics",
+    title: "Prepare Judicial Affidavits for Witnesses",
+    description:
+      "Draft judicial affidavits for three witnesses — client, warehouse supervisor, and delivery coordinator",
+    status: "Submitted",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    assigneeEmails: ["jessica.lim@aninolaw.com"],
+    reviewerEmail: "miguel.cruz@aninolaw.com",
+  },
+  {
+    caseTitle: "Alcantara Annulment Proceedings",
+    title: "Revise Petition per Supervising Counsel Comments",
+    description:
+      "Revise the petition to strengthen Article 36 psychological incapacity argument — initial draft lacked specific factual basis",
+    status: "Rejected",
+    createdByEmail: "sofia.villanueva@aninolaw.com",
+    assigneeEmails: ["kevin.garcia@aninolaw.com"],
+    reviewerEmail: "sofia.villanueva@aninolaw.com",
+  },
+  {
+    caseTitle: "Castillo Illegal Dismissal Complaint",
+    title: "Attend NLRC Mandatory Conciliation and Mediation",
+    description:
+      "Represent client at NLRC mandatory conference with Jollibee Foods Corp. representatives and their counsel",
+    status: "Ongoing",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    assigneeEmails: ["miguel.cruz@aninolaw.com"],
+  },
+  {
+    caseTitle: "Santos Foreclosure Defense",
+    title: "File Reply to Bank's Opposition to TRO Application",
+    description:
+      "Draft and file reply memorandum addressing BPI Family Bank's opposition to the 72-hour TRO",
+    status: "Ongoing",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    assigneeEmails: ["marco.lopez@aninolaw.com"],
+    reviewerEmail: "maria.anino@aninolaw.com",
+  },
 ];
 
 export async function seedTasks(

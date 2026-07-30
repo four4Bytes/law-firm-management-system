@@ -268,7 +268,7 @@ const payments: PaymentData[] = [
   {
     amount: 20000,
     paymentDateDaysAgo: 7,
-    status: "Refunded",
+    status: "Partial",
     method: "GCash",
     receipt: "MIL-2024-005",
     caseTitle: "Castillo Illegal Dismissal Complaint",
@@ -281,15 +281,6 @@ const payments: PaymentData[] = [
     method: "Cash",
     receipt: "MIL-2024-006",
     caseTitle: "Santos Foreclosure Defense",
-    createdByEmail: "james.reyes@aninolaw.com",
-  },
-  {
-    amount: 1500,
-    paymentDateDaysAgo: 7,
-    status: "Paid",
-    method: "GCash",
-    receipt: "RC-2024-011",
-    consultationClientEmail: "jean.garcia@email.com",
     createdByEmail: "james.reyes@aninolaw.com",
   },
   {
@@ -317,7 +308,7 @@ const payments: PaymentData[] = [
     method: "GCash",
     receipt: "MIL-2024-007",
     caseTitle: "Dela Cruz Property Title Transfer",
-    createdByEmail: "david.tan@aninolaw.com",
+    createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
     amount: 30000,
@@ -326,7 +317,7 @@ const payments: PaymentData[] = [
     method: "",
     receipt: "MIL-2024-008",
     caseTitle: "Alcantara Annulment Proceedings",
-    createdByEmail: "sofia.villanueva@aninolaw.com",
+    createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
     amount: 15000,
@@ -335,7 +326,7 @@ const payments: PaymentData[] = [
     method: "Cash",
     receipt: "MIL-2024-009",
     caseTitle: "Lopez Property Boundary Litigation",
-    createdByEmail: "marco.lopez@aninolaw.com",
+    createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
     amount: 2500,
@@ -344,7 +335,7 @@ const payments: PaymentData[] = [
     method: "Bank Transfer",
     receipt: "RC-2024-012",
     consultationClientEmail: "mercedes.alvarez@email.com",
-    createdByEmail: "kevin.garcia@aninolaw.com",
+    createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
     amount: 30000,
@@ -353,7 +344,7 @@ const payments: PaymentData[] = [
     method: "GCash",
     receipt: "RET-2024-017",
     caseTitle: "Hernandez Property Tax Protest",
-    createdByEmail: "gina.reyes@aninolaw.com",
+    createdByEmail: "james.reyes@aninolaw.com",
   },
   {
     amount: 20000,
@@ -362,7 +353,7 @@ const payments: PaymentData[] = [
     method: "Bank Transfer",
     receipt: "MIL-2024-010",
     caseTitle: "Castillo Illegal Dismissal Complaint",
-    createdByEmail: "miguel.cruz@aninolaw.com",
+    createdByEmail: "james.reyes@aninolaw.com",
   },
   {
     amount: 1500,
@@ -371,6 +362,33 @@ const payments: PaymentData[] = [
     method: "GCash",
     receipt: "RC-2024-013",
     consultationClientEmail: "patricia.luna@email.com",
+    createdByEmail: "catherine.diaz@aninolaw.com",
+  },
+  {
+    amount: 1500,
+    paymentDateDaysAgo: 3,
+    status: "Paid",
+    method: "GCash",
+    receipt: "RC-2024-014",
+    consultationClientEmail: "carmela.torres@email.com",
+    createdByEmail: "catherine.diaz@aninolaw.com",
+  },
+  {
+    amount: 50000,
+    paymentDateDaysAgo: 1,
+    status: "Partial",
+    method: "Bank Transfer",
+    receipt: "RET-2024-018",
+    caseTitle: "Ramirez Corp — Series A Funding",
+    createdByEmail: "catherine.diaz@aninolaw.com",
+  },
+  {
+    amount: 15000,
+    paymentDateDaysAgo: 3,
+    status: "Paid",
+    method: "GCash",
+    receipt: "MIL-2024-011",
+    caseTitle: "Dela Cruz Property Title Transfer",
     createdByEmail: "catherine.diaz@aninolaw.com",
   },
 ];

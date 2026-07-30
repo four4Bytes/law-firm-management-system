@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import type { UpcomingConsultationRow } from "@/features/dashboard/queries";
 import { formatDateTime } from "@/lib/date";
 
@@ -24,6 +26,8 @@ const columns: ColumnDef<UpcomingConsultationRow>[] = [
 ];
 
 export function UpcomingConsultationsTable({ consultations }: UpcomingConsultationsTableProps) {
+  const router = useRouter();
+  const { startLoading } = useNavigationProgress();
   const [isClient, setIsClient] = useState(false);
   const [, startTransition] = useTransition();
   useEffect(() => {
@@ -44,7 +48,17 @@ export function UpcomingConsultationsTable({ consultations }: UpcomingConsultati
   return (
     <div className={styles.wrapper}>
       <h3 className={styles.heading}>Upcoming Consultations</h3>
-      <DataTable columns={columns} rows={consultations} emptyContent={"No data yet"} />
+      <DataTable
+        columns={columns}
+        rows={consultations}
+        emptyContent={"No data yet"}
+        selectionMode="single"
+        selectionBehavior="replace"
+        onRowAction={(id) => {
+          startLoading();
+          router.push(`/consultation/${id}`);
+        }}
+      />
     </div>
   );
 }

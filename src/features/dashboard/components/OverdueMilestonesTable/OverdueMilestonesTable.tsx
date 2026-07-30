@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import type { OverdueMilestoneRow } from "@/features/dashboard/queries";
 import { formatDate } from "@/lib/date";
 
@@ -24,6 +26,9 @@ const columns: ColumnDef<OverdueMilestoneRow>[] = [
 ];
 
 export function OverdueMilestonesTable({ milestones }: OverdueMilestonesTableProps) {
+  const router = useRouter();
+  const { startLoading } = useNavigationProgress();
+  const milestoneCaseMap = new Map(milestones.map((m) => [m.id, m.caseId]));
   const [isClient, setIsClient] = useState(false);
   const [, startTransition] = useTransition();
   useEffect(() => {
@@ -44,7 +49,20 @@ export function OverdueMilestonesTable({ milestones }: OverdueMilestonesTablePro
   return (
     <div className={styles.wrapper}>
       <h3 className={styles.heading}>Overdue Milestones</h3>
-      <DataTable columns={columns} rows={milestones} emptyContent={"No data yet"} />
+      <DataTable
+        columns={columns}
+        rows={milestones}
+        emptyContent={"No data yet"}
+        selectionMode="single"
+        selectionBehavior="replace"
+        onRowAction={(id) => {
+          const caseId = milestoneCaseMap.get(id);
+          if (caseId) {
+            startLoading();
+            router.push(`/case/${caseId}`);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -103,12 +103,6 @@ export function EditMilestoneModal({
     }
   }
 
-  const hasChanges =
-    title.trim() !== milestone.title ||
-    description.trim() !== (milestone.description ?? "") ||
-    dueDate.compare(toCalendarDate(milestone.due_date)) !== 0 ||
-    status !== (milestone.status as CaseMilestoneStatus);
-
   return (
     <>
       <Modal
@@ -159,7 +153,7 @@ export function EditMilestoneModal({
               <Button
                 variant="secondary"
                 type="submit"
-                isDisabled={!hasChanges || isPending || isDeleting}
+                isDisabled={isPending || isDeleting}
                 isPending={isPending}
               >
                 Save

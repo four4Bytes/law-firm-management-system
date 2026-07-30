@@ -52,12 +52,12 @@ const mockMilestone = (overrides: Record<string, unknown> = {}) => ({
   id: "1",
   title: "File complaint",
   description: null,
-  due_date: new Date("2024-05-01"),
+  due_date: new Date("2099-01-01"),
   status: "Pending" as const,
   case_id: "c1",
   created_by_user_id: "u1",
-  created_at: new Date("2024-05-01"),
-  updated_at: new Date("2024-05-01"),
+  created_at: new Date("2099-01-01"),
+  updated_at: new Date("2099-01-01"),
   reminder_days: null,
   last_reminded_at: null,
   case: { case_title: "Smith vs Jones" },
@@ -277,6 +277,27 @@ describe("getUpcomingMilestones", () => {
     const result = await getUpcomingMilestones();
 
     expect(result).toEqual([]);
+  });
+
+  it("includes milestones due earlier today (startOfDay boundary)", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2025-06-15T15:00:00Z"));
+      const earlierToday = new Date("2025-06-15T09:00:00Z");
+      const milestone = mockMilestone({
+        id: "1",
+        due_date: earlierToday,
+        title: "Today Milestone",
+      });
+      vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([milestone]);
+
+      const result = await getUpcomingMilestones();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].milestoneTitle).toBe("Today Milestone");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("propagates database errors", async () => {

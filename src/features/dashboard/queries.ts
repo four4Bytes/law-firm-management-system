@@ -100,9 +100,11 @@ export const getUpcomingConsultations = cache(
 );
 
 export const getUpcomingMilestones = cache(async (limit = 5): Promise<UpcomingMilestoneRow[]> => {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const milestones = await prisma.caseMilestone.findMany({
     take: limit,
-    where: { status: "Pending", due_date: { gte: new Date() } },
+    where: { status: "Pending", due_date: { gte: startOfDay } },
     orderBy: { due_date: "asc" },
     select: {
       id: true,

@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   const [statsResult, recentCasesResult, upcomingConsultationsResult, upcomingMilestonesResult] =
     await Promise.allSettled([
       getDashboardStats(),
-      getRecentCases(),
+      getRecentCases(10),
       getUpcomingConsultations(),
       getUpcomingMilestones(),
     ]);

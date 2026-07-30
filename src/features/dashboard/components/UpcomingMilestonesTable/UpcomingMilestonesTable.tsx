@@ -6,16 +6,16 @@ import { useEffect, useState, useTransition } from "react";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
-import type { OverdueMilestoneRow } from "@/features/dashboard/queries";
+import type { UpcomingMilestoneRow } from "@/features/dashboard/queries";
 import { formatDate } from "@/lib/date";
 
-import styles from "./OverdueMilestonesTable.module.css";
+import styles from "./UpcomingMilestonesTable.module.css";
 
-interface OverdueMilestonesTableProps {
-  milestones: OverdueMilestoneRow[];
+interface UpcomingMilestonesTableProps {
+  milestones: UpcomingMilestoneRow[];
 }
 
-const columns: ColumnDef<OverdueMilestoneRow>[] = [
+const columns: ColumnDef<UpcomingMilestoneRow>[] = [
   { id: "caseTitle", name: "Case Title", isRowHeader: true },
   { id: "milestoneTitle", name: "Milestone" },
   {
@@ -25,7 +25,7 @@ const columns: ColumnDef<OverdueMilestoneRow>[] = [
   },
 ];
 
-export function OverdueMilestonesTable({ milestones }: OverdueMilestonesTableProps) {
+export function UpcomingMilestonesTable({ milestones }: UpcomingMilestonesTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const milestoneCaseMap = new Map(milestones.map((m) => [m.id, m.caseId]));
@@ -38,9 +38,9 @@ export function OverdueMilestonesTable({ milestones }: OverdueMilestonesTablePro
   if (!isClient) {
     return (
       <div className={styles.wrapper}>
-        <h3 className={styles.heading}>Overdue Milestones</h3>
+        <h3 className={styles.heading}>Upcoming Milestones</h3>
         <div className={styles.loadingContainer}>
-          <ProgressCircle aria-label="Loading overdue milestones..." />
+          <ProgressCircle aria-label="Loading upcoming milestones..." />
         </div>
       </div>
     );
@@ -48,7 +48,7 @@ export function OverdueMilestonesTable({ milestones }: OverdueMilestonesTablePro
 
   return (
     <div className={styles.wrapper}>
-      <h3 className={styles.heading}>Overdue Milestones</h3>
+      <h3 className={styles.heading}>Upcoming Milestones</h3>
       <DataTable
         columns={columns}
         rows={milestones}

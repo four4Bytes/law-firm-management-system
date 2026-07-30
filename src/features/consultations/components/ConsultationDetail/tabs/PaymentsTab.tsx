@@ -81,6 +81,7 @@ export function PaymentsTab({ consultationId }: Props) {
   return (
     <>
       <ServerDataTable
+        cacheKey={`payments-${consultationId}`}
         fetchAction={(p) => getPaymentsPaginatedAction({ consultationId, ...p })}
         columns={columns}
         searchPlaceholder="Search payments..."

@@ -20,6 +20,7 @@ const columns: ColumnDef<AuditLogRow>[] = [
 export function ActivityLogTab({ consultationId }: Props) {
   return (
     <ServerDataTable
+      cacheKey={`activity-${consultationId}`}
       fetchAction={(p) =>
         getEntityActivityLogAction({ entityType: "Consultation", entityId: consultationId, ...p })
       }

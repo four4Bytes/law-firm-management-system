@@ -97,6 +97,7 @@ export function TasksTab({ caseId }: Props) {
   return (
     <>
       <ServerDataTable
+        cacheKey={`tasks-${caseId}`}
         fetchAction={(p) => getCaseTasksPaginatedAction({ caseId, ...p })}
         columns={columns}
         searchPlaceholder="Search tasks..."

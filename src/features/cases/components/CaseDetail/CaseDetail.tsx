@@ -9,7 +9,11 @@ import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
-import { deleteCaseAction, getCaseForEditAction } from "@/features/cases/actions";
+import {
+  deleteCaseAction,
+  getCaseForEditAction,
+  getCaseOverviewByIdAction,
+} from "@/features/cases/actions";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
 import { getClientForEditAction } from "@/features/clients/actions";
@@ -38,6 +42,7 @@ export function CaseDetail({ overview, userRole }: Props) {
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [overviewData, setOverviewData] = useState(overview);
   const [editData, setEditData] = useState<{
     caseData: CaseEditData;
     clientData: ClientEditData;
@@ -105,7 +110,7 @@ export function CaseDetail({ overview, userRole }: Props) {
       </Link>
 
       <CaseOverview
-        data={overview}
+        data={overviewData}
         onEdit={handleEdit}
         onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
@@ -149,9 +154,14 @@ export function CaseDetail({ overview, userRole }: Props) {
           key={editData.caseData.id}
           isOpen={!!editData}
           onOpenChange={() => setEditData(null)}
-          onSuccess={() => {
+          onSuccess={async () => {
             setEditData(null);
-            router.refresh();
+            try {
+              const fresh = await getCaseOverviewByIdAction(overview.id);
+              setOverviewData(fresh);
+            } catch {
+              // Fallback — stale data shown until next navigation
+            }
           }}
           caseData={editData.caseData}
           clientData={editData.clientData}

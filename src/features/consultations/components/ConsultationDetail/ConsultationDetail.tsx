@@ -14,6 +14,7 @@ import type { ClientEditData } from "@/features/clients/queries";
 import {
   deleteConsultationAction,
   getConsultationForEditAction,
+  getConsultationOverviewByIdAction,
 } from "@/features/consultations/actions";
 import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
 import type {
@@ -40,6 +41,7 @@ export function ConsultationDetail({ overview, userRole }: Props) {
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [overviewData, setOverviewData] = useState(overview);
   const [editData, setEditData] = useState<{
     consultation: ConsultationEditData;
     clientData: ClientEditData;
@@ -103,7 +105,7 @@ export function ConsultationDetail({ overview, userRole }: Props) {
       </Link>
 
       <ConsultationOverview
-        data={overview}
+        data={overviewData}
         onEdit={handleEdit}
         onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
@@ -139,9 +141,14 @@ export function ConsultationDetail({ overview, userRole }: Props) {
           key={editData.consultation.id}
           isOpen={!!editData}
           onOpenChange={() => setEditData(null)}
-          onSuccess={() => {
+          onSuccess={async () => {
             setEditData(null);
-            router.refresh();
+            try {
+              const fresh = await getConsultationOverviewByIdAction(overview.id);
+              setOverviewData(fresh);
+            } catch {
+              // Fallback — stale data shown until next navigation
+            }
           }}
           consultation={editData.consultation}
           clientData={editData.clientData}

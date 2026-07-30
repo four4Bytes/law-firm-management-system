@@ -59,7 +59,7 @@ export function UpcomingMilestonesTable({ milestones }: UpcomingMilestonesTableP
           const caseId = milestoneCaseMap.get(id);
           if (caseId) {
             startLoading();
-            router.push(`/case/${caseId}`);
+            router.push(`/case/${caseId}?tab=milestones`);
           }
         }}
       />

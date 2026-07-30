@@ -9,14 +9,22 @@
   color: var(--color-text-inverse);
 }
 
-.statusPending {
+.statusOpen {
+  background-color: var(--color-info);
+}
+
+.statusOngoing {
   background-color: var(--color-warning);
 }
 
-.statusDone {
+.statusClosed {
   background-color: var(--color-success);
 }
 
-.statusCancelled {
-  background-color: var(--color-neutral);
+.statusTerminated {
+  background-color: var(--color-danger);
+}
+
+.statusSettled {
+  background-color: var(--color-info);
 }

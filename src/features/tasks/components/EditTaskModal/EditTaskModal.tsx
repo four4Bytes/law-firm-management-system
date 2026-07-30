@@ -101,12 +101,6 @@ export function EditTaskModal({
     }
   }
 
-  const hasChanges =
-    title.trim() !== task.title ||
-    description.trim() !== (task.description ?? "") ||
-    status !== (task.status as TaskStatus) ||
-    !areSetsEqual(assigneeIds, new Set(task.assignee_ids));
-
   return (
     <>
       <Modal
@@ -173,7 +167,7 @@ export function EditTaskModal({
               <Button
                 variant="secondary"
                 type="submit"
-                isDisabled={!hasChanges || isPending || isDeleting}
+                isDisabled={isPending || isDeleting}
                 isPending={isPending}
               >
                 Save
@@ -200,12 +194,4 @@ export function EditTaskModal({
       </ConfirmDialog>
     </>
   );
-}
-
-function areSetsEqual(a: Set<string>, b: Set<string>): boolean {
-  if (a.size !== b.size) return false;
-  for (const item of a) {
-    if (!b.has(item)) return false;
-  }
-  return true;
 }

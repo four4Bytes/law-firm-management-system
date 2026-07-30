@@ -104,13 +104,6 @@ export function EditPaymentModal({
     }
   }
 
-  const hasChanges =
-    amount.trim() !== String(payment.amount) ||
-    paymentDate.compare(toCalendarDate(payment.payment_date)) !== 0 ||
-    status !== payment.status ||
-    paymentMethod.trim() !== (payment.payment_method ?? "") ||
-    receiptNumber.trim() !== (payment.receipt_number ?? "");
-
   return (
     <>
       <Modal
@@ -167,7 +160,7 @@ export function EditPaymentModal({
               <Button
                 variant="secondary"
                 type="submit"
-                isDisabled={!hasChanges || isPending || isDeleting}
+                isDisabled={isPending || isDeleting}
                 isPending={isPending}
               >
                 Save

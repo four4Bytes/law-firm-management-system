@@ -73,8 +73,6 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
     }
   }
 
-  const hasChanges = content.trim() !== note.content;
-
   return (
     <>
       <Modal
@@ -98,7 +96,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
               <Button
                 variant="secondary"
                 type="submit"
-                isDisabled={!hasChanges || isPending || isDeleting}
+                isDisabled={isPending || isDeleting}
                 isPending={isPending}
               >
                 Save

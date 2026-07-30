@@ -34,7 +34,7 @@ vi.mock("@/features/users/mutations", () => ({
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
-const sessionAdmin = { id: "admin-id", email: "admin@law.com", role: "Admin", name: "Admin" };
+const sessionAdmin = { id: "admin-id", email: "admin@law.com", role: Role.Admin, name: "Admin" };
 
 beforeEach(() => {
   vi.clearAllMocks();

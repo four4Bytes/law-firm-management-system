@@ -24,7 +24,7 @@ export type UpcomingConsultationRow = {
   status: string;
 };
 
-export type OverdueMilestoneRow = {
+export type UpcomingMilestoneRow = {
   id: string;
   caseId: string;
   caseTitle: string;
@@ -99,10 +99,10 @@ export const getUpcomingConsultations = cache(
   },
 );
 
-export const getOverdueMilestones = cache(async (limit = 5): Promise<OverdueMilestoneRow[]> => {
+export const getUpcomingMilestones = cache(async (limit = 5): Promise<UpcomingMilestoneRow[]> => {
   const milestones = await prisma.caseMilestone.findMany({
     take: limit,
-    where: { status: "Pending", due_date: { lt: new Date() } },
+    where: { status: "Pending", due_date: { gte: new Date() } },
     orderBy: { due_date: "asc" },
     select: {
       id: true,

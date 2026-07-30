@@ -1,14 +1,14 @@
 "use client";
 
 import { StatCard } from "@/components/ui/StatCard/StatCard";
-import { OverdueMilestonesTable } from "@/features/dashboard/components/OverdueMilestonesTable/OverdueMilestonesTable";
 import { RecentCasesTable } from "@/features/dashboard/components/RecentCasesTable/RecentCasesTable";
 import { UpcomingConsultationsTable } from "@/features/dashboard/components/UpcomingConsultationsTable/UpcomingConsultationsTable";
+import { UpcomingMilestonesTable } from "@/features/dashboard/components/UpcomingMilestonesTable/UpcomingMilestonesTable";
 import type {
   DashboardStats,
-  OverdueMilestoneRow,
   RecentCaseRow,
   UpcomingConsultationRow,
+  UpcomingMilestoneRow,
 } from "@/features/dashboard/queries";
 
 import styles from "./DashboardContent.module.css";
@@ -17,7 +17,7 @@ interface DashboardContentProps {
   stats: DashboardStats | null;
   recentCases: RecentCaseRow[] | null;
   upcomingConsultations: UpcomingConsultationRow[] | null;
-  overdueMilestones: OverdueMilestoneRow[] | null;
+  upcomingMilestones: UpcomingMilestoneRow[] | null;
 }
 
 function ErrorBlock({ message }: { message: string }) {
@@ -28,7 +28,7 @@ export function DashboardContent({
   stats,
   recentCases,
   upcomingConsultations,
-  overdueMilestones,
+  upcomingMilestones,
 }: DashboardContentProps) {
   return (
     <div className={styles.dashboard}>
@@ -60,10 +60,10 @@ export function DashboardContent({
           ) : (
             <ErrorBlock message="Failed to load upcoming consultations" />
           )}
-          {overdueMilestones ? (
-            <OverdueMilestonesTable milestones={overdueMilestones} />
+          {upcomingMilestones ? (
+            <UpcomingMilestonesTable milestones={upcomingMilestones} />
           ) : (
-            <ErrorBlock message="Failed to load overdue milestones" />
+            <ErrorBlock message="Failed to load upcoming milestones" />
           )}
         </div>
       </div>

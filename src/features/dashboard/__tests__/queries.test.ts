@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 import {
   getDashboardStats,
-  getOverdueMilestones,
   getRecentCases,
   getUpcomingConsultations,
+  getUpcomingMilestones,
 } from "../queries";
 
 vi.mock("@/lib/prisma", () => ({
@@ -236,15 +236,15 @@ describe("getUpcomingConsultations", () => {
   });
 });
 
-describe("getOverdueMilestones", () => {
-  it("returns overdue milestones with mapped fields", async () => {
+describe("getUpcomingMilestones", () => {
+  it("returns upcoming milestones with mapped fields", async () => {
     const milestones = [
       mockMilestone({ id: "1", title: "Milestone A" }),
       mockMilestone({ id: "2", title: "Milestone B" }),
     ];
     vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue(milestones);
 
-    const result = await getOverdueMilestones();
+    const result = await getUpcomingMilestones();
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
@@ -258,7 +258,7 @@ describe("getOverdueMilestones", () => {
       take: 5,
       where: {
         status: "Pending",
-        due_date: { lt: expect.any(Date) },
+        due_date: { gte: expect.any(Date) },
       },
       orderBy: { due_date: "asc" },
       select: {
@@ -271,10 +271,10 @@ describe("getOverdueMilestones", () => {
     });
   });
 
-  it("returns empty array when none overdue", async () => {
+  it("returns empty array when none upcoming", async () => {
     vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
 
-    const result = await getOverdueMilestones();
+    const result = await getUpcomingMilestones();
 
     expect(result).toEqual([]);
   });
@@ -283,6 +283,6 @@ describe("getOverdueMilestones", () => {
     const error = new Error("connection failed");
     vi.mocked(prisma.caseMilestone.findMany).mockRejectedValue(error);
 
-    await expect(getOverdueMilestones()).rejects.toThrow(error);
+    await expect(getUpcomingMilestones()).rejects.toThrow(error);
   });
 });

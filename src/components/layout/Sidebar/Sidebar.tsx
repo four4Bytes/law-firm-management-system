@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FaBars,
   FaClockRotateLeft,
@@ -61,6 +61,14 @@ export function Sidebar({ initialCollapsed = false, userName, userRole, userImag
   const { startLoading } = useNavigationProgress();
   const { isOpen, close } = useSidebar();
 
+  useEffect(() => {
+    for (const item of navItems) {
+      if (!item.roles || hasRole(userRole, ...item.roles)) {
+        router.prefetch(item.href);
+      }
+    }
+  }, [userRole, router]);
+
   const handleToggle = () => {
     const nextState = !collapsed;
     setCollapsed(nextState);
@@ -110,6 +118,7 @@ export function Sidebar({ initialCollapsed = false, userName, userRole, userImag
                 variant="navigation"
                 className={styles.navButton}
                 onPress={() => handleNavClick(item.href)}
+                onPointerEnter={() => router.prefetch(item.href)}
                 data-active={pathname.startsWith(item.href)}
                 title={collapsed ? item.label : undefined}
               >

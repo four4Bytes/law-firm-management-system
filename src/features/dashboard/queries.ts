@@ -26,6 +26,7 @@ export type UpcomingConsultationRow = {
 
 export type OverdueMilestoneRow = {
   id: string;
+  caseId: string;
   caseTitle: string;
   milestoneTitle: string;
   due_date: Date;
@@ -105,6 +106,7 @@ export const getOverdueMilestones = cache(async (limit = 5): Promise<OverdueMile
     orderBy: { due_date: "asc" },
     select: {
       id: true,
+      case_id: true,
       title: true,
       due_date: true,
       case: { select: { case_title: true } },
@@ -113,6 +115,7 @@ export const getOverdueMilestones = cache(async (limit = 5): Promise<OverdueMile
 
   return milestones.map((m) => ({
     id: m.id,
+    caseId: m.case_id,
     caseTitle: m.case.case_title,
     milestoneTitle: m.title,
     due_date: m.due_date,

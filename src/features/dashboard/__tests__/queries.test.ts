@@ -249,6 +249,7 @@ describe("getOverdueMilestones", () => {
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
       id: "1",
+      caseId: "c1",
       caseTitle: "Smith vs Jones",
       milestoneTitle: "Milestone A",
       due_date: milestones[0].due_date,
@@ -262,6 +263,7 @@ describe("getOverdueMilestones", () => {
       orderBy: { due_date: "asc" },
       select: {
         id: true,
+        case_id: true,
         title: true,
         due_date: true,
         case: { select: { case_title: true } },

@@ -1,8 +1,4 @@
-import { z } from "zod";
-
 import { prisma } from "@/lib/prisma";
-
-import { AuditLogPageQuerySchema, EntityActivityLogQuerySchema } from "./schemas";
 
 export type AuditLogRow = {
   id: string;
@@ -85,11 +81,24 @@ async function enrichEntityExistence(rows: AuditLogRow[]): Promise<void> {
   }
 }
 
+export interface AuditLogPageQuery {
+  search?: string;
+  cursor?: string;
+  pageSize?: number;
+}
+
+export interface EntityActivityLogQuery {
+  entityType: string;
+  entityId: string;
+  search?: string;
+  cursor?: string;
+  pageSize?: number;
+}
+
 export async function getAuditLogPaginated(
-  params: z.input<typeof AuditLogPageQuerySchema>,
+  params: AuditLogPageQuery,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
-  const parsed = AuditLogPageQuerySchema.parse(params);
-  const { search, cursor, pageSize } = parsed;
+  const { search = "", cursor, pageSize = 20 } = params;
 
   const where: Record<string, unknown> = {};
   if (search) where.OR = buildSearchWhere(search).OR;
@@ -100,10 +109,9 @@ export async function getAuditLogPaginated(
 }
 
 export async function getEntityActivityLogPaginated(
-  params: z.input<typeof EntityActivityLogQuerySchema>,
+  params: EntityActivityLogQuery,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
-  const parsed = EntityActivityLogQuerySchema.parse(params);
-  const { entityType, entityId, search, cursor, pageSize } = parsed;
+  const { entityType, entityId, search = "", cursor, pageSize = 20 } = params;
 
   const where: Record<string, unknown> = {
     entity_type: entityType,

@@ -112,6 +112,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         columns={columns}
         initialRows={users}
         initialCursor={initialCursor}
+        cacheKey="user-list"
         searchPlaceholder="Search users..."
         emptyContent="No users yet"
         loadingMessage="Loading users..."

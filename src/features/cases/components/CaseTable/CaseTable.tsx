@@ -93,6 +93,7 @@ export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
         columns={columns}
         initialRows={initialCases}
         initialCursor={initialCursor}
+        cacheKey="case-list"
         searchPlaceholder="Search cases..."
         emptyContent="No cases yet"
         loadingMessage="Loading cases..."

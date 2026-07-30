@@ -50,6 +50,7 @@ export function AuditTable() {
     <ServerDataTable
       fetchAction={getAuditLogAction}
       columns={columns}
+      cacheKey="audit-log"
       searchPlaceholder="Search activity..."
       emptyContent="No activity yet"
       loadingMessage="Loading activity log..."

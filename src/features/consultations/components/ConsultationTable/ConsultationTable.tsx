@@ -81,6 +81,7 @@ export function ConsultationTable({ initialConsultations, initialCursor }: Consu
         columns={columns}
         initialRows={initialConsultations}
         initialCursor={initialCursor}
+        cacheKey="consultation-list"
         searchPlaceholder="Search consultations..."
         emptyContent="No consultations yet"
         loadingMessage="Loading consultations..."

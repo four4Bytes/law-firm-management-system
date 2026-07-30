@@ -15,6 +15,13 @@ import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./ServerDataTable.module.css";
 
+interface CacheEntry {
+  rows: unknown[];
+  cursor: string | null;
+}
+
+const _tableCache = new Map<string, CacheEntry>();
+
 interface ServerDataTableProps<T extends { id: string }> {
   fetchAction: (params: {
     search?: string;
@@ -36,6 +43,7 @@ interface ServerDataTableProps<T extends { id: string }> {
   refreshTrigger?: number;
   initialRows?: T[];
   initialCursor?: string | null;
+  cacheKey?: string;
 }
 
 export function ServerDataTable<T extends { id: string }>({
@@ -54,11 +62,26 @@ export function ServerDataTable<T extends { id: string }>({
   refreshTrigger,
   initialRows,
   initialCursor,
+  cacheKey,
 }: ServerDataTableProps<T>) {
-  const [items, setItems] = useState<T[]>(initialRows ?? []);
-  const [cursor, setCursor] = useState<string | null>(initialCursor ?? null);
-  const [hasMore, setHasMore] = useState(initialRows !== undefined ? initialCursor !== null : true);
-  const [isInitialLoad, setIsInitialLoad] = useState(initialRows === undefined);
+  const cachedOnMount = cacheKey !== undefined && _tableCache.has(cacheKey);
+
+  const [items, setItems] = useState<T[]>(() => {
+    if (cachedOnMount) return _tableCache.get(cacheKey!)!.rows as T[];
+    return initialRows ?? [];
+  });
+  const [cursor, setCursor] = useState<string | null>(() => {
+    if (cachedOnMount) return _tableCache.get(cacheKey!)!.cursor;
+    return initialCursor ?? null;
+  });
+  const [hasMore, setHasMore] = useState(() => {
+    if (cachedOnMount) return _tableCache.get(cacheKey!)!.cursor !== null;
+    return initialRows !== undefined ? initialCursor !== null : true;
+  });
+  const [isInitialLoad, setIsInitialLoad] = useState(() => {
+    if (cachedOnMount) return false;
+    return initialRows === undefined;
+  });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
@@ -66,7 +89,9 @@ export function ServerDataTable<T extends { id: string }>({
 
   const isLoading = isFetching || isLoadingMore;
   const debouncedSearch = useDebounce(search, 300);
-  const skipInitialFetch = useRef(initialRows !== undefined);
+  const skipInitialFetch = useRef(initialRows !== undefined && !cachedOnMount);
+  const restoredFromCache = useRef(cachedOnMount);
+  const prevRefreshTriggerRef = useRef(refreshTrigger);
 
   const fetchActionRef = useRef(fetchAction);
   useEffect(() => {
@@ -81,10 +106,18 @@ export function ServerDataTable<T extends { id: string }>({
       return;
     }
 
+    if (cacheKey && refreshTrigger !== prevRefreshTriggerRef.current) {
+      prevRefreshTriggerRef.current = refreshTrigger;
+      _tableCache.delete(cacheKey);
+    }
+
     let cancelled = false;
     ++generationRef.current;
 
-    setIsFetching(true);
+    if (!restoredFromCache.current) {
+      setIsFetching(true);
+    }
+    restoredFromCache.current = false;
 
     async function fetchData() {
       try {
@@ -98,6 +131,9 @@ export function ServerDataTable<T extends { id: string }>({
         setCursor(result.nextCursor);
         setHasMore(result.nextCursor !== null);
         setIsInitialLoad(false);
+        if (cacheKey) {
+          _tableCache.set(cacheKey, { rows: result.rows, cursor: result.nextCursor });
+        }
       } catch {
         if (cancelled) return;
         setIsInitialLoad(false);
@@ -115,7 +151,7 @@ export function ServerDataTable<T extends { id: string }>({
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, sortDescriptor, refreshTrigger]);
+  }, [debouncedSearch, sortDescriptor, refreshTrigger, cacheKey]);
 
   const handleLoadMore = useCallback(async () => {
     if (isLoading || !hasMore || !cursor) return;
@@ -130,7 +166,13 @@ export function ServerDataTable<T extends { id: string }>({
         pageSize: 10,
       });
       if (gen !== generationRef.current) return;
-      setItems((prev) => [...prev, ...result.rows]);
+      setItems((prev) => {
+        const merged = [...prev, ...result.rows];
+        if (cacheKey) {
+          _tableCache.set(cacheKey, { rows: merged, cursor: result.nextCursor });
+        }
+        return merged;
+      });
       setCursor(result.nextCursor);
       setHasMore(result.nextCursor !== null);
     } catch {
@@ -141,7 +183,7 @@ export function ServerDataTable<T extends { id: string }>({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoading, hasMore, cursor, debouncedSearch, sortDescriptor]);
+  }, [isLoading, hasMore, cursor, debouncedSearch, sortDescriptor, cacheKey]);
 
   const computedEmptyContent =
     debouncedSearch && items.length === 0 && !isLoading

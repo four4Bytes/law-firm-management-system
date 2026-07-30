@@ -33,7 +33,7 @@
         --file-icon-color: var(--raw-sage);
       }
       &[data-category="ppt"] {
-        --file-icon-color: var(--raw-orange);
+        --file-icon-color: var(--raw-amber);
       }
       &[data-category="img"] {
         --file-icon-color: var(--raw-violet);

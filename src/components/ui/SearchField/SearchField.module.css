@@ -12,7 +12,6 @@
 
   &[data-disabled] .icon {
     color: var(--color-text-muted);
-    opacity: var(--opacity-disabled);
   }
 
   &[data-empty] .clearButton {
@@ -76,7 +75,6 @@
 
     &[data-disabled] {
       color: var(--color-text-muted);
-      opacity: var(--opacity-disabled);
       cursor: not-allowed;
 
       &::placeholder {

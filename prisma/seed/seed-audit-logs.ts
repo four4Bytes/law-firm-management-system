@@ -98,14 +98,14 @@ const auditLogs: AuditData[] = [
     action: "CREATE",
     entityType: "Consultation",
     details: "Created consultation for Antonio Lopez — Boundary dispute",
-    daysAgo: -3,
+    daysAgo: 1,
   },
   {
     actorEmail: "kevin.garcia@aninolaw.com",
     action: "CREATE",
     entityType: "Consultation",
     details: "Created consultation for Patricia Luna — Medical malpractice",
-    daysAgo: -2,
+    daysAgo: 1,
   },
   {
     actorEmail: "catherine.diaz@aninolaw.com",
@@ -428,6 +428,118 @@ const auditLogs: AuditData[] = [
     entityType: "Note",
     details: "Case note added: Estate tax return prepared for Rodriguez Estate Settlement",
     daysAgo: 2,
+  },
+  {
+    actorEmail: "miguel.cruz@aninolaw.com",
+    action: "CREATE",
+    entityType: "Consultation",
+    details: "Created consultation for Kristine Aguilar — Trademark registration consultation",
+    daysAgo: 7,
+  },
+  {
+    actorEmail: "marco.lopez@aninolaw.com",
+    action: "CREATE",
+    entityType: "Consultation",
+    details: "Created consultation for Carmela Torres — Debt collection defense",
+    daysAgo: 3,
+  },
+  {
+    actorEmail: "david.tan@aninolaw.com",
+    action: "CREATE",
+    entityType: "Task",
+    details:
+      "Task created: Coordinate with Registry of Deeds for Title Transfer for Dela Cruz case",
+    daysAgo: 2,
+  },
+  {
+    actorEmail: "miguel.cruz@aninolaw.com",
+    action: "CREATE",
+    entityType: "Task",
+    details:
+      "Task created: Prepare Judicial Affidavits for Witnesses for Reyes vs. San Miguel case",
+    daysAgo: 5,
+  },
+  {
+    actorEmail: "sofia.villanueva@aninolaw.com",
+    action: "UPDATE",
+    entityType: "Task",
+    details:
+      "Task rejected: Revise Petition per Supervising Counsel Comments — initial draft lacked factual basis for Alcantara case",
+    daysAgo: 4,
+  },
+  {
+    actorEmail: "marco.lopez@aninolaw.com",
+    action: "CREATE",
+    entityType: "Task",
+    details:
+      "Task created: File Reply to Bank's Opposition to TRO Application for Santos Foreclosure Defense",
+    daysAgo: 1,
+  },
+  {
+    actorEmail: "marco.lopez@aninolaw.com",
+    action: "UPDATE",
+    entityType: "Milestone",
+    details:
+      "Milestone cancelled: Barangay Mediation Attempt — no settlement reached, proceeding with court case for Lopez Boundary Litigation",
+    daysAgo: 7,
+  },
+  {
+    actorEmail: "gina.reyes@aninolaw.com",
+    action: "UPDATE",
+    entityType: "Milestone",
+    details:
+      "Milestone completed: Tax Reduction Approved by LBAA for Hernandez Property Tax Protest",
+    daysAgo: 1,
+  },
+  {
+    actorEmail: "catherine.diaz@aninolaw.com",
+    action: "CREATE",
+    entityType: "Payment",
+    details: "Payment recorded: Consultation fee from Carmela Torres — PHP 1,500",
+    daysAgo: 3,
+  },
+  {
+    actorEmail: "catherine.diaz@aninolaw.com",
+    action: "CREATE",
+    entityType: "Payment",
+    details: "Payment recorded: Partial retainer for Ramirez Corp Series A Funding — PHP 50,000",
+    daysAgo: 1,
+  },
+  {
+    actorEmail: "marco.lopez@aninolaw.com",
+    action: "CREATE",
+    entityType: "Document",
+    details: "Uploaded: Reply-to-Opposition-TRO-Santos.pdf",
+    daysAgo: 1,
+  },
+  {
+    actorEmail: "marco.lopez@aninolaw.com",
+    action: "CREATE",
+    entityType: "Note",
+    details: "Case note added: Barangay mediation failed for Lopez Boundary Litigation",
+    daysAgo: 6,
+  },
+  {
+    actorEmail: "gina.reyes@aninolaw.com",
+    action: "UPDATE",
+    entityType: "Note",
+    details:
+      "Case note added: LBAA decision received — assessed value reduced for Hernandez Property",
+    daysAgo: 1,
+  },
+  {
+    actorEmail: "miguel.cruz@aninolaw.com",
+    action: "CREATE",
+    entityType: "Document",
+    details: "Uploaded: NLRC-Notice-of-Conference-Castillo.pdf",
+    daysAgo: 2,
+  },
+  {
+    actorEmail: "marco.lopez@aninolaw.com",
+    action: "CREATE",
+    entityType: "Document",
+    details: "Uploaded: Intake-Form-Carmela-Torres.pdf",
+    daysAgo: 3,
   },
 ];
 

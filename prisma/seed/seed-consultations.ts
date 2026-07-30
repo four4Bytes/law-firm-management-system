@@ -7,6 +7,8 @@ interface ConsultationData {
   concern: string;
   status: ConsultationStatus;
   daysAgo: number;
+  reminderDays?: number;
+  lastRemindedDaysAgo?: number;
 }
 
 const consultations: ConsultationData[] = [
@@ -17,6 +19,7 @@ const consultations: ConsultationData[] = [
       "Boundary dispute with neighboring property owner — encroachment on northern lot boundary",
     status: "Scheduled",
     daysAgo: -3,
+    reminderDays: 3,
   },
   {
     clientEmail: "patricia.luna@email.com",
@@ -31,13 +34,16 @@ const consultations: ConsultationData[] = [
     concern: "Land title verification and transfer for inherited agricultural lot in Batangas",
     status: "Scheduled",
     daysAgo: -14,
+    reminderDays: 14,
   },
   {
     clientEmail: "aileen.castro@email.com",
     createdByEmail: "maya.fernandez@aninolaw.com",
     concern: "Review of business loan agreement with BDO — unclear default provisions",
     status: "Scheduled",
-    daysAgo: -5,
+    daysAgo: -2,
+    reminderDays: 3,
+    lastRemindedDaysAgo: 0,
   },
   {
     clientEmail: "roberto.hernandez@email.com",
@@ -146,6 +152,40 @@ const consultations: ConsultationData[] = [
     status: "Cancelled",
     daysAgo: 12,
   },
+  {
+    clientEmail: "kristine.aguilar@email.com",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    concern:
+      "Trademark registration — small business owner seeking to register brand name and logo under IPOPHL",
+    status: "Scheduled",
+    daysAgo: -7,
+  },
+  {
+    clientEmail: "carmela.torres@email.com",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    concern:
+      "Debt collection defense — credit card debt of PHP 450K, bank threatening collection suit through external counsel",
+    status: "Completed",
+    daysAgo: 3,
+  },
+  {
+    clientEmail: "jose.mercado@email.com",
+    createdByEmail: "jessica.lim@aninolaw.com",
+    concern:
+      "Contract review — software development agreement with offshore team, concerned about IP ownership and non-compete clauses",
+    status: "Scheduled",
+    daysAgo: -1,
+    reminderDays: 1,
+  },
+  {
+    clientEmail: "diana.navarro@email.com",
+    createdByEmail: "nina.salvador@aninolaw.com",
+    concern:
+      "Child custody modification — ex-spouse seeking to relocate abroad with minor child, need urgent legal advice",
+    status: "Scheduled",
+    daysAgo: -10,
+    reminderDays: 10,
+  },
 ];
 
 export async function seedConsultations(
@@ -159,6 +199,11 @@ export async function seedConsultations(
     const bookingDate = new Date();
     bookingDate.setDate(bookingDate.getDate() - c.daysAgo);
 
+    const remindedAt =
+      c.lastRemindedDaysAgo !== undefined
+        ? new Date(Date.now() - c.lastRemindedDaysAgo * 86_400_000)
+        : undefined;
+
     const consultation = await prisma.consultation.create({
       data: {
         client_id: clientByEmail[c.clientEmail],
@@ -166,6 +211,8 @@ export async function seedConsultations(
         booking_datetime: bookingDate,
         concern: c.concern,
         status: c.status,
+        reminder_days: c.reminderDays ?? null,
+        last_reminded_at: remindedAt ?? null,
       },
     });
     created.push({ id: consultation.id, status: c.status });

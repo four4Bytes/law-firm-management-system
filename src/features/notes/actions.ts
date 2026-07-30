@@ -79,6 +79,10 @@ export async function updateNoteAction(
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
 
+    if (existing.content === content) {
+      return { success: true };
+    }
+
     await updateNote(noteId, content);
 
     after(() =>

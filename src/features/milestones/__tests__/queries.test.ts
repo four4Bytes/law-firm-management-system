@@ -45,6 +45,7 @@ describe("getMilestoneById", () => {
         due_date: true,
         status: true,
         case_id: true,
+        reminder_days: true,
       },
     });
   });

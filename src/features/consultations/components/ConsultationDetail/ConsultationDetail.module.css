@@ -18,7 +18,7 @@
     width: fit-content;
   }
 
-  .backLink:hover {
+  .backLink[data-hovered] {
     color: var(--color-text-primary);
   }
 }

@@ -8,13 +8,12 @@ The system uses **Google OAuth 2.0** as its sole authentication provider. There 
 
 - Provider: `next-auth/providers/google`
 - Sessions use **JWT strategy** (no database sessions).
-- `allowDangerousEmailAccountLinking` is enabled to avoid `OAuthAccountNotLinked` errors when the same Google account is used across environments.
 
 ### Sign-In Flow
 
 1. User authenticates via Google.
 2. The `signIn` callback verifies `email_verified` is `true`.
-3. If the email is in `DEVELOPER_EMAILS` (allowlist), a developer account is upserted and access is granted. This bypasses the normal user database — useful for bootstrapping and development.
+3. If the email is in `DEVELOPER_EMAILS` (allowlist), a developer account is upserted and access is granted. This bypasses the normal user database — used for bootstrapping and development.
 4. For non-developer emails: the user must exist in the `User` table and have `is_active = true`. Access is denied (`signIn` returns `false`) otherwise.
 5. On sign-in, the user's name and avatar are synced from Google via `syncUserFromGoogle`.
 
@@ -39,8 +38,6 @@ The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email a
 4. Once `Admin` users exist, either:
    - The `Dev` user deactivates or removes themselves, or
    - An `Admin` deactivates or removes the `Dev` user.
-
-The `Dev` role has no permissions beyond user management (`CRUD` on `User`). It cannot create cases, consultations, or any other business data. See [Specification — Global Permissions](./specification.md#global-permissions).
 
 On startup, `src/instrumentation.ts` reads `DEVELOPER_EMAILS` and creates `Dev`-role users for any emails not yet in the database. This ensures the bootstrap flow works even when the app is deployed fresh.
 

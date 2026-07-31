@@ -73,7 +73,7 @@ ADMIN
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
 | CREATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
 | UPDATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
+| READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 | DELETE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
 
 ---

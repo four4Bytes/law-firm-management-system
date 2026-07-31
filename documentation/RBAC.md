@@ -1,11 +1,16 @@
-# RBAC
+# Role-Based Access Control (RBAC)
 
-> This the initial RBAC (not final)
+> **Note:** The current system implementation will be based on this document (planned implementation).
+> This is the initial RBAC draft (subject to change).
 
 ## Roles
 
+> **Dev accounts** are temporary and not part of the standard workflow.
+> Admins should remove Dev accounts once initial setup is complete.
+> Once removed, Dev accounts cannot sign in again unless explicitly re-added.
+
 ```
-DEV - Initial user to bootstrap and to test the functionality of the app.
+DEV
 
 ADMIN
   -> BRANCH MANAGER
@@ -15,30 +20,35 @@ ADMIN
 
 ```
 
+---
+
 ## Access Legend
 
-- YES: Can perform the action
-- NO: Cannot perform the action.
-- ASSIGNED: Can perform the action ONLY on records assigned to them.
-- OWN: Can access records created by them.
+- **YES**: Can perform the action.
+- **NO**: Cannot perform the action.
+- **ASSIGNED**: Can perform the action **ONLY** on records assigned to them.
+- **OWN**: Can perform the action **ONLY** on records created by them.
 
 ---
 
-- C = CREATE
-- R = VIEW/READ
-- U = UPDATE/EDIT
-- D = DELETE
+- **C** = CREATE
+- **R** = VIEW / READ
+- **U** = UPDATE / EDIT
+- **D** = DELETE
+
+---
 
 ## Data Action Permissions
 
-> Client record is created along side with case/consultation
-> creation so they shared the same permission as case/consultation.
+> **Note on Client Records:** A Client record is created alongside a case or consultation, so it shares the same permissions as the associated case or consultation.
 
-> All sub-data permissions (Tasks, Notes, Milestones, Attachments) are gated by Case Assignment.
+> **Note on Case Sub-Data Gating:** All sub-data permissions (Tasks, Notes, Milestones, Attachments) are strictly gated by Case Assignment:
 >
-> - If a user is NOT assigned to a Case (via `CaseAssignment`), they automatically have NO access to any of that Case's sub-data, regardless of the tables below.
-> - If a user IS assigned to a Case, their actions on sub-data are governed by the tables below.
-> - This rule only applies to Lawyer and below. see [Roles](##Roles) for the Hierarchy
+> - If a user is **NOT** assigned to a Case (via `CaseAssignment`), they automatically have **NO access** to any of that Case's sub-data, regardless of the tables below.
+> - If a user **IS** assigned to a Case, their actions on sub-data are governed by the tables below.
+> - This rule applies only to **Lawyers and below** (see [Roles](#roles) for the hierarchy).
+
+---
 
 ### User
 
@@ -49,9 +59,11 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |       NO       |   NO   |    NO     |       NO       |
 
+---
+
 ### Activity Log
 
-> Log is created on every action(CRUD), it is strictly READ only (IMMUTABLE).
+> Logs are created automatically for every action (CRUD) and are strictly **READ-ONLY** (IMMUTABLE).
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -71,13 +83,15 @@ ADMIN
 | READ   | YES |  YES  |      YES       |   YES    |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |    NO    |    NO     |       NO       |
 
-## Sub data of Case
+---
 
-> These data/records are under the case.
+## Sub-Data of Case
+
+> These records exist under a Case.
 
 #### Tasks
 
-> Task assignment is controlled by UPDATE/CREATE.
+> Task assignment is controlled via CREATE and UPDATE actions.
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -115,7 +129,7 @@ ADMIN
 
 #### Attachments
 
-> No update, to update users must delete the old record and add the new one.
+> No update action available. To replace a record, users must delete the old attachment and add a new one.
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -143,9 +157,11 @@ ADMIN
 | READ   | YES |  YES  |      YES       |   YES    |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |    NO    |    NO     |       NO       |
 
-## Sub data of Consultation
+---
 
-> These data/records are under the consultation.
+## Sub-Data of Consultation
+
+> These records exist under a Consultation.
 
 #### Payment
 
@@ -167,7 +183,7 @@ ADMIN
 
 #### Attachments
 
-> No update, to update users must delete the old record and add the new one.
+> No update action available. To replace a record, users must delete the old attachment and add a new one.
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |

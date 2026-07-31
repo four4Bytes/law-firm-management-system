@@ -17,6 +17,8 @@ The system uses **Google OAuth 2.0** as its sole authentication provider. There 
 4. For non-developer emails: the user must exist in the `User` table and have `is_active = true`. Access is denied (`signIn` returns `false`) otherwise.
 5. On sign-in, the user's name and avatar are synced from Google via `syncUserFromGoogle`.
 
+**Account Linking Warning:** The authentication configuration enables `allowDangerousEmailAccountLinking: true`. This means that when a user signs in with Google using a verified email address that matches an existing account (created via a different OAuth provider or method), NextAuth will automatically link the Google provider to that existing account instead of blocking the sign-in. This can pose security risks if email addresses are not properly verified across all providers.
+
 ### JWT Session Callbacks
 
 | Callback                      | Purpose                                                                                                                           |
@@ -38,6 +40,7 @@ The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email a
 4. Once `Admin` users exist, either:
    - The `Dev` user deactivates or removes themselves, or
    - An `Admin` deactivates or removes the `Dev` user.
+5. To fully remove a Dev user, also remove their email from `DEVELOPER_EMAILS`. Users not listed in `DEVELOPER_EMAILS` are excluded from the developer allowlist bootstrap path.
 
 On startup, `src/instrumentation.ts` reads `DEVELOPER_EMAILS` and creates `Dev`-role users for any emails not yet in the database. This ensures the bootstrap flow works even when the app is deployed fresh.
 
@@ -65,7 +68,7 @@ export async function createCaseAction(payload: CasePayload): Promise<ActionStat
 
 ### Role-Based Access Control (RBAC)
 
-RBAC enforcement is **not yet implemented**. The planned permission model is documented in [Specification — Global Permissions](./specification.md#global-permissions) and [Case Context Permissions](./specification.md#case-context-permissions).
+RBAC enforcement is **not yet implemented**. The planned permission model is documented in [RBAC.md](./RBAC.md).
 
 The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManager`, `Lawyer`, `Paralegal`, `ProcessServer`.
 

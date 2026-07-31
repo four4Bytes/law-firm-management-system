@@ -2,7 +2,7 @@
 
 > **Status:** RBAC is not yet implemented — the tables below are the planned model, not the current state. The final scope and behavior still need confirmation.
 
-> see [RCAC](documentation/RBAC.md) for more intuitive version.
+> **Note:** The permission matrices in this document are provided for quick reference only and may not reflect the latest RBAC design. For the authoritative and most up-to-date access control rules, see [RBAC.md](RBAC.md), which is the canonical documentation for role-based permissions.
 
 A web-based case management system for **Anino Law & Real Estate Firm**. Manages end-to-end case workflows — from client consultation and intake to task delegation, document management, milestone tracking, and payment recording.
 
@@ -52,7 +52,7 @@ ADMIN
 **Notes:**
 
 - Activity Logs are immutable — created automatically by the system. No role can create, update, or delete log entries. All roles are limited to read-only access.
-- Client profiles can be created standalone or during case/consultation creation.
+- Client profiles are typically created alongside cases or consultations. While the codebase supports standalone Client creation via actions, no UI currently exists for managing them independently.
 - Documents attached to a consultation are stored separately — they do not appear in the case Attachments tab (planned).
 - The Global Attachment tab displays all files across the entire case, including sub-task files, with status, timestamp, and link to the originating task (planned).
 - Payment data is restricted to Admin and BranchManager (planned — currently uses `requireAuth()` only).

@@ -1,14 +1,15 @@
 # Role-Based Access Control (RBAC)
 
 > The current system implementation will be based on this document (planned implementation).
-
+>
 > This is the initial RBAC draft (subject to change).
 
 ## Roles
 
 > **Dev accounts** are temporary and not part of the standard workflow.
 > Admins should remove Dev accounts once initial setup is complete.
-> Once removed, Dev accounts cannot sign in again unless explicitly re-added.
+> Once removed, Dev accounts cannot sign in again unless the user is explicitly re-added **and** their email is re-added to `DEVELOPER_EMAILS`.
+> Users not listed in `DEVELOPER_EMAILS` are excluded from the developer allowlist bootstrap path.
 
 ```
 DEV
@@ -41,8 +42,8 @@ ADMIN
 
 ## Data Action Permissions
 
-> A Client record is created alongside a case or consultation, so it shares the same permissions as the associated case or consultation.
-
+> Client records are typically created alongside a case or consultation. While the system supports standalone Client profiles, no UI currently exists for managing them independently. Clients inherit access controls from their associated cases or consultations.
+>
 > All sub-data permissions (Tasks, Notes, Milestones, Attachments) are strictly gated by Case Assignment:
 >
 > - If a user is **NOT** assigned to a Case (via `CaseAssignment`), they automatically have **NO access** to any of that Case's sub-data, regardless of the tables below.
@@ -93,7 +94,7 @@ ADMIN
 
 > These records exist under a Case.
 
-#### Tasks
+### Tasks
 
 > Task assignment is controlled via CREATE and UPDATE actions.
 
@@ -104,7 +105,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
 
-#### Payment
+### Payment
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -113,7 +114,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 | DELETE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-#### Note
+### Note
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -122,7 +123,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Milestone
+### Milestone
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -131,7 +132,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
 
-#### Attachments
+### Attachments
 
 > No update action available. To replace a record, users must delete the old attachment and add a new one.
 
@@ -141,7 +142,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Activity Log
+### Activity Log
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -167,7 +168,7 @@ ADMIN
 
 > These records exist under a Consultation.
 
-#### Payment
+### Payment
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -176,7 +177,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 | DELETE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-#### Note
+### Note
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -185,7 +186,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Attachments
+### Attachments
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -193,7 +194,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Activity Log
+### Activity Log
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |

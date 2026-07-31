@@ -2,6 +2,8 @@
 
 > **Status:** RBAC is not yet implemented — the tables below are the planned model, not the current state. The final scope and behavior still need confirmation.
 
+> see [RCAC](documentation/RBAC.md) for more intuitive version.
+
 A web-based case management system for **Anino Law & Real Estate Firm**. Manages end-to-end case workflows — from client consultation and intake to task delegation, document management, milestone tracking, and payment recording.
 
 ## Role Hierarchy

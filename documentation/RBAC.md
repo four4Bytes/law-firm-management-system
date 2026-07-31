@@ -1,6 +1,7 @@
 # Role-Based Access Control (RBAC)
 
-> **Note:** The current system implementation will be based on this document (planned implementation).
+> The current system implementation will be based on this document (planned implementation).
+
 > This is the initial RBAC draft (subject to change).
 
 ## Roles
@@ -31,18 +32,18 @@ ADMIN
 
 ---
 
-- **C** = CREATE
-- **R** = VIEW / READ
+- **C** = CREATE / ADD
+- **R** = READ / VIEW
 - **U** = UPDATE / EDIT
-- **D** = DELETE
+- **D** = DELETE / REMOVE
 
 ---
 
 ## Data Action Permissions
 
-> **Note on Client Records:** A Client record is created alongside a case or consultation, so it shares the same permissions as the associated case or consultation.
+> A Client record is created alongside a case or consultation, so it shares the same permissions as the associated case or consultation.
 
-> **Note on Case Sub-Data Gating:** All sub-data permissions (Tasks, Notes, Milestones, Attachments) are strictly gated by Case Assignment:
+> All sub-data permissions (Tasks, Notes, Milestones, Attachments) are strictly gated by Case Assignment:
 >
 > - If a user is **NOT** assigned to a Case (via `CaseAssignment`), they automatically have **NO access** to any of that Case's sub-data, regardless of the tables below.
 > - If a user **IS** assigned to a Case, their actions on sub-data are governed by the tables below.
@@ -51,6 +52,9 @@ ADMIN
 ---
 
 ### User
+
+> Role assignment and user provisioning are managed here. Since there is no self-registration, users with CREATE permission are responsible for adding
+> new users to the system. Any user not added here is not allowed to sign in. See [Security](./security.md) for more information on how authentication is handled.
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -182,8 +186,6 @@ ADMIN
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
 #### Attachments
-
-> No update action available. To replace a record, users must delete the old attachment and add a new one.
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |

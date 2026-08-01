@@ -15,6 +15,7 @@ import {
   requiredText,
   selectEnumHandler,
   toDateValue,
+  uniqueUuidArray,
 } from "@/lib/form-utils";
 
 const SampleStatus = { Active: "active", Inactive: "inactive" } as const;
@@ -179,6 +180,30 @@ describe("Zod message builders", () => {
     it("reports an invalid-format message", () => {
       expect(schema.safeParse("not-an-email").error?.issues[0]?.message).toBe(
         "Enter a valid email",
+      );
+    });
+  });
+
+  describe("uniqueUuidArray", () => {
+    const uuid = "550e8400-e29b-41d4-a716-446655440000";
+    const schema = uniqueUuidArray("Assignee");
+
+    it("accepts unique uuids", () => {
+      expect(schema.safeParse([uuid]).success).toBe(true);
+      expect(schema.safeParse([uuid, "550e8400-e29b-41d4-a716-446655440001"]).success).toBe(true);
+    });
+
+    it("rejects a non-uuid entry", () => {
+      expect(schema.safeParse(["abc"]).success).toBe(false);
+    });
+
+    it("rejects duplicate uuids", () => {
+      expect(schema.safeParse([uuid, uuid]).success).toBe(false);
+    });
+
+    it("reports a uniqueness message", () => {
+      expect(schema.safeParse([uuid, uuid]).error?.issues[0]?.message).toBe(
+        "Assignees must be unique",
       );
     });
   });

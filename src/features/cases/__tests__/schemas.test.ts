@@ -86,6 +86,14 @@ describe("CaseCreatePayloadSchema", () => {
       CaseCreatePayloadSchema.safeParse({ ...base, source_consultation_id: "abc" }).success,
     ).toBe(false);
   });
+
+  it("rejects duplicate assignee ids", () => {
+    const result = CaseCreatePayloadSchema.safeParse({
+      ...base,
+      assignee_ids: [uuid, uuid],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("CaseUpdatePayloadSchema", () => {

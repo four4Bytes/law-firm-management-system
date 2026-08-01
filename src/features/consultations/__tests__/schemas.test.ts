@@ -97,6 +97,14 @@ describe("ConsultationCreatePayloadSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects duplicate assignee ids", () => {
+    const result = ConsultationCreatePayloadSchema.safeParse({
+      ...base,
+      assignee_ids: [uuid, uuid],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("ConsultationUpdatePayloadSchema", () => {

@@ -62,6 +62,15 @@ describe("TaskCreatePayloadSchema", () => {
       expect(result.data.status).toBe("Pending");
     }
   });
+
+  it("rejects duplicate assignee ids", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      case_id: uuid,
+      assignee_ids: [uuid, uuid],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("TaskUpdatePayloadSchema", () => {

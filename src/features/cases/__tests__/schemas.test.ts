@@ -4,6 +4,8 @@ import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
   CaseUpdatePayloadSchema,
+  CaseWithClientCreatePayloadSchema,
+  CaseWithClientUpdatePayloadSchema,
 } from "../schemas";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -136,6 +138,46 @@ describe("CaseUpdatePayloadSchema", () => {
       case_title: "t",
       case_type: "Civil",
       status: "NotAStatus",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicate assignee ids", () => {
+    const result = CaseUpdatePayloadSchema.safeParse({
+      caseId: uuid,
+      client_id: uuid,
+      case_title: "t",
+      case_type: "Civil",
+      status: "Open",
+      assignee_ids: [uuid, uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("CaseWithClientPayloadSchemas", () => {
+  const client = { name: "Client" };
+  const duplicateCase = {
+    case_title: "t",
+    case_type: "Civil",
+    status: "Open",
+    assignee_ids: [uuid, uuid],
+  };
+
+  it("CaseWithClientCreatePayloadSchema rejects duplicate assignee ids", () => {
+    const result = CaseWithClientCreatePayloadSchema.safeParse({
+      client,
+      case: duplicateCase,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("CaseWithClientUpdatePayloadSchema rejects duplicate assignee ids", () => {
+    const result = CaseWithClientUpdatePayloadSchema.safeParse({
+      case_id: uuid,
+      client_id: uuid,
+      client,
+      case: duplicateCase,
     });
     expect(result.success).toBe(false);
   });

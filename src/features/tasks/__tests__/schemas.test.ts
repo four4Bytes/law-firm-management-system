@@ -119,4 +119,14 @@ describe("TaskUpdatePayloadSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects duplicate assignee ids", () => {
+    const result = TaskUpdatePayloadSchema.safeParse({
+      taskId: uuid,
+      title: "Task",
+      status: "Pending",
+      assignee_ids: [uuid, uuid],
+    });
+    expect(result.success).toBe(false);
+  });
 });

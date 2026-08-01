@@ -23,6 +23,7 @@ async function cleanDatabase() {
   await prisma.task.deleteMany();
   await prisma.caseAssignment.deleteMany();
   await prisma.case.deleteMany();
+  await prisma.consultationAssignment.deleteMany();
   await prisma.consultation.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.client.deleteMany();

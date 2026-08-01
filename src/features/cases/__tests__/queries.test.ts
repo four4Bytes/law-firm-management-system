@@ -36,8 +36,9 @@ const caseSelect = {
   created_at: true,
   client: { select: { name: true } },
   caseAssignments: {
+    where: { user: { is_active: true } },
     select: { user: { select: { name: true } } },
-    orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }],
+    orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
   },
   milestones: {
     orderBy: { created_at: "desc" as const },
@@ -292,8 +293,9 @@ describe("getCaseOverviewById", () => {
         client: true,
         createdBy: { select: { name: true } },
         caseAssignments: {
+          where: { user: { is_active: true } },
           include: { user: { select: { id: true, name: true } } },
-          orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }],
+          orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
         },
         milestones: { orderBy: { created_at: "desc" }, take: 1 },
         sourceConsultation: { select: { id: true, concern: true } },
@@ -760,11 +762,22 @@ describe("getCaseEditData", () => {
         parties_involved: true,
         source_consultation_id: true,
         caseAssignments: {
-          where: { user: { is_active: true } },
           select: { user_id: true },
         },
       },
     });
+  });
+
+  it("includes assignee ids of inactive users", async () => {
+    const record: CaseWithAssignments = {
+      ...caseEditRecord,
+      caseAssignments: [{ user_id: "u1" }, { user_id: "u9" }],
+    };
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(record);
+
+    const result = await getCaseEditData("1");
+
+    expect(result).toMatchObject({ assignee_ids: ["u1", "u9"] });
   });
 
   it("returns null when the case is not found", async () => {

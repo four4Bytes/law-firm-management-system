@@ -1,8 +1,7 @@
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { getActiveUserIdsByRoles } from "@/features/users/queries";
+import { getRoleRecipientIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import { getOptionalInteger } from "@/lib/env";
-import { notificationRoleConfig } from "@/lib/notification-config";
 
 import {
   claimConsultationReminder,
@@ -80,9 +79,7 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
   const consultations = await getConsultationsNeedingReminder();
   if (consultations.length === 0) return;
 
-  const adminIds = await getActiveUserIdsByRoles({
-    roles: notificationRoleConfig[NotificationType.ConsultationReminder],
-  });
+  const adminIds = await getRoleRecipientIds(NotificationType.ConsultationReminder);
   if (adminIds.length === 0) return;
 
   const reminded: string[] = [];

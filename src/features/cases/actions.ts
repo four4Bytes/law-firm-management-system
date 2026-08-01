@@ -22,12 +22,11 @@ import {
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { resolveAssignmentRecipients } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
-import { getActiveUserIdsByRoles } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -46,30 +45,6 @@ import {
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
-
-/**
- * Helper: loads role-based recipients for CaseAssigned notifications and merges
- * with optional assignee IDs, falling back to existing DB assignees when a
- * caseId is given and no new assigneeIds are provided.
- */
-async function resolveNotifyIds(payload: { assigneeIds?: string[]; caseId?: string }) {
-  const { assigneeIds, caseId } = payload;
-
-  const roleIds = await getActiveUserIdsByRoles({
-    roles: notificationRoleConfig[NotificationType.CaseAssigned],
-  });
-
-  if (assigneeIds?.length) {
-    return [...new Set([...roleIds, ...assigneeIds])];
-  }
-
-  if (caseId) {
-    const existingIds = await getCaseAssigneeIds(caseId);
-    return [...new Set([...roleIds, ...existingIds])];
-  }
-
-  return roleIds;
-}
 
 export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
   cases: CaseRow[];
@@ -225,7 +200,12 @@ export async function createCaseAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({ assigneeIds: assignee_ids });
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.CaseAssigned,
+          directUserIds: assignee_ids,
+          entityId: createdCase.id,
+          getExistingDirectUserIds: getCaseAssigneeIds,
+        });
 
         await dispatchNotifications(
           {
@@ -288,7 +268,12 @@ export async function createCaseWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({ assigneeIds: caseData.assignee_ids });
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.CaseAssigned,
+          directUserIds: caseData.assignee_ids,
+          entityId: createdWithClient.id,
+          getExistingDirectUserIds: getCaseAssigneeIds,
+        });
 
         await dispatchNotifications(
           {
@@ -364,9 +349,11 @@ export async function updateCaseAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({
-          assigneeIds: assignee_ids,
-          caseId,
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.CaseAssigned,
+          directUserIds: assignee_ids,
+          entityId: caseId,
+          getExistingDirectUserIds: getCaseAssigneeIds,
         });
 
         await dispatchNotifications(
@@ -428,9 +415,11 @@ export async function updateCaseWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({
-          assigneeIds: caseData.assignee_ids,
-          caseId: case_id,
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.CaseAssigned,
+          directUserIds: caseData.assignee_ids,
+          entityId: case_id,
+          getExistingDirectUserIds: getCaseAssigneeIds,
         });
 
         await dispatchNotifications(

@@ -5,9 +5,15 @@ import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/qu
 import type { NoteRow } from "@/features/notes/queries";
 import type { Consultation, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
 
 export interface ConsultationPageQuery extends PageQuery {
+  consultationId: string;
+}
+
+export interface ConsultationAccessPayload {
+  userId: string;
   consultationId: string;
 }
 
@@ -139,6 +145,7 @@ export const getConsultationNotesPaginated = cache(
       id: n.id,
       content: n.content,
       author: n.createdBy.name,
+      created_by_user_id: n.created_by_user_id,
       created_at: n.created_at,
     }));
 
@@ -162,23 +169,24 @@ export const getConsultationDocumentsPaginated = cache(
 );
 
 export const getConsultationsPaginated = cache(
-  async ({
-    search = "",
-    cursor,
-    pageSize = 20,
-    sort,
-  }: PageQuery): Promise<{
+  async (
+    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    assignedUserId?: string,
+  ): Promise<{
     consultations: ConsultationRow[];
     nextCursor: string | null;
   }> => {
-    const where = search
-      ? {
-          OR: [
-            { concern: { contains: search, mode: "insensitive" as const } },
-            { client: { name: { contains: search, mode: "insensitive" as const } } },
-          ],
-        }
-      : undefined;
+    const where = {
+      ...(search
+        ? {
+            OR: [
+              { concern: { contains: search, mode: "insensitive" as const } },
+              { client: { name: { contains: search, mode: "insensitive" as const } } },
+            ],
+          }
+        : {}),
+      ...(assignedUserId ? { consultationAssignments: { some: { user_id: assignedUserId } } } : {}),
+    };
 
     const defaultOrderBy = { booking_datetime: "desc" } as const;
 
@@ -228,7 +236,7 @@ export const getConsultationsPaginated = cache(
 
 export type ConsultationEditData = Pick<
   Consultation,
-  "id" | "client_id" | "concern" | "booking_datetime" | "status"
+  "id" | "client_id" | "concern" | "booking_datetime" | "status" | "created_by_user_id"
 > & { assignee_ids: string[] };
 
 export const getConsultationAssigneeIds = cache(
@@ -251,6 +259,7 @@ export const getConsultationEditData = cache(
         concern: true,
         booking_datetime: true,
         status: true,
+        created_by_user_id: true,
         consultationAssignments: {
           select: { user_id: true },
         },
@@ -265,7 +274,30 @@ export const getConsultationEditData = cache(
       concern: data.concern,
       booking_datetime: data.booking_datetime,
       status: data.status,
+      created_by_user_id: data.created_by_user_id,
       assignee_ids: data.consultationAssignments.map((a) => a.user_id),
+    };
+  },
+);
+
+// ----- Access context -----
+
+export const getUserConsultationAccess = cache(
+  async ({ userId, consultationId }: ConsultationAccessPayload): Promise<AccessContext> => {
+    const [assignment, consultation] = await Promise.all([
+      prisma.consultationAssignment.findFirst({
+        where: { consultation_id: consultationId, user_id: userId },
+        select: { id: true },
+      }),
+      prisma.consultation.findUnique({
+        where: { id: consultationId },
+        select: { created_by_user_id: true },
+      }),
+    ]);
+
+    return {
+      assigned: assignment !== null,
+      own: consultation?.created_by_user_id === userId,
     };
   },
 );

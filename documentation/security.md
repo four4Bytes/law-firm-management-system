@@ -49,23 +49,23 @@ See `src/lib/developer-emails.ts` and `src/features/users/mutations.ts:upsertDev
 
 Defined in `src/lib/auth-guards.ts`.
 
-| Function                | Throws           | Description                                                                                               |
-| ----------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
-| `requireAuth()`         | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user. |
-| `requireRole(...roles)` | `"Forbidden"`    | Calls `requireAuth()`, then checks the user has one of the specified roles.                               |
+| Function                 | Throws           | Description                                                                                                                                               |
+| ------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `requireAuth()`          | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user.                                                 |
+| `requirePermission(...)` | `"Forbidden"`    | Calls `requireAuth()`, then checks the user holds at least one of the given permissions via the RBAC matrix (`src/lib/rbac.ts`). Context-free cells only. |
 
-**Usage pattern** — every Server Action calls one of these at the top:
+**Usage pattern** — every Server Action calls one of these at the top, then evaluates record-scoped permissions per record via `can(role, permission, accessContext)`:
 
 ```ts
 export async function createCaseAction(payload: CasePayload): Promise<ActionStatusResponse> {
-  const session = await requireAuth(); // or requireRole("Admin", "BranchManager")
+  const session = await requireAuth(); // or requirePermission("case.create")
   // ... validated + authorized
 }
 ```
 
 ### Role-Based Access Control (RBAC)
 
-RBAC enforcement is **not yet implemented**. The planned permission model is documented in [Specification — Global Permissions](./specification.md#global-permissions) and [Case Context Permissions](./specification.md#case-context-permissions).
+RBAC is enforced from the declarative matrix in `src/lib/rbac.ts`, which mirrors [RBAC.md](./RBAC.md) cell-for-cell. Server Actions guard every write via `requirePermission(...)` (context-free cells) and reads via `requireAuth()` + `can(role, permission, access)` after loading the record's access context (`getUserCaseAccess`, `getUserConsultationAccess`, `getTaskAccessContext`, etc.).
 
 The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManager`, `Lawyer`, `Paralegal`, `ProcessServer`.
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { CaseStatus } from "@/generated/prisma/browser";
-import { optionalText, requiredEnum, requiredText } from "@/lib/form-utils";
+import { optionalText, requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
 import { ClientDataSchema, SortQuerySchema } from "@/lib/schemas";
 
 export const CasePageQuerySchema = z.object({
@@ -23,7 +23,7 @@ export const CaseCreatePayloadSchema = z.object({
   status: requiredEnum(CaseStatus, "Status"),
   parties_involved: optionalText(2000, "Parties involved"),
   source_consultation_id: z.uuid().optional(),
-  assignee_ids: z.array(z.uuid()).optional(),
+  assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
 export const CaseUpdatePayloadSchema = CaseCreatePayloadSchema.extend({
@@ -39,7 +39,7 @@ const CaseDataSchema = z.object({
   case_type: requiredText(255, "Case type"),
   status: requiredEnum(CaseStatus, "Status"),
   parties_involved: optionalText(2000, "Parties involved"),
-  assignee_ids: z.array(z.uuid()).optional(),
+  assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
 export const CaseWithClientCreatePayloadSchema = z.object({

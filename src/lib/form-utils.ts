@@ -186,6 +186,20 @@ export function emailText(label: string) {
 }
 
 /**
+ * Builds an array of UUIDs that rejects duplicate entries with a user-facing
+ * message. Assignment payloads map onto unique database constraints, so
+ * duplicates are rejected before any write.
+ *
+ * @param label - Human-readable field name (capitalized, e.g. "Assignee").
+ * @returns A Zod array schema of unique UUIDs.
+ */
+export function uniqueUuidArray(label: string) {
+  return z
+    .array(z.uuid())
+    .refine((ids) => new Set(ids).size === ids.length, { message: `${label}s must be unique` });
+}
+
+/**
  * Derives a React Aria `validate` function from a Zod sub-schema. Empty
  * strings are normalized to `undefined` so optional fields validate cleanly,
  * returning `null` on success or the first issue message on failure.

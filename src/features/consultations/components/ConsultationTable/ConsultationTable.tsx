@@ -13,7 +13,9 @@ import { AddConsultationModal } from "@/features/consultations/components/AddCon
 import type { ConsultationRow } from "@/features/consultations/queries";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
+import { can } from "@/lib/rbac";
 
 import styles from "./ConsultationTable.module.css";
 
@@ -70,14 +72,21 @@ const columns: ColumnDef<ConsultationRow>[] = [
 interface ConsultationTableProps {
   initialConsultations?: ConsultationRow[];
   initialCursor?: string | null;
+  userRole?: Role | null;
 }
 
-export function ConsultationTable({ initialConsultations, initialCursor }: ConsultationTableProps) {
+export function ConsultationTable({
+  initialConsultations,
+  initialCursor,
+  userRole,
+}: ConsultationTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+
+  const canCreate = can(userRole, "consultation.create");
 
   const openAddModal = useCallback(async () => {
     try {
@@ -109,7 +118,7 @@ export function ConsultationTable({ initialConsultations, initialCursor }: Consu
           startLoading();
           router.push(`/consultation/${id}`);
         }}
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Consultation"
         onAddButtonPress={openAddModal}
         refreshTrigger={refreshTrigger}

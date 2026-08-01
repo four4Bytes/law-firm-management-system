@@ -2,8 +2,8 @@
 
 import { z } from "zod";
 
-import { getUserCaseAccess } from "@/features/cases/queries";
-import { getUserConsultationAccess } from "@/features/consultations/queries";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { requireAuth, requirePermission } from "@/lib/auth-guards";
 import { can } from "@/lib/rbac";
 
@@ -31,10 +31,10 @@ export async function getEntityActivityLogAction(
 
   const { entityType, entityId } = parsed.data;
   if (entityType === "Case") {
-    const access = await getUserCaseAccess({ userId: session.id, caseId: entityId });
+    const access = await getCaseAccessContext({ userId: session.id, caseId: entityId });
     if (!can(session.role, "case.activity.read", access)) throw new Error("Forbidden");
   } else if (entityType === "Consultation") {
-    const access = await getUserConsultationAccess({
+    const access = await getConsultationAccessContext({
       userId: session.id,
       consultationId: entityId,
     });

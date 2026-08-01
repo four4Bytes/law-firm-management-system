@@ -13,6 +13,8 @@ import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseMo
 import type { CaseRow } from "@/features/cases/queries";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import type { Role } from "@/generated/prisma/browser";
+import { can } from "@/lib/rbac";
 
 import styles from "./CaseTable.module.css";
 
@@ -64,14 +66,17 @@ const columns: ColumnDef<CaseRow>[] = [
 interface CaseTableProps {
   initialCases?: CaseRow[];
   initialCursor?: string | null;
+  userRole?: Role | null;
 }
 
-export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
+export function CaseTable({ initialCases, initialCursor, userRole }: CaseTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+
+  const canCreate = can(userRole, "case.create");
 
   const openAddModal = useCallback(async () => {
     try {
@@ -103,7 +108,7 @@ export function CaseTable({ initialCases, initialCursor }: CaseTableProps) {
           startLoading();
           router.push(`/case/${id}`);
         }}
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Case"
         onAddButtonPress={openAddModal}
         refreshTrigger={refreshTrigger}

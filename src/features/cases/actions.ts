@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
+  getCaseAccessContext,
   getCaseAssigneeIds,
   getCaseBySourceConsultationId,
   getCaseEditData,
@@ -14,7 +15,6 @@ import {
   getCaseOverviewById,
   getCasesPaginated,
   getCaseTasksPaginated,
-  getUserCaseAccess,
   type CaseEditData,
   type CaseMilestoneListRow,
   type CaseOverviewData,
@@ -77,7 +77,7 @@ export async function getCaseOverviewByIdAction(
   }
 
   const caseId = parsed.data.caseId;
-  const access = await getUserCaseAccess({ userId: session.id, caseId });
+  const access = await getCaseAccessContext({ userId: session.id, caseId });
   if (!can(session.role, "case.read", access)) {
     throw new Error("Forbidden");
   }
@@ -100,7 +100,7 @@ export async function getCaseTasksPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getUserCaseAccess({ userId: session.id, caseId: parsed.data.caseId });
+  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
   if (!can(session.role, "task.read", access)) {
     throw new Error("Forbidden");
   }
@@ -121,7 +121,7 @@ export async function getCaseNotesPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getUserCaseAccess({ userId: session.id, caseId: parsed.data.caseId });
+  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
   if (!can(session.role, "note.read", access)) {
     throw new Error("Forbidden");
   }
@@ -142,7 +142,7 @@ export async function getCaseDocumentsPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getUserCaseAccess({ userId: session.id, caseId: parsed.data.caseId });
+  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
   if (!can(session.role, "attachment.read", access)) {
     throw new Error("Forbidden");
   }
@@ -163,7 +163,7 @@ export async function getCaseMilestonesPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getUserCaseAccess({ userId: session.id, caseId: parsed.data.caseId });
+  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
   if (!can(session.role, "milestone.read", access)) {
     throw new Error("Forbidden");
   }
@@ -171,9 +171,7 @@ export async function getCaseMilestonesPaginatedAction(
   return getCaseMilestonesPaginated(parsed.data);
 }
 
-export async function getCaseForEditAction(
-  id: string,
-): Promise<{ data: CaseEditData | null; access: AccessContext }> {
+export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {
   const session = await requireAuth();
 
   const parsed = CaseOverviewIdSchema.safeParse({ caseId: id });
@@ -182,14 +180,12 @@ export async function getCaseForEditAction(
   }
 
   const caseId = parsed.data.caseId;
-  const access = await getUserCaseAccess({ userId: session.id, caseId });
+  const access = await getCaseAccessContext({ userId: session.id, caseId });
   if (!can(session.role, "case.update", access)) {
     throw new Error("Forbidden");
   }
 
-  const data = await getCaseEditData(caseId);
-
-  return { data, access };
+  return getCaseEditData(caseId);
 }
 
 export async function createCaseAction(
@@ -370,7 +366,7 @@ export async function updateCaseAction(
     const existing = await getCaseEditData(caseId);
     if (!existing) return { success: false, error: "Case not found" };
 
-    const access = await getUserCaseAccess({ userId: session.id, caseId });
+    const access = await getCaseAccessContext({ userId: session.id, caseId });
     if (!can(session.role, "case.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -448,7 +444,7 @@ export async function updateCaseWithClientAction(
     const existing = await getCaseEditData(case_id);
     if (!existing) return { success: false, error: "Case not found" };
 
-    const access = await getUserCaseAccess({ userId: session.id, caseId: case_id });
+    const access = await getCaseAccessContext({ userId: session.id, caseId: case_id });
     if (!can(session.role, "case.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -522,7 +518,7 @@ export async function deleteCaseAction(
     const existing = await getCaseEditData(parsed.data.caseId);
     if (!existing) return { success: false, error: "Case not found" };
 
-    const access = await getUserCaseAccess({ userId: session.id, caseId: parsed.data.caseId });
+    const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
     if (!can(session.role, "case.delete", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

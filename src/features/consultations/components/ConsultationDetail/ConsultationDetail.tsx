@@ -20,8 +20,8 @@ import type {
   ConsultationEditData,
   ConsultationOverviewData,
 } from "@/features/consultations/queries";
-import { Role } from "@/generated/prisma/browser";
-import { hasRole } from "@/lib/role-utils";
+import type { Role } from "@/generated/prisma/browser";
+import { can, type AccessContext } from "@/lib/rbac";
 
 import styles from "./ConsultationDetail.module.css";
 import { ConsultationOverview } from "./ConsultationOverview";
@@ -32,10 +32,11 @@ import { PaymentsTab } from "./tabs/PaymentsTab";
 
 interface Props {
   overview: ConsultationOverviewData;
+  access?: AccessContext;
   userRole?: Role | null;
 }
 
-export function ConsultationDetail({ overview, userRole }: Props) {
+export function ConsultationDetail({ overview, access, userRole }: Props) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
@@ -48,14 +49,29 @@ export function ConsultationDetail({ overview, userRole }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
 
-  const canViewPayments = hasRole(userRole, Role.Admin, Role.Dev, Role.BranchManager);
+  const canEdit = can(userRole, "consultation.update", access);
+  const canDelete = can(userRole, "consultation.delete", access);
+  const canViewPayments = can(userRole, "payment.read");
 
   const allTabs = ["attachments", "notes", "payments", "activity"] as const;
   type ValidTab = (typeof allTabs)[number];
-  const validTabs = allTabs.filter((t) => t !== "payments" || canViewPayments);
+  const validTabs = allTabs.filter((t) => {
+    switch (t) {
+      case "attachments":
+        return can(userRole, "attachment.read", access);
+      case "notes":
+        return can(userRole, "note.read", access);
+      case "payments":
+        return canViewPayments;
+      case "activity":
+        return can(userRole, "consultation.activity.read", access);
+    }
+  });
   const tabParam = searchParams.get("tab");
   const selectedKey =
-    tabParam && validTabs.includes(tabParam as ValidTab) ? tabParam : "attachments";
+    tabParam && validTabs.includes(tabParam as ValidTab)
+      ? tabParam
+      : (validTabs[0] ?? "attachments");
 
   const handleSelectionChange = (key: React.Key) => {
     startLoading();
@@ -67,11 +83,11 @@ export function ConsultationDetail({ overview, userRole }: Props) {
   async function handleEdit() {
     setIsEditPending(true);
     try {
-      const consultation = await getConsultationForEditAction(overview.id);
-      if (!consultation) throw new Error("Consultation not found");
-      const clientData = await getClientForEditAction(consultation.client_id);
+      const { data } = await getConsultationForEditAction(overview.id);
+      if (!data) throw new Error("Consultation not found");
+      const clientData = await getClientForEditAction(data.client_id);
       if (!clientData) throw new Error("Client not found");
-      setEditData({ consultation, clientData });
+      setEditData({ consultation: data, clientData });
     } catch {
       queue.add({ title: "Failed to load consultation data" }, { timeout: 5000 });
     } finally {
@@ -104,33 +120,39 @@ export function ConsultationDetail({ overview, userRole }: Props) {
 
       <ConsultationOverview
         data={overview}
-        onEdit={handleEdit}
-        onDelete={() => setShowDeleteConfirm(true)}
+        onEdit={canEdit ? handleEdit : undefined}
+        onDelete={canDelete ? () => setShowDeleteConfirm(true) : undefined}
         isEditPending={isEditPending}
       />
 
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <TabList aria-label="Consultation details">
-          <Tab id="attachments">Attachments</Tab>
-          <Tab id="notes">Notes</Tab>
-          {canViewPayments && <Tab id="payments">Payment Log</Tab>}
-          <Tab id="activity">Activity Log</Tab>
+          {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
+          {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
+          {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
+          {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
         </TabList>
         <TabPanels>
-          <TabPanel id="notes">
-            {selectedKey === "notes" && <NotesTab consultationId={overview.id} />}
-          </TabPanel>
-          <TabPanel id="attachments">
-            {selectedKey === "attachments" && <AttachmentsTab consultationId={overview.id} />}
-          </TabPanel>
-          {canViewPayments && (
+          {validTabs.includes("notes") && (
+            <TabPanel id="notes">
+              {selectedKey === "notes" && <NotesTab consultationId={overview.id} />}
+            </TabPanel>
+          )}
+          {validTabs.includes("attachments") && (
+            <TabPanel id="attachments">
+              {selectedKey === "attachments" && <AttachmentsTab consultationId={overview.id} />}
+            </TabPanel>
+          )}
+          {validTabs.includes("payments") && (
             <TabPanel id="payments">
               {selectedKey === "payments" && <PaymentsTab consultationId={overview.id} />}
             </TabPanel>
           )}
-          <TabPanel id="activity">
-            {selectedKey === "activity" && <ActivityLogTab consultationId={overview.id} />}
-          </TabPanel>
+          {validTabs.includes("activity") && (
+            <TabPanel id="activity">
+              {selectedKey === "activity" && <ActivityLogTab consultationId={overview.id} />}
+            </TabPanel>
+          )}
         </TabPanels>
       </Tabs>
 

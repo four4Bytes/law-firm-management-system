@@ -15,7 +15,7 @@ import {
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/client";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requireAuth, requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 
 import {
@@ -43,7 +43,7 @@ export async function getUsersPaginatedAction(
 
 export async function checkDeveloperEmail(email: string): Promise<boolean> {
   try {
-    await requireRole("Admin", "Dev");
+    await requirePermission("user.create");
   } catch {
     return false;
   }
@@ -59,7 +59,7 @@ export async function createUserAction(
 ): Promise<ActionStatusResponse> {
   let session: AuthenticatedUser;
   try {
-    session = await requireRole("Admin", "Dev");
+    session = await requirePermission("user.create");
   } catch {
     return { success: false, error: "You don't have permission to create users." };
   }
@@ -123,7 +123,7 @@ export async function updateUserAction(
 ): Promise<ActionStatusResponse> {
   let session: AuthenticatedUser;
   try {
-    session = await requireRole("Admin", "Dev");
+    session = await requirePermission("user.update");
   } catch {
     return { success: false, error: "You don't have permission to edit users." };
   }
@@ -176,7 +176,7 @@ export async function deactivateUserAction(
 ): Promise<ActionDataResponse<{ selfDeactivated: boolean }>> {
   let session: AuthenticatedUser;
   try {
-    session = await requireRole("Admin", "Dev");
+    session = await requirePermission("user.delete");
   } catch {
     return { success: false, error: "Only admins and developers can deactivate users." };
   }

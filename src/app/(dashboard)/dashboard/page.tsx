@@ -1,10 +1,10 @@
-import { DashboardContent } from "@/features/dashboard/components/DashboardContent/DashboardContent";
 import {
-  getDashboardStats,
-  getRecentCases,
-  getUpcomingConsultations,
-  getUpcomingMilestones,
-} from "@/features/dashboard/queries";
+  getDashboardStatsAction,
+  getRecentCasesAction,
+  getUpcomingConsultationsAction,
+  getUpcomingMilestonesAction,
+} from "@/features/dashboard/actions";
+import { DashboardContent } from "@/features/dashboard/components/DashboardContent/DashboardContent";
 
 import styles from "./page.module.css";
 
@@ -15,10 +15,10 @@ function fulfilledOrNull<T>(result: PromiseSettledResult<T>): T | null {
 export default async function DashboardPage() {
   const [statsResult, recentCasesResult, upcomingConsultationsResult, upcomingMilestonesResult] =
     await Promise.allSettled([
-      getDashboardStats(),
-      getRecentCases(10),
-      getUpcomingConsultations(),
-      getUpcomingMilestones(),
+      getDashboardStatsAction(),
+      getRecentCasesAction(10),
+      getUpcomingConsultationsAction(),
+      getUpcomingMilestonesAction(),
     ]);
 
   const stats = fulfilledOrNull(statsResult);

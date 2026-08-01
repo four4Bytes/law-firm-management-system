@@ -8,7 +8,6 @@ export async function getRoleRecipientIds(
 }
 
 export interface AssignmentRecipientsPayload {
-  type: keyof typeof notificationRoleConfig;
   directUserIds?: string[];
   entityId?: string;
   getExistingDirectUserIds?: (entityId: string) => Promise<string[]>;
@@ -24,16 +23,13 @@ export function diffNewAssigneeIds(
 export async function resolveAssignmentRecipients(
   payload: AssignmentRecipientsPayload,
 ): Promise<string[]> {
-  const { type, directUserIds, entityId, getExistingDirectUserIds } = payload;
+  const { directUserIds, entityId, getExistingDirectUserIds } = payload;
 
-  const roleIds = await getRoleRecipientIds(type);
+  if (directUserIds !== undefined) return directUserIds;
 
-  const direct =
-    directUserIds !== undefined
-      ? directUserIds
-      : entityId && getExistingDirectUserIds
-        ? await getExistingDirectUserIds(entityId)
-        : [];
+  if (entityId && getExistingDirectUserIds) {
+    return getExistingDirectUserIds(entityId);
+  }
 
-  return [...new Set([...roleIds, ...direct])];
+  return [];
 }

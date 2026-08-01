@@ -1,42 +1,28 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { getActiveUserIdsByRoles } from "@/features/users/queries";
-import { NotificationType } from "@/generated/prisma/browser";
+import { describe, expect, it, vi } from "vitest";
 
 import { diffNewAssigneeIds, resolveAssignmentRecipients } from "../recipients";
 
-vi.mock("@/features/users/queries", () => ({
-  getActiveUserIdsByRoles: vi.fn(),
-}));
-
-const roleIds = ["role-1", "role-2"];
 const directIds = ["u-1", "u-2"];
 
-beforeEach(() => {
-  vi.mocked(getActiveUserIdsByRoles).mockResolvedValue(roleIds);
-});
-
 describe("resolveAssignmentRecipients", () => {
-  it("merges role recipients with direct user ids, deduped", async () => {
+  it("returns direct user ids when provided", async () => {
     const result = await resolveAssignmentRecipients({
-      type: NotificationType.ConsultationAssigned,
-      directUserIds: [...directIds, "role-1"],
+      directUserIds: directIds,
     });
 
-    expect(result).toEqual(["role-1", "role-2", "u-1", "u-2"]);
+    expect(result).toEqual(directIds);
   });
 
   it("does not fall back to existing assignees when directUserIds is an empty array", async () => {
-    const getExisting = vi.fn().mockResolvedValue(directIds);
+    const getExisting = vi.fn().mockResolvedValue(["u-3"]);
 
     const result = await resolveAssignmentRecipients({
-      type: NotificationType.ConsultationAssigned,
       directUserIds: [],
       entityId: "c-1",
       getExistingDirectUserIds: getExisting,
     });
 
-    expect(result).toEqual(roleIds);
+    expect(result).toEqual([]);
     expect(getExisting).not.toHaveBeenCalled();
   });
 
@@ -44,21 +30,18 @@ describe("resolveAssignmentRecipients", () => {
     const getExisting = vi.fn().mockResolvedValue(directIds);
 
     const result = await resolveAssignmentRecipients({
-      type: NotificationType.ConsultationAssigned,
       entityId: "c-1",
       getExistingDirectUserIds: getExisting,
     });
 
-    expect(result).toEqual([...roleIds, ...directIds]);
+    expect(result).toEqual(directIds);
     expect(getExisting).toHaveBeenCalledWith("c-1");
   });
 
-  it("returns role recipients only when there are no direct ids and no fallback", async () => {
-    const result = await resolveAssignmentRecipients({
-      type: NotificationType.ConsultationAssigned,
-    });
+  it("returns an empty array when there are no direct ids and no fallback", async () => {
+    const result = await resolveAssignmentRecipients({});
 
-    expect(result).toEqual(roleIds);
+    expect(result).toEqual([]);
   });
 });
 

@@ -179,7 +179,6 @@ export async function createConsultationAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.ConsultationAssigned,
           directUserIds: assignee_ids,
           entityId: createdConsultation.id,
           getExistingDirectUserIds: getConsultationAssigneeIds,
@@ -195,6 +194,7 @@ export async function createConsultationAction(
             consultationId: createdConsultation.id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -262,7 +262,6 @@ export async function createConsultationWithClientAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.ConsultationAssigned,
           directUserIds: parsed.data.consultation.assignee_ids,
           entityId: createdWithClient.id,
           getExistingDirectUserIds: getConsultationAssigneeIds,
@@ -278,6 +277,7 @@ export async function createConsultationWithClientAction(
             consultationId: createdWithClient.id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -362,7 +362,6 @@ export async function updateConsultationAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.ConsultationAssigned,
           directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
           entityId: consultationId,
           getExistingDirectUserIds: getConsultationAssigneeIds,
@@ -378,6 +377,7 @@ export async function updateConsultationAction(
             consultationId,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -451,7 +451,6 @@ export async function updateConsultationWithClientAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.ConsultationAssigned,
           directUserIds: diffNewAssigneeIds(consultation.assignee_ids, existingAssigneeIds),
           entityId: consultation_id,
           getExistingDirectUserIds: getConsultationAssigneeIds,
@@ -467,6 +466,7 @@ export async function updateConsultationWithClientAction(
             consultationId: consultation_id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);

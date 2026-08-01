@@ -6,9 +6,15 @@ import type { NoteRow } from "@/features/notes/queries";
 import type { TaskRow } from "@/features/tasks/queries";
 import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
 
 export interface CasePageQuery extends PageQuery {
+  caseId: string;
+}
+
+export interface CaseAccessPayload {
+  userId: string;
   caseId: string;
 }
 
@@ -47,23 +53,24 @@ export type CaseRow = {
 };
 
 export const getCasesPaginated = cache(
-  async ({
-    search = "",
-    cursor,
-    pageSize = 20,
-    sort,
-  }: PageQuery): Promise<{
+  async (
+    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    assignedUserId?: string,
+  ): Promise<{
     cases: CaseRow[];
     nextCursor: string | null;
   }> => {
-    const where = search
-      ? {
-          OR: [
-            { case_title: { contains: search, mode: "insensitive" as const } },
-            { client: { name: { contains: search, mode: "insensitive" as const } } },
-          ],
-        }
-      : undefined;
+    const where = {
+      ...(search
+        ? {
+            OR: [
+              { case_title: { contains: search, mode: "insensitive" as const } },
+              { client: { name: { contains: search, mode: "insensitive" as const } } },
+            ],
+          }
+        : {}),
+      ...(assignedUserId ? { caseAssignments: { some: { user_id: assignedUserId } } } : {}),
+    };
 
     const defaultOrderBy = { created_at: "desc" } as const;
 
@@ -229,6 +236,7 @@ export const getCaseTasksPaginated = cache(
       id: t.id,
       title: t.title,
       status: t.status,
+      created_by_user_id: t.created_by_user_id,
       assignTo: t.taskAssignments.map((a) => a.user.name).join(", "),
       updated_at: t.updated_at,
     }));
@@ -274,6 +282,7 @@ export const getCaseNotesPaginated = cache(
       id: n.id,
       content: n.content,
       author: n.createdBy.name,
+      created_by_user_id: n.created_by_user_id,
       created_at: n.created_at,
     }));
 
@@ -371,6 +380,7 @@ export type CaseEditData = Pick<
   | "status"
   | "parties_involved"
   | "source_consultation_id"
+  | "created_by_user_id"
 > & { assignee_ids: string[] };
 
 export const getCaseBySourceConsultationId = cache(
@@ -393,6 +403,7 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       status: true,
       parties_involved: true,
       source_consultation_id: true,
+      created_by_user_id: true,
       caseAssignments: {
         select: { user_id: true },
       },
@@ -409,6 +420,29 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
     status: data.status,
     parties_involved: data.parties_involved,
     source_consultation_id: data.source_consultation_id,
+    created_by_user_id: data.created_by_user_id,
     assignee_ids: data.caseAssignments.map((a) => a.user_id),
   };
 });
+
+// ----- Access context -----
+
+export const getUserCaseAccess = cache(
+  async ({ userId, caseId }: CaseAccessPayload): Promise<AccessContext> => {
+    const [assignment, caseRecord] = await Promise.all([
+      prisma.caseAssignment.findFirst({
+        where: { case_id: caseId, user_id: userId },
+        select: { id: true },
+      }),
+      prisma.case.findUnique({
+        where: { id: caseId },
+        select: { created_by_user_id: true },
+      }),
+    ]);
+
+    return {
+      assigned: assignment !== null,
+      own: caseRecord?.created_by_user_id === userId,
+    };
+  },
+);

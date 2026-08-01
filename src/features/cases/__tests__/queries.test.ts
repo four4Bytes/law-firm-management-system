@@ -756,6 +756,7 @@ describe("getCaseEditData", () => {
         parties_involved: true,
         source_consultation_id: true,
         caseAssignments: {
+          where: { user: { is_active: true } },
           select: { user_id: true },
         },
       },

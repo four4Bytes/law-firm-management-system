@@ -240,6 +240,7 @@ export const getConsultationEditData = cache(
         booking_datetime: true,
         status: true,
         consultationAssignments: {
+          where: { user: { is_active: true } },
           select: { user_id: true },
         },
       },

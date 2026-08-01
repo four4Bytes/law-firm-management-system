@@ -382,6 +382,7 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       parties_involved: true,
       source_consultation_id: true,
       caseAssignments: {
+        where: { user: { is_active: true } },
         select: { user_id: true },
       },
     },

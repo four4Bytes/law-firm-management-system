@@ -7,7 +7,6 @@ export type NoteRow = {
   id: string;
   content: string;
   author: string;
-  created_by_user_id: string;
   created_at: Date;
 };
 
@@ -24,8 +23,6 @@ export const getNoteById = cache(async (id: string) => {
       content: true,
       case_id: true,
       consultation_id: true,
-      task_id: true,
-      created_by_user_id: true,
       createdBy: { select: { name: true } },
     },
   });
@@ -38,7 +35,6 @@ export const getNoteRowById = cache(async (id: string): Promise<NoteRow | null> 
       id: true,
       content: true,
       created_at: true,
-      created_by_user_id: true,
       createdBy: { select: { name: true } },
     },
   });
@@ -49,7 +45,6 @@ export const getNoteRowById = cache(async (id: string): Promise<NoteRow | null> 
     id: note.id,
     content: note.content,
     author: note.createdBy.name,
-    created_by_user_id: note.created_by_user_id,
     created_at: note.created_at,
   };
 });

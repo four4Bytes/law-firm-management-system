@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
-import { getUserCaseAccess } from "@/features/cases/queries";
+import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
@@ -54,7 +54,7 @@ export async function createTaskAction(
   const { title, description, status, case_id, assignee_ids } = parsed.data;
 
   try {
-    const caseAccess = await getUserCaseAccess({ userId: session.id, caseId: case_id });
+    const caseAccess = await getCaseAccessContext({ userId: session.id, caseId: case_id });
     if (!can(session.role, "task.create", caseAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

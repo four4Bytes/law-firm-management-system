@@ -86,14 +86,14 @@ export function CaseDetail({ overview, access, userRole }: Props) {
   async function handleEdit() {
     setIsEditPending(true);
     try {
-      const [{ data }, users] = await Promise.all([
+      const [caseData, users] = await Promise.all([
         getCaseForEditAction(overview.id),
         getActiveUsersAction(),
       ]);
-      if (!data) throw new Error("Case not found");
-      const clientData = await getClientForEditAction(data.client_id);
+      if (!caseData) throw new Error("Case not found");
+      const clientData = await getClientForEditAction(caseData.client_id);
       if (!clientData) throw new Error("Client not found");
-      setEditData({ caseData: data, clientData, users });
+      setEditData({ caseData, clientData, users });
     } catch {
       queue.add({ title: "Failed to load case data" }, { timeout: 5000 });
     } finally {
@@ -143,22 +143,22 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         <TabPanels>
           {validTabs.includes("tasks") && (
             <TabPanel id="tasks">
-              <TasksTab caseId={overview.id} />
+              <TasksTab caseId={overview.id} access={access} userRole={userRole} />
             </TabPanel>
           )}
           {validTabs.includes("notes") && (
             <TabPanel id="notes">
-              <NotesTab caseId={overview.id} />
+              <NotesTab caseId={overview.id} access={access} userRole={userRole} />
             </TabPanel>
           )}
           {validTabs.includes("attachments") && (
             <TabPanel id="attachments">
-              <AttachmentsTab caseId={overview.id} />
+              <AttachmentsTab caseId={overview.id} access={access} userRole={userRole} />
             </TabPanel>
           )}
           {validTabs.includes("milestones") && (
             <TabPanel id="milestones">
-              <MilestonesTab caseId={overview.id} />
+              <MilestonesTab caseId={overview.id} access={access} userRole={userRole} />
             </TabPanel>
           )}
           {validTabs.includes("payments") && (

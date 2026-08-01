@@ -65,16 +65,12 @@ describe("getConsultationForEditAction", () => {
     const result = await getConsultationForEditAction(uuid);
 
     expect(result).toEqual({
-      data: {
-        id: "1",
-        client_id: uuid,
-        concern: "Legal advice",
-        booking_datetime: consultationRecord.booking_datetime,
-        status: "Scheduled",
-        created_by_user_id: "u1",
-        assignee_ids: [],
-      },
-      access: { assigned: false, own: true },
+      id: "1",
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Scheduled",
+      assignee_ids: [],
     });
     expect(prisma.consultation.findUnique).toHaveBeenLastCalledWith({
       where: { id: uuid },
@@ -84,7 +80,6 @@ describe("getConsultationForEditAction", () => {
         concern: true,
         booking_datetime: true,
         status: true,
-        created_by_user_id: true,
         consultationAssignments: {
           select: { user_id: true },
         },

@@ -362,7 +362,6 @@ describe("getCaseTasksPaginated", () => {
       title: "Draft complaint",
       status: "Ongoing",
       assignTo: "Bob Lawyer",
-      created_by_user_id: "u1",
       updated_at: tasks[0].updated_at,
     });
     expect(result.rows[1]).toEqual({
@@ -370,7 +369,6 @@ describe("getCaseTasksPaginated", () => {
       title: "Review evidence",
       status: "Ongoing",
       assignTo: "Carol Paralegal",
-      created_by_user_id: "u1",
       updated_at: tasks[1].updated_at,
     });
     expect(prisma.task.findMany).toHaveBeenCalledWith({
@@ -474,7 +472,6 @@ describe("getCaseNotesPaginated", () => {
       id: "n1",
       content: "Client called about the case",
       author: "Bob Lawyer",
-      created_by_user_id: "u1",
       created_at: notes[0].created_at,
     });
   });
@@ -752,7 +749,6 @@ describe("getCaseEditData", () => {
       status: "Open",
       parties_involved: "Smith (Plaintiff)",
       source_consultation_id: null,
-      created_by_user_id: "u1",
       assignee_ids: [],
     });
     expect(prisma.case.findUnique).toHaveBeenCalledWith({
@@ -765,7 +761,6 @@ describe("getCaseEditData", () => {
         status: true,
         parties_involved: true,
         source_consultation_id: true,
-        created_by_user_id: true,
         caseAssignments: {
           select: { user_id: true },
         },

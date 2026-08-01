@@ -12,18 +12,24 @@ import {
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal/UploadDocumentModal";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
 import type { DocumentDetailRow, DocumentRow } from "@/features/documents/queries";
+import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { formatFileSize, formatFileType } from "@/lib/file-format";
+import { can, type AccessContext } from "@/lib/rbac";
 
 interface Props {
   consultationId: string;
+  access?: AccessContext;
+  userRole?: Role | null;
 }
 
-export function AttachmentsTab({ consultationId }: Props) {
+export function AttachmentsTab({ consultationId, access, userRole }: Props) {
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedDocument, setSelectedDocument] = useState<DocumentDetailRow | null>(null);
   const requestRef = useRef(0);
+
+  const canCreate = can(userRole, "attachment.create", access);
 
   const columns: ColumnDef<DocumentRow>[] = useMemo(
     () => [
@@ -83,7 +89,7 @@ export function AttachmentsTab({ consultationId }: Props) {
         emptyContent="No attachments yet"
         loadingMessage="Loading attachments..."
         searchLabel="Search attachments"
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Attachment"
         onAddButtonPress={() => setUploadModalOpen(true)}
         onRowAction={handleRowAction}

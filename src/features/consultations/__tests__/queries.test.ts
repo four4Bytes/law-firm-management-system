@@ -524,6 +524,7 @@ describe("getConsultationEditData", () => {
         booking_datetime: true,
         status: true,
         consultationAssignments: {
+          where: { user: { is_active: true } },
           select: { user_id: true },
         },
       },

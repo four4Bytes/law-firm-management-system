@@ -37,6 +37,7 @@ const caseSelect = {
   client: { select: { name: true } },
   caseAssignments: {
     select: { user: { select: { name: true } } },
+    orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }],
   },
   milestones: {
     orderBy: { created_at: "desc" as const },
@@ -290,7 +291,10 @@ describe("getCaseOverviewById", () => {
       include: {
         client: true,
         createdBy: { select: { name: true } },
-        caseAssignments: { include: { user: { select: { id: true, name: true } } } },
+        caseAssignments: {
+          include: { user: { select: { id: true, name: true } } },
+          orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }],
+        },
         milestones: { orderBy: { created_at: "desc" }, take: 1 },
         sourceConsultation: { select: { id: true, concern: true } },
       },

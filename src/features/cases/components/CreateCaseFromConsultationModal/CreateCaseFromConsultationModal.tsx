@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { Form } from "react-aria-components";
 
+import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { createCaseAction } from "@/features/cases/actions";
-import { AssigneeSelect } from "@/features/cases/components/AssigneeSelect/AssigneeSelect";
 import { CaseCreatePayloadSchema } from "@/features/cases/schemas";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { CaseStatus } from "@/generated/prisma/browser";

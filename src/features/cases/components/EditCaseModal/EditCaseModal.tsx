@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
+import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { updateCaseWithClientAction } from "@/features/cases/actions";
-import { AssigneeSelect } from "@/features/cases/components/AssigneeSelect/AssigneeSelect";
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";

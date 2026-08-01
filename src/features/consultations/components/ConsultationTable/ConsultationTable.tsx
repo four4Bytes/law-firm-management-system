@@ -2,14 +2,17 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
 import type { ConsultationRow } from "@/features/consultations/queries";
+import { getActiveUsersAction } from "@/features/tasks/actions";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { formatDateTime } from "@/lib/date";
 
 import styles from "./ConsultationTable.module.css";
@@ -38,6 +41,10 @@ const columns: ColumnDef<ConsultationRow>[] = [
     id: "createdByName",
     name: "Created By",
     allowsSorting: true,
+  },
+  {
+    id: "assignTo",
+    name: "Assign To",
   },
   {
     id: "booking_datetime",
@@ -70,6 +77,17 @@ export function ConsultationTable({ initialConsultations, initialCursor }: Consu
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+
+  const openAddModal = useCallback(async () => {
+    try {
+      const users = await getActiveUsersAction();
+      setUsers(users);
+      setIsAddOpen(true);
+    } catch {
+      queue.add({ title: "Failed to load users" }, { timeout: 5000 });
+    }
+  }, []);
 
   return (
     <>
@@ -93,7 +111,7 @@ export function ConsultationTable({ initialConsultations, initialCursor }: Consu
         }}
         renderAddButton
         addButtonLabel="Add Consultation"
-        onAddButtonPress={() => setIsAddOpen(true)}
+        onAddButtonPress={openAddModal}
         refreshTrigger={refreshTrigger}
       />
 
@@ -105,6 +123,7 @@ export function ConsultationTable({ initialConsultations, initialCursor }: Consu
             setIsAddOpen(false);
             setRefreshTrigger((t) => t + 1);
           }}
+          users={users}
         />
       )}
     </>

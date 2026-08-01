@@ -11,20 +11,39 @@ export async function createConsultation(
   data: ConsultationCreatePayload & { created_by_user_id: string },
   tx?: TransactionClient,
 ): Promise<{ id: string }> {
+  const { assignee_ids, ...rest } = data;
   const client = tx || prisma;
-  return client.consultation.create({ data, select: { id: true } });
+  return client.consultation.create({
+    data: {
+      ...rest,
+      ...(assignee_ids?.length
+        ? { consultationAssignments: { create: assignee_ids.map((user_id) => ({ user_id })) } }
+        : {}),
+    },
+    select: { id: true },
+  });
 }
 
 export async function updateConsultation(
   data: ConsultationUpdatePayload,
   tx?: TransactionClient,
 ): Promise<{ id: string }> {
-  const { consultationId, ...rest } = data;
+  const { consultationId, assignee_ids, ...rest } = data;
   const client = tx || prisma;
 
   return client.consultation.update({
     where: { id: consultationId },
-    data: rest,
+    data: {
+      ...rest,
+      ...(assignee_ids !== undefined
+        ? {
+            consultationAssignments: {
+              deleteMany: {},
+              create: assignee_ids.map((user_id) => ({ user_id })),
+            },
+          }
+        : {}),
+    },
     select: { id: true },
   });
 }
@@ -52,6 +71,7 @@ export async function createConsultationWithClient(
         concern: data.consultation.concern,
         booking_datetime: data.consultation.booking_datetime,
         status: data.consultation.status,
+        assignee_ids: data.consultation.assignee_ids,
         created_by_user_id: data.created_by_user_id,
       },
       tx,
@@ -90,6 +110,7 @@ export async function updateConsultationWithClient(
         concern: data.consultation.concern,
         booking_datetime: data.consultation.booking_datetime,
         status: data.consultation.status,
+        assignee_ids: data.consultation.assignee_ids,
       },
       tx,
     );

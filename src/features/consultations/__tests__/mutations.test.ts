@@ -67,3 +67,54 @@ it("deleteConsultation calls delete with the id", async () => {
     select: { id: true },
   });
 });
+
+it("createConsultation nests consultationAssignments when assignee_ids are provided", async () => {
+  await createConsultation({
+    client_id: uuid,
+    concern: "Breach of contract",
+    booking_datetime: booking,
+    status: "Scheduled",
+    assignee_ids: ["u1", "u2"],
+    created_by_user_id: "u1",
+  });
+
+  expect(prisma.consultation.create).toHaveBeenCalledWith({
+    data: {
+      client_id: uuid,
+      concern: "Breach of contract",
+      booking_datetime: booking,
+      status: "Scheduled",
+      created_by_user_id: "u1",
+      consultationAssignments: {
+        create: [{ user_id: "u1" }, { user_id: "u2" }],
+      },
+    },
+    select: { id: true },
+  });
+});
+
+it("updateConsultation replaces consultationAssignments when assignee_ids are provided", async () => {
+  await updateConsultation({
+    consultationId: uuid,
+    client_id: uuid,
+    concern: "Breach of contract",
+    booking_datetime: booking,
+    status: "Scheduled",
+    assignee_ids: ["u2"],
+  });
+
+  expect(prisma.consultation.update).toHaveBeenCalledWith({
+    where: { id: uuid },
+    data: {
+      client_id: uuid,
+      concern: "Breach of contract",
+      booking_datetime: booking,
+      status: "Scheduled",
+      consultationAssignments: {
+        deleteMany: {},
+        create: [{ user_id: "u2" }],
+      },
+    },
+    select: { id: true },
+  });
+});

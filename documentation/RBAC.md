@@ -2,7 +2,7 @@
 
 > The current system implementation will be based on this document (planned implementation).
 
-> This is the initial RBAC draft (subject to change).
+> This is the initial RBAC draft — all permissions and rules below are proposals and subject to change.
 
 ## Roles
 
@@ -25,179 +25,186 @@ ADMIN
 
 ## Access Legend
 
-- **YES**: Can perform the action.
-- **NO**: Cannot perform the action.
-- **ASSIGNED**: Can perform the action **ONLY** on records assigned to them.
-- **OWN**: Can perform the action **ONLY** on records created by them.
+| Code          | Access Level        | Meaning                                                                                                 |
+| ------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| **YES**       | Full Access         | Can perform this action anywhere in the organization.                                                   |
+| **NO**        | No Access           | Cannot perform this action under any circumstances.                                                     |
+| **ASSIGNED**  | Directly Assigned   | Only if assigned to this specific record (Case, Task, or Consultation) or its parent Case/Consultation. |
+| **OWN**       | Creator Only        | Only on records created by the user (`created_by_user_id`).                                             |
+| **TASK_ONLY** | Task-Level Modifier | With `ASSIGNED`: requires assignment to that specific Task; parent Case assignment alone is not enough. |
 
 ---
 
-- **C** = CREATE / ADD
-- **R** = READ / VIEW
-- **U** = UPDATE / EDIT
-- **D** = DELETE / REMOVE
+## Condition Rules
+
+Combined codes in table cells follow these rules:
+
+1. **`ASSIGNED or OWN`** — Act on the item if you are assigned to it **or** if you created it.
+2. **`ASSIGNED + TASK_ONLY`** — Act on a task only if it is assigned directly to you; you cannot act on other tasks in the same parent Case.
+3. **`ASSIGNED and OWN`** — Act on an item only if you created it **and** you are currently assigned to the parent Case/Consultation.
+4. **`ASSIGNED + TASK_ONLY or OWN`** — The assigned path requires parent Case access and assignment to that specific Task. The OWN path requires no assignment: creating a task grants the creator update rights on it, even if task or parent assignment is later removed.
 
 ---
 
-## Data Action Permissions
+## Core System Rules
 
-> A Client record is created alongside a case or consultation, so it shares the same permissions as the associated case or consultation.
-
-> All sub-data permissions (Tasks, Notes, Milestones, Attachments) are strictly gated by Case Assignment:
->
-> - If a user is **NOT** assigned to a Case (via `CaseAssignment`), they automatically have **NO access** to any of that Case's sub-data, regardless of the tables below.
-> - If a user **IS** assigned to a Case, their actions on sub-data are governed by the tables below.
-> - This rule applies only to **Lawyers and below** (see [Roles](#roles) for the hierarchy).
+1. **Parent access flow.** Admins and Branch Managers have unrestricted access across their scope. Lawyers, Paralegals, and Process Servers must be assigned to a Case or Consultation to access its sub-data (Tasks, Notes, Milestones, Attachments). Creating a record grants **OWN** rights to the creator, even before an assignment record is generated. Implementation: a `CaseAssignment` or `ConsultationAssignment` record for `(case_id/consultation_id, user_id)` must exist, otherwise sub-data is inaccessible. Directory-level visibility of the parent entity itself is unaffected (see Rule 2).
+2. **Directory view vs. detailed access.** `YES` on Case READ (e.g., Lawyers) means the Case appears in the system directory, but its private sub-data (Notes, Financials) is only accessible when assigned.
+3. **Immutable logs.** Activity logs are system-generated audit trails. No user, including Admins, can edit or delete log entries.
 
 ---
+
+## Global Data Actions
 
 ### User
 
-> Role assignment and user provisioning are managed here. Since there is no self-registration, users with CREATE permission are responsible for adding
-> new users to the system. Any user not added here is not allowed to sign in. See [Security](./security.md) for more information on how authentication is handled.
+> Role assignment and user provisioning are managed here. Users with CREATE permission are responsible for adding new users.
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |       NO       |   NO   |    NO     |       NO       |
-| UPDATE | YES |  YES  |       NO       |   NO   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | YES |  YES  |       NO       |   NO   |    NO     |       NO       |
+| Action | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
+| :----- | :---: | :------------: | :----: | :-------: | :------------: |
+| CREATE |  YES  |       NO       |   NO   |    NO     |       NO       |
+| UPDATE |  YES  |       NO       |   NO   |    NO     |       NO       |
+| READ   |  YES  |      YES       |  YES   |    YES    |      YES       |
+| DELETE |  YES  |       NO       |   NO   |    NO     |       NO       |
+
+---
+
+### Global Activity Log
+
+> System-wide logs for every action across all entities. Strictly **READ-ONLY** (IMMUTABLE).
+> For logs scoped to a specific Case or Consultation, see their respective sub-data sections.
+
+| Action | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
+| :----- | :---: | :------------: | :----: | :-------: | :------------: |
+| CREATE |  NO   |       NO       |   NO   |    NO     |       NO       |
+| UPDATE |  NO   |       NO       |   NO   |    NO     |       NO       |
+| READ   |  YES  |      YES       |   NO   |    NO     |       NO       |
+| DELETE |  NO   |       NO       |   NO   |    NO     |       NO       |
 
 ---
 
-### Activity Log
-
-> Logs are created automatically for every action (CRUD) and are strictly **READ-ONLY** (IMMUTABLE).
-
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-| UPDATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
-| DELETE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-
----
+## Case Entities
 
 ### Case
 
-| Action | Dev | Admin | Branch Manager |  Lawyer  | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :------: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |    NO    |    NO     |       NO       |
-| UPDATE | YES |  YES  |      YES       | ASSIGNED |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |   YES    |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |    NO    |    NO     |       NO       |
+| Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
+| :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
+| CREATE |  YES  |      YES       |       YES       |    NO     |       NO       |
+| UPDATE |  YES  |      YES       | ASSIGNED or OWN |    NO     |       NO       |
+| READ   |  YES  |      YES       |       YES       | ASSIGNED  |    ASSIGNED    |
+| DELETE |  YES  |      YES       |       OWN       |    NO     |       NO       |
 
 ---
 
-## Sub-Data of Case
+### Sub-Data of Case
 
-> These records exist under a Case.
+#### Tasks
 
-### Tasks
+| Action | Admin | Branch Manager |     Lawyer      |          Paralegal          |    Process Server    |
+| :----- | :---: | :------------: | :-------------: | :-------------------------: | :------------------: |
+| CREATE |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |          NO          |
+| UPDATE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY |
+| READ   |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |       ASSIGNED       |
+| DELETE |  YES  |      YES       | ASSIGNED or OWN |      ASSIGNED and OWN       |          NO          |
 
-> Task assignment is controlled via CREATE and UPDATE actions.
+#### Payment
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |  YES   |    YES    |       NO       |
-| UPDATE | YES |  YES  |      YES       |  YES   | ASSIGNED  |    ASSIGNED    |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
+| Action | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
+| :----- | :---: | :------------: | :----: | :-------: | :------------: |
+| CREATE |  YES  |      YES       |   NO   |    NO     |       NO       |
+| UPDATE |  YES  |      YES       |   NO   |    NO     |       NO       |
+| READ   |  YES  |      YES       |   NO   |    NO     |       NO       |
+| DELETE |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-### Payment
+#### Note
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
-| UPDATE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
-| DELETE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
+| Action | Admin | Branch Manager |     Lawyer      |    Paralegal     |  Process Server  |
+| :----- | :---: | :------------: | :-------------: | :--------------: | :--------------: |
+| CREATE |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
+| UPDATE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
+| READ   |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
+| DELETE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
 
-### Note
+#### Milestone
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| UPDATE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
+| Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
+| :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
+| CREATE |  YES  |      YES       | ASSIGNED or OWN |    NO     |       NO       |
+| UPDATE |  YES  |      YES       | ASSIGNED or OWN |    NO     |       NO       |
+| READ   |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED  |    ASSIGNED    |
+| DELETE |  YES  |      YES       | ASSIGNED or OWN |    NO     |       NO       |
 
-### Milestone
-
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
-| UPDATE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
-
-### Attachments
+#### Attachments
 
 > No update action available. To replace a record, users must delete the old attachment and add a new one.
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
+| Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
+| :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
+| CREATE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED  |    ASSIGNED    |
+| READ   |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED  |    ASSIGNED    |
+| DELETE |  YES  |      YES       | ASSIGNED or OWN |    OWN    |      OWN       |
 
-### Activity Log
+#### Case Activity Log
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-| UPDATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
+> Activity log scoped specifically to this Case.
+
+| Action | Admin | Branch Manager |  Lawyer  | Paralegal | Process Server |
+| :----- | :---: | :------------: | :------: | :-------: | :------------: |
+| CREATE |  NO   |       NO       |    NO    |    NO     |       NO       |
+| UPDATE |  NO   |       NO       |    NO    |    NO     |       NO       |
+| READ   |  YES  |      YES       | ASSIGNED | ASSIGNED  |    ASSIGNED    |
+| DELETE |  NO   |       NO       |    NO    |    NO     |       NO       |
 
 ---
+
+## Consultation Entities
 
 ### Consultation
 
-| Action | Dev | Admin | Branch Manager |  Lawyer  | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :------: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |    NO    |    NO     |       NO       |
-| UPDATE | YES |  YES  |      YES       | ASSIGNED |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |   YES    |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |    NO    |    NO     |       NO       |
+| Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
+| :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
+| CREATE |  YES  |      YES       |       YES       |    NO     |       NO       |
+| UPDATE |  YES  |      YES       | ASSIGNED or OWN |    NO     |       NO       |
+| READ   |  YES  |      YES       |       YES       | ASSIGNED  |    ASSIGNED    |
+| DELETE |  YES  |      YES       |       OWN       |    NO     |       NO       |
 
 ---
 
-## Sub-Data of Consultation
+### Sub-Data of Consultation
 
-> These records exist under a Consultation.
+#### Payment
 
-### Payment
+| Action | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
+| :----- | :---: | :------------: | :----: | :-------: | :------------: |
+| CREATE |  YES  |      YES       |   NO   |    NO     |       NO       |
+| UPDATE |  YES  |      YES       |   NO   |    NO     |       NO       |
+| READ   |  YES  |      YES       |   NO   |    NO     |       NO       |
+| DELETE |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
-| UPDATE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
-| DELETE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
+#### Note
 
-### Note
+| Action | Admin | Branch Manager |     Lawyer      |    Paralegal     |  Process Server  |
+| :----- | :---: | :------------: | :-------------: | :--------------: | :--------------: |
+| CREATE |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
+| UPDATE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
+| READ   |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
+| DELETE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| UPDATE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
+#### Attachments
 
-### Attachments
+| Action | Admin | Branch Manager |     Lawyer      |    Paralegal     |  Process Server  |
+| :----- | :---: | :------------: | :-------------: | :--------------: | :--------------: |
+| CREATE |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
+| READ   |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
+| DELETE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
+#### Consultation Activity Log
 
-### Activity Log
+> Activity log scoped specifically to this Consultation.
 
-| Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
-| :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
-| CREATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-| UPDATE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
-| READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
-| DELETE | NO  |  NO   |       NO       |   NO   |    NO     |       NO       |
+| Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
+| :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
+| CREATE |  NO   |       NO       |       NO        |    NO     |       NO       |
+| UPDATE |  NO   |       NO       |       NO        |    NO     |       NO       |
+| READ   |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED  |    ASSIGNED    |
+| DELETE |  NO   |       NO       |       NO        |    NO     |       NO       |

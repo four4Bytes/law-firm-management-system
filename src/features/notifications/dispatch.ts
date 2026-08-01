@@ -5,6 +5,7 @@ import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
 import {
   caseAssignedTemplate,
+  consultationAssignedTemplate,
   consultationCreatedTemplate,
   consultationReminderTemplate,
   consultationUpdatedTemplate,
@@ -15,6 +16,8 @@ import {
 
 function pickTemplate(type: NotificationType) {
   switch (type) {
+    case NotificationType.ConsultationAssigned:
+      return consultationAssignedTemplate;
     case NotificationType.ConsultationCreated:
       return consultationCreatedTemplate;
     case NotificationType.ConsultationReminder:

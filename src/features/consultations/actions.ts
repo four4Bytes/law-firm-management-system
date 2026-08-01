@@ -18,11 +18,13 @@ import {
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { getActiveUserIdsByRoles } from "@/features/users/queries";
+import {
+  getRoleRecipientIds,
+  resolveAssignmentRecipients,
+} from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { notificationRoleConfig } from "@/lib/notification-config";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -41,30 +43,6 @@ import {
   ConsultationWithClientCreatePayloadSchema,
   ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
-
-/**
- * Helper: loads role-based recipients for ConsultationAssigned notifications and
- * merges with optional assignee IDs, falling back to existing DB assignees when
- * a consultationId is given and no new assigneeIds are provided.
- */
-async function resolveNotifyIds(payload: { assigneeIds?: string[]; consultationId?: string }) {
-  const { assigneeIds, consultationId } = payload;
-
-  const roleIds = await getActiveUserIdsByRoles({
-    roles: notificationRoleConfig[NotificationType.ConsultationAssigned],
-  });
-
-  if (assigneeIds?.length) {
-    return [...new Set([...roleIds, ...assigneeIds])];
-  }
-
-  if (consultationId) {
-    const existingIds = await getConsultationAssigneeIds(consultationId);
-    return [...new Set([...roleIds, ...existingIds])];
-  }
-
-  return roleIds;
-}
 
 export async function getConsultationsPaginatedAction(
   params: z.input<typeof PageQuerySchema>,
@@ -182,9 +160,7 @@ export async function createConsultationAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationCreated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationCreated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -201,7 +177,12 @@ export async function createConsultationAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({ assigneeIds: assignee_ids });
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.ConsultationAssigned,
+          directUserIds: assignee_ids,
+          entityId: createdConsultation.id,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
+        });
 
         await dispatchNotifications(
           {
@@ -262,9 +243,7 @@ export async function createConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationCreated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationCreated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -281,8 +260,11 @@ export async function createConsultationWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({
-          assigneeIds: parsed.data.consultation.assignee_ids,
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.ConsultationAssigned,
+          directUserIds: parsed.data.consultation.assignee_ids,
+          entityId: createdWithClient.id,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
         });
 
         await dispatchNotifications(
@@ -361,9 +343,7 @@ export async function updateConsultationAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationUpdated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationUpdated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -380,7 +360,12 @@ export async function updateConsultationAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({ assigneeIds: assignee_ids, consultationId });
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.ConsultationAssigned,
+          directUserIds: assignee_ids,
+          entityId: consultationId,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
+        });
 
         await dispatchNotifications(
           {
@@ -445,9 +430,7 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationUpdated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationUpdated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -464,9 +447,11 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({
-          assigneeIds: consultation.assignee_ids,
-          consultationId: consultation_id,
+        const notifyIds = await resolveAssignmentRecipients({
+          type: NotificationType.ConsultationAssigned,
+          directUserIds: consultation.assignee_ids,
+          entityId: consultation_id,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
         });
 
         await dispatchNotifications(

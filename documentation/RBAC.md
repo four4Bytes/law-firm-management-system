@@ -93,7 +93,7 @@ ADMIN
 
 > These records exist under a Case.
 
-#### Tasks
+### Tasks
 
 > Task assignment is controlled via CREATE and UPDATE actions.
 
@@ -104,7 +104,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
 
-#### Payment
+### Payment
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -113,7 +113,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 | DELETE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-#### Note
+### Note
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -122,7 +122,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Milestone
+### Milestone
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -131,7 +131,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    NO     |       NO       |
 
-#### Attachments
+### Attachments
 
 > No update action available. To replace a record, users must delete the old attachment and add a new one.
 
@@ -141,7 +141,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Activity Log
+### Activity Log
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -167,7 +167,7 @@ ADMIN
 
 > These records exist under a Consultation.
 
-#### Payment
+### Payment
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -176,7 +176,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 | DELETE | YES |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-#### Note
+### Note
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -185,7 +185,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Attachments
+### Attachments
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |
@@ -193,7 +193,7 @@ ADMIN
 | READ   | YES |  YES  |      YES       |  YES   |    YES    |      YES       |
 | DELETE | YES |  YES  |      YES       |  YES   |    OWN    |      OWN       |
 
-#### Activity Log
+### Activity Log
 
 | Action | Dev | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :-: | :---: | :------------: | :----: | :-------: | :------------: |

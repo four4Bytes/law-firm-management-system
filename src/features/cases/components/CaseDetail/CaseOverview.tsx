@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { FaCalendarCheck, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
+import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import type { CaseOverviewData } from "@/features/cases/queries";
@@ -88,17 +89,7 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>
-              {data.assignTo.length > 0 ? (
-                <ul className={styles.assignedStaff}>
-                  {data.assignTo.map(({ id, name }) => (
-                    <li key={id} className={styles.assignedChip}>
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span className={styles.value}>—</span>
-              )}
+              <AssigneeChips assignees={data.assignTo} />
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Parties Involved</span>

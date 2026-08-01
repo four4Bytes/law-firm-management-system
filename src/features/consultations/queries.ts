@@ -19,10 +19,12 @@ const consultationSelect = {
   client: { select: { name: true } },
   createdBy: { select: { name: true } },
   consultationAssignments: {
+    where: { user: { is_active: true } },
     select: { user: { select: { name: true } } },
     orderBy: [
       { created_at: "asc" },
       { user: { name: "asc" } },
+      { user_id: "asc" },
     ] satisfies Prisma.ConsultationAssignmentOrderByWithRelationInput[],
   },
 } as const;
@@ -65,10 +67,12 @@ export const getConsultationOverviewById = cache(
         client: true,
         createdBy: { select: { name: true } },
         consultationAssignments: {
+          where: { user: { is_active: true } },
           include: { user: { select: { id: true, name: true } } },
           orderBy: [
             { created_at: "asc" },
             { user: { name: "asc" } },
+            { user_id: "asc" },
           ] satisfies Prisma.ConsultationAssignmentOrderByWithRelationInput[],
         },
         cases: { select: { id: true, case_title: true }, take: 1 },
@@ -248,7 +252,6 @@ export const getConsultationEditData = cache(
         booking_datetime: true,
         status: true,
         consultationAssignments: {
-          where: { user: { is_active: true } },
           select: { user_id: true },
         },
       },

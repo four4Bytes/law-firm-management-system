@@ -19,10 +19,12 @@ const caseSelect = {
   created_at: true,
   client: { select: { name: true } },
   caseAssignments: {
+    where: { user: { is_active: true } },
     select: { user: { select: { name: true } } },
     orderBy: [
       { created_at: "asc" },
       { user: { name: "asc" } },
+      { user_id: "asc" },
     ] satisfies Prisma.CaseAssignmentOrderByWithRelationInput[],
   },
   status: true,
@@ -135,10 +137,12 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       client: true,
       createdBy: { select: { name: true } },
       caseAssignments: {
+        where: { user: { is_active: true } },
         include: { user: { select: { id: true, name: true } } },
         orderBy: [
           { created_at: "asc" },
           { user: { name: "asc" } },
+          { user_id: "asc" },
         ] satisfies Prisma.CaseAssignmentOrderByWithRelationInput[],
       },
       milestones: {
@@ -390,7 +394,6 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       parties_involved: true,
       source_consultation_id: true,
       caseAssignments: {
-        where: { user: { is_active: true } },
         select: { user_id: true },
       },
     },

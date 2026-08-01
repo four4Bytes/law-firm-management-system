@@ -193,7 +193,7 @@ export function emailText(label: string) {
  * @param label - Human-readable field name (capitalized, e.g. "Assignee").
  * @returns A Zod array schema of unique UUIDs.
  */
-export function uniqueUuidArray(label: string) {
+export function uniqueUuidArray(label: string): z.ZodArray<z.ZodUUID> {
   return z
     .array(z.uuid())
     .refine((ids) => new Set(ids).size === ids.length, { message: `${label}s must be unique` });

@@ -45,6 +45,7 @@ describe("getMilestoneById", () => {
         due_date: true,
         status: true,
         case_id: true,
+        created_by_user_id: true,
         reminder_days: true,
       },
     });
@@ -88,6 +89,7 @@ describe("getMilestoneRowById", () => {
       description: "File the initial paperwork",
       due_date: new Date("2024-07-15"),
       status: "Pending",
+      created_by_user_id: "u1",
     };
     expect(result).toEqual(expected);
   });

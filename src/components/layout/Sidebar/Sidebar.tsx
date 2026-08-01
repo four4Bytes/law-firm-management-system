@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { roleLabels } from "@/features/users/constants";
 import { Role } from "@/generated/prisma/browser";
-import { hasRole } from "@/lib/role-utils";
+import { can, type Permission } from "@/lib/rbac";
 
 import { toggleSidebarAction } from "./actions";
 import { useSidebar } from "./sidebar-context";
@@ -30,7 +30,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType;
-  roles?: readonly Role[];
+  permission?: Permission;
 }
 
 const navItems: NavItem[] = [
@@ -42,7 +42,7 @@ const navItems: NavItem[] = [
     label: "Activity Log",
     href: "/audit",
     icon: FaClockRotateLeft,
-    roles: [Role.Admin, Role.Dev, Role.BranchManager],
+    permission: "activity.read",
   },
 ];
 
@@ -103,7 +103,7 @@ export function Sidebar({ initialCollapsed = false, userName, userRole, userImag
         </div>
         <nav className={styles.navContainer}>
           {navItems
-            .filter((item) => !item.roles || hasRole(userRole, ...item.roles))
+            .filter((item) => !item.permission || can(userRole, item.permission))
             .map((item) => (
               <Button
                 key={item.href}

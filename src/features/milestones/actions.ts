@@ -5,14 +5,20 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
-import { getCaseAssigneeIds } from "@/features/cases/queries";
+import { getCaseAssigneeIds, getUserCaseAccess } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createMilestone, deleteMilestone, updateMilestone } from "./mutations";
-import { getMilestoneById, getMilestoneRowById, type MilestoneRow } from "./queries";
+import {
+  getMilestoneAccessContext,
+  getMilestoneById,
+  getMilestoneRowById,
+  type MilestoneRow,
+} from "./queries";
 import {
   MilestoneCreatePayloadSchema,
   MilestoneIdSchema,
@@ -20,11 +26,19 @@ import {
 } from "./schemas";
 
 export async function getMilestoneRowByIdAction(milestoneId: string): Promise<MilestoneRow | null> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = MilestoneIdSchema.safeParse({ milestoneId });
   if (!parsed.success) {
     throw new Error("Invalid milestone ID");
+  }
+
+  const access = await getMilestoneAccessContext({
+    userId: session.id,
+    milestoneId: parsed.data.milestoneId,
+  });
+  if (!can(session.role, "milestone.read", access)) {
+    throw new Error("Forbidden");
   }
 
   return getMilestoneRowById(parsed.data.milestoneId);
@@ -43,6 +57,11 @@ export async function createMilestoneAction(
   const { title, description, due_date, status, case_id, reminder_days } = parsed.data;
 
   try {
+    const caseAccess = await getUserCaseAccess({ userId: session.id, caseId: case_id });
+    if (!can(session.role, "milestone.create", caseAccess)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     const milestone = await createMilestone({
       title,
       description: description || undefined,
@@ -90,6 +109,11 @@ export async function updateMilestoneAction(
   try {
     const existing = await getMilestoneById(milestoneId);
     if (!existing) return { success: false, error: "Milestone not found" };
+
+    const access = await getMilestoneAccessContext({ userId: session.id, milestoneId });
+    if (!can(session.role, "milestone.update", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     if (
       existing.title === title &&
@@ -182,6 +206,11 @@ export async function deleteMilestoneAction(
   try {
     const existing = await getMilestoneById(milestoneId);
     if (!existing) return { success: false, error: "Milestone not found" };
+
+    const access = await getMilestoneAccessContext({ userId: session.id, milestoneId });
+    if (!can(session.role, "milestone.delete", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deleteMilestone(milestoneId);
 

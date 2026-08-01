@@ -11,6 +11,7 @@ import {
   getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationsPaginated,
+  getUserConsultationAccess,
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
@@ -25,7 +26,8 @@ import {
 } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth, requirePermission } from "@/lib/auth-guards";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -51,27 +53,36 @@ export async function getConsultationsPaginatedAction(
   consultations: ConsultationRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = PageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
 
-  return getConsultationsPaginated(parsed.data);
+  const assignedUserId = can(session.role, "consultation.read") ? undefined : session.id;
+  return getConsultationsPaginated(parsed.data, assignedUserId);
 }
 
 export async function getConsultationOverviewByIdAction(
   id: string,
-): Promise<ConsultationOverviewData> {
-  await requireAuth();
+): Promise<{ overview: ConsultationOverviewData; access: AccessContext }> {
+  const session = await requireAuth();
 
   const parsed = ConsultationOverviewIdSchema.safeParse({ consultationId: id });
   if (!parsed.success) {
     throw new Error("Invalid consultation ID");
   }
 
-  return getConsultationOverviewById(parsed.data.consultationId);
+  const consultationId = parsed.data.consultationId;
+  const access = await getUserConsultationAccess({ userId: session.id, consultationId });
+  if (!can(session.role, "consultation.read", access)) {
+    throw new Error("Forbidden");
+  }
+
+  const overview = await getConsultationOverviewById(consultationId);
+
+  return { overview, access };
 }
 
 export async function getConsultationNotesPaginatedAction(
@@ -80,11 +91,19 @@ export async function getConsultationNotesPaginatedAction(
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = ConsultationPageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
+  }
+
+  const access = await getUserConsultationAccess({
+    userId: session.id,
+    consultationId: parsed.data.consultationId,
+  });
+  if (!can(session.role, "note.read", access)) {
+    throw new Error("Forbidden");
   }
 
   return getConsultationNotesPaginated(parsed.data);
@@ -96,11 +115,19 @@ export async function getConsultationDocumentsPaginatedAction(
   rows: DocumentRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = ConsultationPageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
+  }
+
+  const access = await getUserConsultationAccess({
+    userId: session.id,
+    consultationId: parsed.data.consultationId,
+  });
+  if (!can(session.role, "attachment.read", access)) {
+    throw new Error("Forbidden");
   }
 
   return getDocumentsPaginated(parsed.data);
@@ -108,21 +135,29 @@ export async function getConsultationDocumentsPaginatedAction(
 
 export async function getConsultationForEditAction(
   id: string,
-): Promise<ConsultationEditData | null> {
-  await requireAuth();
+): Promise<{ data: ConsultationEditData | null; access: AccessContext }> {
+  const session = await requireAuth();
 
   const parsed = ConsultationOverviewIdSchema.safeParse({ consultationId: id });
   if (!parsed.success) {
     throw new Error("Invalid consultation ID");
   }
 
-  return getConsultationEditData(parsed.data.consultationId);
+  const consultationId = parsed.data.consultationId;
+  const access = await getUserConsultationAccess({ userId: session.id, consultationId });
+  if (!can(session.role, "consultation.update", access)) {
+    throw new Error("Forbidden");
+  }
+
+  const data = await getConsultationEditData(consultationId);
+
+  return { data, access };
 }
 
 export async function createConsultationAction(
   payload: z.input<typeof ConsultationCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  const session = await requirePermission("consultation.create");
 
   const parsed = ConsultationCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -316,6 +351,11 @@ export async function updateConsultationAction(
     const existing = await getConsultationEditData(consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
+    const access = await getUserConsultationAccess({ userId: session.id, consultationId });
+    if (!can(session.role, "consultation.update", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     await updateConsultation({
       consultationId,
       client_id,
@@ -406,6 +446,17 @@ export async function updateConsultationWithClientAction(
   const { consultation_id, client_id, client, consultation } = parsed.data;
 
   try {
+    const existing = await getConsultationEditData(consultation_id);
+    if (!existing) return { success: false, error: "Consultation not found" };
+
+    const access = await getUserConsultationAccess({
+      userId: session.id,
+      consultationId: consultation_id,
+    });
+    if (!can(session.role, "consultation.update", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     const existingAssigneeIds = await getConsultationAssigneeIds(consultation_id);
 
     await updateConsultationWithClient({
@@ -495,6 +546,14 @@ export async function deleteConsultationAction(
   try {
     const existing = await getConsultationEditData(parsed.data.consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
+
+    const access = await getUserConsultationAccess({
+      userId: session.id,
+      consultationId: parsed.data.consultationId,
+    });
+    if (!can(session.role, "consultation.delete", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deleteConsultation(parsed.data.consultationId);
 

@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
@@ -24,7 +24,7 @@ import {
 } from "./schemas";
 
 export async function getPaymentRowByIdAction(paymentId: string): Promise<PaymentRow | null> {
-  await requireRole("Admin", "Dev", "BranchManager");
+  await requirePermission("payment.read");
 
   const parsed = PaymentIdSchema.safeParse({ paymentId });
   if (!parsed.success) {
@@ -40,7 +40,7 @@ export async function getPaymentsPaginatedAction(
   rows: PaymentRow[];
   nextCursor: string | null;
 }> {
-  await requireRole("Admin", "Dev", "BranchManager");
+  await requirePermission("payment.read");
 
   const parsed = PaymentPageQuerySchema.safeParse(params);
   if (!parsed.success) {
@@ -55,7 +55,7 @@ export async function createPaymentAction(
 ): Promise<ActionDataResponse<{ id: string }>> {
   let session: AuthenticatedUser;
   try {
-    session = await requireRole("Admin", "Dev", "BranchManager");
+    session = await requirePermission("payment.create");
   } catch {
     return { success: false, error: "You don't have permission to create payments." };
   }
@@ -103,7 +103,7 @@ export async function updatePaymentAction(
 ): Promise<ActionStatusResponse> {
   let session: AuthenticatedUser;
   try {
-    session = await requireRole("Admin", "Dev", "BranchManager");
+    session = await requirePermission("payment.update");
   } catch {
     return { success: false, error: "You don't have permission to update payments." };
   }
@@ -160,7 +160,7 @@ export async function deletePaymentAction(
 ): Promise<ActionStatusResponse> {
   let session: AuthenticatedUser;
   try {
-    session = await requireRole("Admin", "Dev", "BranchManager");
+    session = await requirePermission("payment.delete");
   } catch {
     return { success: false, error: "You don't have permission to delete payments." };
   }

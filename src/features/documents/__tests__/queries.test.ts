@@ -45,6 +45,7 @@ describe("getDocumentsPaginated", () => {
       file_type: "application/pdf",
       file_size: 2500000,
       uploadedBy: "John Lawyer",
+      uploaded_by_user_id: "u1",
       created_at: documents[0].created_at,
     });
     expect(result.rows[1]).toEqual({
@@ -53,6 +54,7 @@ describe("getDocumentsPaginated", () => {
       file_type: "application/pdf",
       file_size: 2500000,
       uploadedBy: "Alice Paralegal",
+      uploaded_by_user_id: "u1",
       created_at: documents[1].created_at,
     });
     expect(prisma.document.findMany).toHaveBeenCalledWith({
@@ -182,6 +184,8 @@ describe("getDocumentById", () => {
         file_name: true,
         case_id: true,
         consultation_id: true,
+        task_id: true,
+        uploaded_by_user_id: true,
       },
     });
   });
@@ -214,6 +218,7 @@ describe("getDocumentDetailRowById", () => {
       file_type: "application/pdf",
       file_size: 2500000,
       uploadedBy: "John Lawyer",
+      uploaded_by_user_id: "u1",
       created_at: new Date("2024-06-01"),
       case_id: "c1",
       consultation_id: null,
@@ -227,6 +232,7 @@ describe("getDocumentDetailRowById", () => {
         file_size: true,
         case_id: true,
         consultation_id: true,
+        uploaded_by_user_id: true,
         created_at: true,
         uploadedBy: { select: { name: true } },
       },

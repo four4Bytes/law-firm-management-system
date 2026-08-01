@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { FaGavel, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
+import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
@@ -77,17 +78,7 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>
-              {data.assignTo.length > 0 ? (
-                <ul className={styles.assignedStaff}>
-                  {data.assignTo.map(({ id, name }) => (
-                    <li key={id} className={styles.assignedChip}>
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span className={styles.value}>—</span>
-              )}
+              <AssigneeChips assignees={data.assignTo} />
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Created By</span>

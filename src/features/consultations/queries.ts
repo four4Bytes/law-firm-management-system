@@ -3,7 +3,7 @@ import { cache } from "react";
 
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
-import type { Consultation } from "@/generated/prisma/browser";
+import type { Consultation, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -20,6 +20,10 @@ const consultationSelect = {
   createdBy: { select: { name: true } },
   consultationAssignments: {
     select: { user: { select: { name: true } } },
+    orderBy: [
+      { created_at: "asc" },
+      { user: { name: "asc" } },
+    ] satisfies Prisma.ConsultationAssignmentOrderByWithRelationInput[],
   },
 } as const;
 
@@ -62,6 +66,10 @@ export const getConsultationOverviewById = cache(
         createdBy: { select: { name: true } },
         consultationAssignments: {
           include: { user: { select: { id: true, name: true } } },
+          orderBy: [
+            { created_at: "asc" },
+            { user: { name: "asc" } },
+          ] satisfies Prisma.ConsultationAssignmentOrderByWithRelationInput[],
         },
         cases: { select: { id: true, case_title: true }, take: 1 },
       },

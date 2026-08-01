@@ -34,6 +34,7 @@ const consultationSelect = {
   createdBy: { select: { name: true } },
   consultationAssignments: {
     select: { user: { select: { name: true } } },
+    orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }],
   },
 } as const;
 
@@ -282,6 +283,7 @@ describe("getConsultationOverviewById", () => {
         createdBy: { select: { name: true } },
         consultationAssignments: {
           include: { user: { select: { id: true, name: true } } },
+          orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }],
         },
         cases: { select: { id: true, case_title: true }, take: 1 },
       },

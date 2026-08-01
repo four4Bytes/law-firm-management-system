@@ -4,7 +4,7 @@ import { cache } from "react";
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import type { TaskRow } from "@/features/tasks/queries";
-import type { Case, CaseMilestone } from "@/generated/prisma/browser";
+import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
@@ -20,6 +20,10 @@ const caseSelect = {
   client: { select: { name: true } },
   caseAssignments: {
     select: { user: { select: { name: true } } },
+    orderBy: [
+      { created_at: "asc" },
+      { user: { name: "asc" } },
+    ] satisfies Prisma.CaseAssignmentOrderByWithRelationInput[],
   },
   status: true,
   milestones: {
@@ -132,6 +136,10 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       createdBy: { select: { name: true } },
       caseAssignments: {
         include: { user: { select: { id: true, name: true } } },
+        orderBy: [
+          { created_at: "asc" },
+          { user: { name: "asc" } },
+        ] satisfies Prisma.CaseAssignmentOrderByWithRelationInput[],
       },
       milestones: {
         orderBy: { created_at: "desc" },

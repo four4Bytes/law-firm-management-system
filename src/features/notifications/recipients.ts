@@ -14,6 +14,13 @@ export interface AssignmentRecipientsPayload {
   getExistingDirectUserIds?: (entityId: string) => Promise<string[]>;
 }
 
+export function diffNewAssigneeIds(
+  incoming: string[] | undefined,
+  existingIds: string[],
+): string[] {
+  return incoming ? incoming.filter((id) => !existingIds.includes(id)) : [];
+}
+
 export async function resolveAssignmentRecipients(
   payload: AssignmentRecipientsPayload,
 ): Promise<string[]> {
@@ -21,11 +28,12 @@ export async function resolveAssignmentRecipients(
 
   const roleIds = await getRoleRecipientIds(type);
 
-  const direct = directUserIds?.length
-    ? directUserIds
-    : entityId && getExistingDirectUserIds
-      ? await getExistingDirectUserIds(entityId)
-      : [];
+  const direct =
+    directUserIds !== undefined
+      ? directUserIds
+      : entityId && getExistingDirectUserIds
+        ? await getExistingDirectUserIds(entityId)
+        : [];
 
   return [...new Set([...roleIds, ...direct])];
 }

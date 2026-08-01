@@ -18,6 +18,9 @@ const consultationSelect = {
   status: true,
   client: { select: { name: true } },
   createdBy: { select: { name: true } },
+  consultationAssignments: {
+    select: { user: { select: { name: true } } },
+  },
 } as const;
 
 export type ConsultationRow = {
@@ -25,6 +28,7 @@ export type ConsultationRow = {
   clientName: string;
   concern: string;
   createdByName: string;
+  assignTo: string;
   booking_datetime: Date;
   status: string;
 };
@@ -45,6 +49,7 @@ export type ConsultationOverviewData = {
     address: string | null;
   };
   createdBy: { name: string };
+  assignTo: { id: string; name: string }[];
   relatedCase: { id: string; case_title: string } | null;
 };
 
@@ -55,6 +60,9 @@ export const getConsultationOverviewById = cache(
       include: {
         client: true,
         createdBy: { select: { name: true } },
+        consultationAssignments: {
+          include: { user: { select: { id: true, name: true } } },
+        },
         cases: { select: { id: true, case_title: true }, take: 1 },
       },
     });
@@ -75,6 +83,10 @@ export const getConsultationOverviewById = cache(
         address: data.client.address,
       },
       createdBy: data.createdBy,
+      assignTo: data.consultationAssignments.map((a) => ({
+        id: a.user.id,
+        name: a.user.name,
+      })),
       relatedCase: data.cases[0] ?? null,
     } satisfies ConsultationOverviewData;
   },
@@ -188,6 +200,7 @@ export const getConsultationsPaginated = cache(
       clientName: c.client.name,
       concern: c.concern,
       createdByName: c.createdBy.name,
+      assignTo: c.consultationAssignments.map((a) => a.user.name).join(", "),
       booking_datetime: c.booking_datetime,
       status: c.status,
     }));
@@ -204,7 +217,17 @@ export const getConsultationsPaginated = cache(
 export type ConsultationEditData = Pick<
   Consultation,
   "id" | "client_id" | "concern" | "booking_datetime" | "status"
->;
+> & { assignee_ids: string[] };
+
+export const getConsultationAssigneeIds = cache(
+  async (consultationId: string): Promise<string[]> => {
+    const assignments = await prisma.consultationAssignment.findMany({
+      where: { consultation_id: consultationId, user: { is_active: true } },
+      select: { user_id: true },
+    });
+    return assignments.map((a) => a.user_id);
+  },
+);
 
 export const getConsultationEditData = cache(
   async (id: string): Promise<ConsultationEditData | null> => {
@@ -216,9 +239,21 @@ export const getConsultationEditData = cache(
         concern: true,
         booking_datetime: true,
         status: true,
+        consultationAssignments: {
+          select: { user_id: true },
+        },
       },
     });
 
-    return data;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      client_id: data.client_id,
+      concern: data.concern,
+      booking_datetime: data.booking_datetime,
+      status: data.status,
+      assignee_ids: data.consultationAssignments.map((a) => a.user_id),
+    };
   },
 );

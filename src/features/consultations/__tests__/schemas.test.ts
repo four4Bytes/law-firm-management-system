@@ -81,6 +81,22 @@ describe("ConsultationCreatePayloadSchema", () => {
       false,
     );
   });
+
+  it("accepts a valid assignee_ids list", () => {
+    const result = ConsultationCreatePayloadSchema.safeParse({
+      ...base,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a non-uuid assignee id", () => {
+    const result = ConsultationCreatePayloadSchema.safeParse({
+      ...base,
+      assignee_ids: ["abc"],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("ConsultationUpdatePayloadSchema", () => {

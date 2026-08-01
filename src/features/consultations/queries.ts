@@ -145,7 +145,6 @@ export const getConsultationNotesPaginated = cache(
       id: n.id,
       content: n.content,
       author: n.createdBy.name,
-      created_by_user_id: n.created_by_user_id,
       created_at: n.created_at,
     }));
 
@@ -236,7 +235,7 @@ export const getConsultationsPaginated = cache(
 
 export type ConsultationEditData = Pick<
   Consultation,
-  "id" | "client_id" | "concern" | "booking_datetime" | "status" | "created_by_user_id"
+  "id" | "client_id" | "concern" | "booking_datetime" | "status"
 > & { assignee_ids: string[] };
 
 export const getConsultationAssigneeIds = cache(
@@ -259,7 +258,6 @@ export const getConsultationEditData = cache(
         concern: true,
         booking_datetime: true,
         status: true,
-        created_by_user_id: true,
         consultationAssignments: {
           select: { user_id: true },
         },
@@ -274,7 +272,6 @@ export const getConsultationEditData = cache(
       concern: data.concern,
       booking_datetime: data.booking_datetime,
       status: data.status,
-      created_by_user_id: data.created_by_user_id,
       assignee_ids: data.consultationAssignments.map((a) => a.user_id),
     };
   },
@@ -282,7 +279,7 @@ export const getConsultationEditData = cache(
 
 // ----- Access context -----
 
-export const getUserConsultationAccess = cache(
+export const getConsultationAccessContext = cache(
   async ({ userId, consultationId }: ConsultationAccessPayload): Promise<AccessContext> => {
     const [assignment, consultation] = await Promise.all([
       prisma.consultationAssignment.findFirst({

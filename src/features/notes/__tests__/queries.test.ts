@@ -41,8 +41,6 @@ describe("getNoteById", () => {
         content: true,
         case_id: true,
         consultation_id: true,
-        task_id: true,
-        created_by_user_id: true,
         createdBy: { select: { name: true } },
       },
     });
@@ -74,7 +72,6 @@ describe("getNoteRowById", () => {
       id: "n1",
       content: "Note content",
       author: "John Lawyer",
-      created_by_user_id: "u1",
       created_at: new Date("2024-06-01"),
     };
     expect(result).toEqual(expected);

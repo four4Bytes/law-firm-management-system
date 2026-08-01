@@ -71,18 +71,14 @@ describe("getCaseForEditAction", () => {
     const result = await getCaseForEditAction(uuid);
 
     expect(result).toEqual({
-      data: {
-        id: "1",
-        client_id: uuid,
-        case_title: "Smith vs Jones",
-        case_type: "Civil",
-        status: "Open",
-        parties_involved: null,
-        source_consultation_id: null,
-        created_by_user_id: "u1",
-        assignee_ids: [],
-      },
-      access: { assigned: false, own: true },
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [],
     });
     expect(prisma.case.findUnique).toHaveBeenLastCalledWith({
       where: { id: uuid },
@@ -94,7 +90,6 @@ describe("getCaseForEditAction", () => {
         status: true,
         parties_involved: true,
         source_consultation_id: true,
-        created_by_user_id: true,
         caseAssignments: {
           select: { user_id: true },
         },
@@ -111,7 +106,7 @@ describe("getCaseForEditAction", () => {
 
     const result = await getCaseForEditAction(uuid);
 
-    expect(result).toEqual({ data: null, access: { assigned: false, own: false } });
+    expect(result).toBeNull();
   });
 });
 

@@ -83,11 +83,11 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   async function handleEdit() {
     setIsEditPending(true);
     try {
-      const { data } = await getConsultationForEditAction(overview.id);
-      if (!data) throw new Error("Consultation not found");
-      const clientData = await getClientForEditAction(data.client_id);
+      const consultation = await getConsultationForEditAction(overview.id);
+      if (!consultation) throw new Error("Consultation not found");
+      const clientData = await getClientForEditAction(consultation.client_id);
       if (!clientData) throw new Error("Client not found");
-      setEditData({ consultation: data, clientData });
+      setEditData({ consultation, clientData });
     } catch {
       queue.add({ title: "Failed to load consultation data" }, { timeout: 5000 });
     } finally {
@@ -135,12 +135,16 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         <TabPanels>
           {validTabs.includes("notes") && (
             <TabPanel id="notes">
-              {selectedKey === "notes" && <NotesTab consultationId={overview.id} />}
+              {selectedKey === "notes" && (
+                <NotesTab consultationId={overview.id} access={access} userRole={userRole} />
+              )}
             </TabPanel>
           )}
           {validTabs.includes("attachments") && (
             <TabPanel id="attachments">
-              {selectedKey === "attachments" && <AttachmentsTab consultationId={overview.id} />}
+              {selectedKey === "attachments" && (
+                <AttachmentsTab consultationId={overview.id} access={access} userRole={userRole} />
+              )}
             </TabPanel>
           )}
           {validTabs.includes("payments") && (

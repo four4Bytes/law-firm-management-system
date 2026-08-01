@@ -6,7 +6,7 @@ import type { AccessContext } from "@/lib/rbac";
 
 export type MilestoneRow = Pick<
   CaseMilestone,
-  "id" | "title" | "description" | "due_date" | "status" | "created_by_user_id"
+  "id" | "title" | "description" | "due_date" | "status"
 >;
 
 export interface MilestoneAccessPayload {
@@ -24,7 +24,6 @@ export const getMilestoneById = cache(async (id: string) => {
       due_date: true,
       status: true,
       case_id: true,
-      created_by_user_id: true,
       reminder_days: true,
     },
   });
@@ -40,7 +39,6 @@ export const getMilestoneRowById = cache(async (id: string): Promise<MilestoneRo
     description: milestone.description,
     due_date: milestone.due_date,
     status: milestone.status,
-    created_by_user_id: milestone.created_by_user_id,
   };
 });
 

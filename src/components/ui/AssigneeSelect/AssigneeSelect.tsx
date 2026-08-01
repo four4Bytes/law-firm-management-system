@@ -1,13 +1,17 @@
 "use client";
 
 import { Select, SelectItem } from "@/components/ui/Select/Select";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { keysToSet } from "@/lib/form-utils";
 
 import styles from "./AssigneeSelect.module.css";
 
+export interface AssigneeOption {
+  id: string;
+  name: string;
+}
+
 export interface AssigneeSelectProps {
-  users: ActiveUserSummary[];
+  users: AssigneeOption[];
   assigneeIds: Set<string>;
   onChange: (ids: Set<string>) => void;
   isDisabled?: boolean;

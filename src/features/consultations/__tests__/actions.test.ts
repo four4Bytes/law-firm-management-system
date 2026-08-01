@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type Consultation } from "@/generated/prisma/browser";
+import { Role, type Consultation } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -12,7 +12,10 @@ import {
 } from "../actions";
 
 vi.mock("@/lib/auth-guards", () => ({
-  requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: "admin", name: "n" }),
+  requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
+  requirePermission: vi
+    .fn()
+    .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
 }));
 
 vi.mock("next/cache", () => ({
@@ -26,6 +29,7 @@ vi.mock("next/server", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     consultation: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    consultationAssignment: { findFirst: vi.fn() },
   },
 }));
 
@@ -51,6 +55,7 @@ const consultationRecord: ConsultationWithAssignments = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.consultationAssignment.findFirst).mockResolvedValue(null);
 });
 
 describe("getConsultationForEditAction", () => {
@@ -60,14 +65,18 @@ describe("getConsultationForEditAction", () => {
     const result = await getConsultationForEditAction(uuid);
 
     expect(result).toEqual({
-      id: "1",
-      client_id: uuid,
-      concern: "Legal advice",
-      booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
-      assignee_ids: [],
+      data: {
+        id: "1",
+        client_id: uuid,
+        concern: "Legal advice",
+        booking_datetime: consultationRecord.booking_datetime,
+        status: "Scheduled",
+        created_by_user_id: "u1",
+        assignee_ids: [],
+      },
+      access: { assigned: false, own: true },
     });
-    expect(prisma.consultation.findUnique).toHaveBeenCalledWith({
+    expect(prisma.consultation.findUnique).toHaveBeenLastCalledWith({
       where: { id: uuid },
       select: {
         id: true,
@@ -75,6 +84,7 @@ describe("getConsultationForEditAction", () => {
         concern: true,
         booking_datetime: true,
         status: true,
+        created_by_user_id: true,
         consultationAssignments: {
           select: { user_id: true },
         },

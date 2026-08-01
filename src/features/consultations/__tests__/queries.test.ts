@@ -93,7 +93,7 @@ describe("getConsultationsPaginated", () => {
     expect(prisma.consultation.findMany).toHaveBeenCalledWith({
       take: 11,
       skip: 0,
-      where: undefined,
+      where: {},
       orderBy: { booking_datetime: "desc" },
       select: consultationSelect,
     });
@@ -347,6 +347,7 @@ describe("getConsultationNotesPaginated", () => {
       id: "n1",
       content: "Client discussed settlement options",
       author: "John Lawyer",
+      created_by_user_id: "u1",
       created_at: notes[0].created_at,
     });
   });
@@ -527,6 +528,7 @@ describe("getConsultationEditData", () => {
         concern: true,
         booking_datetime: true,
         status: true,
+        created_by_user_id: true,
         consultationAssignments: {
           select: { user_id: true },
         },

@@ -154,6 +154,7 @@ describe("getRecentCases", () => {
     });
     expect(prisma.case.findMany).toHaveBeenCalledWith({
       take: 5,
+      where: {},
       orderBy: { created_at: "desc" },
       select: {
         id: true,

@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type Case } from "@/generated/prisma/browser";
+import { Role, type Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -12,7 +12,10 @@ import {
 } from "../actions";
 
 vi.mock("@/lib/auth-guards", () => ({
-  requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: "admin", name: "n" }),
+  requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
+  requirePermission: vi
+    .fn()
+    .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
 }));
 
 vi.mock("next/cache", () => ({
@@ -30,6 +33,9 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       delete: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    caseAssignment: {
       findFirst: vi.fn(),
     },
   },
@@ -55,6 +61,7 @@ const caseRecord: CaseWithAssignments = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.caseAssignment.findFirst).mockResolvedValue(null);
 });
 
 describe("getCaseForEditAction", () => {
@@ -64,16 +71,20 @@ describe("getCaseForEditAction", () => {
     const result = await getCaseForEditAction(uuid);
 
     expect(result).toEqual({
-      id: "1",
-      client_id: uuid,
-      case_title: "Smith vs Jones",
-      case_type: "Civil",
-      status: "Open",
-      parties_involved: null,
-      source_consultation_id: null,
-      assignee_ids: [],
+      data: {
+        id: "1",
+        client_id: uuid,
+        case_title: "Smith vs Jones",
+        case_type: "Civil",
+        status: "Open",
+        parties_involved: null,
+        source_consultation_id: null,
+        created_by_user_id: "u1",
+        assignee_ids: [],
+      },
+      access: { assigned: false, own: true },
     });
-    expect(prisma.case.findUnique).toHaveBeenCalledWith({
+    expect(prisma.case.findUnique).toHaveBeenLastCalledWith({
       where: { id: uuid },
       select: {
         id: true,
@@ -83,6 +94,7 @@ describe("getCaseForEditAction", () => {
         status: true,
         parties_involved: true,
         source_consultation_id: true,
+        created_by_user_id: true,
         caseAssignments: {
           select: { user_id: true },
         },
@@ -99,7 +111,7 @@ describe("getCaseForEditAction", () => {
 
     const result = await getCaseForEditAction(uuid);
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ data: null, access: { assigned: false, own: false } });
   });
 });
 

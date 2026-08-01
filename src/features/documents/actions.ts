@@ -5,9 +5,12 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import { getUserCaseAccess } from "@/features/cases/queries";
+import { getUserConsultationAccess } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import {
   deleteFile,
   generateKey,
@@ -18,6 +21,7 @@ import {
 
 import { createDocument, deleteDocument as deleteDocumentRecord } from "./mutations";
 import {
+  getDocumentAccessContext,
   getDocumentById,
   getDocumentDetailRowById,
   getDocumentsPaginated,
@@ -37,11 +41,19 @@ export async function getDocumentsPaginatedAction(
   rows: DocumentRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = DocumentPageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
+  }
+
+  const { caseId, consultationId } = parsed.data;
+  const parentAccess = caseId
+    ? await getUserCaseAccess({ userId: session.id, caseId })
+    : await getUserConsultationAccess({ userId: session.id, consultationId: consultationId! });
+  if (!can(session.role, "attachment.read", parentAccess)) {
+    throw new Error("Forbidden");
   }
 
   return getDocumentsPaginated(parsed.data);
@@ -53,7 +65,7 @@ export async function getDocumentUploadUrlAction(
   key: string;
   uploadUrl: string;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = DocumentUploadPayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -61,6 +73,16 @@ export async function getDocumentUploadUrlAction(
   }
 
   const { file_name, file_type, case_id, consultation_id } = parsed.data;
+
+  const parentAccess = case_id
+    ? await getUserCaseAccess({ userId: session.id, caseId: case_id })
+    : await getUserConsultationAccess({
+        userId: session.id,
+        consultationId: consultation_id!,
+      });
+  if (!can(session.role, "attachment.create", parentAccess)) {
+    throw new Error("Forbidden");
+  }
 
   const parentType = case_id ? "cases" : "consultations";
   const parentId = case_id ?? consultation_id!;
@@ -83,6 +105,16 @@ export async function confirmDocumentUploadAction(
   const { file_name, file_type, file_size, file_path, case_id, consultation_id } = parsed.data;
 
   try {
+    const parentAccess = case_id
+      ? await getUserCaseAccess({ userId: session.id, caseId: case_id })
+      : await getUserConsultationAccess({
+          userId: session.id,
+          consultationId: consultation_id!,
+        });
+    if (!can(session.role, "attachment.create", parentAccess)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     const doc = await createDocument({
       file_name,
       file_path,
@@ -117,7 +149,7 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   url: string;
   file_name: string;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = DocumentIdSchema.safeParse({ documentId });
   if (!parsed.success) {
@@ -126,6 +158,14 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
 
   const doc = await getDocumentById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
+
+  const access = await getDocumentAccessContext({
+    userId: session.id,
+    documentId: doc.id,
+  });
+  if (!can(session.role, "attachment.read", access)) {
+    throw new Error("Forbidden");
+  }
 
   const exists = await objectExists(doc.file_path);
   if (!exists) throw new Error("This file no longer exists in storage. It may have been deleted.");
@@ -136,7 +176,7 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
 }
 
 export async function getDocumentDetailRowAction(documentId: string): Promise<DocumentDetailRow> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = DocumentIdSchema.safeParse({ documentId });
   if (!parsed.success) {
@@ -145,6 +185,14 @@ export async function getDocumentDetailRowAction(documentId: string): Promise<Do
 
   const doc = await getDocumentDetailRowById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
+
+  const access = await getDocumentAccessContext({
+    userId: session.id,
+    documentId: doc.id,
+  });
+  if (!can(session.role, "attachment.read", access)) {
+    throw new Error("Forbidden");
+  }
 
   return doc;
 }
@@ -164,6 +212,12 @@ export async function deleteDocumentAction(
   try {
     const doc = await getDocumentById(documentId);
     if (!doc) return { success: false, error: "Document not found" };
+
+    const access = await getDocumentAccessContext({ userId: session.id, documentId: doc.id });
+    const permission = doc.case_id ? "attachment.delete" : "consultation.attachment.delete";
+    if (!can(session.role, permission, access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deleteFile(doc.file_path);
     await deleteDocumentRecord(documentId);

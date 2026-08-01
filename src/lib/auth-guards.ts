@@ -36,21 +36,6 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 }
 
 /**
- * Enforces the session and that the user holds one of the allowed roles.
- *
- * @param roles - Allowed role strings. The caller must hold at least one.
- * @returns The authenticated user when authorized.
- * @throws `"Unauthorized"` if no session, or `"Forbidden"` if the role is not allowed.
- */
-export async function requireRole(...roles: Role[]): Promise<AuthenticatedUser> {
-  const user = await requireAuth();
-  if (!roles.includes(user.role)) {
-    throw new Error("Forbidden");
-  }
-  return user;
-}
-
-/**
  * Enforces the session and that the user holds at least one of the given
  * permissions, evaluated against the central RBAC matrix.
  *

@@ -15,7 +15,7 @@ import { UserFormModal } from "@/features/users/components/UserFormModal/UserFor
 import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
-import { hasRole } from "@/lib/role-utils";
+import { can } from "@/lib/rbac";
 
 import styles from "./UserTable.module.css";
 
@@ -37,7 +37,7 @@ const roleClassMap: Record<Role, string> = {
 type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
 
 export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
-  const canManage = hasRole(sessionUserRole, Role.Admin, Role.Dev);
+  const canManage = can(sessionUserRole, "user.create");
 
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);

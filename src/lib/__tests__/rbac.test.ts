@@ -146,4 +146,42 @@ describe("rbac matrix", () => {
     expect(can(null, "case.read")).toBe(false);
     expect(can(undefined, "case.read")).toBe(false);
   });
+
+  it("mirrors the case vs consultation attachment delete split", () => {
+    expect(PERMISSION_MATRIX["attachment.delete"]).toEqual({
+      Dev: "yes",
+      Admin: "yes",
+      BranchManager: "yes",
+      Lawyer: "assigned-or-own",
+      Paralegal: "own",
+      ProcessServer: "own",
+    });
+    expect(PERMISSION_MATRIX["consultation.attachment.delete"]).toEqual({
+      Dev: "yes",
+      Admin: "yes",
+      BranchManager: "yes",
+      Lawyer: "assigned-or-own",
+      Paralegal: "assigned-and-own",
+      ProcessServer: "assigned-and-own",
+    });
+  });
+
+  it("mirrors the case vs consultation activity read split", () => {
+    expect(PERMISSION_MATRIX["case.activity.read"]).toEqual({
+      Dev: "yes",
+      Admin: "yes",
+      BranchManager: "yes",
+      Lawyer: "assigned",
+      Paralegal: "assigned",
+      ProcessServer: "assigned",
+    });
+    expect(PERMISSION_MATRIX["consultation.activity.read"]).toEqual({
+      Dev: "yes",
+      Admin: "yes",
+      BranchManager: "yes",
+      Lawyer: "assigned-or-own",
+      Paralegal: "assigned",
+      ProcessServer: "assigned",
+    });
+  });
 });

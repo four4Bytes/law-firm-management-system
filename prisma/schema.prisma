@@ -59,6 +59,7 @@ enum NotificationType {
   TaskAssigned
   TaskStatusChanged
   CaseAssigned
+  ConsultationAssigned
 }
 
 enum PaymentStatus {
@@ -101,20 +102,21 @@ model User {
   emailVerified DateTime? @map("email_verified")
   image         String?
 
-  accounts             Account[]
-  consultations        Consultation[]
-  cases                Case[]
-  createdTasks         Task[]           @relation("TaskCreator")
-  caseAssignments      CaseAssignment[]
-  taskAssignments      TaskAssignment[]
-  notifications        Notification[]
-  payments             Payment[]
-  documents            Document[]
-  notes                Note[]
-  caseMilestones       CaseMilestone[]
-  auditLogs            AuditLog[]
-  taskReviewsAssigned  TaskReviewer[]   @relation("ReviewerUser")
-  taskReviewsDelegated TaskReviewer[]   @relation("DelegatorUser")
+  accounts                Account[]
+  consultations           Consultation[]
+  cases                   Case[]
+  createdTasks            Task[]                   @relation("TaskCreator")
+  caseAssignments         CaseAssignment[]
+  consultationAssignments ConsultationAssignment[]
+  taskAssignments         TaskAssignment[]
+  notifications           Notification[]
+  payments                Payment[]
+  documents               Document[]
+  notes                   Note[]
+  caseMilestones          CaseMilestone[]
+  auditLogs               AuditLog[]
+  taskReviewsAssigned     TaskReviewer[]           @relation("ReviewerUser")
+  taskReviewsDelegated    TaskReviewer[]           @relation("DelegatorUser")
 
   @@index([is_active])
   @@index([created_at])
@@ -145,13 +147,14 @@ model Consultation {
   reminder_days      Int?
   last_reminded_at   DateTime?
 
-  client        Client         @relation(fields: [client_id], references: [id])
-  createdBy     User           @relation(fields: [created_by_user_id], references: [id])
-  payments      Payment[]
-  documents     Document[]
-  notes         Note[]
-  cases         Case[]
-  notifications Notification[]
+  client                  Client                   @relation(fields: [client_id], references: [id])
+  createdBy               User                     @relation(fields: [created_by_user_id], references: [id])
+  payments                Payment[]
+  documents               Document[]
+  notes                   Note[]
+  cases                   Case[]
+  notifications           Notification[]
+  consultationAssignments ConsultationAssignment[]
 
   @@index([booking_datetime])
   @@index([status, booking_datetime])
@@ -195,6 +198,19 @@ model CaseAssignment {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([case_id, user_id])
+}
+
+model ConsultationAssignment {
+  id              String   @id @default(uuid()) @db.Uuid
+  consultation_id String   @db.Uuid
+  user_id         String   @db.Uuid
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  consultation Consultation @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([consultation_id, user_id])
 }
 
 model TaskAssignment {

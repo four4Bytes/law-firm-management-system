@@ -204,7 +204,6 @@ export async function createCaseAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.CaseAssigned,
           directUserIds: assignee_ids,
           entityId: createdCase.id,
           getExistingDirectUserIds: getCaseAssigneeIds,
@@ -220,6 +219,7 @@ export async function createCaseAction(
             caseId: createdCase.id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -272,7 +272,6 @@ export async function createCaseWithClientAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.CaseAssigned,
           directUserIds: caseData.assignee_ids,
           entityId: createdWithClient.id,
           getExistingDirectUserIds: getCaseAssigneeIds,
@@ -288,6 +287,7 @@ export async function createCaseWithClientAction(
             caseId: createdWithClient.id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -353,7 +353,6 @@ export async function updateCaseAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.CaseAssigned,
           directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
           entityId: caseId,
           getExistingDirectUserIds: getCaseAssigneeIds,
@@ -369,6 +368,7 @@ export async function updateCaseAction(
             caseId,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -421,7 +421,6 @@ export async function updateCaseWithClientAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          type: NotificationType.CaseAssigned,
           directUserIds: diffNewAssigneeIds(caseData.assignee_ids, existingAssigneeIds),
           entityId: case_id,
           getExistingDirectUserIds: getCaseAssigneeIds,
@@ -437,6 +436,7 @@ export async function updateCaseWithClientAction(
             caseId: case_id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);

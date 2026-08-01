@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
+import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -13,6 +14,7 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createConsultationWithClientAction } from "@/features/consultations/actions";
 import { ConsultationWithClientCreatePayloadSchema } from "@/features/consultations/schemas";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime } from "@/lib/date";
 import {
@@ -31,6 +33,7 @@ interface AddConsultationModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
+  users: ActiveUserSummary[];
 }
 
 interface ClientFields {
@@ -64,9 +67,11 @@ export function AddConsultationModal({
   isOpen,
   onOpenChange,
   onSuccess,
+  users,
 }: AddConsultationModalProps) {
   const [client, setClient] = useState<ClientFields>(resetClient());
   const [consultation, setConsultation] = useState<ConsultationFields>(resetConsultation);
+  const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
 
   const { name, email, phone, address } = client;
   const { concern, date, time, status } = consultation;
@@ -83,6 +88,7 @@ export function AddConsultationModal({
     reset: () => {
       setClient(resetClient());
       setConsultation(resetConsultation());
+      setAssigneeIds(new Set());
     },
   });
 
@@ -105,6 +111,7 @@ export function AddConsultationModal({
         concern: requiredString(concern),
         booking_datetime: combineDateTime(date, time),
         status,
+        assignee_ids: Array.from(assigneeIds),
       },
     });
   }
@@ -204,6 +211,12 @@ export function AddConsultationModal({
                 </SelectItem>
               ))}
             </Select>
+            <AssigneeSelect
+              users={users}
+              assigneeIds={assigneeIds}
+              onChange={setAssigneeIds}
+              isDisabled={isPending}
+            />
           </div>
         </div>
         <div className={styles.actions}>

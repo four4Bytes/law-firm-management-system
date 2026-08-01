@@ -76,6 +76,20 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
               <span className={styles.value}>{formatDateTime(data.booking_datetime)}</span>
             </div>
             <div className={styles.field}>
+              <span className={styles.label}>Assigned Staff</span>
+              {data.assignTo.length > 0 ? (
+                <ul className={styles.assignedStaff}>
+                  {data.assignTo.map(({ id, name }) => (
+                    <li key={id} className={styles.assignedChip}>
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className={styles.value}>—</span>
+              )}
+            </div>
+            <div className={styles.field}>
               <span className={styles.label}>Created By</span>
               <span className={styles.value}>{data.createdBy.name}</span>
             </div>

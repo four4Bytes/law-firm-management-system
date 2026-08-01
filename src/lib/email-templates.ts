@@ -211,9 +211,7 @@ export function consultationAssignedTemplate(ctx: TemplateContext): string {
   return emailLayout(
     "New Consultation Assigned",
     greeting(ctx.toName) +
-      rawText(
-        `${escapeHtml(ctx.actorName)} has assigned you a consultation: ${strongLabel(ctx.title)}.`,
-      ) +
+      rawText(`${escapeHtml(ctx.actorName)} has assigned you a consultation.`) +
       text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
   );

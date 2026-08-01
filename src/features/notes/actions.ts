@@ -5,8 +5,8 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
-import { getUserCaseAccess } from "@/features/cases/queries";
-import { getUserConsultationAccess } from "@/features/consultations/queries";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
@@ -47,12 +47,12 @@ export async function createNoteAction(
   let note: { id: string };
   try {
     if (case_id) {
-      const caseAccess = await getUserCaseAccess({ userId: session.id, caseId: case_id });
+      const caseAccess = await getCaseAccessContext({ userId: session.id, caseId: case_id });
       if (!can(session.role, "note.create", caseAccess)) {
         return { success: false, error: FORBIDDEN_MESSAGE };
       }
     } else {
-      const consultationAccess = await getUserConsultationAccess({
+      const consultationAccess = await getConsultationAccessContext({
         userId: session.id,
         consultationId: consultation_id!,
       });

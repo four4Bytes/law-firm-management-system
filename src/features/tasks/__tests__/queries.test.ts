@@ -44,7 +44,6 @@ describe("getTaskById", () => {
         description: true,
         status: true,
         case_id: true,
-        created_by_user_id: true,
         created_at: true,
         updated_at: true,
         taskAssignments: {
@@ -83,7 +82,6 @@ describe("getTaskDetailRowById", () => {
       status: "Pending",
       assignTo: "Jane Assignee",
       assignee_ids: ["u2"],
-      created_by_user_id: "u1",
       updated_at: new Date("2024-06-02"),
       created_at: new Date("2024-06-01"),
     };

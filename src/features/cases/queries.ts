@@ -236,7 +236,6 @@ export const getCaseTasksPaginated = cache(
       id: t.id,
       title: t.title,
       status: t.status,
-      created_by_user_id: t.created_by_user_id,
       assignTo: t.taskAssignments.map((a) => a.user.name).join(", "),
       updated_at: t.updated_at,
     }));
@@ -282,7 +281,6 @@ export const getCaseNotesPaginated = cache(
       id: n.id,
       content: n.content,
       author: n.createdBy.name,
-      created_by_user_id: n.created_by_user_id,
       created_at: n.created_at,
     }));
 
@@ -380,7 +378,6 @@ export type CaseEditData = Pick<
   | "status"
   | "parties_involved"
   | "source_consultation_id"
-  | "created_by_user_id"
 > & { assignee_ids: string[] };
 
 export const getCaseBySourceConsultationId = cache(
@@ -403,7 +400,6 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       status: true,
       parties_involved: true,
       source_consultation_id: true,
-      created_by_user_id: true,
       caseAssignments: {
         select: { user_id: true },
       },
@@ -420,14 +416,13 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
     status: data.status,
     parties_involved: data.parties_involved,
     source_consultation_id: data.source_consultation_id,
-    created_by_user_id: data.created_by_user_id,
     assignee_ids: data.caseAssignments.map((a) => a.user_id),
   };
 });
 
 // ----- Access context -----
 
-export const getUserCaseAccess = cache(
+export const getCaseAccessContext = cache(
   async ({ userId, caseId }: CaseAccessPayload): Promise<AccessContext> => {
     const [assignment, caseRecord] = await Promise.all([
       prisma.caseAssignment.findFirst({

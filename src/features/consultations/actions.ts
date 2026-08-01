@@ -6,12 +6,12 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
+  getConsultationAccessContext,
   getConsultationAssigneeIds,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationsPaginated,
-  getUserConsultationAccess,
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
@@ -75,7 +75,7 @@ export async function getConsultationOverviewByIdAction(
   }
 
   const consultationId = parsed.data.consultationId;
-  const access = await getUserConsultationAccess({ userId: session.id, consultationId });
+  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
   if (!can(session.role, "consultation.read", access)) {
     throw new Error("Forbidden");
   }
@@ -98,7 +98,7 @@ export async function getConsultationNotesPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getUserConsultationAccess({
+  const access = await getConsultationAccessContext({
     userId: session.id,
     consultationId: parsed.data.consultationId,
   });
@@ -122,7 +122,7 @@ export async function getConsultationDocumentsPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getUserConsultationAccess({
+  const access = await getConsultationAccessContext({
     userId: session.id,
     consultationId: parsed.data.consultationId,
   });
@@ -135,7 +135,7 @@ export async function getConsultationDocumentsPaginatedAction(
 
 export async function getConsultationForEditAction(
   id: string,
-): Promise<{ data: ConsultationEditData | null; access: AccessContext }> {
+): Promise<ConsultationEditData | null> {
   const session = await requireAuth();
 
   const parsed = ConsultationOverviewIdSchema.safeParse({ consultationId: id });
@@ -144,14 +144,12 @@ export async function getConsultationForEditAction(
   }
 
   const consultationId = parsed.data.consultationId;
-  const access = await getUserConsultationAccess({ userId: session.id, consultationId });
+  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
   if (!can(session.role, "consultation.update", access)) {
     throw new Error("Forbidden");
   }
 
-  const data = await getConsultationEditData(consultationId);
-
-  return { data, access };
+  return getConsultationEditData(consultationId);
 }
 
 export async function createConsultationAction(
@@ -351,7 +349,7 @@ export async function updateConsultationAction(
     const existing = await getConsultationEditData(consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getUserConsultationAccess({ userId: session.id, consultationId });
+    const access = await getConsultationAccessContext({ userId: session.id, consultationId });
     if (!can(session.role, "consultation.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -449,7 +447,7 @@ export async function updateConsultationWithClientAction(
     const existing = await getConsultationEditData(consultation_id);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getUserConsultationAccess({
+    const access = await getConsultationAccessContext({
       userId: session.id,
       consultationId: consultation_id,
     });
@@ -547,7 +545,7 @@ export async function deleteConsultationAction(
     const existing = await getConsultationEditData(parsed.data.consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getUserConsultationAccess({
+    const access = await getConsultationAccessContext({
       userId: session.id,
       consultationId: parsed.data.consultationId,
     });

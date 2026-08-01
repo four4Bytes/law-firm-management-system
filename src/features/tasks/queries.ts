@@ -8,7 +8,6 @@ export type ActiveUserSummary = Pick<User, "id" | "name">;
 
 export type TaskRow = Pick<Task, "id" | "title" | "status" | "updated_at"> & {
   assignTo: string;
-  created_by_user_id: string;
 };
 
 export type TaskDetailRow = TaskRow &
@@ -38,7 +37,6 @@ export const getTaskById = cache(async (id: string) => {
       description: true,
       status: true,
       case_id: true,
-      created_by_user_id: true,
       created_at: true,
       updated_at: true,
       taskAssignments: {
@@ -56,7 +54,6 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
       title: true,
       description: true,
       status: true,
-      created_by_user_id: true,
       updated_at: true,
       created_at: true,
       taskAssignments: {
@@ -72,7 +69,6 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
     title: task.title,
     description: task.description,
     status: task.status,
-    created_by_user_id: task.created_by_user_id,
     assignTo: task.taskAssignments.map((a) => a.user.name).join(", "),
     assignee_ids: task.taskAssignments.map((a) => a.user_id),
     updated_at: task.updated_at,

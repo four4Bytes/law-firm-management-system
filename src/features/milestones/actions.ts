@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
-import { getCaseAssigneeIds, getUserCaseAccess } from "@/features/cases/queries";
+import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
@@ -57,7 +57,7 @@ export async function createMilestoneAction(
   const { title, description, due_date, status, case_id, reminder_days } = parsed.data;
 
   try {
-    const caseAccess = await getUserCaseAccess({ userId: session.id, caseId: case_id });
+    const caseAccess = await getCaseAccessContext({ userId: session.id, caseId: case_id });
     if (!can(session.role, "milestone.create", caseAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

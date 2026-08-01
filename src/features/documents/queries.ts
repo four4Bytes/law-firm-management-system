@@ -10,7 +10,6 @@ export type DocumentRow = {
   file_type: string;
   file_size: number | null;
   uploadedBy: string;
-  uploaded_by_user_id: string;
   created_at: Date;
 };
 
@@ -76,7 +75,6 @@ export const getDocumentsPaginated = cache(
       file_type: d.file_type,
       file_size: d.file_size,
       uploadedBy: d.uploadedBy.name,
-      uploaded_by_user_id: d.uploaded_by_user_id,
       created_at: d.created_at,
     }));
 
@@ -96,8 +94,7 @@ export const getDocumentById = cache(
     file_name: string;
     case_id: string | null;
     consultation_id: string | null;
-    task_id: string | null;
-    uploaded_by_user_id: string;
+    task: { case_id: string | null } | null;
   } | null> => {
     return prisma.document.findUnique({
       where: { id },
@@ -107,8 +104,7 @@ export const getDocumentById = cache(
         file_name: true,
         case_id: true,
         consultation_id: true,
-        task_id: true,
-        uploaded_by_user_id: true,
+        task: { select: { case_id: true } },
       },
     });
   },
@@ -120,7 +116,6 @@ export type DocumentDetailRow = {
   file_type: string;
   file_size: number | null;
   uploadedBy: string;
-  uploaded_by_user_id: string;
   created_at: Date;
   case_id: string | null;
   consultation_id: string | null;
@@ -137,7 +132,6 @@ export const getDocumentDetailRowById = cache(
         file_size: true,
         case_id: true,
         consultation_id: true,
-        uploaded_by_user_id: true,
         created_at: true,
         uploadedBy: { select: { name: true } },
       },
@@ -151,7 +145,6 @@ export const getDocumentDetailRowById = cache(
       file_type: doc.file_type,
       file_size: doc.file_size,
       uploadedBy: doc.uploadedBy.name,
-      uploaded_by_user_id: doc.uploaded_by_user_id,
       created_at: doc.created_at,
       case_id: doc.case_id,
       consultation_id: doc.consultation_id,

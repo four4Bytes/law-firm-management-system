@@ -11,11 +11,11 @@ vi.mock("@/lib/auth-guards", () => ({
 }));
 
 vi.mock("@/features/cases/queries", () => ({
-  getUserCaseAccess: vi.fn().mockResolvedValue({ assigned: true, own: true }),
+  getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: true, own: true }),
 }));
 
 vi.mock("@/features/consultations/queries", () => ({
-  getUserConsultationAccess: vi.fn().mockResolvedValue({ assigned: true, own: true }),
+  getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: true, own: true }),
 }));
 
 const getAuditLogPaginated = vi.fn();

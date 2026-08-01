@@ -5,8 +5,8 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
-import { getUserCaseAccess } from "@/features/cases/queries";
-import { getUserConsultationAccess } from "@/features/consultations/queries";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
@@ -49,9 +49,13 @@ export async function getDocumentsPaginatedAction(
   }
 
   const { caseId, consultationId } = parsed.data;
+  if (!caseId && !consultationId) {
+    throw new Error("Invalid query parameters");
+  }
+
   const parentAccess = caseId
-    ? await getUserCaseAccess({ userId: session.id, caseId })
-    : await getUserConsultationAccess({ userId: session.id, consultationId: consultationId! });
+    ? await getCaseAccessContext({ userId: session.id, caseId })
+    : await getConsultationAccessContext({ userId: session.id, consultationId: consultationId! });
   if (!can(session.role, "attachment.read", parentAccess)) {
     throw new Error("Forbidden");
   }
@@ -75,8 +79,8 @@ export async function getDocumentUploadUrlAction(
   const { file_name, file_type, case_id, consultation_id } = parsed.data;
 
   const parentAccess = case_id
-    ? await getUserCaseAccess({ userId: session.id, caseId: case_id })
-    : await getUserConsultationAccess({
+    ? await getCaseAccessContext({ userId: session.id, caseId: case_id })
+    : await getConsultationAccessContext({
         userId: session.id,
         consultationId: consultation_id!,
       });
@@ -106,8 +110,8 @@ export async function confirmDocumentUploadAction(
 
   try {
     const parentAccess = case_id
-      ? await getUserCaseAccess({ userId: session.id, caseId: case_id })
-      : await getUserConsultationAccess({
+      ? await getCaseAccessContext({ userId: session.id, caseId: case_id })
+      : await getConsultationAccessContext({
           userId: session.id,
           consultationId: consultation_id!,
         });
@@ -213,8 +217,9 @@ export async function deleteDocumentAction(
     const doc = await getDocumentById(documentId);
     if (!doc) return { success: false, error: "Document not found" };
 
+    const parentCaseId = doc.case_id ?? doc.task?.case_id ?? null;
     const access = await getDocumentAccessContext({ userId: session.id, documentId: doc.id });
-    const permission = doc.case_id ? "attachment.delete" : "consultation.attachment.delete";
+    const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
     if (!can(session.role, permission, access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -226,8 +231,8 @@ export async function deleteDocumentAction(
       createAuditLog({
         actorUserId: session.id,
         action: "document.deleted",
-        entityType: doc.case_id ? "Case" : "Consultation",
-        entityId: (doc.case_id ?? doc.consultation_id)!,
+        entityType: parentCaseId ? "Case" : "Consultation",
+        entityId: parentCaseId ?? doc.consultation_id!,
         details: `Deleted document: "${doc.file_name}"`,
       }).catch(console.error),
     );

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
@@ -162,9 +163,9 @@ export async function updateTaskAction(
       }
 
       if (parsed.data.assignee_ids) {
-        const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
-        const newAssigneeIds = parsed.data.assignee_ids.filter(
-          (id) => !existingAssigneeIds.includes(id),
+        const newAssigneeIds = diffNewAssigneeIds(
+          parsed.data.assignee_ids,
+          existing.taskAssignments.map((a) => a.user_id),
         );
         if (newAssigneeIds.length > 0) {
           try {

@@ -22,7 +22,10 @@ import {
 import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { resolveAssignmentRecipients } from "@/features/notifications/recipients";
+import {
+  diffNewAssigneeIds,
+  resolveAssignmentRecipients,
+} from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
@@ -351,7 +354,7 @@ export async function updateCaseAction(
       try {
         const notifyIds = await resolveAssignmentRecipients({
           type: NotificationType.CaseAssigned,
-          directUserIds: assignee_ids,
+          directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
           entityId: caseId,
           getExistingDirectUserIds: getCaseAssigneeIds,
         });
@@ -394,6 +397,8 @@ export async function updateCaseWithClientAction(
   const { case_id, client_id, client, case: caseData } = parsed.data;
 
   try {
+    const existingAssigneeIds = await getCaseAssigneeIds(case_id);
+
     await updateCaseWithClient({
       case_id,
       client_id,
@@ -417,7 +422,7 @@ export async function updateCaseWithClientAction(
       try {
         const notifyIds = await resolveAssignmentRecipients({
           type: NotificationType.CaseAssigned,
-          directUserIds: caseData.assignee_ids,
+          directUserIds: diffNewAssigneeIds(caseData.assignee_ids, existingAssigneeIds),
           entityId: case_id,
           getExistingDirectUserIds: getCaseAssigneeIds,
         });

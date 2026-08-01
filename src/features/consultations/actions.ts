@@ -19,6 +19,7 @@ import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/qu
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import {
+  diffNewAssigneeIds,
   getRoleRecipientIds,
   resolveAssignmentRecipients,
 } from "@/features/notifications/recipients";
@@ -362,7 +363,7 @@ export async function updateConsultationAction(
       try {
         const notifyIds = await resolveAssignmentRecipients({
           type: NotificationType.ConsultationAssigned,
-          directUserIds: assignee_ids,
+          directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
           entityId: consultationId,
           getExistingDirectUserIds: getConsultationAssigneeIds,
         });
@@ -405,6 +406,8 @@ export async function updateConsultationWithClientAction(
   const { consultation_id, client_id, client, consultation } = parsed.data;
 
   try {
+    const existingAssigneeIds = await getConsultationAssigneeIds(consultation_id);
+
     await updateConsultationWithClient({
       consultation_id,
       client_id,
@@ -449,7 +452,7 @@ export async function updateConsultationWithClientAction(
       try {
         const notifyIds = await resolveAssignmentRecipients({
           type: NotificationType.ConsultationAssigned,
-          directUserIds: consultation.assignee_ids,
+          directUserIds: diffNewAssigneeIds(consultation.assignee_ids, existingAssigneeIds),
           entityId: consultation_id,
           getExistingDirectUserIds: getConsultationAssigneeIds,
         });

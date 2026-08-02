@@ -1,8 +1,8 @@
 # Role-Based Access Control (RBAC)
 
-> The current system implementation will be based on this document (planned implementation).
+> The current system implementation will be based on this document.
 
-> This is the initial RBAC draft — all permissions and rules below are proposals and subject to change.
+> This is the initial RBAC draft - all permissions and rules below are proposals and subject to change.
 
 ## Roles
 
@@ -30,7 +30,7 @@ ADMIN
 | **YES**       | Full Access         | Can perform this action anywhere in the organization.                                                   |
 | **NO**        | No Access           | Cannot perform this action under any circumstances.                                                     |
 | **ASSIGNED**  | Directly Assigned   | Only if assigned to this specific record (Case, Task, or Consultation) or its parent Case/Consultation. |
-| **OWN**       | Creator Only        | Only on records created by the user (`created_by_user_id`).                                             |
+| **OWN**       | Creator Only        | Only on records created by the user.                                                                    |
 | **TASK_ONLY** | Task-Level Modifier | With `ASSIGNED`: requires assignment to that specific Task; parent Case assignment alone is not enough. |
 
 ---
@@ -39,18 +39,18 @@ ADMIN
 
 Combined codes in table cells follow these rules:
 
-1. **`ASSIGNED or OWN`** — Act on the item if you are assigned to it **or** if you created it.
-2. **`ASSIGNED + TASK_ONLY`** — Act on a task only if it is assigned directly to you; you cannot act on other tasks in the same parent Case.
-3. **`ASSIGNED and OWN`** — Act on an item only if you created it **and** you are currently assigned to the parent Case/Consultation.
-4. **`ASSIGNED + TASK_ONLY or OWN`** — The assigned path requires parent Case access and assignment to that specific Task. The OWN path requires no assignment: creating a task grants the creator update rights on it, even if task or parent assignment is later removed.
+1. **`ASSIGNED or OWN`** - Act on the item if you are assigned to it **or** if you created it.
+2. **`ASSIGNED + TASK_ONLY`** - Act on a task only if it is assigned directly to you; you cannot act on other tasks in the same parent Case.
+3. **`ASSIGNED and OWN`** - Act on an item only if you created it **and** you are currently assigned to the parent Case/Consultation.
+4. **`ASSIGNED + TASK_ONLY or OWN`** - The assigned path requires parent Case access and assignment to that specific Task. The OWN path requires no assignment: creating a task grants the creator update rights on it, even if task or parent assignment is later removed.
 
 ---
 
-## Core System Rules
+## Note
 
-1. **Parent access flow.** Admins and Branch Managers have unrestricted access across their scope. Lawyers, Paralegals, and Process Servers must be assigned to a Case or Consultation to access its sub-data (Tasks, Notes, Milestones, Attachments). Creating a record grants **OWN** rights to the creator, even before an assignment record is generated. Implementation: a `CaseAssignment` or `ConsultationAssignment` record for `(case_id/consultation_id, user_id)` must exist, otherwise sub-data is inaccessible. Directory-level visibility of the parent entity itself is unaffected (see Rule 2).
-2. **Directory view vs. detailed access.** `YES` on Case READ (e.g., Lawyers) means the Case appears in the system directory, but its private sub-data (Notes, Financials) is only accessible when assigned.
-3. **Immutable logs.** Activity logs are system-generated audit trails. No user, including Admins, can edit or delete log entries.
+1. Admins and Branch Managers have unrestricted access across their scope. Lawyers, Paralegals, and Process Servers must be assigned to a Case or Consultation to access its sub-data (Tasks, Notes, Milestones, Attachments). Creating a record grants **OWN** rights to the creator, even before an assignment is made.
+2. `YES` on Case READ (e.g., Lawyers) means the Case is visible in the case list or table, but its private sub-data (Notes, Financials) is only accessible when assigned.
+3. Activity logs are system-generated audit trails. No user, including Admins, can edit or delete log entries.
 
 ---
 

@@ -20,13 +20,13 @@ import type {
   ConsultationEditData,
   ConsultationOverviewData,
 } from "@/features/consultations/queries";
+import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 
 import styles from "./ConsultationDetail.module.css";
 import { ConsultationOverview } from "./ConsultationOverview";
 import { ActivityLogTab } from "./tabs/ActivityLogTab";
-import { AttachmentsTab } from "./tabs/AttachmentsTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { PaymentsTab } from "./tabs/PaymentsTab";
 

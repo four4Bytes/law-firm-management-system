@@ -49,16 +49,19 @@ See `src/lib/developer-emails.ts` and `src/features/users/mutations.ts:upsertDev
 
 Defined in `src/lib/auth-guards.ts`.
 
-| Function                 | Throws           | Description                                                                                                                                               |
-| ------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `requireAuth()`          | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user.                                                 |
-| `requirePermission(...)` | `"Forbidden"`    | Calls `requireAuth()`, then checks the user holds at least one of the given permissions via the RBAC matrix (`src/lib/rbac.ts`). Context-free cells only. |
+| Function                       | Throws           | Description                                                                                                                                               |
+| ------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `requireAuth()`                | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user.                                                 |
+| `requirePermission(...)`       | `"Forbidden"`    | Calls `requireAuth()`, then checks the user holds at least one of the given permissions via the RBAC matrix (`src/lib/rbac.ts`). Context-free cells only. |
+| `requirePermissionOrNull(...)` | `null` on denial | Same as `requirePermission`, but returns `null` instead of throwing. Use in write actions that return `ActionStatusResponse`.                             |
+| `assertRecordPermission(...)`  | `"Forbidden"`    | Evaluates a record-scoped permission against an `AccessContext` and throws `"Forbidden"` when denied. Use after loading the record's access context.      |
 
 **Usage pattern** — every Server Action calls one of these at the top, then evaluates record-scoped permissions per record via `can(role, permission, accessContext)`:
 
 ```ts
 export async function createCaseAction(payload: CasePayload): Promise<ActionStatusResponse> {
-  const session = await requireAuth(); // or requirePermission("case.create")
+  const session = await requirePermissionOrNull("case.create");
+  if (!session) return { success: false, error: FORBIDDEN_MESSAGE };
   // ... validated + authorized
 }
 ```

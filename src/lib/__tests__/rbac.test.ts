@@ -84,6 +84,21 @@ describe("rbac matrix", () => {
           const context = QUALIFIER_CONTEXTS[qualifier];
           expect(can(role, permission, context)).toBe(true);
           expect(can(role, permission)).toBe(false);
+
+          // Assert denial for complementary non-satisfying contexts
+          const allContexts = Object.values(QUALIFIER_CONTEXTS);
+          for (const testContext of allContexts) {
+            const isSuperset = SUPERSET[qualifier].some(
+              (q) =>
+                q !== "yes" &&
+                q !== "no" &&
+                JSON.stringify(QUALIFIER_CONTEXTS[q as keyof typeof QUALIFIER_CONTEXTS]) ===
+                  JSON.stringify(testContext),
+            );
+            if (!isSuperset) {
+              expect(can(role, permission, testContext)).toBe(false);
+            }
+          }
         }
       }
     }
@@ -145,6 +160,10 @@ describe("rbac matrix", () => {
   it("rejects null or undefined roles", () => {
     expect(can(null, "case.read")).toBe(false);
     expect(can(undefined, "case.read")).toBe(false);
+  });
+
+  it("rejects unknown role values", () => {
+    expect(can("UnknownRole" as Role, "case.read")).toBe(false);
   });
 
   it("mirrors the case vs consultation attachment delete split", () => {

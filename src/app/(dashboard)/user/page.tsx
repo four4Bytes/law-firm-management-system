@@ -1,19 +1,11 @@
-import { redirect } from "next/navigation";
-
 import { getUsersPaginatedAction } from "@/features/users/actions";
 import { UserTable } from "@/features/users/components/UserTable/UserTable";
-import { auth } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { requirePermission } from "@/lib/auth-guards";
 
 import styles from "./page.module.css";
 
 export default async function UserPage() {
-  const session = await auth();
-  const userRole = session?.user?.role;
-
-  if (!can(userRole, "user.read")) {
-    redirect("/dashboard");
-  }
+  const session = await requirePermission("user.read");
 
   const initial = await getUsersPaginatedAction({ pageSize: 10 });
 
@@ -22,7 +14,7 @@ export default async function UserPage() {
       <UserTable
         users={initial.users}
         initialCursor={initial.nextCursor}
-        sessionUserRole={userRole ?? undefined}
+        sessionUserRole={session.role}
       />
     </div>
   );

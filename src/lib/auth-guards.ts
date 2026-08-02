@@ -71,8 +71,15 @@ export async function requirePermissionOrNull(
 ): Promise<AuthenticatedUser | null> {
   try {
     return await requirePermission(...permissions);
-  } catch {
-    return null;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message === "Unauthorized" || error.message === "Forbidden")
+    ) {
+      return null;
+    }
+    console.error("Unexpected error in requirePermissionOrNull:", error);
+    throw error;
   }
 }
 

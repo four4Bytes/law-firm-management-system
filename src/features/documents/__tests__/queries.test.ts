@@ -218,6 +218,7 @@ describe("getDocumentDetailRowById", () => {
       created_at: new Date("2024-06-01"),
       case_id: "c1",
       consultation_id: null,
+      task_case_id: null,
     });
     expect(prisma.document.findUnique).toHaveBeenCalledWith({
       where: { id: "d1" },
@@ -230,6 +231,7 @@ describe("getDocumentDetailRowById", () => {
         consultation_id: true,
         created_at: true,
         uploadedBy: { select: { name: true } },
+        task: { select: { case_id: true } },
       },
     });
   });

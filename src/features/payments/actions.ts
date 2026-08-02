@@ -8,6 +8,7 @@ import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
+import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
 import {
@@ -57,7 +58,7 @@ export async function createPaymentAction(
   try {
     session = await requirePermission("payment.create");
   } catch {
-    return { success: false, error: "You don't have permission to create payments." };
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = PaymentCreatePayloadSchema.safeParse(payload);
@@ -105,7 +106,7 @@ export async function updatePaymentAction(
   try {
     session = await requirePermission("payment.update");
   } catch {
-    return { success: false, error: "You don't have permission to update payments." };
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
@@ -162,7 +163,7 @@ export async function deletePaymentAction(
   try {
     session = await requirePermission("payment.delete");
   } catch {
-    return { success: false, error: "You don't have permission to delete payments." };
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = PaymentIdSchema.safeParse(payload);

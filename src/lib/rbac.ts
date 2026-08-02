@@ -114,8 +114,7 @@ interface RoleCells {
 
 /**
  * Builds a matrix row for the five standard roles. Dev is not part of the
- * documented tables — it is a bootstrap superuser, so it is always `yes`
- * except for immutable log cells (which are `no` for every role).
+ * documented tables — it is a bootstrap superuser, so it is always `yes`.
  *
  * @param cells - Qualifier per role for the row.
  * @returns A full `Role` → qualifier row for the matrix.

@@ -29,7 +29,9 @@ export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
   return getActiveUsers();
 }
 
-export async function getTaskDetailRowByIdAction(taskId: string): Promise<TaskDetailRow | null> {
+export async function getTaskDetailRowByIdAction(
+  taskId: string,
+): Promise<{ row: TaskDetailRow | null; canUpdate: boolean }> {
   const session = await requireAuth();
 
   const parsed = TaskIdSchema.safeParse({ taskId });
@@ -40,7 +42,12 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<TaskDe
     throw new Error("Forbidden");
   }
 
-  return getTaskDetailRowById(parsed.data.taskId);
+  const row = await getTaskDetailRowById(parsed.data.taskId);
+
+  return {
+    row,
+    canUpdate: row !== null && can(session.role, "task.update", access),
+  };
 }
 
 export async function createTaskAction(

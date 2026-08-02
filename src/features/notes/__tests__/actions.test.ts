@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getCaseAccessContext } from "@/features/cases/queries";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
@@ -10,6 +11,7 @@ import {
   getNoteRowByIdAction,
   updateNoteAction,
 } from "../actions";
+import { createNote, deleteNote, updateNote } from "../mutations";
 import { getNoteAccessContext, getNoteById, getNoteRowById } from "../queries";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -50,6 +52,14 @@ vi.mock("../mutations", () => ({
   createNote: vi.fn(),
   updateNote: vi.fn(),
   deleteNote: vi.fn(),
+}));
+
+vi.mock("@/features/cases/queries", () => ({
+  getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+}));
+
+vi.mock("@/features/consultations/queries", () => ({
+  getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -126,6 +136,21 @@ describe("createNoteAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("returns success when authorized", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(createNote).mockResolvedValue(noteRecord);
+
+    const result = await createNoteAction({ content: "New note", case_id: uuid });
+
+    expect(result).toEqual({ success: true, data: { id: "n1" } });
+  });
 });
 
 describe("updateNoteAction", () => {
@@ -135,6 +160,21 @@ describe("updateNoteAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("returns success when authorized", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateNote).mockResolvedValue(noteRecord);
+
+    const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
+
+    expect(result).toEqual({ success: true });
+  });
 });
 
 describe("deleteNoteAction", () => {
@@ -143,5 +183,20 @@ describe("deleteNoteAction", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+
+  it("returns success when authorized", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(deleteNote).mockResolvedValue(noteRecord);
+
+    const result = await deleteNoteAction({ noteId: uuid });
+
+    expect(result).toEqual({ success: true });
   });
 });

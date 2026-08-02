@@ -43,18 +43,27 @@ export type UpcomingMilestoneRow = {
 const milestoneCaseFilter = (
   assignedUserId?: string,
   ownUserId?: string,
-): Prisma.CaseMilestoneWhereInput => ({
-  ...(assignedUserId
-    ? {
-        case: {
-          OR: [
-            { caseAssignments: { some: { user_id: assignedUserId } } },
-            ...(ownUserId ? [{ created_by_user_id: ownUserId }] : []),
-          ],
-        },
-      }
-    : {}),
-});
+): Prisma.CaseMilestoneWhereInput => {
+  if (!assignedUserId && !ownUserId) {
+    return {};
+  }
+
+  const orConditions: Prisma.CaseWhereInput[] = [];
+
+  if (assignedUserId) {
+    orConditions.push({ caseAssignments: { some: { user_id: assignedUserId } } });
+  }
+
+  if (ownUserId) {
+    orConditions.push({ created_by_user_id: ownUserId });
+  }
+
+  return {
+    case: {
+      OR: orConditions,
+    },
+  };
+};
 
 export const getDashboardStats = cache(
   async (scope: DashboardStatsScope = {}): Promise<DashboardStats> => {

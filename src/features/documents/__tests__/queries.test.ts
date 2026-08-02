@@ -244,6 +244,16 @@ describe("getDocumentDetailRowById", () => {
     expect(result).toBeNull();
   });
 
+  it("selects task.case_id when case_id is null", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(
+      mockDocument({ case_id: null, task: { case_id: "c9" } }),
+    );
+
+    const result = await getDocumentDetailRowById("d1");
+
+    expect(result?.task_case_id).toBe("c9");
+  });
+
   it("propagates database errors", async () => {
     const error = new Error("connection failed");
     vi.mocked(prisma.document.findUnique).mockRejectedValue(error);

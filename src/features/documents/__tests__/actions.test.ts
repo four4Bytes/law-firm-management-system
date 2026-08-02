@@ -154,4 +154,18 @@ describe("deleteDocumentAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("returns success when authorized", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await deleteDocumentAction({ documentId: uuid });
+
+    expect(result).toEqual({ success: true });
+  });
 });

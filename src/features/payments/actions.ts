@@ -5,13 +5,13 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
-import { getCaseAccessContext } from "../cases/queries";
-import { getConsultationAccessContext } from "../consultations/queries";
 import { createPayment, deletePayment, updatePayment } from "./mutations";
 import {
   getPaymentAccessContext,

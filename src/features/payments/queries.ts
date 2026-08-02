@@ -1,12 +1,11 @@
 import { cache } from "react";
 
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { Payment } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
-
-import { getCaseAccessContext } from "../cases/queries";
-import { getConsultationAccessContext } from "../consultations/queries";
 
 export type PaymentRow = Pick<
   Payment,

@@ -13,6 +13,8 @@ import {
   updateCaseAction,
   updateCaseWithClientAction,
 } from "../actions";
+import { createCase, deleteCase, updateCase, updateCaseWithClient } from "../mutations";
+import { getCaseAccessContext, getCaseBySourceConsultationId, getCaseEditData } from "../queries";
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
@@ -48,6 +50,21 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+vi.mock("../mutations", () => ({
+  createCase: vi.fn(),
+  createCaseWithClient: vi.fn(),
+  updateCase: vi.fn(),
+  updateCaseWithClient: vi.fn(),
+  deleteCase: vi.fn(),
+}));
+
+vi.mock("../queries", () => ({
+  getCaseEditData: vi.fn(),
+  getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+  getCaseBySourceConsultationId: vi.fn().mockResolvedValue(null),
+  getCaseAssigneeIds: vi.fn().mockResolvedValue([]),
+}));
+
 type CaseWithAssignments = Case & { caseAssignments: { user_id: string }[] };
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -68,13 +85,21 @@ const caseRecord: CaseWithAssignments = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(prisma.caseAssignment.findFirst).mockResolvedValue(null);
+  vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: false, own: false });
+  vi.mocked(getCaseEditData).mockResolvedValue({
+    id: "1",
+    client_id: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open",
+    parties_involved: null,
+    source_consultation_id: null,
+    assignee_ids: [],
+  });
 });
 
 describe("getCaseForEditAction", () => {
   it("returns edit data for a valid id", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
-
     const result = await getCaseForEditAction(uuid);
 
     expect(result).toEqual({
@@ -87,21 +112,7 @@ describe("getCaseForEditAction", () => {
       source_consultation_id: null,
       assignee_ids: [],
     });
-    expect(prisma.case.findUnique).toHaveBeenLastCalledWith({
-      where: { id: uuid },
-      select: {
-        id: true,
-        client_id: true,
-        case_title: true,
-        case_type: true,
-        status: true,
-        parties_involved: true,
-        source_consultation_id: true,
-        caseAssignments: {
-          select: { user_id: true },
-        },
-      },
-    });
+    expect(getCaseEditData).toHaveBeenCalledWith(uuid);
   });
 
   it("throws for an invalid id", async () => {
@@ -109,7 +120,7 @@ describe("getCaseForEditAction", () => {
   });
 
   it("returns null when the case is not found", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
+    vi.mocked(getCaseEditData).mockResolvedValue(null);
 
     const result = await getCaseForEditAction(uuid);
 
@@ -134,21 +145,22 @@ describe("createCaseAction", () => {
   });
 
   it("creates a case and revalidates the list", async () => {
-    vi.mocked(prisma.case.create).mockResolvedValue(caseRecord);
+    vi.mocked(createCase).mockResolvedValue({ id: "1" });
 
     const result = await createCaseAction(validPayload);
 
     expect(result).toEqual({ success: true, data: { caseId: "1" } });
-    expect(prisma.case.create).toHaveBeenCalledWith(
+    expect(createCase).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ case_type: "Civil", created_by_user_id: "u1" }),
+        case_type: "Civil",
+        created_by_user_id: "u1",
       }),
     );
     expect(revalidatePath).toHaveBeenCalledWith("/case");
   });
 
   it("returns an error when creation fails", async () => {
-    vi.mocked(prisma.case.create).mockRejectedValue(new Error("db error"));
+    vi.mocked(createCase).mockRejectedValue(new Error("db error"));
 
     expect(await createCaseAction(validPayload)).toEqual({
       success: false,
@@ -157,7 +169,7 @@ describe("createCaseAction", () => {
   });
 
   it("returns duplicate error on P2002 unique constraint violation", async () => {
-    vi.mocked(prisma.case.create).mockRejectedValue(
+    vi.mocked(createCase).mockRejectedValue(
       Object.assign(new Error("Unique constraint"), { code: "P2002" }),
     );
 
@@ -173,7 +185,7 @@ describe("createCaseAction", () => {
   });
 
   it("returns an error when a case already exists for the consultation", async () => {
-    vi.mocked(prisma.case.findFirst).mockResolvedValue({ ...caseRecord, id: "existing-1" });
+    vi.mocked(getCaseBySourceConsultationId).mockResolvedValue({ ...caseRecord, id: "existing-1" });
 
     const result = await createCaseAction({
       ...validPayload,
@@ -184,7 +196,7 @@ describe("createCaseAction", () => {
       success: false,
       error: "A case already exists for this consultation",
     });
-    expect(prisma.case.create).not.toHaveBeenCalled();
+    expect(createCase).not.toHaveBeenCalled();
   });
 });
 
@@ -206,7 +218,7 @@ describe("updateCaseAction", () => {
   });
 
   it("returns an error when the case is not found", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
+    vi.mocked(getCaseEditData).mockResolvedValue(null);
 
     expect(await updateCaseAction(validPayload)).toEqual({
       success: false,
@@ -215,7 +227,7 @@ describe("updateCaseAction", () => {
   });
 
   it("updates a case and revalidates", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
+    vi.mocked(updateCase).mockResolvedValue({ id: uuid });
 
     expect(await updateCaseAction(validPayload)).toEqual({ success: true });
     expect(revalidatePath).toHaveBeenCalledWith(`/case/${uuid}`);
@@ -223,8 +235,7 @@ describe("updateCaseAction", () => {
   });
 
   it("returns an error when update fails", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
-    vi.mocked(prisma.case.update).mockRejectedValue(new Error("db error"));
+    vi.mocked(updateCase).mockRejectedValue(new Error("db error"));
 
     expect(await updateCaseAction(validPayload)).toEqual({
       success: false,
@@ -242,7 +253,7 @@ describe("deleteCaseAction", () => {
   });
 
   it("returns an error when the case is not found", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
+    vi.mocked(getCaseEditData).mockResolvedValue(null);
 
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({
       success: false,
@@ -251,10 +262,10 @@ describe("deleteCaseAction", () => {
   });
 
   it("deletes a case and revalidates the list", async () => {
-    vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
+    vi.mocked(deleteCase).mockResolvedValue({ id: uuid });
 
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({ success: true });
-    expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
+    expect(deleteCase).toHaveBeenCalledWith(uuid);
     expect(revalidatePath).toHaveBeenCalledWith("/case");
   });
 });
@@ -317,5 +328,62 @@ describe("authorization guards for non-Admin users", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+
+  it("returns success from updateCaseAction when assigned to the case", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getCaseEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [],
+    });
+    vi.mocked(updateCase).mockResolvedValue({ id: uuid });
+
+    const result = await updateCaseAction(updatePayload);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success from updateCaseWithClientAction when assigned to the case", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getCaseEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [],
+    });
+    vi.mocked(updateCaseWithClient).mockResolvedValue({ id: uuid });
+
+    const result = await updateCaseWithClientAction(updateWithClientPayload);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success from deleteCaseAction when the owner of the case", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: false, own: true });
+    vi.mocked(getCaseEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [],
+    });
+    vi.mocked(deleteCase).mockResolvedValue({ id: uuid });
+
+    const result = await deleteCaseAction({ caseId: uuid });
+
+    expect(result).toEqual({ success: true });
   });
 });

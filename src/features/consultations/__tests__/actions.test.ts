@@ -2,12 +2,13 @@ import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Role, type Consultation } from "@/generated/prisma/browser";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth, requirePermission } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
   createConsultationAction,
+  createConsultationWithClientAction,
   deleteConsultationAction,
   getConsultationForEditAction,
   updateConsultationAction,
@@ -249,6 +250,16 @@ describe("authorization guards for non-Admin users", () => {
     },
   };
 
+  const createWithClientPayload = {
+    client_id: uuid,
+    client: { name: "John Doe" },
+    consultation: {
+      concern: "Legal advice",
+      booking_datetime: "2024-06-01T10:00:00.000Z",
+      status: "Scheduled" as const,
+    },
+  };
+
   beforeEach(() => {
     vi.mocked(requireAuth).mockResolvedValue({
       id: "u2",
@@ -284,6 +295,15 @@ describe("authorization guards for non-Admin users", () => {
 
   it("returns FORBIDDEN_MESSAGE from deleteConsultationAction when not assigned and not the owner", async () => {
     expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("returns FORBIDDEN_MESSAGE from createConsultationWithClientAction when the role lacks consultation.create", async () => {
+    vi.mocked(requirePermission).mockRejectedValue(new Error("Forbidden"));
+
+    expect(await createConsultationWithClientAction(createWithClientPayload)).toEqual({
       success: false,
       error: FORBIDDEN_MESSAGE,
     });

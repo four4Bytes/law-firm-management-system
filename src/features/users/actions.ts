@@ -13,10 +13,11 @@ import {
   getUsersPaginated,
   type UserRow,
 } from "@/features/users/queries";
-import { Role } from "@/generated/prisma/client";
+import { Role } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
+import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
   CreateUserSchema,
@@ -61,7 +62,7 @@ export async function createUserAction(
   try {
     session = await requirePermission("user.create");
   } catch {
-    return { success: false, error: "You don't have permission to create users." };
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = CreateUserSchema.safeParse(payload);
@@ -125,7 +126,7 @@ export async function updateUserAction(
   try {
     session = await requirePermission("user.update");
   } catch {
-    return { success: false, error: "You don't have permission to edit users." };
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = UpdateUserSchema.safeParse(payload);
@@ -178,7 +179,7 @@ export async function deactivateUserAction(
   try {
     session = await requirePermission("user.delete");
   } catch {
-    return { success: false, error: "You don't have permission to deactivate users." };
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = DeactivateUserSchema.safeParse(payload);

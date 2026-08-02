@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import type { CaseMilestone } from "@/generated/prisma/client";
+import type { CaseMilestone } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 

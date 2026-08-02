@@ -16,8 +16,8 @@ import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 interface Props {
   consultationId: string;
-  access?: AccessContext;
-  userRole?: Role | null;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 const columns: ColumnDef<NoteRow>[] = [

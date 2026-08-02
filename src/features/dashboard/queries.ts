@@ -9,6 +9,12 @@ export type DashboardStats = {
   overdueMilestones: number;
 };
 
+export type DashboardStatsScope = {
+  casesUserId?: string;
+  consultationsUserId?: string;
+  milestonesUserId?: string;
+};
+
 export type RecentCaseRow = {
   id: string;
   case_title: string;
@@ -32,40 +38,44 @@ export type UpcomingMilestoneRow = {
   due_date: Date;
 };
 
-export const getDashboardStats = cache(async (assignedUserId?: string): Promise<DashboardStats> => {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+export const getDashboardStats = cache(
+  async (scope: DashboardStatsScope = {}): Promise<DashboardStats> => {
+    const { casesUserId, consultationsUserId, milestonesUserId } = scope;
 
-  const assignedCaseWhere = assignedUserId
-    ? { caseAssignments: { some: { user_id: assignedUserId } } }
-    : {};
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
-  const [openCases, todayConsultations, totalUsers, overdueMilestones] = await Promise.all([
-    prisma.case.count({ where: { status: "Open", ...assignedCaseWhere } }),
-    prisma.consultation.count({
-      where: {
-        status: "Scheduled",
-        booking_datetime: { gte: startOfDay, lt: endOfDay },
-        ...(assignedUserId
-          ? { consultationAssignments: { some: { user_id: assignedUserId } } }
-          : {}),
-      },
-    }),
-    prisma.user.count({ where: { is_active: true } }),
-    prisma.caseMilestone.count({
-      where: {
-        status: "Pending",
-        due_date: { lt: now },
-        ...(assignedUserId
-          ? { case: { caseAssignments: { some: { user_id: assignedUserId } } } }
-          : {}),
-      },
-    }),
-  ]);
+    const casesFilter = casesUserId ? { caseAssignments: { some: { user_id: casesUserId } } } : {};
+    const consultationsFilter = consultationsUserId
+      ? { consultationAssignments: { some: { user_id: consultationsUserId } } }
+      : {};
+    const milestoneCasesFilter = milestonesUserId
+      ? { case: { caseAssignments: { some: { user_id: milestonesUserId } } } }
+      : {};
 
-  return { openCases, todayConsultations, totalUsers, overdueMilestones };
-});
+    const [openCases, todayConsultations, totalUsers, overdueMilestones] = await Promise.all([
+      prisma.case.count({ where: { status: "Open", ...casesFilter } }),
+      prisma.consultation.count({
+        where: {
+          status: "Scheduled",
+          booking_datetime: { gte: startOfDay, lt: endOfDay },
+          ...consultationsFilter,
+        },
+      }),
+      prisma.user.count({ where: { is_active: true } }),
+      prisma.caseMilestone.count({
+        where: {
+          status: "Pending",
+          due_date: { lt: now },
+          ...milestoneCasesFilter,
+        },
+      }),
+    ]);
+
+    return { openCases, todayConsultations, totalUsers, overdueMilestones };
+  },
+);
 
 export const getRecentCases = cache(
   async (limit = 5, assignedUserId?: string): Promise<RecentCaseRow[]> => {

@@ -16,7 +16,6 @@ import {
   type ConsultationOverviewData,
   type ConsultationRow,
 } from "@/features/consultations/queries";
-import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import {
@@ -110,24 +109,6 @@ export async function getConsultationNotesPaginatedAction(
   await requireConsultationPermission(session, parsed.data.consultationId, "note.read");
 
   return getConsultationNotesPaginated(parsed.data);
-}
-
-export async function getConsultationDocumentsPaginatedAction(
-  params: z.input<typeof ConsultationPageQuerySchema>,
-): Promise<{
-  rows: DocumentRow[];
-  nextCursor: string | null;
-}> {
-  const session = await requireAuth();
-
-  const parsed = ConsultationPageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  await requireConsultationPermission(session, parsed.data.consultationId, "attachment.read");
-
-  return getDocumentsPaginated(parsed.data);
 }
 
 export async function getConsultationForEditAction(
@@ -244,7 +225,12 @@ export async function createConsultationAction(
 export async function createConsultationWithClientAction(
   payload: z.input<typeof ConsultationWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  let session: AuthenticatedUser;
+  try {
+    session = await requirePermission("consultation.create");
+  } catch {
+    return { success: false, error: FORBIDDEN_MESSAGE };
+  }
 
   const parsed = ConsultationWithClientCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {

@@ -2,7 +2,7 @@
 
 > The current system implementation will be based on this document.
 
-> This is the initial RBAC draft - all permissions and rules below are proposals and subject to change.
+> This is the initial RBAC draft - all permissions and rules below are subject to change.
 
 ## Roles
 
@@ -11,7 +11,7 @@
 > Once removed, Dev accounts cannot sign in again unless explicitly re-added.
 
 ```
-DEV
+DEV - initial user
 
 ADMIN
   -> BRANCH MANAGER
@@ -25,6 +25,8 @@ ADMIN
 
 ## Access Legend
 
+**Access Qualifiers:**
+
 | Code          | Access Level        | Meaning                                                                                                 |
 | ------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | **YES**       | Full Access         | Can perform this action anywhere in the organization.                                                   |
@@ -32,6 +34,15 @@ ADMIN
 | **ASSIGNED**  | Directly Assigned   | Only if assigned to this specific record (Case, Task, or Consultation) or its parent Case/Consultation. |
 | **OWN**       | Creator Only        | Only on records created by the user.                                                                    |
 | **TASK_ONLY** | Task-Level Modifier | With `ASSIGNED`: requires assignment to that specific Task; parent Case assignment alone is not enough. |
+
+**CRUD:**
+
+| Code | Meaning       |
+| ---- | ------------- |
+| `C`  | Create/Add    |
+| `R`  | Read/View     |
+| `U`  | Update/Edit   |
+| `D`  | Delete/Remove |
 
 ---
 

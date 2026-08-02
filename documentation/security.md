@@ -8,13 +8,12 @@ The system uses **Google OAuth 2.0** as its sole authentication provider. There 
 
 - Provider: `next-auth/providers/google`
 - Sessions use **JWT strategy** (no database sessions).
-- `allowDangerousEmailAccountLinking` is enabled to avoid `OAuthAccountNotLinked` errors when the same Google account is used across environments.
 
 ### Sign-In Flow
 
 1. User authenticates via Google.
 2. The `signIn` callback verifies `email_verified` is `true`.
-3. If the email is in `DEVELOPER_EMAILS` (allowlist), a developer account is upserted and access is granted. This bypasses the normal user database — useful for bootstrapping and development.
+3. If the email is in `DEVELOPER_EMAILS` (allowlist), a developer account is upserted and access is granted. This bypasses the normal user database — used for bootstrapping and development.
 4. For non-developer emails: the user must exist in the `User` table and have `is_active = true`. Access is denied (`signIn` returns `false`) otherwise.
 5. On sign-in, the user's name and avatar are synced from Google via `syncUserFromGoogle`.
 
@@ -40,8 +39,6 @@ The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email a
    - The `Dev` user deactivates or removes themselves, or
    - An `Admin` deactivates or removes the `Dev` user.
 
-The `Dev` role has no permissions beyond user management (`CRUD` on `User`). It cannot create cases, consultations, or any other business data. See [Specification — Global Permissions](./specification.md#global-permissions).
-
 On startup, `src/instrumentation.ts` reads `DEVELOPER_EMAILS` and creates `Dev`-role users for any emails not yet in the database. This ensures the bootstrap flow works even when the app is deployed fresh.
 
 See `src/lib/developer-emails.ts` and `src/features/users/mutations.ts:upsertDeveloperUser`.
@@ -52,23 +49,26 @@ See `src/lib/developer-emails.ts` and `src/features/users/mutations.ts:upsertDev
 
 Defined in `src/lib/auth-guards.ts`.
 
-| Function                | Throws           | Description                                                                                               |
-| ----------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
-| `requireAuth()`         | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user. |
-| `requireRole(...roles)` | `"Forbidden"`    | Calls `requireAuth()`, then checks the user has one of the specified roles.                               |
+| Function                       | Throws           | Description                                                                                                                                               |
+| ------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `requireAuth()`                | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user.                                                 |
+| `requirePermission(...)`       | `"Forbidden"`    | Calls `requireAuth()`, then checks the user holds at least one of the given permissions via the RBAC matrix (`src/lib/rbac.ts`). Context-free cells only. |
+| `requirePermissionOrNull(...)` | `null` on denial | Same as `requirePermission`, but returns `null` instead of throwing. Use in write actions that return `ActionStatusResponse`.                             |
+| `assertRecordPermission(...)`  | `"Forbidden"`    | Evaluates a record-scoped permission against an `AccessContext` and throws `"Forbidden"` when denied. Use after loading the record's access context.      |
 
-**Usage pattern** — every Server Action calls one of these at the top:
+**Usage pattern** — every Server Action calls one of these at the top, then evaluates record-scoped permissions per record via `can(role, permission, accessContext)`:
 
 ```ts
 export async function createCaseAction(payload: CasePayload): Promise<ActionStatusResponse> {
-  const session = await requireAuth(); // or requireRole("Admin", "BranchManager")
+  const session = await requirePermissionOrNull("case.create");
+  if (!session) return { success: false, error: FORBIDDEN_MESSAGE };
   // ... validated + authorized
 }
 ```
 
 ### Role-Based Access Control (RBAC)
 
-RBAC enforcement is **not yet implemented**. The planned permission model is documented in [Specification — Global Permissions](./specification.md#global-permissions) and [Case Context Permissions](./specification.md#case-context-permissions).
+RBAC is enforced from the declarative matrix in `src/lib/rbac.ts`, which mirrors [RBAC.md](./RBAC.md) cell-for-cell. Server Actions guard context-free writes via `requirePermission(...)`, and record-scoped writes and reads via `requireAuth()` + `can(role, permission, access)` after loading the record's access context (`getCaseAccessContext`, `getConsultationAccessContext`, `getTaskAccessContext`, etc.).
 
 The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManager`, `Lawyer`, `Paralegal`, `ProcessServer`.
 

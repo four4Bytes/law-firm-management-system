@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import type { Task, User } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 
 export type ActiveUserSummary = Pick<User, "id" | "name">;
 
@@ -69,3 +70,38 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
     created_at: task.created_at,
   };
 });
+
+// ----- Access context -----
+
+export const getTaskAccessContext = cache(
+  async (userId: string, taskId: string): Promise<AccessContext> => {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        created_by_user_id: true,
+        case: {
+          select: {
+            caseAssignments: {
+              where: { user_id: userId },
+              select: { id: true },
+            },
+          },
+        },
+        taskAssignments: {
+          where: { user_id: userId },
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!task) {
+      return { assigned: false, own: false, taskOnly: false };
+    }
+
+    return {
+      assigned: task.case.caseAssignments.length > 0,
+      own: task.created_by_user_id === userId,
+      taskOnly: task.taskAssignments.length > 0,
+    };
+  },
+);

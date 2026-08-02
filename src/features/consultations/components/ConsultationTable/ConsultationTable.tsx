@@ -2,15 +2,20 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
 import type { ConsultationRow } from "@/features/consultations/queries";
+import { getActiveUsersAction } from "@/features/tasks/actions";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
+import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
+import { can } from "@/lib/rbac";
 
 import styles from "./ConsultationTable.module.css";
 
@@ -40,6 +45,10 @@ const columns: ColumnDef<ConsultationRow>[] = [
     allowsSorting: true,
   },
   {
+    id: "assignTo",
+    name: "Assign To",
+  },
+  {
     id: "booking_datetime",
     name: "Date & Time",
     allowsSorting: true,
@@ -63,13 +72,31 @@ const columns: ColumnDef<ConsultationRow>[] = [
 interface ConsultationTableProps {
   initialConsultations?: ConsultationRow[];
   initialCursor?: string | null;
+  userRole: Role | null;
 }
 
-export function ConsultationTable({ initialConsultations, initialCursor }: ConsultationTableProps) {
+export function ConsultationTable({
+  initialConsultations,
+  initialCursor,
+  userRole,
+}: ConsultationTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+
+  const canCreate = can(userRole, "consultation.create");
+
+  const openAddModal = useCallback(async () => {
+    try {
+      const users = await getActiveUsersAction();
+      setUsers(users);
+      setIsAddOpen(true);
+    } catch {
+      queue.add({ title: "Failed to load users" }, { timeout: 5000 });
+    }
+  }, []);
 
   return (
     <>
@@ -91,9 +118,9 @@ export function ConsultationTable({ initialConsultations, initialCursor }: Consu
           startLoading();
           router.push(`/consultation/${id}`);
         }}
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Consultation"
-        onAddButtonPress={() => setIsAddOpen(true)}
+        onAddButtonPress={openAddModal}
         refreshTrigger={refreshTrigger}
       />
 
@@ -105,6 +132,7 @@ export function ConsultationTable({ initialConsultations, initialCursor }: Consu
             setIsAddOpen(false);
             setRefreshTrigger((t) => t + 1);
           }}
+          users={users}
         />
       )}
     </>

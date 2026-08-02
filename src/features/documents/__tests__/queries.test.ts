@@ -182,6 +182,7 @@ describe("getDocumentById", () => {
         file_name: true,
         case_id: true,
         consultation_id: true,
+        task: { select: { case_id: true } },
       },
     });
   });
@@ -217,6 +218,7 @@ describe("getDocumentDetailRowById", () => {
       created_at: new Date("2024-06-01"),
       case_id: "c1",
       consultation_id: null,
+      task_case_id: null,
     });
     expect(prisma.document.findUnique).toHaveBeenCalledWith({
       where: { id: "d1" },
@@ -229,6 +231,7 @@ describe("getDocumentDetailRowById", () => {
         consultation_id: true,
         created_at: true,
         uploadedBy: { select: { name: true } },
+        task: { select: { case_id: true } },
       },
     });
   });
@@ -239,6 +242,16 @@ describe("getDocumentDetailRowById", () => {
     const result = await getDocumentDetailRowById("999");
 
     expect(result).toBeNull();
+  });
+
+  it("selects task.case_id when case_id is null", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(
+      mockDocument({ case_id: null, task: { case_id: "c9" } }),
+    );
+
+    const result = await getDocumentDetailRowById("d1");
+
+    expect(result?.task_case_id).toBe("c9");
   });
 
   it("propagates database errors", async () => {

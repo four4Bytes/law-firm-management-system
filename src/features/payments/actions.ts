@@ -5,12 +5,16 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
 import {
+  getPaymentAccessContext,
   getPaymentById,
   getPaymentRowById,
   getPaymentsPaginated,
@@ -24,7 +28,7 @@ import {
 } from "./schemas";
 
 export async function getPaymentRowByIdAction(paymentId: string): Promise<PaymentRow | null> {
-  await requireRole("Admin", "Dev", "BranchManager");
+  await requirePermission("payment.read");
 
   const parsed = PaymentIdSchema.safeParse({ paymentId });
   if (!parsed.success) {
@@ -40,7 +44,7 @@ export async function getPaymentsPaginatedAction(
   rows: PaymentRow[];
   nextCursor: string | null;
 }> {
-  await requireRole("Admin", "Dev", "BranchManager");
+  await requirePermission("payment.read");
 
   const parsed = PaymentPageQuerySchema.safeParse(params);
   if (!parsed.success) {
@@ -53,11 +57,9 @@ export async function getPaymentsPaginatedAction(
 export async function createPaymentAction(
   payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requireRole("Admin", "Dev", "BranchManager");
-  } catch {
-    return { success: false, error: "You don't have permission to create payments." };
+  const session = await requirePermissionOrNull("payment.create");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = PaymentCreatePayloadSchema.safeParse(payload);
@@ -69,6 +71,17 @@ export async function createPaymentAction(
     parsed.data;
 
   try {
+    // Check access to parent case or consultation
+    const parentAccess = case_id
+      ? await getCaseAccessContext(session.id, case_id)
+      : consultation_id
+        ? await getConsultationAccessContext(session.id, consultation_id)
+        : null;
+
+    if (!parentAccess || !can(session.role, "payment.create", parentAccess)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     const payment = await createPayment({
       amount,
       payment_date,
@@ -101,11 +114,9 @@ export async function createPaymentAction(
 export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requireRole("Admin", "Dev", "BranchManager");
-  } catch {
-    return { success: false, error: "You don't have permission to update payments." };
+  const session = await requirePermissionOrNull("payment.update");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
@@ -118,6 +129,11 @@ export async function updatePaymentAction(
   try {
     const existing = await getPaymentById(paymentId);
     if (!existing) return { success: false, error: "Payment not found" };
+
+    const access = await getPaymentAccessContext(session.id, paymentId);
+    if (!can(session.role, "payment.update", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     if (
       Number(existing.amount) === amount &&
@@ -158,11 +174,9 @@ export async function updatePaymentAction(
 export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requireRole("Admin", "Dev", "BranchManager");
-  } catch {
-    return { success: false, error: "You don't have permission to delete payments." };
+  const session = await requirePermissionOrNull("payment.delete");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = PaymentIdSchema.safeParse(payload);
@@ -175,6 +189,11 @@ export async function deletePaymentAction(
   try {
     const existing = await getPaymentById(paymentId);
     if (!existing) return { success: false, error: "Payment not found" };
+
+    const access = await getPaymentAccessContext(session.id, paymentId);
+    if (!can(session.role, "payment.delete", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deletePayment(paymentId);
 

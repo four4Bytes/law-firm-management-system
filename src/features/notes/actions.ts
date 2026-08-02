@@ -5,23 +5,39 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createNote, deleteNote, updateNote } from "./mutations";
-import { getNoteById, getNoteRowById, type NoteRow } from "./queries";
+import { getNoteAccessContext, getNoteById, getNoteRowById, type NoteRow } from "./queries";
 import { NoteCreatePayloadSchema, NoteIdSchema, NoteUpdatePayloadSchema } from "./schemas";
 
-export async function getNoteRowByIdAction(noteId: string): Promise<NoteRow | null> {
-  await requireAuth();
+export async function getNoteRowByIdAction(
+  noteId: string,
+): Promise<{ row: NoteRow | null; canUpdate: boolean }> {
+  const session = await requireAuth();
 
   const parsed = NoteIdSchema.safeParse({ noteId });
   if (!parsed.success) {
     throw new Error("Invalid note ID");
   }
 
-  return getNoteRowById(parsed.data.noteId);
+  const access = await getNoteAccessContext(session.id, parsed.data.noteId);
+  if (!can(session.role, "note.read", access)) {
+    throw new ForbiddenError();
+  }
+
+  const row = await getNoteRowById(parsed.data.noteId);
+
+  return {
+    row,
+    canUpdate: row !== null && can(session.role, "note.update", access),
+  };
 }
 
 export async function createNoteAction(
@@ -38,6 +54,18 @@ export async function createNoteAction(
 
   let note: { id: string };
   try {
+    if (case_id) {
+      const caseAccess = await getCaseAccessContext(session.id, case_id);
+      if (!can(session.role, "note.create", caseAccess)) {
+        return { success: false, error: FORBIDDEN_MESSAGE };
+      }
+    } else {
+      const consultationAccess = await getConsultationAccessContext(session.id, consultation_id!);
+      if (!can(session.role, "note.create", consultationAccess)) {
+        return { success: false, error: FORBIDDEN_MESSAGE };
+      }
+    }
+
     note = await createNote({
       content,
       case_id,
@@ -79,6 +107,11 @@ export async function updateNoteAction(
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
 
+    const access = await getNoteAccessContext(session.id, noteId);
+    if (!can(session.role, "note.update", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     if (existing.content === content) {
       return { success: true };
     }
@@ -118,6 +151,11 @@ export async function deleteNoteAction(
   try {
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
+
+    const access = await getNoteAccessContext(session.id, noteId);
+    if (!can(session.role, "note.delete", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deleteNote(noteId);
 

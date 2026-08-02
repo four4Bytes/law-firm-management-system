@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
+import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -73,6 +74,10 @@ export function EditConsultationModal({
     status: consultation.status as ConsultationStatus,
   });
 
+  const [assigneeIds, setAssigneeIds] = useState<Set<string>>(
+    () => new Set(consultation.assignee_ids),
+  );
+
   const [showCaseModal, setShowCaseModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
@@ -119,6 +124,7 @@ export function EditConsultationModal({
         concern: requiredString(fields.concern),
         booking_datetime: combineDateTime(fields.date, fields.time),
         status: fields.status,
+        assignee_ids: Array.from(assigneeIds),
       },
     } satisfies ConsultationWithClientUpdatePayload;
   }
@@ -203,7 +209,8 @@ export function EditConsultationModal({
                 onChange={setClientAddress}
                 placeholder="Optional"
                 isTextArea
-                rows={3}
+                rows={6}
+                className={styles.addressField}
                 validate={createFieldValidator(
                   ConsultationWithClientUpdatePayloadSchema.shape.client.shape.address,
                 )}
@@ -251,6 +258,12 @@ export function EditConsultationModal({
                   </SelectItem>
                 ))}
               </Select>
+              <AssigneeSelect
+                users={users}
+                assigneeIds={assigneeIds}
+                onChange={setAssigneeIds}
+                isDisabled={isPending || isSaving}
+              />
             </div>
           </div>
           <div className={styles.actions}>

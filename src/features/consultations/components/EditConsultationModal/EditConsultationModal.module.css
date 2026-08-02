@@ -31,6 +31,15 @@
       flex: 1;
     }
   }
+
+  .addressField {
+    flex: 1;
+
+    textarea {
+      flex: 1;
+      max-height: none;
+    }
+  }
 }
 
 /* Mobile overrides */

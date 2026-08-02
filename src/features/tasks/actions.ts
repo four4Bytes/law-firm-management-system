@@ -5,14 +5,19 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
+import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createTask, deleteTask, updateTask } from "./mutations";
 import {
   getActiveUsers,
+  getTaskAccessContext,
   getTaskById,
   getTaskDetailRowById,
   type ActiveUserSummary,
@@ -25,13 +30,25 @@ export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
   return getActiveUsers();
 }
 
-export async function getTaskDetailRowByIdAction(taskId: string): Promise<TaskDetailRow | null> {
-  await requireAuth();
+export async function getTaskDetailRowByIdAction(
+  taskId: string,
+): Promise<{ row: TaskDetailRow | null; canUpdate: boolean }> {
+  const session = await requireAuth();
 
   const parsed = TaskIdSchema.safeParse({ taskId });
   if (!parsed.success) throw new Error("Invalid task ID");
 
-  return getTaskDetailRowById(parsed.data.taskId);
+  const access = await getTaskAccessContext(session.id, parsed.data.taskId);
+  if (!can(session.role, "task.read", access)) {
+    throw new ForbiddenError();
+  }
+
+  const row = await getTaskDetailRowById(parsed.data.taskId);
+
+  return {
+    row,
+    canUpdate: row !== null && can(session.role, "task.update", access),
+  };
 }
 
 export async function createTaskAction(
@@ -45,6 +62,11 @@ export async function createTaskAction(
   const { title, description, status, case_id, assignee_ids } = parsed.data;
 
   try {
+    const caseAccess = await getCaseAccessContext(session.id, case_id);
+    if (!can(session.role, "task.create", caseAccess)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     const task = await createTask({
       title,
       description,
@@ -111,6 +133,11 @@ export async function updateTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
+    const access = await getTaskAccessContext(session.id, taskId);
+    if (!can(session.role, "task.update", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
     if (
       existing.title === title &&
@@ -162,9 +189,9 @@ export async function updateTaskAction(
       }
 
       if (parsed.data.assignee_ids) {
-        const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
-        const newAssigneeIds = parsed.data.assignee_ids.filter(
-          (id) => !existingAssigneeIds.includes(id),
+        const newAssigneeIds = diffNewAssigneeIds(
+          parsed.data.assignee_ids,
+          existing.taskAssignments.map((a) => a.user_id),
         );
         if (newAssigneeIds.length > 0) {
           try {
@@ -208,6 +235,11 @@ export async function deleteTaskAction(
   try {
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
+
+    const access = await getTaskAccessContext(session.id, taskId);
+    if (!can(session.role, "task.delete", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deleteTask(taskId);
 

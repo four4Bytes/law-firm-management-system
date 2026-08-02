@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getEntityActivityLogPaginated } from "@/features/audit/queries";
-import { Consultation } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
+  getConsultationAssigneeIds,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
@@ -19,6 +19,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     auditLog: { findMany: vi.fn() },
     consultation: { findMany: vi.fn(), findUnique: vi.fn() },
+    consultationAssignment: { findMany: vi.fn() },
     note: { findMany: vi.fn() },
     payment: { findMany: vi.fn() },
   },
@@ -31,6 +32,11 @@ const consultationSelect = {
   status: true,
   client: { select: { name: true } },
   createdBy: { select: { name: true } },
+  consultationAssignments: {
+    where: { user: { is_active: true } },
+    select: { user: { select: { name: true } } },
+    orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
+  },
 } as const;
 
 const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
@@ -46,6 +52,7 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   last_reminded_at: null,
   client: { name: "Jane Client" },
   createdBy: { name: "John Lawyer" },
+  consultationAssignments: [],
   ...overrides,
 });
 
@@ -70,6 +77,7 @@ describe("getConsultationsPaginated", () => {
       clientName: "Jane Client",
       concern: "Legal advice",
       createdByName: "John Lawyer",
+      assignTo: "",
       booking_datetime: consultations[0].booking_datetime,
       status: "Scheduled",
     });
@@ -78,13 +86,14 @@ describe("getConsultationsPaginated", () => {
       clientName: "Bob Client",
       concern: "Contract review",
       createdByName: "Alice Lawyer",
+      assignTo: "",
       booking_datetime: consultations[1].booking_datetime,
       status: "Scheduled",
     });
     expect(prisma.consultation.findMany).toHaveBeenCalledWith({
       take: 11,
       skip: 0,
-      where: undefined,
+      where: {},
       orderBy: { booking_datetime: "desc" },
       select: consultationSelect,
     });
@@ -141,11 +150,38 @@ describe("getConsultationsPaginated", () => {
     expect(result.nextCursor).toBeNull();
   });
 
+  it("joins assignee names into the assignTo column", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([
+      mockConsultation({
+        consultationAssignments: [
+          { user: { name: "John Lawyer" } },
+          { user: { name: "Alice Paralegal" } },
+        ],
+      }),
+    ]);
+
+    const result = await getConsultationsPaginated({ pageSize: 10 });
+
+    expect(result.consultations[0].assignTo).toBe("John Lawyer, Alice Paralegal");
+  });
+
   it("propagates database errors", async () => {
     const error = new Error("connection failed");
     vi.mocked(prisma.consultation.findMany).mockRejectedValue(error);
 
     await expect(getConsultationsPaginated({})).rejects.toThrow(error);
+  });
+
+  it("filters by assigned user", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ pageSize: 10 }, "u2");
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { consultationAssignments: { some: { user_id: "u2" } } },
+      }),
+    );
   });
 
   it("sorts by concern ascending", async () => {
@@ -219,6 +255,10 @@ describe("getConsultationOverviewById", () => {
       updated_at: new Date("2024-06-01"),
     },
     createdBy: { name: "John Lawyer" },
+    consultationAssignments: [
+      { user: { id: "u1", name: "John Lawyer" } },
+      { user: { id: "u2", name: "Alice Paralegal" } },
+    ],
     cases: [{ id: "case1", case_title: "Jane vs Corp" }],
     ...overrides,
   });
@@ -243,6 +283,10 @@ describe("getConsultationOverviewById", () => {
         address: "123 Rizal St.",
       },
       createdBy: { name: "John Lawyer" },
+      assignTo: [
+        { id: "u1", name: "John Lawyer" },
+        { id: "u2", name: "Alice Paralegal" },
+      ],
       relatedCase: { id: "case1", case_title: "Jane vs Corp" },
     });
     expect(prisma.consultation.findUnique).toHaveBeenCalledWith({
@@ -250,6 +294,11 @@ describe("getConsultationOverviewById", () => {
       include: {
         client: true,
         createdBy: { select: { name: true } },
+        consultationAssignments: {
+          where: { user: { is_active: true } },
+          include: { user: { select: { id: true, name: true } } },
+          orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
+        },
         cases: { select: { id: true, case_title: true }, take: 1 },
       },
     });
@@ -456,17 +505,18 @@ describe("getEntityActivityLogPaginated (Consultation)", () => {
 });
 
 describe("getConsultationEditData", () => {
-  const consultationEditRecord: Consultation = {
+  const consultationEditRecord = {
     id: "1",
     client_id: "c1",
     concern: "Legal advice",
     booking_datetime: new Date("2024-06-01T10:00:00"),
-    status: "Scheduled",
+    status: "Scheduled" as const,
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
     reminder_days: null,
     last_reminded_at: null,
+    consultationAssignments: [{ user_id: "u1" }],
   };
 
   it("returns the mapped consultation edit data", async () => {
@@ -479,6 +529,7 @@ describe("getConsultationEditData", () => {
       client_id: "c1",
       concern: "Legal advice",
       status: "Scheduled",
+      assignee_ids: ["u1"],
     });
     expect(prisma.consultation.findUnique).toHaveBeenCalledWith({
       where: { id: "1" },
@@ -488,8 +539,23 @@ describe("getConsultationEditData", () => {
         concern: true,
         booking_datetime: true,
         status: true,
+        consultationAssignments: {
+          select: { user_id: true },
+        },
       },
     });
+  });
+
+  it("includes assignee ids of inactive users", async () => {
+    const record = {
+      ...consultationEditRecord,
+      consultationAssignments: [{ user_id: "u1" }, { user_id: "u9" }],
+    };
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(record);
+
+    const result = await getConsultationEditData("1");
+
+    expect(result).toMatchObject({ assignee_ids: ["u1", "u9"] });
   });
 
   it("returns null when the consultation is not found", async () => {
@@ -505,5 +571,38 @@ describe("getConsultationEditData", () => {
     vi.mocked(prisma.consultation.findUnique).mockRejectedValue(error);
 
     await expect(getConsultationEditData("1")).rejects.toThrow(error);
+  });
+});
+
+describe("getConsultationAssigneeIds", () => {
+  const assignment = (user_id: string) => ({
+    id: `a-${user_id}`,
+    consultation_id: "1",
+    user_id,
+    created_at: new Date("2024-06-01"),
+    updated_at: new Date("2024-06-01"),
+  });
+
+  it("returns the user ids of active assignees", async () => {
+    vi.mocked(prisma.consultationAssignment.findMany).mockResolvedValue([
+      assignment("u1"),
+      assignment("u2"),
+    ]);
+
+    const result = await getConsultationAssigneeIds("1");
+
+    expect(result).toEqual(["u1", "u2"]);
+    expect(prisma.consultationAssignment.findMany).toHaveBeenCalledWith({
+      where: { consultation_id: "1", user: { is_active: true } },
+      select: { user_id: true },
+    });
+  });
+
+  it("returns an empty array when there are no assignees", async () => {
+    vi.mocked(prisma.consultationAssignment.findMany).mockResolvedValue([]);
+
+    const result = await getConsultationAssigneeIds("1");
+
+    expect(result).toEqual([]);
   });
 });

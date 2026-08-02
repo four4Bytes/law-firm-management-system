@@ -36,7 +36,9 @@ const caseSelect = {
   created_at: true,
   client: { select: { name: true } },
   caseAssignments: {
+    where: { user: { is_active: true } },
     select: { user: { select: { name: true } } },
+    orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
   },
   milestones: {
     orderBy: { created_at: "desc" as const },
@@ -102,7 +104,7 @@ describe("getCasesPaginated", () => {
     expect(prisma.case.findMany).toHaveBeenCalledWith({
       take: 11,
       skip: 0,
-      where: undefined,
+      where: {},
       orderBy: { created_at: "desc" },
       select: caseSelect,
     });
@@ -171,6 +173,18 @@ describe("getCasesPaginated", () => {
     vi.mocked(prisma.case.findMany).mockRejectedValue(error);
 
     await expect(getCasesPaginated({})).rejects.toThrow(error);
+  });
+
+  it("filters by assigned user", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([mockCase()]);
+
+    await getCasesPaginated({ pageSize: 10 }, "u1");
+
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { caseAssignments: { some: { user_id: "u1" } } },
+      }),
+    );
   });
 
   it("sorts by case_title ascending", async () => {
@@ -290,7 +304,11 @@ describe("getCaseOverviewById", () => {
       include: {
         client: true,
         createdBy: { select: { name: true } },
-        caseAssignments: { include: { user: { select: { id: true, name: true } } } },
+        caseAssignments: {
+          where: { user: { is_active: true } },
+          include: { user: { select: { id: true, name: true } } },
+          orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
+        },
         milestones: { orderBy: { created_at: "desc" }, take: 1 },
         sourceConsultation: { select: { id: true, concern: true } },
       },
@@ -760,6 +778,18 @@ describe("getCaseEditData", () => {
         },
       },
     });
+  });
+
+  it("includes assignee ids of inactive users", async () => {
+    const record: CaseWithAssignments = {
+      ...caseEditRecord,
+      caseAssignments: [{ user_id: "u1" }, { user_id: "u9" }],
+    };
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(record);
+
+    const result = await getCaseEditData("1");
+
+    expect(result).toMatchObject({ assignee_ids: ["u1", "u9"] });
   });
 
   it("returns null when the case is not found", async () => {

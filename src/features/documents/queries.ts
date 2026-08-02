@@ -1,6 +1,9 @@
 import { cache } from "react";
 
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
 
 export type DocumentRow = {
@@ -15,6 +18,11 @@ export type DocumentRow = {
 export interface DocumentPageQuery extends PageQuery {
   caseId?: string;
   consultationId?: string;
+}
+
+export interface DocumentAccessPayload {
+  userId: string;
+  documentId: string;
 }
 
 export const getDocumentsPaginated = cache(
@@ -88,6 +96,7 @@ export const getDocumentById = cache(
     file_name: string;
     case_id: string | null;
     consultation_id: string | null;
+    task: { case_id: string | null } | null;
   } | null> => {
     return prisma.document.findUnique({
       where: { id },
@@ -97,6 +106,7 @@ export const getDocumentById = cache(
         file_name: true,
         case_id: true,
         consultation_id: true,
+        task: { select: { case_id: true } },
       },
     });
   },
@@ -111,6 +121,7 @@ export type DocumentDetailRow = {
   created_at: Date;
   case_id: string | null;
   consultation_id: string | null;
+  task_case_id: string | null;
 };
 
 export const getDocumentDetailRowById = cache(
@@ -126,6 +137,7 @@ export const getDocumentDetailRowById = cache(
         consultation_id: true,
         created_at: true,
         uploadedBy: { select: { name: true } },
+        task: { select: { case_id: true } },
       },
     });
 
@@ -140,6 +152,39 @@ export const getDocumentDetailRowById = cache(
       created_at: doc.created_at,
       case_id: doc.case_id,
       consultation_id: doc.consultation_id,
+      task_case_id: doc.task?.case_id ?? null,
+    };
+  },
+);
+
+// ----- Access context -----
+
+export const getDocumentAccessContext = cache(
+  async (userId: string, documentId: string): Promise<AccessContext> => {
+    const document = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: {
+        uploaded_by_user_id: true,
+        case_id: true,
+        consultation_id: true,
+        task: { select: { case_id: true } },
+      },
+    });
+
+    if (!document) {
+      return { assigned: false, own: false };
+    }
+
+    const parentCaseId = document.case_id ?? document.task?.case_id ?? null;
+    const parentAccess = parentCaseId
+      ? await getCaseAccessContext(userId, parentCaseId)
+      : document.consultation_id
+        ? await getConsultationAccessContext(userId, document.consultation_id)
+        : null;
+
+    return {
+      assigned: parentAccess?.assigned ?? false,
+      own: document.uploaded_by_user_id === userId,
     };
   },
 );

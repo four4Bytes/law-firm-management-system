@@ -12,18 +12,28 @@ import {
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal/UploadDocumentModal";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
 import type { DocumentDetailRow, DocumentRow } from "@/features/documents/queries";
+import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { formatFileSize, formatFileType } from "@/lib/file-format";
+import { can, type AccessContext } from "@/lib/rbac";
 
 interface Props {
-  consultationId: string;
+  caseId?: string;
+  consultationId?: string;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
-export function AttachmentsTab({ consultationId }: Props) {
+export function AttachmentsTab({ caseId, consultationId, access, userRole }: Props) {
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedDocument, setSelectedDocument] = useState<DocumentDetailRow | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{
+    row: DocumentDetailRow;
+    canDelete: boolean;
+  } | null>(null);
   const requestRef = useRef(0);
+
+  const canCreate = can(userRole, "attachment.create", access);
 
   const columns: ColumnDef<DocumentRow>[] = useMemo(
     () => [
@@ -48,7 +58,7 @@ export function AttachmentsTab({ consultationId }: Props) {
       { id: "uploadedBy", name: "Uploaded By" },
       {
         id: "created_at",
-        name: "Uploaded At",
+        name: "Date",
         allowsSorting: true,
         render: (value) => formatDateTime(value as Date),
       },
@@ -62,9 +72,9 @@ export function AttachmentsTab({ consultationId }: Props) {
     const requestId = ++requestRef.current;
 
     try {
-      const doc = await getDocumentDetailRowAction(key);
+      const { row, canDelete } = await getDocumentDetailRowAction(key);
       if (requestRef.current !== requestId) return;
-      setSelectedDocument(doc);
+      setSelectedDocument({ row, canDelete });
     } catch {
       queue.add({
         title: "Failed to load document",
@@ -77,13 +87,13 @@ export function AttachmentsTab({ consultationId }: Props) {
     <>
       <ServerDataTable
         refreshTrigger={refreshKey}
-        fetchAction={(p) => getDocumentsPaginatedAction({ consultationId, ...p })}
+        fetchAction={(p) => getDocumentsPaginatedAction({ caseId, consultationId, ...p })}
         columns={columns}
         searchPlaceholder="Search attachments..."
         emptyContent="No attachments yet"
         loadingMessage="Loading attachments..."
         searchLabel="Search attachments"
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Attachment"
         onAddButtonPress={() => setUploadModalOpen(true)}
         onRowAction={handleRowAction}
@@ -92,6 +102,7 @@ export function AttachmentsTab({ consultationId }: Props) {
         isOpen={isUploadModalOpen}
         onOpenChange={setUploadModalOpen}
         onSuccess={handleRefresh}
+        caseId={caseId}
         consultationId={consultationId}
       />
       {selectedDocument && (
@@ -99,7 +110,8 @@ export function AttachmentsTab({ consultationId }: Props) {
           isOpen={!!selectedDocument}
           onOpenChange={() => setSelectedDocument(null)}
           onSuccess={handleRefresh}
-          document={selectedDocument}
+          document={selectedDocument.row}
+          canDelete={selectedDocument.canDelete}
         />
       )}
     </>

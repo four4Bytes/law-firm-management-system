@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
-import type { Consultation } from "@/generated/prisma/browser";
+import type { Consultation, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
 
 export interface ConsultationPageQuery extends PageQuery {
@@ -18,6 +18,15 @@ const consultationSelect = {
   status: true,
   client: { select: { name: true } },
   createdBy: { select: { name: true } },
+  consultationAssignments: {
+    where: { user: { is_active: true } },
+    select: { user: { select: { name: true } } },
+    orderBy: [
+      { created_at: "asc" },
+      { user: { name: "asc" } },
+      { user_id: "asc" },
+    ] satisfies Prisma.ConsultationAssignmentOrderByWithRelationInput[],
+  },
 } as const;
 
 export type ConsultationRow = {
@@ -25,6 +34,7 @@ export type ConsultationRow = {
   clientName: string;
   concern: string;
   createdByName: string;
+  assignTo: string;
   booking_datetime: Date;
   status: string;
 };
@@ -45,6 +55,7 @@ export type ConsultationOverviewData = {
     address: string | null;
   };
   createdBy: { name: string };
+  assignTo: { id: string; name: string }[];
   relatedCase: { id: string; case_title: string } | null;
 };
 
@@ -55,6 +66,15 @@ export const getConsultationOverviewById = cache(
       include: {
         client: true,
         createdBy: { select: { name: true } },
+        consultationAssignments: {
+          where: { user: { is_active: true } },
+          include: { user: { select: { id: true, name: true } } },
+          orderBy: [
+            { created_at: "asc" },
+            { user: { name: "asc" } },
+            { user_id: "asc" },
+          ] satisfies Prisma.ConsultationAssignmentOrderByWithRelationInput[],
+        },
         cases: { select: { id: true, case_title: true }, take: 1 },
       },
     });
@@ -75,6 +95,10 @@ export const getConsultationOverviewById = cache(
         address: data.client.address,
       },
       createdBy: data.createdBy,
+      assignTo: data.consultationAssignments.map((a) => ({
+        id: a.user.id,
+        name: a.user.name,
+      })),
       relatedCase: data.cases[0] ?? null,
     } satisfies ConsultationOverviewData;
   },
@@ -122,39 +146,25 @@ export const getConsultationNotesPaginated = cache(
   },
 );
 
-// ----- Documents (Attachments) -----
-
-export const getConsultationDocumentsPaginated = cache(
-  async ({
-    consultationId,
-    search,
-    cursor,
-    pageSize,
-    sort,
-  }: ConsultationPageQuery): Promise<{
-    rows: DocumentRow[];
-    nextCursor: string | null;
-  }> => getDocumentsPaginated({ consultationId, search, cursor, pageSize, sort }),
-);
-
 export const getConsultationsPaginated = cache(
-  async ({
-    search = "",
-    cursor,
-    pageSize = 20,
-    sort,
-  }: PageQuery): Promise<{
+  async (
+    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    assignedUserId?: string,
+  ): Promise<{
     consultations: ConsultationRow[];
     nextCursor: string | null;
   }> => {
-    const where = search
-      ? {
-          OR: [
-            { concern: { contains: search, mode: "insensitive" as const } },
-            { client: { name: { contains: search, mode: "insensitive" as const } } },
-          ],
-        }
-      : undefined;
+    const where = {
+      ...(search
+        ? {
+            OR: [
+              { concern: { contains: search, mode: "insensitive" as const } },
+              { client: { name: { contains: search, mode: "insensitive" as const } } },
+            ],
+          }
+        : {}),
+      ...(assignedUserId ? { consultationAssignments: { some: { user_id: assignedUserId } } } : {}),
+    };
 
     const defaultOrderBy = { booking_datetime: "desc" } as const;
 
@@ -188,6 +198,7 @@ export const getConsultationsPaginated = cache(
       clientName: c.client.name,
       concern: c.concern,
       createdByName: c.createdBy.name,
+      assignTo: c.consultationAssignments.map((a) => a.user.name).join(", "),
       booking_datetime: c.booking_datetime,
       status: c.status,
     }));
@@ -204,7 +215,17 @@ export const getConsultationsPaginated = cache(
 export type ConsultationEditData = Pick<
   Consultation,
   "id" | "client_id" | "concern" | "booking_datetime" | "status"
->;
+> & { assignee_ids: string[] };
+
+export const getConsultationAssigneeIds = cache(
+  async (consultationId: string): Promise<string[]> => {
+    const assignments = await prisma.consultationAssignment.findMany({
+      where: { consultation_id: consultationId, user: { is_active: true } },
+      select: { user_id: true },
+    });
+    return assignments.map((a) => a.user_id);
+  },
+);
 
 export const getConsultationEditData = cache(
   async (id: string): Promise<ConsultationEditData | null> => {
@@ -216,9 +237,43 @@ export const getConsultationEditData = cache(
         concern: true,
         booking_datetime: true,
         status: true,
+        consultationAssignments: {
+          select: { user_id: true },
+        },
       },
     });
 
-    return data;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      client_id: data.client_id,
+      concern: data.concern,
+      booking_datetime: data.booking_datetime,
+      status: data.status,
+      assignee_ids: data.consultationAssignments.map((a) => a.user_id),
+    };
+  },
+);
+
+// ----- Access context -----
+
+export const getConsultationAccessContext = cache(
+  async (userId: string, consultationId: string): Promise<AccessContext> => {
+    const [assignment, consultation] = await Promise.all([
+      prisma.consultationAssignment.findFirst({
+        where: { consultation_id: consultationId, user_id: userId },
+        select: { id: true },
+      }),
+      prisma.consultation.findUnique({
+        where: { id: consultationId },
+        select: { created_by_user_id: true },
+      }),
+    ]);
+
+    return {
+      assigned: assignment !== null,
+      own: consultation?.created_by_user_id === userId,
+    };
   },
 );

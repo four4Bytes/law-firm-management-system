@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
+import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -17,7 +18,6 @@ import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { TaskStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
-  keysToSet,
   optionalString,
   requiredString,
   selectEnumHandler,
@@ -141,28 +141,12 @@ export function EditTaskModal({
                 </SelectItem>
               ))}
             </Select>
-            <Select
-              label="Assignees"
-              selectionMode="multiple"
-              value={Array.from(assigneeIds)}
-              onChange={(keys) => setAssigneeIds(keysToSet(keys))}
-              placeholder="Select assignees..."
-              items={users}
+            <AssigneeSelect
+              users={users}
+              assigneeIds={assigneeIds}
+              onChange={setAssigneeIds}
               isDisabled={isPending || isDeleting}
-            >
-              {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
-            </Select>
-            {assigneeIds.size > 0 && (
-              <ul className={styles.selectedAssignees}>
-                {users
-                  .filter((u) => assigneeIds.has(u.id))
-                  .map((u) => (
-                    <li key={u.id} className={styles.selectedAssignee}>
-                      {u.name}
-                    </li>
-                  ))}
-              </ul>
-            )}
+            />
             <div className={styles.actions}>
               <Button
                 variant="secondary"

@@ -1,12 +1,18 @@
 import { cache } from "react";
 
-import type { CaseMilestone } from "@/generated/prisma/client";
+import type { CaseMilestone } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 
 export type MilestoneRow = Pick<
   CaseMilestone,
   "id" | "title" | "description" | "due_date" | "status"
 >;
+
+export interface MilestoneAccessPayload {
+  userId: string;
+  milestoneId: string;
+}
 
 export const getMilestoneById = cache(async (id: string) => {
   return prisma.caseMilestone.findUnique({
@@ -35,3 +41,33 @@ export const getMilestoneRowById = cache(async (id: string): Promise<MilestoneRo
     status: milestone.status,
   };
 });
+
+// ----- Access context -----
+
+export const getMilestoneAccessContext = cache(
+  async ({ userId, milestoneId }: MilestoneAccessPayload): Promise<AccessContext> => {
+    const milestone = await prisma.caseMilestone.findUnique({
+      where: { id: milestoneId },
+      select: {
+        created_by_user_id: true,
+        case: {
+          select: {
+            caseAssignments: {
+              where: { user_id: userId },
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!milestone) {
+      return { assigned: false, own: false };
+    }
+
+    return {
+      assigned: milestone.case.caseAssignments.length > 0,
+      own: milestone.created_by_user_id === userId,
+    };
+  },
+);

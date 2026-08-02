@@ -60,7 +60,8 @@ src/
 │   ├── prisma.ts                        # Prisma singleton
 │   ├── auth.ts                          # NextAuth config
 │   ├── s3.ts                            # S3 client instance
-│   ├── auth-guards.ts                   # requireAuth(), requireRole()
+│   ├── auth-guards.ts                   # requireAuth(), requirePermission()
+│   ├── rbac.ts                          # Permission matrix (RBAC)
 │   ├── form-utils.ts                    # Form validation helpers
 │   ├── email.ts                         # Transactional email
 │   └── action-response.ts               # ActionStatusResponse types
@@ -102,16 +103,16 @@ File uploads never stream through the Next.js runtime:
 
 ## Security Boundaries
 
-| Concern              | Mechanism                                                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth**             | `requireAuth()` — centralized, returns verified session                                                                            |
-| **Role enforcement** | `requireRole(...roles)` — available, used where role-specific access is known                                                      |
-| **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                |
-| **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                 |
-| **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                          |
-| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                         |
-| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` (catch errors, never leak stack traces) |
-| **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                              |
+| Concern              | Mechanism                                                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth**             | `requireAuth()` — centralized, returns verified session                                                                                                              |
+| **Role enforcement** | `requirePermission(...)` for context-free cells; `requireAuth()` + `can(role, permission, accessContext)` per record — matrix in `src/lib/rbac.ts` (mirrors RBAC.md) |
+| **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                                                  |
+| **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                                                   |
+| **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                                                            |
+| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                                                           |
+| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` (catch errors, never leak stack traces)                                   |
+| **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                                                                |
 
 ## Conventions
 

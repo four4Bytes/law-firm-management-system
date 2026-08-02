@@ -12,12 +12,16 @@ import { getMilestoneRowByIdAction } from "@/features/milestones/actions";
 import { AddMilestoneModal } from "@/features/milestones/components/AddMilestoneModal/AddMilestoneModal";
 import { EditMilestoneModal } from "@/features/milestones/components/EditMilestoneModal/EditMilestoneModal";
 import type { MilestoneRow } from "@/features/milestones/queries";
+import type { Role } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
+import { can, type AccessContext } from "@/lib/rbac";
 
 import tabStyles from "./Tab.module.css";
 
 interface Props {
   caseId: string;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 const statusClassMap: Record<string, string> = {
@@ -45,11 +49,13 @@ const columns: ColumnDef<CaseMilestoneListRow>[] = [
   },
 ];
 
-export function MilestonesTab({ caseId }: Props) {
+export function MilestonesTab({ caseId, access, userRole }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editMilestone, setEditMilestone] = useState<MilestoneRow | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const latestRequest = useRef(0);
+
+  const canCreate = can(userRole, "milestone.create", access);
 
   function handleRefresh() {
     setRefreshTrigger((n) => n + 1);
@@ -60,11 +66,18 @@ export function MilestonesTab({ caseId }: Props) {
     try {
       const data = await getMilestoneRowByIdAction(id);
       if (requestId !== latestRequest.current) return;
-      if (data) {
-        setEditMilestone(data);
-      } else {
+      if (!data.row) {
         queue.add({ title: "Milestone not found" }, { timeout: 5000 });
+        return;
       }
+      if (!data.canUpdate) {
+        queue.add(
+          { title: "You don't have permission to edit this milestone." },
+          { timeout: 5000 },
+        );
+        return;
+      }
+      setEditMilestone(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
       queue.add({ title: "Failed to load milestone" }, { timeout: 5000 });
@@ -80,7 +93,7 @@ export function MilestonesTab({ caseId }: Props) {
         emptyContent="No milestones yet"
         loadingMessage="Loading milestones..."
         searchLabel="Search milestones"
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Milestone"
         onAddButtonPress={() => setIsAddOpen(true)}
         onRowAction={handleRowAction}

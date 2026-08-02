@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
+  getCaseAccessContext,
   getCaseAssigneeIds,
   getCaseBySourceConsultationId,
   getCaseEditData,
@@ -19,15 +20,22 @@ import {
   type CaseOverviewData,
   type CaseRow,
 } from "@/features/cases/queries";
-import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
+import {
+  diffNewAssigneeIds,
+  resolveAssignmentRecipients,
+} from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
-import { getActiveUserIdsByRoles } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
-import { notificationRoleConfig } from "@/lib/notification-config";
+import {
+  assertRecordPermission,
+  requireAuth,
+  requirePermissionOrNull,
+  type AuthenticatedUser,
+} from "@/lib/auth-guards";
+import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -47,53 +55,55 @@ import {
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
 
-/**
- * Helper: loads role-based recipients for CaseAssigned notifications and merges
- * with optional assignee IDs, falling back to existing DB assignees when a
- * caseId is given and no new assigneeIds are provided.
- */
-async function resolveNotifyIds(payload: { assigneeIds?: string[]; caseId?: string }) {
-  const { assigneeIds, caseId } = payload;
+async function requireCasePermission(
+  session: AuthenticatedUser,
+  caseId: string,
+  permission: Permission,
+): Promise<AccessContext> {
+  const access = await getCaseAccessContext(session.id, caseId);
+  return assertRecordPermission(session, permission, access);
+}
 
-  const roleIds = await getActiveUserIdsByRoles({
-    roles: notificationRoleConfig[NotificationType.CaseAssigned],
-  });
-
-  if (assigneeIds?.length) {
-    return [...new Set([...roleIds, ...assigneeIds])];
-  }
-
-  if (caseId) {
-    const existingIds = await getCaseAssigneeIds(caseId);
-    return [...new Set([...roleIds, ...existingIds])];
-  }
-
-  return roleIds;
+async function hasCasePermission(
+  session: AuthenticatedUser,
+  caseId: string,
+  permission: Permission,
+): Promise<boolean> {
+  const access = await getCaseAccessContext(session.id, caseId);
+  return can(session.role, permission, access);
 }
 
 export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
   cases: CaseRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = PageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
 
-  return getCasesPaginated(parsed.data);
+  const assignedUserId = can(session.role, "case.read") ? undefined : session.id;
+  return getCasesPaginated(parsed.data, assignedUserId);
 }
 
-export async function getCaseOverviewByIdAction(id: string): Promise<CaseOverviewData> {
-  await requireAuth();
+export async function getCaseOverviewByIdAction(
+  id: string,
+): Promise<{ overview: CaseOverviewData; access: AccessContext }> {
+  const session = await requireAuth();
 
   const parsed = CaseOverviewIdSchema.safeParse({ caseId: id });
   if (!parsed.success) {
     throw new Error("Invalid case ID");
   }
 
-  return getCaseOverviewById(parsed.data.caseId);
+  const caseId = parsed.data.caseId;
+  const access = await requireCasePermission(session, caseId, "case.read");
+
+  const overview = await getCaseOverviewById(caseId);
+
+  return { overview, access };
 }
 
 export async function getCaseTasksPaginatedAction(
@@ -102,12 +112,14 @@ export async function getCaseTasksPaginatedAction(
   rows: TaskRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = CasePageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
+
+  await requireCasePermission(session, parsed.data.caseId, "task.read");
 
   return getCaseTasksPaginated(parsed.data);
 }
@@ -118,30 +130,16 @@ export async function getCaseNotesPaginatedAction(
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = CasePageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
+
+  await requireCasePermission(session, parsed.data.caseId, "note.read");
 
   return getCaseNotesPaginated(parsed.data);
-}
-
-export async function getCaseDocumentsPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: DocumentRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getDocumentsPaginated(parsed.data);
 }
 
 export async function getCaseMilestonesPaginatedAction(
@@ -150,31 +148,39 @@ export async function getCaseMilestonesPaginatedAction(
   rows: CaseMilestoneListRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = CasePageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
 
+  await requireCasePermission(session, parsed.data.caseId, "milestone.read");
+
   return getCaseMilestonesPaginated(parsed.data);
 }
 
 export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = CaseOverviewIdSchema.safeParse({ caseId: id });
   if (!parsed.success) {
     throw new Error("Invalid case ID");
   }
 
-  return getCaseEditData(parsed.data.caseId);
+  const caseId = parsed.data.caseId;
+  await requireCasePermission(session, caseId, "case.update");
+
+  return getCaseEditData(caseId);
 }
 
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ caseId: string }>> {
-  const session = await requireAuth();
+  const session = await requirePermissionOrNull("case.create");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
+  }
 
   const parsed = CaseCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -225,7 +231,11 @@ export async function createCaseAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({ assigneeIds: assignee_ids });
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: assignee_ids,
+          entityId: createdCase.id,
+          getExistingDirectUserIds: getCaseAssigneeIds,
+        });
 
         await dispatchNotifications(
           {
@@ -237,6 +247,7 @@ export async function createCaseAction(
             caseId: createdCase.id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -257,7 +268,10 @@ export async function createCaseAction(
 export async function createCaseWithClientAction(
   payload: z.input<typeof CaseWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  const session = await requirePermissionOrNull("case.create");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
+  }
 
   const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -288,7 +302,11 @@ export async function createCaseWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({ assigneeIds: caseData.assignee_ids });
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: caseData.assignee_ids,
+          entityId: createdWithClient.id,
+          getExistingDirectUserIds: getCaseAssigneeIds,
+        });
 
         await dispatchNotifications(
           {
@@ -300,6 +318,7 @@ export async function createCaseWithClientAction(
             caseId: createdWithClient.id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -339,6 +358,10 @@ export async function updateCaseAction(
     const existing = await getCaseEditData(caseId);
     if (!existing) return { success: false, error: "Case not found" };
 
+    if (!(await hasCasePermission(session, caseId, "case.update"))) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     await updateCase({
       caseId,
       client_id,
@@ -364,9 +387,10 @@ export async function updateCaseAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({
-          assigneeIds: assignee_ids,
-          caseId,
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
+          entityId: caseId,
+          getExistingDirectUserIds: getCaseAssigneeIds,
         });
 
         await dispatchNotifications(
@@ -379,6 +403,7 @@ export async function updateCaseAction(
             caseId,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -407,6 +432,15 @@ export async function updateCaseWithClientAction(
   const { case_id, client_id, client, case: caseData } = parsed.data;
 
   try {
+    const existing = await getCaseEditData(case_id);
+    if (!existing) return { success: false, error: "Case not found" };
+
+    if (!(await hasCasePermission(session, case_id, "case.update"))) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    const existingAssigneeIds = await getCaseAssigneeIds(case_id);
+
     await updateCaseWithClient({
       case_id,
       client_id,
@@ -428,9 +462,10 @@ export async function updateCaseWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveNotifyIds({
-          assigneeIds: caseData.assignee_ids,
-          caseId: case_id,
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: diffNewAssigneeIds(caseData.assignee_ids, existingAssigneeIds),
+          entityId: case_id,
+          getExistingDirectUserIds: getCaseAssigneeIds,
         });
 
         await dispatchNotifications(
@@ -443,6 +478,7 @@ export async function updateCaseWithClientAction(
             caseId: case_id,
           },
           session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -471,6 +507,10 @@ export async function deleteCaseAction(
   try {
     const existing = await getCaseEditData(parsed.data.caseId);
     if (!existing) return { success: false, error: "Case not found" };
+
+    if (!(await hasCasePermission(session, parsed.data.caseId, "case.delete"))) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deleteCase(parsed.data.caseId);
 

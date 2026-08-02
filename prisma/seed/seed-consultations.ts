@@ -9,6 +9,7 @@ interface ConsultationData {
   daysAgo: number;
   reminderDays?: number;
   lastRemindedDaysAgo?: number;
+  assigneeEmails?: string[];
 }
 
 const consultations: ConsultationData[] = [
@@ -20,6 +21,7 @@ const consultations: ConsultationData[] = [
     status: "Scheduled",
     daysAgo: -3,
     reminderDays: 3,
+    assigneeEmails: ["marco.lopez@aninolaw.com", "kevin.garcia@aninolaw.com"],
   },
   {
     clientEmail: "patricia.luna@email.com",
@@ -27,6 +29,7 @@ const consultations: ConsultationData[] = [
     concern: "Medical malpractice — post-surgical complications from a routine appendectomy",
     status: "Scheduled",
     daysAgo: -2,
+    assigneeEmails: ["ricardo.guevarra@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
   {
     clientEmail: "luisito.ramos@email.com",
@@ -35,6 +38,7 @@ const consultations: ConsultationData[] = [
     status: "Scheduled",
     daysAgo: -14,
     reminderDays: 14,
+    assigneeEmails: ["david.tan@aninolaw.com", "jessica.lim@aninolaw.com"],
   },
   {
     clientEmail: "aileen.castro@email.com",
@@ -44,6 +48,7 @@ const consultations: ConsultationData[] = [
     daysAgo: -2,
     reminderDays: 3,
     lastRemindedDaysAgo: 0,
+    assigneeEmails: ["angela.mercado@aninolaw.com"],
   },
   {
     clientEmail: "roberto.hernandez@email.com",
@@ -51,6 +56,7 @@ const consultations: ConsultationData[] = [
     concern: "Property tax reassessment — assessed value doubled, seeking legal remedy",
     status: "Completed",
     daysAgo: 14,
+    assigneeEmails: ["gina.reyes@aninolaw.com"],
   },
   {
     clientEmail: "catherine.santos@email.com",
@@ -58,6 +64,7 @@ const consultations: ConsultationData[] = [
     concern: "Foreclosure notice from BPI — three months behind on mortgage payments",
     status: "Completed",
     daysAgo: 10,
+    assigneeEmails: ["marco.lopez@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
   {
     clientEmail: "jean.garcia@email.com",
@@ -81,6 +88,7 @@ const consultations: ConsultationData[] = [
       "Property acquisition — purchasing a residential lot in Nuvali, need contract review and transfer",
     status: "Accepted",
     daysAgo: 30,
+    assigneeEmails: ["david.tan@aninolaw.com", "jessica.lim@aninolaw.com"],
   },
   {
     clientEmail: "maria.gonzales@email.com",
@@ -89,6 +97,7 @@ const consultations: ConsultationData[] = [
       "Legal separation — married 12 years, husband abandoned the family, seeking custody and support",
     status: "Accepted",
     daysAgo: 25,
+    assigneeEmails: ["sofia.villanueva@aninolaw.com", "kevin.garcia@aninolaw.com"],
   },
   {
     clientEmail: "carlos.reyes@email.com",
@@ -97,6 +106,7 @@ const consultations: ConsultationData[] = [
       "Breach of contract — San Miguel Logistics failed to deliver goods per 6-month supply agreement",
     status: "Accepted",
     daysAgo: 20,
+    assigneeEmails: ["miguel.cruz@aninolaw.com", "jessica.lim@aninolaw.com"],
   },
   {
     clientEmail: "fatima.alcantara@email.com",
@@ -104,6 +114,7 @@ const consultations: ConsultationData[] = [
     concern: "Annulment — married 5 years, psychological incapacity, seeking to void marriage",
     status: "Accepted",
     daysAgo: 18,
+    assigneeEmails: ["sofia.villanueva@aninolaw.com", "maya.fernandez@aninolaw.com"],
   },
   {
     clientEmail: "miguel.navarro@email.com",
@@ -112,6 +123,7 @@ const consultations: ConsultationData[] = [
       "Real estate joint venture — partnering with foreign investor for condominium development in BGC",
     status: "Accepted",
     daysAgo: 60,
+    assigneeEmails: ["david.tan@aninolaw.com", "angela.mercado@aninolaw.com"],
   },
   {
     clientEmail: "gregorio.santiago@email.com",
@@ -120,6 +132,7 @@ const consultations: ConsultationData[] = [
       "Zoning variance — Calamba property reclassified from residential to commercial, appeal needed",
     status: "Accepted",
     daysAgo: 15,
+    assigneeEmails: ["gina.reyes@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
   {
     clientEmail: "victorino.rivera@email.com",
@@ -159,6 +172,7 @@ const consultations: ConsultationData[] = [
       "Trademark registration — small business owner seeking to register brand name and logo under IPOPHL",
     status: "Scheduled",
     daysAgo: -7,
+    assigneeEmails: ["miguel.cruz@aninolaw.com", "paolo.guerrero@aninolaw.com"],
   },
   {
     clientEmail: "carmela.torres@email.com",
@@ -176,6 +190,7 @@ const consultations: ConsultationData[] = [
     status: "Scheduled",
     daysAgo: -1,
     reminderDays: 1,
+    assigneeEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
   },
   {
     clientEmail: "diana.navarro@email.com",
@@ -185,6 +200,7 @@ const consultations: ConsultationData[] = [
     status: "Scheduled",
     daysAgo: -10,
     reminderDays: 10,
+    assigneeEmails: ["sofia.villanueva@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
 ];
 
@@ -216,8 +232,17 @@ export async function seedConsultations(
       },
     });
     created.push({ id: consultation.id, status: c.status });
+
+    for (const assigneeEmail of c.assigneeEmails ?? []) {
+      await prisma.consultationAssignment.create({
+        data: {
+          consultation_id: consultation.id,
+          user_id: userByEmail[assigneeEmail],
+        },
+      });
+    }
   }
 
-  console.log(`Seeded ${created.length} consultations.`);
+  console.log(`Seeded ${created.length} consultations with consultation assignments.`);
   return created;
 }

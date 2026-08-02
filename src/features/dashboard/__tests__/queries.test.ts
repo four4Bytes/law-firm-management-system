@@ -127,6 +127,68 @@ describe("getDashboardStats", () => {
     );
   });
 
+  it("scopes each counter independently by user id", async () => {
+    vi.mocked(prisma.case.count).mockResolvedValue(0);
+    vi.mocked(prisma.consultation.count).mockResolvedValue(0);
+    vi.mocked(prisma.user.count).mockResolvedValue(0);
+    vi.mocked(prisma.caseMilestone.count).mockResolvedValue(0);
+
+    await getDashboardStats({
+      casesUserId: "uCases",
+      consultationsUserId: "uConsultations",
+      milestonesUserId: "uMilestones",
+    });
+
+    expect(prisma.case.count).toHaveBeenCalledWith({
+      where: { status: "Open", caseAssignments: { some: { user_id: "uCases" } } },
+    });
+    expect(prisma.consultation.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "Scheduled",
+          booking_datetime: { gte: expect.any(Date), lt: expect.any(Date) },
+          consultationAssignments: { some: { user_id: "uConsultations" } },
+        },
+      }),
+    );
+    expect(prisma.caseMilestone.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "Pending",
+          due_date: { lt: expect.any(Date) },
+          case: { OR: [{ caseAssignments: { some: { user_id: "uMilestones" } } }] },
+        },
+      }),
+    );
+  });
+
+  it("includes own-created cases in the milestone scope when milestonesOwnUserId is set", async () => {
+    vi.mocked(prisma.case.count).mockResolvedValue(0);
+    vi.mocked(prisma.consultation.count).mockResolvedValue(0);
+    vi.mocked(prisma.user.count).mockResolvedValue(0);
+    vi.mocked(prisma.caseMilestone.count).mockResolvedValue(0);
+
+    await getDashboardStats({
+      milestonesUserId: "uMilestones",
+      milestonesOwnUserId: "uMilestones",
+    });
+
+    expect(prisma.caseMilestone.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "Pending",
+          due_date: { lt: expect.any(Date) },
+          case: {
+            OR: [
+              { caseAssignments: { some: { user_id: "uMilestones" } } },
+              { created_by_user_id: "uMilestones" },
+            ],
+          },
+        },
+      }),
+    );
+  });
+
   it("propagates database errors", async () => {
     const error = new Error("connection failed");
     vi.mocked(prisma.case.count).mockRejectedValue(error);
@@ -154,6 +216,7 @@ describe("getRecentCases", () => {
     });
     expect(prisma.case.findMany).toHaveBeenCalledWith({
       take: 5,
+      where: {},
       orderBy: { created_at: "desc" },
       select: {
         id: true,
@@ -298,6 +361,27 @@ describe("getUpcomingMilestones", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("scopes to assigned and own-created cases when ownUserId is passed", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
+
+    await getUpcomingMilestones(5, "uAssigned", "uOwn");
+
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "Pending",
+          due_date: { gte: expect.any(Date) },
+          case: {
+            OR: [
+              { caseAssignments: { some: { user_id: "uAssigned" } } },
+              { created_by_user_id: "uOwn" },
+            ],
+          },
+        },
+      }),
+    );
   });
 
   it("propagates database errors", async () => {

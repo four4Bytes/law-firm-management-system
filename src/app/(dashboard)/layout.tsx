@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { Header } from "@/components/layout/Header/Header";
 import { Sidebar } from "@/components/layout/Sidebar/Sidebar";
@@ -13,6 +14,10 @@ import styles from "./layout.module.css";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
+  if (!session?.user) {
+    redirect("/");
+  }
+
   const cookieStore = await cookies();
   const initialCollapsed = cookieStore.get("sidebar-collapsed")?.value === "true";
 

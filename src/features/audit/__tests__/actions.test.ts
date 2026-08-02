@@ -7,7 +7,15 @@ const mockUser = { id: "u1", email: "e", role: "Admin", name: "n" } as const;
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue(mockUser),
-  requireRole: vi.fn().mockResolvedValue(mockUser),
+  requirePermission: vi.fn().mockResolvedValue(mockUser),
+}));
+
+vi.mock("@/features/cases/queries", () => ({
+  getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: true, own: true }),
+}));
+
+vi.mock("@/features/consultations/queries", () => ({
+  getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: true, own: true }),
 }));
 
 const getAuditLogPaginated = vi.fn();

@@ -15,7 +15,7 @@ import { UserFormModal } from "@/features/users/components/UserFormModal/UserFor
 import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
-import { hasRole } from "@/lib/role-utils";
+import { can } from "@/lib/rbac";
 
 import styles from "./UserTable.module.css";
 
@@ -37,7 +37,9 @@ const roleClassMap: Record<Role, string> = {
 type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
 
 export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
-  const canManage = hasRole(sessionUserRole, Role.Admin, Role.Dev);
+  const canCreate = can(sessionUserRole, "user.create");
+  const canUpdate = can(sessionUserRole, "user.update");
+  const canDelete = can(sessionUserRole, "user.delete");
 
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
@@ -69,7 +71,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         );
       },
     },
-    ...(canManage
+    ...(canUpdate || canDelete
       ? [
           {
             id: "is_active" as const,
@@ -78,7 +80,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
               const user = row as UserRow;
               return (
                 <div className={styles.actions}>
-                  {user.role !== Role.Dev && (
+                  {canUpdate && user.role !== Role.Dev && (
                     <Button
                       variant="ghost"
                       aria-label={`Edit ${user.name}`}
@@ -87,13 +89,15 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
                       <FaPenToSquare className={styles.icon} />
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    aria-label={`Deactivate ${user.name}`}
-                    onPress={() => setDeletingUser(user)}
-                  >
-                    <FaTrashCan className={styles.icon} />
-                  </Button>
+                  {canDelete && (
+                    <Button
+                      variant="ghost"
+                      aria-label={`Deactivate ${user.name}`}
+                      onPress={() => setDeletingUser(user)}
+                    >
+                      <FaTrashCan className={styles.icon} />
+                    </Button>
+                  )}
                 </div>
               );
             },
@@ -117,7 +121,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         loadingMessage="Loading users..."
         searchLabel="Search users"
         selectionMode="none"
-        renderAddButton={canManage}
+        renderAddButton={canCreate}
         addButtonLabel="Add User"
         onAddButtonPress={() => setModalTarget({ type: "add" })}
         refreshTrigger={refreshTrigger}

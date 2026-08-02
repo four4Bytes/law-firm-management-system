@@ -10,10 +10,14 @@ import { getNoteRowByIdAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
 import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
 import type { NoteRow } from "@/features/notes/queries";
+import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
+import { can, type AccessContext } from "@/lib/rbac";
 
 interface Props {
   consultationId: string;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 const columns: ColumnDef<NoteRow>[] = [
@@ -22,11 +26,13 @@ const columns: ColumnDef<NoteRow>[] = [
   { id: "created_at", name: "Created At", render: (value) => formatDateTime(value as Date) },
 ];
 
-export function NotesTab({ consultationId }: Props) {
+export function NotesTab({ consultationId, access, userRole }: Props) {
   const [isAddOpen, setAddOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const latestRequest = useRef(0);
+
+  const canCreate = can(userRole, "note.create", access);
 
   const handleRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -35,11 +41,15 @@ export function NotesTab({ consultationId }: Props) {
     try {
       const data = await getNoteRowByIdAction(id);
       if (requestId !== latestRequest.current) return;
-      if (data) {
-        setEditNote(data);
-      } else {
+      if (!data.row) {
         queue.add({ title: "Note not found" }, { timeout: 5000 });
+        return;
       }
+      if (!data.canUpdate) {
+        queue.add({ title: "You don't have permission to edit this note." }, { timeout: 5000 });
+        return;
+      }
+      setEditNote(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
       queue.add({ title: "Failed to load note" }, { timeout: 5000 });
@@ -56,7 +66,7 @@ export function NotesTab({ consultationId }: Props) {
         emptyContent="No notes yet"
         loadingMessage="Loading notes..."
         searchLabel="Search notes"
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Note"
         onAddButtonPress={() => setAddOpen(true)}
         onRowAction={handleRowAction}

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import type { TaskRow } from "@/features/tasks/queries";
-import type { Case, CaseMilestone } from "@/generated/prisma/browser";
+import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
 
 export interface CasePageQuery extends PageQuery {
@@ -19,7 +19,13 @@ const caseSelect = {
   created_at: true,
   client: { select: { name: true } },
   caseAssignments: {
+    where: { user: { is_active: true } },
     select: { user: { select: { name: true } } },
+    orderBy: [
+      { created_at: "asc" },
+      { user: { name: "asc" } },
+      { user_id: "asc" },
+    ] satisfies Prisma.CaseAssignmentOrderByWithRelationInput[],
   },
   status: true,
   milestones: {
@@ -41,23 +47,24 @@ export type CaseRow = {
 };
 
 export const getCasesPaginated = cache(
-  async ({
-    search = "",
-    cursor,
-    pageSize = 20,
-    sort,
-  }: PageQuery): Promise<{
+  async (
+    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    assignedUserId?: string,
+  ): Promise<{
     cases: CaseRow[];
     nextCursor: string | null;
   }> => {
-    const where = search
-      ? {
-          OR: [
-            { case_title: { contains: search, mode: "insensitive" as const } },
-            { client: { name: { contains: search, mode: "insensitive" as const } } },
-          ],
-        }
-      : undefined;
+    const where = {
+      ...(search
+        ? {
+            OR: [
+              { case_title: { contains: search, mode: "insensitive" as const } },
+              { client: { name: { contains: search, mode: "insensitive" as const } } },
+            ],
+          }
+        : {}),
+      ...(assignedUserId ? { caseAssignments: { some: { user_id: assignedUserId } } } : {}),
+    };
 
     const defaultOrderBy = { created_at: "desc" } as const;
 
@@ -131,7 +138,13 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       client: true,
       createdBy: { select: { name: true } },
       caseAssignments: {
+        where: { user: { is_active: true } },
         include: { user: { select: { id: true, name: true } } },
+        orderBy: [
+          { created_at: "asc" },
+          { user: { name: "asc" } },
+          { user_id: "asc" },
+        ] satisfies Prisma.CaseAssignmentOrderByWithRelationInput[],
       },
       milestones: {
         orderBy: { created_at: "desc" },
@@ -269,21 +282,6 @@ export const getCaseNotesPaginated = cache(
   },
 );
 
-// ----- Documents (Attachments) -----
-
-export const getCaseDocumentsPaginated = cache(
-  async ({
-    caseId,
-    search,
-    cursor,
-    pageSize,
-    sort,
-  }: CasePageQuery): Promise<{
-    rows: DocumentRow[];
-    nextCursor: string | null;
-  }> => getDocumentsPaginated({ caseId, search, cursor, pageSize, sort }),
-);
-
 // ----- Milestones -----
 
 export type CaseMilestoneListRow = Pick<CaseMilestone, "id" | "title" | "due_date" | "status">;
@@ -400,3 +398,25 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
     assignee_ids: data.caseAssignments.map((a) => a.user_id),
   };
 });
+
+// ----- Access context -----
+
+export const getCaseAccessContext = cache(
+  async (userId: string, caseId: string): Promise<AccessContext> => {
+    const [assignment, caseRecord] = await Promise.all([
+      prisma.caseAssignment.findFirst({
+        where: { case_id: caseId, user_id: userId },
+        select: { id: true },
+      }),
+      prisma.case.findUnique({
+        where: { id: caseId },
+        select: { created_by_user_id: true },
+      }),
+    ]);
+
+    return {
+      assigned: assignment !== null,
+      own: caseRecord?.created_by_user_id === userId,
+    };
+  },
+);

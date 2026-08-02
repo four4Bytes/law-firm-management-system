@@ -13,10 +13,11 @@ import {
   getUsersPaginated,
   type UserRow,
 } from "@/features/users/queries";
-import { Role } from "@/generated/prisma/client";
+import { Role } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requireRole, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
+import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
   CreateUserSchema,
@@ -31,7 +32,7 @@ export async function getUsersPaginatedAction(
   users: UserRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  await requirePermission("user.read");
 
   const parsed = UserPageQuerySchema.safeParse(params);
   if (!parsed.success) {
@@ -43,7 +44,7 @@ export async function getUsersPaginatedAction(
 
 export async function checkDeveloperEmail(email: string): Promise<boolean> {
   try {
-    await requireRole("Admin", "Dev");
+    await requirePermission("user.create");
   } catch {
     return false;
   }
@@ -57,11 +58,9 @@ export async function checkDeveloperEmail(email: string): Promise<boolean> {
 export async function createUserAction(
   payload: z.input<typeof CreateUserSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requireRole("Admin", "Dev");
-  } catch {
-    return { success: false, error: "You don't have permission to create users." };
+  const session = await requirePermissionOrNull("user.create");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = CreateUserSchema.safeParse(payload);
@@ -121,11 +120,9 @@ export async function createUserAction(
 export async function updateUserAction(
   payload: z.input<typeof UpdateUserSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requireRole("Admin", "Dev");
-  } catch {
-    return { success: false, error: "You don't have permission to edit users." };
+  const session = await requirePermissionOrNull("user.update");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = UpdateUserSchema.safeParse(payload);
@@ -174,11 +171,9 @@ export async function updateUserAction(
 export async function deactivateUserAction(
   payload: z.input<typeof DeactivateUserSchema>,
 ): Promise<ActionDataResponse<{ selfDeactivated: boolean }>> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requireRole("Admin", "Dev");
-  } catch {
-    return { success: false, error: "Only admins and developers can deactivate users." };
+  const session = await requirePermissionOrNull("user.delete");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
   const parsed = DeactivateUserSchema.safeParse(payload);

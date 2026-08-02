@@ -11,12 +11,16 @@ import { getActiveUsersAction, getTaskDetailRowByIdAction } from "@/features/tas
 import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
 import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTaskModal";
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
+import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
+import { can, type AccessContext } from "@/lib/rbac";
 
 import tabStyles from "./Tab.module.css";
 
 interface Props {
   caseId: string;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 const statusClassMap: Record<string, string> = {
@@ -48,12 +52,14 @@ const columns: ColumnDef<TaskRow>[] = [
   },
 ];
 
-export function TasksTab({ caseId }: Props) {
+export function TasksTab({ caseId, access, userRole }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editTask, setEditTask] = useState<TaskDetailRow | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const latestRequest = useRef(0);
+
+  const canCreate = can(userRole, "task.create", access);
 
   const handleRefresh = useCallback(() => setRefreshTrigger((n) => n + 1), []);
 
@@ -83,11 +89,15 @@ export function TasksTab({ caseId }: Props) {
     try {
       const data = await getTaskDetailRowByIdAction(id);
       if (requestId !== latestRequest.current) return;
-      if (data) {
-        setEditTask(data);
-      } else {
+      if (!data.row) {
         queue.add({ title: "Task not found" }, { timeout: 5000 });
+        return;
       }
+      if (!data.canUpdate) {
+        queue.add({ title: "You don't have permission to edit this task." }, { timeout: 5000 });
+        return;
+      }
+      setEditTask(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
       queue.add({ title: "Failed to load task" }, { timeout: 5000 });
@@ -103,7 +113,7 @@ export function TasksTab({ caseId }: Props) {
         emptyContent="No tasks yet"
         loadingMessage="Loading tasks..."
         searchLabel="Search tasks"
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}
         onRowAction={handleRowAction}

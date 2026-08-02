@@ -202,6 +202,22 @@ function button(url: string, label: string): string {
 // ── Templates ─────────────────────────────────────────────────────────────────
 
 /**
+ * Renders the email body for a consultation-assigned notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
+export function consultationAssignedTemplate(ctx: TemplateContext): string {
+  return emailLayout(
+    "New Consultation Assigned",
+    greeting(ctx.toName) +
+      rawText(`${escapeHtml(ctx.actorName)} has assigned you a consultation.`) +
+      text(ctx.message, true) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
+  );
+}
+
+/**
  * Renders the email body for a consultation-reminder notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.

@@ -6,6 +6,8 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import {
+  getConsultationAccessContext,
+  getConsultationAssigneeIds,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
@@ -14,14 +16,22 @@ import {
   type ConsultationOverviewData,
   type ConsultationRow,
 } from "@/features/consultations/queries";
-import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { getActiveUserIdsByRoles } from "@/features/users/queries";
+import {
+  diffNewAssigneeIds,
+  getRoleRecipientIds,
+  resolveAssignmentRecipients,
+} from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
-import { notificationRoleConfig } from "@/lib/notification-config";
+import {
+  assertRecordPermission,
+  requireAuth,
+  requirePermissionOrNull,
+  type AuthenticatedUser,
+} from "@/lib/auth-guards";
+import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -41,33 +51,57 @@ import {
   ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
 
+async function requireConsultationPermission(
+  session: AuthenticatedUser,
+  consultationId: string,
+  permission: Permission,
+): Promise<AccessContext> {
+  const access = await getConsultationAccessContext(session.id, consultationId);
+  return assertRecordPermission(session, permission, access);
+}
+
+async function hasConsultationPermission(
+  session: AuthenticatedUser,
+  consultationId: string,
+  permission: Permission,
+): Promise<boolean> {
+  const access = await getConsultationAccessContext(session.id, consultationId);
+  return can(session.role, permission, access);
+}
+
 export async function getConsultationsPaginatedAction(
   params: z.input<typeof PageQuerySchema>,
 ): Promise<{
   consultations: ConsultationRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = PageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
 
-  return getConsultationsPaginated(parsed.data);
+  const assignedUserId = can(session.role, "consultation.read") ? undefined : session.id;
+  return getConsultationsPaginated(parsed.data, assignedUserId);
 }
 
 export async function getConsultationOverviewByIdAction(
   id: string,
-): Promise<ConsultationOverviewData> {
-  await requireAuth();
+): Promise<{ overview: ConsultationOverviewData; access: AccessContext }> {
+  const session = await requireAuth();
 
   const parsed = ConsultationOverviewIdSchema.safeParse({ consultationId: id });
   if (!parsed.success) {
     throw new Error("Invalid consultation ID");
   }
 
-  return getConsultationOverviewById(parsed.data.consultationId);
+  const consultationId = parsed.data.consultationId;
+  const access = await requireConsultationPermission(session, consultationId, "consultation.read");
+
+  const overview = await getConsultationOverviewById(consultationId);
+
+  return { overview, access };
 }
 
 export async function getConsultationNotesPaginatedAction(
@@ -76,56 +110,48 @@ export async function getConsultationNotesPaginatedAction(
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = ConsultationPageQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
+
+  await requireConsultationPermission(session, parsed.data.consultationId, "note.read");
 
   return getConsultationNotesPaginated(parsed.data);
-}
-
-export async function getConsultationDocumentsPaginatedAction(
-  params: z.input<typeof ConsultationPageQuerySchema>,
-): Promise<{
-  rows: DocumentRow[];
-  nextCursor: string | null;
-}> {
-  await requireAuth();
-
-  const parsed = ConsultationPageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  return getDocumentsPaginated(parsed.data);
 }
 
 export async function getConsultationForEditAction(
   id: string,
 ): Promise<ConsultationEditData | null> {
-  await requireAuth();
+  const session = await requireAuth();
 
   const parsed = ConsultationOverviewIdSchema.safeParse({ consultationId: id });
   if (!parsed.success) {
     throw new Error("Invalid consultation ID");
   }
 
-  return getConsultationEditData(parsed.data.consultationId);
+  const consultationId = parsed.data.consultationId;
+  await requireConsultationPermission(session, consultationId, "consultation.update");
+
+  return getConsultationEditData(consultationId);
 }
 
 export async function createConsultationAction(
   payload: z.input<typeof ConsultationCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  const session = await requirePermissionOrNull("consultation.create");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
+  }
 
   const parsed = ConsultationCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { client_id, concern, booking_datetime, status, reminder_days } = parsed.data;
+  const { client_id, concern, booking_datetime, status, reminder_days, assignee_ids } = parsed.data;
 
   let createdConsultation: { id: string };
   try {
@@ -136,6 +162,7 @@ export async function createConsultationAction(
       status,
       created_by_user_id: session.id,
       reminder_days,
+      assignee_ids,
     });
 
     after(async () => {
@@ -156,9 +183,7 @@ export async function createConsultationAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationCreated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationCreated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -169,6 +194,29 @@ export async function createConsultationAction(
             consultationId: createdConsultation.id,
           },
           session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+
+      try {
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: assignee_ids,
+          entityId: createdConsultation.id,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
+        });
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.ConsultationAssigned,
+            title: "New consultation assigned",
+            message: `You have been assigned to consultation "${concern.substring(0, 100)}"`,
+            actionUrl: `/consultation/${createdConsultation.id}`,
+            consultationId: createdConsultation.id,
+          },
+          session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -186,7 +234,10 @@ export async function createConsultationAction(
 export async function createConsultationWithClientAction(
   payload: z.input<typeof ConsultationWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
+  const session = await requirePermissionOrNull("consultation.create");
+  if (!session) {
+    return { success: false, error: FORBIDDEN_MESSAGE };
+  }
 
   const parsed = ConsultationWithClientCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -218,9 +269,7 @@ export async function createConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationCreated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationCreated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -231,6 +280,29 @@ export async function createConsultationWithClientAction(
             consultationId: createdWithClient.id,
           },
           session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+
+      try {
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: parsed.data.consultation.assignee_ids,
+          entityId: createdWithClient.id,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
+        });
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.ConsultationAssigned,
+            title: "New consultation assigned",
+            message: `You have been assigned to consultation "${parsed.data.consultation.concern.substring(0, 100)}"`,
+            actionUrl: `/consultation/${createdWithClient.id}`,
+            consultationId: createdWithClient.id,
+          },
+          session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -255,12 +327,23 @@ export async function updateConsultationAction(
     return { success: false, error: "Invalid consultation data" };
   }
 
-  const { consultationId, client_id, concern, booking_datetime, status, reminder_days } =
-    parsed.data;
+  const {
+    consultationId,
+    client_id,
+    concern,
+    booking_datetime,
+    status,
+    reminder_days,
+    assignee_ids,
+  } = parsed.data;
 
   try {
     const existing = await getConsultationEditData(consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
+
+    if (!(await hasConsultationPermission(session, consultationId, "consultation.update"))) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await updateConsultation({
       consultationId,
@@ -269,6 +352,7 @@ export async function updateConsultationAction(
       booking_datetime,
       status,
       reminder_days,
+      assignee_ids,
     });
 
     after(async () => {
@@ -289,9 +373,7 @@ export async function updateConsultationAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationUpdated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationUpdated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -302,6 +384,29 @@ export async function updateConsultationAction(
             consultationId,
           },
           session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+
+      try {
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
+          entityId: consultationId,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
+        });
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.ConsultationAssigned,
+            title: "Consultation assigned",
+            message: `You have been assigned to consultation "${concern.substring(0, 100)}"`,
+            actionUrl: `/consultation/${consultationId}`,
+            consultationId,
+          },
+          session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -330,6 +435,15 @@ export async function updateConsultationWithClientAction(
   const { consultation_id, client_id, client, consultation } = parsed.data;
 
   try {
+    const existing = await getConsultationEditData(consultation_id);
+    if (!existing) return { success: false, error: "Consultation not found" };
+
+    if (!(await hasConsultationPermission(session, consultation_id, "consultation.update"))) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    const existingAssigneeIds = await getConsultationAssigneeIds(consultation_id);
+
     await updateConsultationWithClient({
       consultation_id,
       client_id,
@@ -355,9 +469,7 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getActiveUserIdsByRoles({
-          roles: notificationRoleConfig[NotificationType.ConsultationUpdated],
-        });
+        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationUpdated);
         await dispatchNotifications(
           {
             userIds: adminIds,
@@ -368,6 +480,29 @@ export async function updateConsultationWithClientAction(
             consultationId: consultation_id,
           },
           session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+
+      try {
+        const notifyIds = await resolveAssignmentRecipients({
+          directUserIds: diffNewAssigneeIds(consultation.assignee_ids, existingAssigneeIds),
+          entityId: consultation_id,
+          getExistingDirectUserIds: getConsultationAssigneeIds,
+        });
+
+        await dispatchNotifications(
+          {
+            userIds: notifyIds,
+            type: NotificationType.ConsultationAssigned,
+            title: "Consultation assigned",
+            message: `You have been assigned to consultation "${consultation.concern.substring(0, 100)}"`,
+            actionUrl: `/consultation/${consultation_id}`,
+            consultationId: consultation_id,
+          },
+          session.id,
+          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -396,6 +531,12 @@ export async function deleteConsultationAction(
   try {
     const existing = await getConsultationEditData(parsed.data.consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
+
+    if (
+      !(await hasConsultationPermission(session, parsed.data.consultationId, "consultation.delete"))
+    ) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deleteConsultation(parsed.data.consultationId);
 

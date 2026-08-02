@@ -1,5 +1,6 @@
 import { cache } from "react";
 
+import type { Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 export type DashboardStats = {
@@ -13,6 +14,7 @@ export type DashboardStatsScope = {
   casesUserId?: string;
   consultationsUserId?: string;
   milestonesUserId?: string;
+  milestonesOwnUserId?: string;
 };
 
 export type RecentCaseRow = {
@@ -38,9 +40,25 @@ export type UpcomingMilestoneRow = {
   due_date: Date;
 };
 
+const milestoneCaseFilter = (
+  assignedUserId?: string,
+  ownUserId?: string,
+): Prisma.CaseMilestoneWhereInput => ({
+  ...(assignedUserId
+    ? {
+        case: {
+          OR: [
+            { caseAssignments: { some: { user_id: assignedUserId } } },
+            ...(ownUserId ? [{ created_by_user_id: ownUserId }] : []),
+          ],
+        },
+      }
+    : {}),
+});
+
 export const getDashboardStats = cache(
   async (scope: DashboardStatsScope = {}): Promise<DashboardStats> => {
-    const { casesUserId, consultationsUserId, milestonesUserId } = scope;
+    const { casesUserId, consultationsUserId, milestonesUserId, milestonesOwnUserId } = scope;
 
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -50,9 +68,7 @@ export const getDashboardStats = cache(
     const consultationsFilter = consultationsUserId
       ? { consultationAssignments: { some: { user_id: consultationsUserId } } }
       : {};
-    const milestoneCasesFilter = milestonesUserId
-      ? { case: { caseAssignments: { some: { user_id: milestonesUserId } } } }
-      : {};
+    const milestoneCasesFilter = milestoneCaseFilter(milestonesUserId, milestonesOwnUserId);
 
     const [openCases, todayConsultations, totalUsers, overdueMilestones] = await Promise.all([
       prisma.case.count({ where: { status: "Open", ...casesFilter } }),
@@ -132,7 +148,11 @@ export const getUpcomingConsultations = cache(
 );
 
 export const getUpcomingMilestones = cache(
-  async (limit = 5, assignedUserId?: string): Promise<UpcomingMilestoneRow[]> => {
+  async (
+    limit = 5,
+    assignedUserId?: string,
+    ownUserId?: string,
+  ): Promise<UpcomingMilestoneRow[]> => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const milestones = await prisma.caseMilestone.findMany({
@@ -140,9 +160,7 @@ export const getUpcomingMilestones = cache(
       where: {
         status: "Pending",
         due_date: { gte: startOfDay },
-        ...(assignedUserId
-          ? { case: { caseAssignments: { some: { user_id: assignedUserId } } } }
-          : {}),
+        ...milestoneCaseFilter(assignedUserId, ownUserId),
       },
       orderBy: { due_date: "asc" },
       select: {

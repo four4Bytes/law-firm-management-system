@@ -15,7 +15,7 @@ import {
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
@@ -58,10 +58,8 @@ export async function checkDeveloperEmail(email: string): Promise<boolean> {
 export async function createUserAction(
   payload: z.input<typeof CreateUserSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("user.create");
-  } catch {
+  const session = await requirePermissionOrNull("user.create");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
@@ -122,10 +120,8 @@ export async function createUserAction(
 export async function updateUserAction(
   payload: z.input<typeof UpdateUserSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("user.update");
-  } catch {
+  const session = await requirePermissionOrNull("user.update");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
@@ -175,10 +171,8 @@ export async function updateUserAction(
 export async function deactivateUserAction(
   payload: z.input<typeof DeactivateUserSchema>,
 ): Promise<ActionDataResponse<{ selfDeactivated: boolean }>> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("user.delete");
-  } catch {
+  const session = await requirePermissionOrNull("user.delete");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 

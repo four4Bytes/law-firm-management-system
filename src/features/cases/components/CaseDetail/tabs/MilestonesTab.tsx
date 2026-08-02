@@ -14,7 +14,7 @@ import { EditMilestoneModal } from "@/features/milestones/components/EditMilesto
 import type { MilestoneRow } from "@/features/milestones/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
-import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
+import { can, type AccessContext } from "@/lib/rbac";
 
 import tabStyles from "./Tab.module.css";
 
@@ -71,7 +71,10 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
         return;
       }
       if (!data.canUpdate) {
-        queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+        queue.add(
+          { title: "You don't have permission to edit this milestone." },
+          { timeout: 5000 },
+        );
         return;
       }
       setEditMilestone(data.row);

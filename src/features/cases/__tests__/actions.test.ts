@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Role, type Case } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
   createCaseAction,
@@ -16,9 +16,13 @@ import {
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
-  requirePermission: vi
+  requirePermissionOrNull: vi
     .fn()
     .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
+  assertRecordPermission: vi.fn((session, permission, context) => {
+    if (!can(session.role, permission, context)) throw new Error("Forbidden");
+    return context;
+  }),
 }));
 
 vi.mock("next/cache", () => ({

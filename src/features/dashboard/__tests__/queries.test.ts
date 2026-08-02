@@ -156,7 +156,34 @@ describe("getDashboardStats", () => {
         where: {
           status: "Pending",
           due_date: { lt: expect.any(Date) },
-          case: { caseAssignments: { some: { user_id: "uMilestones" } } },
+          case: { OR: [{ caseAssignments: { some: { user_id: "uMilestones" } } }] },
+        },
+      }),
+    );
+  });
+
+  it("includes own-created cases in the milestone scope when milestonesOwnUserId is set", async () => {
+    vi.mocked(prisma.case.count).mockResolvedValue(0);
+    vi.mocked(prisma.consultation.count).mockResolvedValue(0);
+    vi.mocked(prisma.user.count).mockResolvedValue(0);
+    vi.mocked(prisma.caseMilestone.count).mockResolvedValue(0);
+
+    await getDashboardStats({
+      milestonesUserId: "uMilestones",
+      milestonesOwnUserId: "uMilestones",
+    });
+
+    expect(prisma.caseMilestone.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "Pending",
+          due_date: { lt: expect.any(Date) },
+          case: {
+            OR: [
+              { caseAssignments: { some: { user_id: "uMilestones" } } },
+              { created_by_user_id: "uMilestones" },
+            ],
+          },
         },
       }),
     );
@@ -334,6 +361,27 @@ describe("getUpcomingMilestones", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("scopes to assigned and own-created cases when ownUserId is passed", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([]);
+
+    await getUpcomingMilestones(5, "uAssigned", "uOwn");
+
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "Pending",
+          due_date: { gte: expect.any(Date) },
+          case: {
+            OR: [
+              { caseAssignments: { some: { user_id: "uAssigned" } } },
+              { created_by_user_id: "uOwn" },
+            ],
+          },
+        },
+      }),
+    );
   });
 
   it("propagates database errors", async () => {

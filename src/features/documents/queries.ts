@@ -1,5 +1,7 @@
 import { cache } from "react";
 
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
@@ -174,22 +176,14 @@ export const getDocumentAccessContext = cache(
     }
 
     const parentCaseId = document.case_id ?? document.task?.case_id ?? null;
-    const parentConsultationId = document.consultation_id;
-
-    const assignment = parentCaseId
-      ? await prisma.caseAssignment.findFirst({
-          where: { case_id: parentCaseId, user_id: userId },
-          select: { id: true },
-        })
-      : parentConsultationId
-        ? await prisma.consultationAssignment.findFirst({
-            where: { consultation_id: parentConsultationId, user_id: userId },
-            select: { id: true },
-          })
+    const parentAccess = parentCaseId
+      ? await getCaseAccessContext({ userId, caseId: parentCaseId })
+      : document.consultation_id
+        ? await getConsultationAccessContext({ userId, consultationId: document.consultation_id })
         : null;
 
     return {
-      assigned: assignment !== null,
+      assigned: parentAccess?.assigned ?? false,
       own: document.uploaded_by_user_id === userId,
     };
   },

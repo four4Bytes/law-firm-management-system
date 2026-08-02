@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import type { Consultation, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
@@ -150,21 +149,6 @@ export const getConsultationNotesPaginated = cache(
 
     return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
   },
-);
-
-// ----- Documents (Attachments) -----
-
-export const getConsultationDocumentsPaginated = cache(
-  async ({
-    consultationId,
-    search,
-    cursor,
-    pageSize,
-    sort,
-  }: ConsultationPageQuery): Promise<{
-    rows: DocumentRow[];
-    nextCursor: string | null;
-  }> => getDocumentsPaginated({ consultationId, search, cursor, pageSize, sort }),
 );
 
 export const getConsultationsPaginated = cache(

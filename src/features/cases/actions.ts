@@ -29,7 +29,12 @@ import {
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
+import {
+  assertRecordPermission,
+  requireAuth,
+  requirePermissionOrNull,
+  type AuthenticatedUser,
+} from "@/lib/auth-guards";
 import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
@@ -56,10 +61,7 @@ async function requireCasePermission(
   permission: Permission,
 ): Promise<AccessContext> {
   const access = await getCaseAccessContext({ userId: session.id, caseId });
-  if (!can(session.role, permission, access)) {
-    throw new Error("Forbidden");
-  }
-  return access;
+  return assertRecordPermission(session, permission, access);
 }
 
 export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
@@ -166,10 +168,8 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ caseId: string }>> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("case.create");
-  } catch {
+  const session = await requirePermissionOrNull("case.create");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
@@ -259,10 +259,8 @@ export async function createCaseAction(
 export async function createCaseWithClientAction(
   payload: z.input<typeof CaseWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("case.create");
-  } catch {
+  const session = await requirePermissionOrNull("case.create");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 

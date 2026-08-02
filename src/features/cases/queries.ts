@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { getDocumentsPaginated, type DocumentRow } from "@/features/documents/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import type { TaskRow } from "@/features/tasks/queries";
 import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
@@ -286,21 +285,6 @@ export const getCaseNotesPaginated = cache(
 
     return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
   },
-);
-
-// ----- Documents (Attachments) -----
-
-export const getCaseDocumentsPaginated = cache(
-  async ({
-    caseId,
-    search,
-    cursor,
-    pageSize,
-    sort,
-  }: CasePageQuery): Promise<{
-    rows: DocumentRow[];
-    nextCursor: string | null;
-  }> => getDocumentsPaginated({ caseId, search, cursor, pageSize, sort }),
 );
 
 // ----- Milestones -----

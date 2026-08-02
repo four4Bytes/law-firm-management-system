@@ -25,67 +25,90 @@
 ```
 src/
 ├── app/
-│   ├── (auth)/                          # Unauthenticated routes (login)
+│   ├── (auth)/                          # Unauthenticated routes
+│   │   ├── page.tsx                     # Login page
+│   │   ├── deactivated/                 # Deactivated user notice
+│   │   └── auth/error/                  # Auth error page
 │   ├── (dashboard)/                     # Authenticated routes (sidebar + header)
-│   │   ├── dashboard/
-│   │   ├── case/
-│   │   ├── consultation/
-│   │   └── user/
+│   │   ├── dashboard/                   # Dashboard overview
+│   │   ├── case/                        # Case list and detail pages
+│   │   ├── consultation/                # Consultation list and detail pages
+│   │   ├── user/                        # User management
+│   │   └── audit/                       # Audit log viewer
 │   ├── api/
 │   │   ├── auth/[...nextauth]/route.ts  # NextAuth handler
-│   │   └── cron/*/route.ts              # Scheduled job webhooks
+│   │   └── cron/reminders/route.ts      # Scheduled reminder webhook
 │   ├── layout.tsx                       # Root layout
-│   ├── error.tsx
-│   └── not-found.tsx
+│   ├── error.tsx                        # Error boundary
+│   ├── global-error.tsx                 # Global error boundary
+│   └── not-found.tsx                    # 404 page
 ├── components/
 │   ├── ui/                              # Shared primitives (Button, Modal, etc.)
 │   └── layout/                          # App chrome (Sidebar, Header)
 ├── features/                            # Domain logic, organized by feature
-│   ├── auth/
-│   ├── users/
-│   ├── consultations/
-│   ├── cases/
-│   ├── tasks/
-│   ├── milestones/
-│   ├── documents/
-│   ├── payments/
-│   ├── notes/
-│   ├── notifications/
-│   ├── reminders/
-│   ├── clients/
-│   ├── dashboard/
-│   └── audit/
+│   ├── auth/                            # Sign-in/sign-out components
+│   ├── users/                           # User management
+│   ├── consultations/                   # Consultation CRUD
+│   ├── cases/                           # Case CRUD
+│   ├── tasks/                           # Task management
+│   ├── milestones/                      # Milestone tracking
+│   ├── documents/                       # File attachments
+│   ├── payments/                        # Financial records
+│   ├── notes/                           # Internal notes
+│   ├── notifications/                   # User notifications
+│   ├── reminders/                       # Scheduled reminder logic
+│   ├── clients/                         # Client data
+│   ├── dashboard/                       # Dashboard widgets
+│   └── audit/                           # Audit log queries
 ├── generated/prisma/                    # Generated Prisma client (gitignored)
 ├── lib/                                 # Shared utilities
 │   ├── prisma.ts                        # Prisma singleton
 │   ├── auth.ts                          # NextAuth config
-│   ├── s3.ts                            # S3 client instance
 │   ├── auth-guards.ts                   # requireAuth(), requirePermission()
 │   ├── rbac.ts                          # Permission matrix (RBAC)
+│   ├── s3.ts                            # S3 presigned URL helpers
+│   ├── email.ts                         # Transactional email sender
+│   ├── email-templates.ts               # HTML email templates
 │   ├── form-utils.ts                    # Form validation helpers
-│   ├── email.ts                         # Transactional email
-│   └── action-response.ts               # ActionStatusResponse types
+│   ├── schemas.ts                       # Shared Zod schemas
+│   ├── action-response.ts               # ActionStatusResponse types
+│   ├── errors.ts                        # Custom error classes
+│   ├── env.ts                           # Environment variable accessors
+│   ├── date.ts                          # Date formatting helpers
+│   ├── file-format.ts                   # File size/type formatting
+│   ├── path.ts                          # Navigation path helpers
+│   ├── sort.ts                          # Sort descriptor conversion
+│   ├── types.ts                         # Shared type definitions
+│   ├── useDebounce.ts                   # Debounce hook
+│   ├── useModalForm.ts                  # Modal form lifecycle hook
+│   ├── notification-config.ts           # Notification role mapping
+│   └── developer-emails.ts              # Dev account allowlist
 ├── styles/
 │   └── variables.css                    # Design tokens (primitives → semantic)
-└── stories/                             # Storybook stories
+├── stories/                             # Storybook stories
+├── assets/                              # Static assets (images)
+└── types/                               # Type declarations (next-auth)
 ```
 
 ## Data Flow
 
 ### API Routes vs Server Actions
 
-- **API Routes** — Restricted to NextAuth (`app/api/auth/[...nextauth]/`) and cron webhooks (`app/api/cron/*/`). Do not create custom REST endpoints for application data.
+- **API Routes** — Restricted to NextAuth (`app/api/auth/[...nextauth]/`) and cron webhooks (`app/api/cron/reminders`). Do not create custom REST endpoints for application data.
 - **Server Actions** (`actions.ts`) — The primary mechanism for all data mutation, form submission, and infrastructure execution (including generating S3 presigned URLs). Every structural modification to application state routes through a Server Action.
 
 ### Feature Domain Pattern
 
-Each domain in `src/features/{domain}/` owns three files:
+Each domain in `src/features/{domain}/` owns these files:
 
 | File           | Purpose                                                      | Runs on                    |
 | -------------- | ------------------------------------------------------------ | -------------------------- |
 | `queries.ts`   | Prisma read operations (`findUnique`, `findMany`, aggregate) | Server only                |
 | `mutations.ts` | Prisma write operations (`create`, `update`, `delete`)       | Server only                |
 | `actions.ts`   | Server Actions: auth guards, Zod validation, orchestration   | Server (invoked by client) |
+| `schemas.ts`   | Zod schemas for input validation                             | Shared                     |
+| `components/`  | Feature-specific React components                            | Client or Server           |
+| `__tests__/`   | Unit tests for queries, mutations, actions, schemas          | Test environment           |
 
 **Execution protocol:**
 

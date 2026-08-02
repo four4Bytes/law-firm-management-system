@@ -1,14 +1,19 @@
 feature:
   - head-branch: ["^feat(ure)?/.*"]
+feat:
+  - head-branch: ["^feat(ure)?/.*"]
 
 bug:
   - head-branch: ["^(fix|bugfix)/.*"]
-
-documentation:
-  - head-branch: ["^docs?/.*"]
-
-refactor:
-  - head-branch: ["^refactor/.*"]
+fix:
+  - head-branch: ["^(fix|bugfix)/.*"]
 
 chore:
   - head-branch: ["^chore/.*"]
+ci:
+  - head-branch: ["^ci/.*"]
+refactor:
+  - head-branch: ["^refactor/.*"]
+
+dependencies:
+  - head-branch: ["^(deps?|dependabot)/.*"]

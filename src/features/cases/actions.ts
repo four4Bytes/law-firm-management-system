@@ -30,8 +30,8 @@ import {
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requirePermission } from "@/lib/auth-guards";
-import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
+import { requireAuth, requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
+import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -50,6 +50,18 @@ import {
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
+
+async function requireCasePermission(
+  session: AuthenticatedUser,
+  caseId: string,
+  permission: Permission,
+): Promise<AccessContext> {
+  const access = await getCaseAccessContext({ userId: session.id, caseId });
+  if (!can(session.role, permission, access)) {
+    throw new Error("Forbidden");
+  }
+  return access;
+}
 
 export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
   cases: CaseRow[];
@@ -77,10 +89,7 @@ export async function getCaseOverviewByIdAction(
   }
 
   const caseId = parsed.data.caseId;
-  const access = await getCaseAccessContext({ userId: session.id, caseId });
-  if (!can(session.role, "case.read", access)) {
-    throw new Error("Forbidden");
-  }
+  const access = await requireCasePermission(session, caseId, "case.read");
 
   const overview = await getCaseOverviewById(caseId);
 
@@ -100,10 +109,7 @@ export async function getCaseTasksPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
-  if (!can(session.role, "task.read", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireCasePermission(session, parsed.data.caseId, "task.read");
 
   return getCaseTasksPaginated(parsed.data);
 }
@@ -121,10 +127,7 @@ export async function getCaseNotesPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
-  if (!can(session.role, "note.read", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireCasePermission(session, parsed.data.caseId, "note.read");
 
   return getCaseNotesPaginated(parsed.data);
 }
@@ -142,10 +145,7 @@ export async function getCaseDocumentsPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
-  if (!can(session.role, "attachment.read", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireCasePermission(session, parsed.data.caseId, "attachment.read");
 
   return getDocumentsPaginated(parsed.data);
 }
@@ -163,10 +163,7 @@ export async function getCaseMilestonesPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
-  if (!can(session.role, "milestone.read", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireCasePermission(session, parsed.data.caseId, "milestone.read");
 
   return getCaseMilestonesPaginated(parsed.data);
 }
@@ -180,10 +177,7 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
   }
 
   const caseId = parsed.data.caseId;
-  const access = await getCaseAccessContext({ userId: session.id, caseId });
-  if (!can(session.role, "case.update", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireCasePermission(session, caseId, "case.update");
 
   return getCaseEditData(caseId);
 }
@@ -191,7 +185,12 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ caseId: string }>> {
-  const session = await requirePermission("case.create");
+  let session: AuthenticatedUser;
+  try {
+    session = await requirePermission("case.create");
+  } catch {
+    return { success: false, error: FORBIDDEN_MESSAGE };
+  }
 
   const parsed = CaseCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
@@ -279,7 +278,12 @@ export async function createCaseAction(
 export async function createCaseWithClientAction(
   payload: z.input<typeof CaseWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requirePermission("case.create");
+  let session: AuthenticatedUser;
+  try {
+    session = await requirePermission("case.create");
+  } catch {
+    return { success: false, error: FORBIDDEN_MESSAGE };
+  }
 
   const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {

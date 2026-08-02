@@ -259,7 +259,7 @@ describe("deactivateUserAction", () => {
 
     expect(await deactivateUserAction(validPayload)).toEqual({
       success: false,
-      error: "Only admins and developers can deactivate users.",
+      error: "You don't have permission to deactivate users.",
     });
   });
 

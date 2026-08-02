@@ -1,14 +1,17 @@
 import { revalidatePath } from "next/cache";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Role, type Consultation } from "@/generated/prisma/browser";
+import { requireAuth } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
   createConsultationAction,
   deleteConsultationAction,
   getConsultationForEditAction,
   updateConsultationAction,
+  updateConsultationWithClientAction,
 } from "../actions";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -223,5 +226,66 @@ describe("deleteConsultationAction", () => {
       select: { id: true },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/consultation");
+  });
+});
+
+describe("authorization guards for non-Admin users", () => {
+  const updatePayload = {
+    consultationId: uuid,
+    client_id: uuid,
+    concern: "Legal advice",
+    booking_datetime: "2024-06-01T10:00:00.000Z",
+    status: "Scheduled" as const,
+  };
+
+  const updateWithClientPayload = {
+    consultation_id: uuid,
+    client_id: uuid,
+    client: { name: "John Doe" },
+    consultation: {
+      concern: "Legal advice",
+      booking_datetime: "2024-06-01T10:00:00.000Z",
+      status: "Scheduled" as const,
+    },
+  };
+
+  beforeEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
+  });
+
+  afterEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u1",
+      email: "e",
+      role: Role.Admin,
+      name: "n",
+    });
+  });
+
+  it("returns FORBIDDEN_MESSAGE from updateConsultationAction when not assigned and not the owner", async () => {
+    expect(await updateConsultationAction(updatePayload)).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("returns FORBIDDEN_MESSAGE from updateConsultationWithClientAction when not assigned and not the owner", async () => {
+    expect(await updateConsultationWithClientAction(updateWithClientPayload)).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("returns FORBIDDEN_MESSAGE from deleteConsultationAction when not assigned and not the owner", async () => {
+    expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
   });
 });

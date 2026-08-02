@@ -18,6 +18,7 @@ interface ViewAttachmentModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   document: DocumentDetailRow;
+  canDelete: boolean;
 }
 
 export function ViewAttachmentModal({
@@ -25,6 +26,7 @@ export function ViewAttachmentModal({
   onOpenChange,
   onSuccess,
   document: doc,
+  canDelete,
 }: ViewAttachmentModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -98,13 +100,15 @@ export function ViewAttachmentModal({
             >
               Download
             </Button>
-            <Button
-              onPress={() => setShowDeleteConfirm(true)}
-              isDisabled={isBusy}
-              isPending={isDeleting}
-            >
-              Delete
-            </Button>
+            {canDelete && (
+              <Button
+                onPress={() => setShowDeleteConfirm(true)}
+                isDisabled={isBusy}
+                isPending={isDeleting}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

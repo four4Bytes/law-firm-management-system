@@ -1,14 +1,17 @@
 import { revalidatePath } from "next/cache";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Role, type Case } from "@/generated/prisma/browser";
+import { requireAuth } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
   createCaseAction,
   deleteCaseAction,
   getCaseForEditAction,
   updateCaseAction,
+  updateCaseWithClientAction,
 } from "../actions";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -249,5 +252,66 @@ describe("deleteCaseAction", () => {
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({ success: true });
     expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
     expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
+});
+
+describe("authorization guards for non-Admin users", () => {
+  const updatePayload = {
+    caseId: uuid,
+    client_id: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open" as const,
+  };
+
+  const updateWithClientPayload = {
+    case_id: uuid,
+    client_id: uuid,
+    client: { name: "John Doe" },
+    case: {
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open" as const,
+    },
+  };
+
+  beforeEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
+  });
+
+  afterEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u1",
+      email: "e",
+      role: Role.Admin,
+      name: "n",
+    });
+  });
+
+  it("returns FORBIDDEN_MESSAGE from updateCaseAction when not assigned and not the owner", async () => {
+    expect(await updateCaseAction(updatePayload)).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("returns FORBIDDEN_MESSAGE from updateCaseWithClientAction when not assigned and not the owner", async () => {
+    expect(await updateCaseWithClientAction(updateWithClientPayload)).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("returns FORBIDDEN_MESSAGE from deleteCaseAction when not assigned and not the owner", async () => {
+    expect(await deleteCaseAction({ caseId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
   });
 });

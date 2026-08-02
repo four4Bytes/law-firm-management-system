@@ -178,7 +178,7 @@ export async function deactivateUserAction(
   try {
     session = await requirePermission("user.delete");
   } catch {
-    return { success: false, error: "Only admins and developers can deactivate users." };
+    return { success: false, error: "You don't have permission to deactivate users." };
   }
 
   const parsed = DeactivateUserSchema.safeParse(payload);

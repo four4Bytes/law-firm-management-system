@@ -30,6 +30,7 @@ export function AttachmentsTab({ consultationId, access, userRole }: Props) {
   const requestRef = useRef(0);
 
   const canCreate = can(userRole, "attachment.create", access);
+  const canDelete = can(userRole, "consultation.attachment.delete", access);
 
   const columns: ColumnDef<DocumentRow>[] = useMemo(
     () => [
@@ -106,6 +107,7 @@ export function AttachmentsTab({ consultationId, access, userRole }: Props) {
           onOpenChange={() => setSelectedDocument(null)}
           onSuccess={handleRefresh}
           document={selectedDocument}
+          canDelete={canDelete}
         />
       )}
     </>

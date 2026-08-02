@@ -61,6 +61,7 @@ src/
 │   ├── auth.ts                          # NextAuth config
 │   ├── s3.ts                            # S3 client instance
 │   ├── auth-guards.ts                   # requireAuth(), requirePermission()
+│   ├── rbac.ts                          # Permission matrix (RBAC)
 │   ├── form-utils.ts                    # Form validation helpers
 │   ├── email.ts                         # Transactional email
 │   └── action-response.ts               # ActionStatusResponse types

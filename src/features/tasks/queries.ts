@@ -15,11 +15,6 @@ export type TaskDetailRow = TaskRow &
     assignee_ids: string[];
   };
 
-export interface TaskAccessPayload {
-  userId: string;
-  taskId: string;
-}
-
 export const getActiveUsers = cache(async (): Promise<ActiveUserSummary[]> => {
   return prisma.user.findMany({
     where: { is_active: true },
@@ -79,7 +74,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
 // ----- Access context -----
 
 export const getTaskAccessContext = cache(
-  async ({ userId, taskId }: TaskAccessPayload): Promise<AccessContext> => {
+  async (userId: string, taskId: string): Promise<AccessContext> => {
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       select: {

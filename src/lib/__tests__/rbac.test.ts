@@ -84,6 +84,29 @@ describe("rbac matrix", () => {
           const context = QUALIFIER_CONTEXTS[qualifier];
           expect(can(role, permission, context)).toBe(true);
           expect(can(role, permission)).toBe(false);
+
+          // Test denial for non-satisfying contexts
+          if (qualifier === "assigned") {
+            expect(can(role, permission, { assigned: false, own: false })).toBe(false);
+            expect(can(role, permission, { assigned: false, own: true })).toBe(false);
+          } else if (qualifier === "own") {
+            expect(can(role, permission, { assigned: false, own: false })).toBe(false);
+            expect(can(role, permission, { assigned: true, own: false })).toBe(false);
+          } else if (qualifier === "assigned-or-own") {
+            expect(can(role, permission, { assigned: false, own: false })).toBe(false);
+          } else if (qualifier === "assigned-and-own") {
+            expect(can(role, permission, { assigned: true, own: false })).toBe(false);
+            expect(can(role, permission, { assigned: false, own: true })).toBe(false);
+            expect(can(role, permission, { assigned: false, own: false })).toBe(false);
+          } else if (qualifier === "assigned-task-only") {
+            expect(can(role, permission, { assigned: false, taskOnly: true })).toBe(false);
+            expect(can(role, permission, { assigned: true, taskOnly: false })).toBe(false);
+            expect(can(role, permission, { assigned: false, taskOnly: false })).toBe(false);
+          } else if (qualifier === "assigned-task-only-or-own") {
+            expect(can(role, permission, { assigned: false, own: false })).toBe(false);
+            expect(can(role, permission, { assigned: false, taskOnly: true, own: false })).toBe(false);
+            expect(can(role, permission, { assigned: true, taskOnly: false, own: false })).toBe(false);
+          }
         }
       }
     }

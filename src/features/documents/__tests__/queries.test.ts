@@ -236,6 +236,20 @@ describe("getDocumentDetailRowById", () => {
     });
   });
 
+  it("returns task_case_id when case_id is null and task relation exists", async () => {
+    vi.mocked(prisma.document.findUnique).mockResolvedValue(
+      mockDocument({
+        id: "d2",
+        case_id: null,
+        task: { case_id: "c9" },
+      }),
+    );
+
+    const result = await getDocumentDetailRowById("d2");
+
+    expect(result?.task_case_id).toBe("c9");
+  });
+
   it("returns null when not found", async () => {
     vi.mocked(prisma.document.findUnique).mockResolvedValue(null);
 

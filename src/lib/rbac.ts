@@ -406,6 +406,8 @@ export const PERMISSION_MATRIX: Record<Permission, Record<Role, AccessQualifier>
  * `false` when the corresponding context fact is missing or unset — use this
  * for directory-level checks where no record context exists yet.
  *
+ * Unrecognized role values are denied permission (return `false`).
+ *
  * @param role       - The user's role (nullable, as it comes from the session).
  * @param permission - The granular action to evaluate.
  * @param context    - The user's relation to the target record, when known.
@@ -417,5 +419,7 @@ export function can(
   context: AccessContext = {},
 ): boolean {
   if (!role) return false;
-  return EVALUATORS[PERMISSION_MATRIX[permission][role]](context);
+  const qualifier = PERMISSION_MATRIX[permission][role];
+  if (!qualifier) return false;
+  return EVALUATORS[qualifier](context);
 }

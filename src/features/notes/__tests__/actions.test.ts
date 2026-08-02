@@ -126,6 +126,25 @@ describe("createNoteAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("creates note when authorized", async () => {
+    const { getCaseAccessContext } = await import("@/features/cases/queries");
+    const { createNote } = await import("../mutations");
+
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(createNote).mockResolvedValue({ id: "n1" });
+
+    const result = await createNoteAction({ content: "New note", case_id: uuid });
+
+    expect(result).toEqual({ success: true });
+    expect(createNote).toHaveBeenCalledWith({
+      content: "New note",
+      case_id: uuid,
+      consultation_id: undefined,
+      task_id: undefined,
+      created_by_user_id: "u2",
+    });
+  });
 });
 
 describe("updateNoteAction", () => {
@@ -135,6 +154,19 @@ describe("updateNoteAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("updates note when authorized", async () => {
+    const { getNoteAccessContext } = await import("../queries");
+    const { updateNote } = await import("../mutations");
+
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateNote).mockResolvedValue({ id: uuid });
+
+    const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
+
+    expect(result).toEqual({ success: true });
+    expect(updateNote).toHaveBeenCalledWith({ noteId: uuid, content: "Updated note" });
+  });
 });
 
 describe("deleteNoteAction", () => {
@@ -143,5 +175,18 @@ describe("deleteNoteAction", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+
+  it("deletes note when authorized", async () => {
+    const { getNoteAccessContext } = await import("../queries");
+    const { deleteNote } = await import("../mutations");
+
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(deleteNote).mockResolvedValue({ id: uuid });
+
+    const result = await deleteNoteAction({ noteId: uuid });
+
+    expect(result).toEqual({ success: true });
+    expect(deleteNote).toHaveBeenCalledWith(uuid);
   });
 });

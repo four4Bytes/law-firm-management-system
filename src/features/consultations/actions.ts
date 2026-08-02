@@ -56,7 +56,7 @@ async function requireConsultationPermission(
   consultationId: string,
   permission: Permission,
 ): Promise<AccessContext> {
-  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
+  const access = await getConsultationAccessContext(session.id, consultationId);
   return assertRecordPermission(session, permission, access);
 }
 
@@ -332,7 +332,7 @@ export async function updateConsultationAction(
     const existing = await getConsultationEditData(consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getConsultationAccessContext({ userId: session.id, consultationId });
+    const access = await getConsultationAccessContext(session.id, consultationId);
     if (!can(session.role, "consultation.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -430,10 +430,7 @@ export async function updateConsultationWithClientAction(
     const existing = await getConsultationEditData(consultation_id);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getConsultationAccessContext({
-      userId: session.id,
-      consultationId: consultation_id,
-    });
+    const access = await getConsultationAccessContext(session.id, consultation_id);
     if (!can(session.role, "consultation.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -528,10 +525,7 @@ export async function deleteConsultationAction(
     const existing = await getConsultationEditData(parsed.data.consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getConsultationAccessContext({
-      userId: session.id,
-      consultationId: parsed.data.consultationId,
-    });
+    const access = await getConsultationAccessContext(session.id, parsed.data.consultationId);
     if (!can(session.role, "consultation.delete", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

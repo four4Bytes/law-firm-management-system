@@ -1,16 +1,14 @@
 import { redirect } from "next/navigation";
 
 import { AuditTable } from "@/features/audit/components/AuditTable/AuditTable";
-import { auth } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { requirePermissionOrNull } from "@/lib/auth-guards";
 
 import styles from "./page.module.css";
 
 export default async function AuditPage() {
-  const session = await auth();
-  const role = session?.user?.role;
+  const session = await requirePermissionOrNull("activity.read");
 
-  if (!can(role, "activity.read")) {
+  if (!session) {
     redirect("/dashboard");
   }
 

@@ -52,7 +52,9 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 export async function requirePermission(...permissions: Permission[]): Promise<AuthenticatedUser> {
   const user = await requireAuth();
   if (!permissions.some((permission) => can(user.role, permission))) {
-    throw new Error("Forbidden");
+    const error = new Error("Forbidden");
+    (error as Error & { digest?: string }).digest = "FORBIDDEN";
+    throw error;
   }
   return user;
 }
@@ -61,6 +63,10 @@ export async function requirePermission(...permissions: Permission[]): Promise<A
  * Same as {@link requirePermission}, but returns `null` instead of throwing.
  * Use in write actions that must convert a denial into a structured
  * `ActionStatusResponse` rather than an exception.
+ *
+ * Only returns `null` for expected authentication or permission-denial failures.
+ * Unexpected infrastructure errors are logged and rethrown to preserve fail-closed
+ * behavior without masking faults as authorization failures.
  *
  * @param permissions - One or more granular permissions; the caller must be
  *                      granted at least one.
@@ -71,8 +77,12 @@ export async function requirePermissionOrNull(
 ): Promise<AuthenticatedUser | null> {
   try {
     return await requirePermission(...permissions);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof Error && (error.message === "Unauthorized" || error.message === "Forbidden")) {
+      return null;
+    }
+    console.error("Unexpected error in requirePermissionOrNull:", error);
+    throw error;
   }
 }
 
@@ -93,7 +103,9 @@ export function assertRecordPermission(
   context: AccessContext,
 ): AccessContext {
   if (!can(session.role, permission, context)) {
-    throw new Error("Forbidden");
+    const error = new Error("Forbidden");
+    (error as Error & { digest?: string }).digest = "FORBIDDEN";
+    throw error;
   }
   return context;
 }

@@ -154,4 +154,21 @@ describe("deleteDocumentAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("deletes document when authorized", async () => {
+    const { getDocumentAccessContext, getDocumentById } = await import("../queries");
+    const { deleteDocument: deleteDocumentRecord } = await import("../mutations");
+    const { deleteFile } = await import("@/lib/s3");
+
+    vi.mocked(getDocumentById).mockResolvedValue(documentRecord);
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(deleteDocumentRecord).mockResolvedValue({ id: uuid });
+    vi.mocked(deleteFile).mockResolvedValue({ $metadata: {} } as any);
+
+    const result = await deleteDocumentAction({ documentId: uuid });
+
+    expect(result).toEqual({ success: true });
+    expect(deleteDocumentRecord).toHaveBeenCalledWith(uuid);
+    expect(deleteFile).toHaveBeenCalledWith("cases/c1/file.pdf");
+  });
 });

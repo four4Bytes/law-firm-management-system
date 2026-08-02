@@ -9,11 +9,6 @@ export type MilestoneRow = Pick<
   "id" | "title" | "description" | "due_date" | "status"
 >;
 
-export interface MilestoneAccessPayload {
-  userId: string;
-  milestoneId: string;
-}
-
 export const getMilestoneById = cache(async (id: string) => {
   return prisma.caseMilestone.findUnique({
     where: { id },
@@ -45,7 +40,7 @@ export const getMilestoneRowById = cache(async (id: string): Promise<MilestoneRo
 // ----- Access context -----
 
 export const getMilestoneAccessContext = cache(
-  async ({ userId, milestoneId }: MilestoneAccessPayload): Promise<AccessContext> => {
+  async (userId: string, milestoneId: string): Promise<AccessContext> => {
     const milestone = await prisma.caseMilestone.findUnique({
       where: { id: milestoneId },
       select: {

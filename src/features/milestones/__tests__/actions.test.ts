@@ -107,6 +107,20 @@ describe("getMilestoneRowByIdAction", () => {
 
     expect(result).toEqual({ row: milestoneRow, canUpdate: false });
   });
+
+  it("returns canUpdate=true for owner who is also assigned", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u3",
+      email: "e3",
+      role: Role.Lawyer,
+      name: "n3",
+    });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await getMilestoneRowByIdAction(uuid);
+
+    expect(result).toEqual({ row: milestoneRow, canUpdate: true });
+  });
 });
 
 describe("createMilestoneAction", () => {
@@ -123,6 +137,35 @@ describe("createMilestoneAction", () => {
     expect(await createMilestoneAction(payload)).toEqual({
       success: false,
       error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("creates milestone when authorized", async () => {
+    const { getCaseAccessContext } = await import("@/features/cases/queries");
+    const { createMilestone } = await import("../mutations");
+
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(createMilestone).mockResolvedValue({ id: "m1" });
+
+    const payload = {
+      title: "File complaint",
+      description: "Description here",
+      due_date: new Date("2024-06-01"),
+      status: "Pending" as const,
+      case_id: uuid,
+      reminder_days: 3,
+    };
+
+    const result = await createMilestoneAction(payload);
+
+    expect(result).toEqual({ success: true });
+    expect(createMilestone).toHaveBeenCalledWith({
+      case_id: uuid,
+      title: "File complaint",
+      description: "Description here",
+      due_date: new Date("2024-06-01"),
+      status: "Pending",
+      reminder_days: 3,
     });
   });
 });
@@ -142,6 +185,33 @@ describe("updateMilestoneAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("updates milestone when authorized", async () => {
+    const { getMilestoneAccessContext } = await import("../queries");
+    const { updateMilestone } = await import("../mutations");
+
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue({ id: uuid });
+
+    const payload = {
+      milestoneId: uuid,
+      title: "Updated title",
+      description: "Updated description",
+      due_date: new Date("2024-07-01"),
+      status: "Done" as const,
+    };
+
+    const result = await updateMilestoneAction(payload);
+
+    expect(result).toEqual({ success: true });
+    expect(updateMilestone).toHaveBeenCalledWith({
+      milestoneId: uuid,
+      title: "Updated title",
+      description: "Updated description",
+      due_date: new Date("2024-07-01"),
+      status: "Done",
+    });
+  });
 });
 
 describe("deleteMilestoneAction", () => {
@@ -150,5 +220,18 @@ describe("deleteMilestoneAction", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+
+  it("deletes milestone when authorized", async () => {
+    const { getMilestoneAccessContext } = await import("../queries");
+    const { deleteMilestone } = await import("../mutations");
+
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(deleteMilestone).mockResolvedValue({ id: uuid });
+
+    const result = await deleteMilestoneAction({ milestoneId: uuid });
+
+    expect(result).toEqual({ success: true });
+    expect(deleteMilestone).toHaveBeenCalledWith(uuid);
   });
 });

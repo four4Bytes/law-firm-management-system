@@ -119,6 +119,21 @@ describe("getCasesPaginated", () => {
     expect(result.cases[0].status).toBe("Open");
   });
 
+  it("filters by assignedUserId when provided", async () => {
+    const cases = [mockCase()];
+    vi.mocked(prisma.case.findMany).mockResolvedValue(cases);
+
+    await getCasesPaginated({}, "u1");
+
+    expect(prisma.case.findMany).toHaveBeenCalledWith({
+      take: 21,
+      skip: 0,
+      where: { caseAssignments: { some: { user_id: "u1" } } },
+      orderBy: { created_at: "desc" },
+      select: expect.any(Object),
+    });
+  });
+
   it("returns next cursor when there are more results", async () => {
     const cases = Array.from({ length: 4 }, (_, i) => mockCase({ id: String(i + 1) }));
     vi.mocked(prisma.case.findMany).mockResolvedValue(cases);

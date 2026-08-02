@@ -99,6 +99,21 @@ describe("getConsultationsPaginated", () => {
     });
   });
 
+  it("filters by assignedUserId when provided", async () => {
+    const consultations = [mockConsultation()];
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue(consultations);
+
+    await getConsultationsPaginated({ pageSize: 10 }, "u2");
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith({
+      take: 11,
+      skip: 0,
+      where: { consultationAssignments: { some: { user_id: "u2" } } },
+      orderBy: { booking_datetime: "desc" },
+      select: expect.any(Object),
+    });
+  });
+
   it("returns next cursor when there are more results", async () => {
     const consultations = Array.from({ length: 4 }, (_, i) =>
       mockConsultation({ id: String(i + 1) }),

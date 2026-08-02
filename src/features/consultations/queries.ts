@@ -11,11 +11,6 @@ export interface ConsultationPageQuery extends PageQuery {
   consultationId: string;
 }
 
-export interface ConsultationAccessPayload {
-  userId: string;
-  consultationId: string;
-}
-
 const consultationSelect = {
   id: true,
   concern: true,
@@ -264,7 +259,7 @@ export const getConsultationEditData = cache(
 // ----- Access context -----
 
 export const getConsultationAccessContext = cache(
-  async ({ userId, consultationId }: ConsultationAccessPayload): Promise<AccessContext> => {
+  async (userId: string, consultationId: string): Promise<AccessContext> => {
     const [assignment, consultation] = await Promise.all([
       prisma.consultationAssignment.findFirst({
         where: { consultation_id: consultationId, user_id: userId },

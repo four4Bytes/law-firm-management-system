@@ -37,7 +37,7 @@ export async function getTaskDetailRowByIdAction(
   const parsed = TaskIdSchema.safeParse({ taskId });
   if (!parsed.success) throw new Error("Invalid task ID");
 
-  const access = await getTaskAccessContext({ userId: session.id, taskId: parsed.data.taskId });
+  const access = await getTaskAccessContext(session.id, parsed.data.taskId);
   if (!can(session.role, "task.read", access)) {
     throw new Error("Forbidden");
   }
@@ -61,7 +61,7 @@ export async function createTaskAction(
   const { title, description, status, case_id, assignee_ids } = parsed.data;
 
   try {
-    const caseAccess = await getCaseAccessContext({ userId: session.id, caseId: case_id });
+    const caseAccess = await getCaseAccessContext(session.id, case_id);
     if (!can(session.role, "task.create", caseAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -132,7 +132,7 @@ export async function updateTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
-    const access = await getTaskAccessContext({ userId: session.id, taskId });
+    const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -235,7 +235,7 @@ export async function deleteTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
-    const access = await getTaskAccessContext({ userId: session.id, taskId });
+    const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.delete", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

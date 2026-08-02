@@ -72,7 +72,7 @@ const columns: ColumnDef<ConsultationRow>[] = [
 interface ConsultationTableProps {
   initialConsultations?: ConsultationRow[];
   initialCursor?: string | null;
-  userRole?: Role | null;
+  userRole: Role | null;
 }
 
 export function ConsultationTable({

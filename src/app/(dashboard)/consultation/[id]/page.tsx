@@ -19,7 +19,11 @@ export default async function ConsultationDetailPage({ params }: Props) {
   return (
     <div className={styles.detailPage}>
       <Suspense fallback={<ProgressCircle aria-label="Loading..." />}>
-        <ConsultationDetail overview={overview} access={access} userRole={session?.user?.role} />
+        <ConsultationDetail
+          overview={overview}
+          access={access}
+          userRole={session?.user?.role ?? null}
+        />
       </Suspense>
     </div>
   );

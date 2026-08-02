@@ -19,8 +19,8 @@ import { can, type AccessContext } from "@/lib/rbac";
 
 interface Props {
   caseId: string;
-  access?: AccessContext;
-  userRole?: Role | null;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 export function AttachmentsTab({ caseId, access, userRole }: Props) {

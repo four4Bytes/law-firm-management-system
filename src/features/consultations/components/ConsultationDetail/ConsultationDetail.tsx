@@ -32,8 +32,8 @@ import { PaymentsTab } from "./tabs/PaymentsTab";
 
 interface Props {
   overview: ConsultationOverviewData;
-  access?: AccessContext;
-  userRole?: Role | null;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 export function ConsultationDetail({ overview, access, userRole }: Props) {
@@ -54,7 +54,6 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   const canViewPayments = can(userRole, "payment.read");
 
   const allTabs = ["attachments", "notes", "payments", "activity"] as const;
-  type ValidTab = (typeof allTabs)[number];
   const validTabs = allTabs.filter((t) => {
     switch (t) {
       case "attachments":
@@ -67,11 +66,8 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         return can(userRole, "consultation.activity.read", access);
     }
   });
-  const tabParam = searchParams.get("tab");
-  const selectedKey =
-    tabParam && validTabs.includes(tabParam as ValidTab)
-      ? tabParam
-      : (validTabs[0] ?? "attachments");
+  const requestedTab = searchParams.get("tab");
+  const selectedKey = validTabs.find((tab) => tab === requestedTab) ?? validTabs[0];
 
   const handleSelectionChange = (key: React.Key) => {
     startLoading();
@@ -125,40 +121,51 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         isEditPending={isEditPending}
       />
 
-      <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
-        <TabList aria-label="Consultation details">
-          {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
-          {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
-          {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
-          {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
-        </TabList>
-        <TabPanels>
-          {validTabs.includes("notes") && (
-            <TabPanel id="notes">
-              {selectedKey === "notes" && (
-                <NotesTab consultationId={overview.id} access={access} userRole={userRole} />
-              )}
-            </TabPanel>
-          )}
-          {validTabs.includes("attachments") && (
-            <TabPanel id="attachments">
-              {selectedKey === "attachments" && (
-                <AttachmentsTab consultationId={overview.id} access={access} userRole={userRole} />
-              )}
-            </TabPanel>
-          )}
-          {validTabs.includes("payments") && (
-            <TabPanel id="payments">
-              {selectedKey === "payments" && <PaymentsTab consultationId={overview.id} />}
-            </TabPanel>
-          )}
-          {validTabs.includes("activity") && (
-            <TabPanel id="activity">
-              {selectedKey === "activity" && <ActivityLogTab consultationId={overview.id} />}
-            </TabPanel>
-          )}
-        </TabPanels>
-      </Tabs>
+      {selectedKey ? (
+        <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
+          <TabList aria-label="Consultation details">
+            {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
+            {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
+            {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
+            {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
+          </TabList>
+          <TabPanels>
+            {validTabs.includes("notes") && (
+              <TabPanel id="notes">
+                {selectedKey === "notes" && (
+                  <NotesTab consultationId={overview.id} access={access} userRole={userRole} />
+                )}
+              </TabPanel>
+            )}
+            {validTabs.includes("attachments") && (
+              <TabPanel id="attachments">
+                {selectedKey === "attachments" && (
+                  <AttachmentsTab
+                    consultationId={overview.id}
+                    access={access}
+                    userRole={userRole}
+                  />
+                )}
+              </TabPanel>
+            )}
+            {validTabs.includes("payments") && (
+              <TabPanel id="payments">
+                {selectedKey === "payments" && <PaymentsTab consultationId={overview.id} />}
+              </TabPanel>
+            )}
+            {validTabs.includes("activity") && (
+              <TabPanel id="activity">
+                {selectedKey === "activity" && <ActivityLogTab consultationId={overview.id} />}
+              </TabPanel>
+            )}
+          </TabPanels>
+        </Tabs>
+      ) : (
+        <div className={styles.noAccess}>
+          You don&apos;t have access to this consultation&apos;s records. Ask a manager to assign
+          you to this consultation.
+        </div>
+      )}
 
       {editData && (
         <EditConsultationModal

@@ -17,8 +17,11 @@ import { LimitSchema } from "@/lib/schemas";
 export async function getDashboardStatsAction(): Promise<DashboardStats> {
   const session = await requireAuth();
 
-  const assignedUserId = can(session.role, "case.read") ? undefined : session.id;
-  return getDashboardStats(assignedUserId);
+  return getDashboardStats({
+    casesUserId: can(session.role, "case.read") ? undefined : session.id,
+    consultationsUserId: can(session.role, "consultation.read") ? undefined : session.id,
+    milestonesUserId: can(session.role, "milestone.read") ? undefined : session.id,
+  });
 }
 
 export async function getRecentCasesAction(limit?: number): Promise<RecentCaseRow[]> {
@@ -56,5 +59,5 @@ export async function getUpcomingMilestonesAction(limit?: number): Promise<Upcom
   }
 
   const assignedUserId = can(session.role, "milestone.read") ? undefined : session.id;
-  return getUpcomingMilestones(parsed.data, assignedUserId);
+  return getUpcomingMilestones(parsed.data ?? 10, assignedUserId);
 }

@@ -10,7 +10,7 @@ import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
-import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 import {
   deleteFile,
   generateKey,
@@ -35,6 +35,26 @@ import {
   DocumentUploadPayloadSchema,
 } from "./schemas";
 
+interface DocumentParentPayload {
+  userId: string;
+  caseId?: string | null;
+  consultationId?: string | null;
+}
+
+async function getDocumentParentAccessContext({
+  userId,
+  caseId,
+  consultationId,
+}: DocumentParentPayload): Promise<AccessContext> {
+  if (caseId) {
+    return getCaseAccessContext({ userId, caseId });
+  }
+  if (!consultationId) {
+    throw new Error("Invalid query parameters");
+  }
+  return getConsultationAccessContext({ userId, consultationId });
+}
+
 export async function getDocumentsPaginatedAction(
   params: z.input<typeof DocumentPageQuerySchema>,
 ): Promise<{
@@ -49,13 +69,12 @@ export async function getDocumentsPaginatedAction(
   }
 
   const { caseId, consultationId } = parsed.data;
-  if (!caseId && !consultationId) {
-    throw new Error("Invalid query parameters");
-  }
 
-  const parentAccess = caseId
-    ? await getCaseAccessContext({ userId: session.id, caseId })
-    : await getConsultationAccessContext({ userId: session.id, consultationId: consultationId! });
+  const parentAccess = await getDocumentParentAccessContext({
+    userId: session.id,
+    caseId,
+    consultationId,
+  });
   if (!can(session.role, "attachment.read", parentAccess)) {
     throw new Error("Forbidden");
   }
@@ -78,12 +97,11 @@ export async function getDocumentUploadUrlAction(
 
   const { file_name, file_type, case_id, consultation_id } = parsed.data;
 
-  const parentAccess = case_id
-    ? await getCaseAccessContext({ userId: session.id, caseId: case_id })
-    : await getConsultationAccessContext({
-        userId: session.id,
-        consultationId: consultation_id!,
-      });
+  const parentAccess = await getDocumentParentAccessContext({
+    userId: session.id,
+    caseId: case_id,
+    consultationId: consultation_id,
+  });
   if (!can(session.role, "attachment.create", parentAccess)) {
     throw new Error("Forbidden");
   }
@@ -109,12 +127,11 @@ export async function confirmDocumentUploadAction(
   const { file_name, file_type, file_size, file_path, case_id, consultation_id } = parsed.data;
 
   try {
-    const parentAccess = case_id
-      ? await getCaseAccessContext({ userId: session.id, caseId: case_id })
-      : await getConsultationAccessContext({
-          userId: session.id,
-          consultationId: consultation_id!,
-        });
+    const parentAccess = await getDocumentParentAccessContext({
+      userId: session.id,
+      caseId: case_id,
+      consultationId: consultation_id,
+    });
     if (!can(session.role, "attachment.create", parentAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

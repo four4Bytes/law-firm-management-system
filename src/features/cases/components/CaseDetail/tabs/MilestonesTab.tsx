@@ -20,8 +20,8 @@ import tabStyles from "./Tab.module.css";
 
 interface Props {
   caseId: string;
-  access?: AccessContext;
-  userRole?: Role | null;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 const statusClassMap: Record<string, string> = {

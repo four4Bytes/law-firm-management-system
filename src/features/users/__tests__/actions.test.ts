@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
 import { countActiveAdminsAndDevs, getUserByEmail, getUserById } from "@/features/users/queries";
-import { Role } from "@/generated/prisma/client";
+import { Role } from "@/generated/prisma/browser";
 import { requirePermission } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
+import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createUserAction, deactivateUserAction, updateUserAction } from "../actions";
 
@@ -49,7 +50,7 @@ describe("createUserAction", () => {
 
     expect(await createUserAction(validPayload)).toEqual({
       success: false,
-      error: "You don't have permission to create users.",
+      error: FORBIDDEN_MESSAGE,
     });
   });
 
@@ -168,7 +169,7 @@ describe("updateUserAction", () => {
 
     expect(await updateUserAction(validPayload)).toEqual({
       success: false,
-      error: "You don't have permission to edit users.",
+      error: FORBIDDEN_MESSAGE,
     });
   });
 
@@ -259,7 +260,7 @@ describe("deactivateUserAction", () => {
 
     expect(await deactivateUserAction(validPayload)).toEqual({
       success: false,
-      error: "You don't have permission to deactivate users.",
+      error: FORBIDDEN_MESSAGE,
     });
   });
 

@@ -66,7 +66,7 @@ const columns: ColumnDef<CaseRow>[] = [
 interface CaseTableProps {
   initialCases?: CaseRow[];
   initialCursor?: string | null;
-  userRole?: Role | null;
+  userRole: Role | null;
 }
 
 export function CaseTable({ initialCases, initialCursor, userRole }: CaseTableProps) {

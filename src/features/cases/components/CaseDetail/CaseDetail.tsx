@@ -30,8 +30,8 @@ import { TasksTab } from "./tabs/TasksTab";
 
 interface Props {
   overview: CaseOverviewData;
-  access?: AccessContext;
-  userRole?: Role | null;
+  access: AccessContext;
+  userRole: Role | null;
 }
 
 export function CaseDetail({ overview, access, userRole }: Props) {
@@ -53,7 +53,6 @@ export function CaseDetail({ overview, access, userRole }: Props) {
   const canViewPayments = can(userRole, "payment.read");
 
   const allTabs = ["attachments", "tasks", "notes", "milestones", "payments", "activity"] as const;
-  type ValidTab = (typeof allTabs)[number];
   const validTabs = allTabs.filter((t) => {
     switch (t) {
       case "attachments":
@@ -70,11 +69,8 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         return can(userRole, "case.activity.read", access);
     }
   });
-  const tabParam = searchParams.get("tab");
-  const selectedKey =
-    tabParam && validTabs.includes(tabParam as ValidTab)
-      ? tabParam
-      : (validTabs[0] ?? "attachments");
+  const requestedTab = searchParams.get("tab");
+  const selectedKey = validTabs.find((tab) => tab === requestedTab) ?? validTabs[0];
 
   const handleSelectionChange = (key: React.Key) => {
     startLoading();
@@ -131,48 +127,63 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         isEditPending={isEditPending}
       />
 
-      <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
-        <TabList aria-label="Case details">
-          {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
-          {validTabs.includes("tasks") && <Tab id="tasks">Tasks</Tab>}
-          {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
-          {validTabs.includes("milestones") && <Tab id="milestones">Milestone</Tab>}
-          {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
-          {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
-        </TabList>
-        <TabPanels>
-          {validTabs.includes("tasks") && (
-            <TabPanel id="tasks">
-              <TasksTab caseId={overview.id} access={access} userRole={userRole} />
-            </TabPanel>
-          )}
-          {validTabs.includes("notes") && (
-            <TabPanel id="notes">
-              <NotesTab caseId={overview.id} access={access} userRole={userRole} />
-            </TabPanel>
-          )}
-          {validTabs.includes("attachments") && (
-            <TabPanel id="attachments">
-              <AttachmentsTab caseId={overview.id} access={access} userRole={userRole} />
-            </TabPanel>
-          )}
-          {validTabs.includes("milestones") && (
-            <TabPanel id="milestones">
-              <MilestonesTab caseId={overview.id} access={access} userRole={userRole} />
-            </TabPanel>
-          )}
-          {validTabs.includes("payments") && (
-            <TabPanel id="payments">
-              <PaymentsTab caseId={overview.id} />
-            </TabPanel>
-          )}
-          {validTabs.includes("activity") && (
-            <TabPanel id="activity">
-              <ActivityLogTab caseId={overview.id} />
-            </TabPanel>
-          )}
-        </TabPanels>
-      </Tabs>
+      {selectedKey ? (
+        <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
+          <TabList aria-label="Case details">
+            {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
+            {validTabs.includes("tasks") && <Tab id="tasks">Tasks</Tab>}
+            {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
+            {validTabs.includes("milestones") && <Tab id="milestones">Milestone</Tab>}
+            {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
+            {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
+          </TabList>
+          <TabPanels>
+            {validTabs.includes("tasks") && (
+              <TabPanel id="tasks">
+                {selectedKey === "tasks" && (
+                  <TasksTab caseId={overview.id} access={access} userRole={userRole} />
+                )}
+              </TabPanel>
+            )}
+            {validTabs.includes("notes") && (
+              <TabPanel id="notes">
+                {selectedKey === "notes" && (
+                  <NotesTab caseId={overview.id} access={access} userRole={userRole} />
+                )}
+              </TabPanel>
+            )}
+            {validTabs.includes("attachments") && (
+              <TabPanel id="attachments">
+                {selectedKey === "attachments" && (
+                  <AttachmentsTab caseId={overview.id} access={access} userRole={userRole} />
+                )}
+              </TabPanel>
+            )}
+            {validTabs.includes("milestones") && (
+              <TabPanel id="milestones">
+                {selectedKey === "milestones" && (
+                  <MilestonesTab caseId={overview.id} access={access} userRole={userRole} />
+                )}
+              </TabPanel>
+            )}
+            {validTabs.includes("payments") && (
+              <TabPanel id="payments">
+                {selectedKey === "payments" && <PaymentsTab caseId={overview.id} />}
+              </TabPanel>
+            )}
+            {validTabs.includes("activity") && (
+              <TabPanel id="activity">
+                {selectedKey === "activity" && <ActivityLogTab caseId={overview.id} />}
+              </TabPanel>
+            )}
+          </TabPanels>
+        </Tabs>
+      ) : (
+        <div className={styles.noAccess}>
+          You don&apos;t have access to this case&apos;s records. Ask a manager to assign you to
+          this case.
+        </div>
+      )}
 
       {editData && (
         <EditCaseModal

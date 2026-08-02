@@ -19,7 +19,7 @@ export default async function CaseDetailPage({ params }: Props) {
   return (
     <div className={styles.detailPage}>
       <Suspense fallback={<ProgressCircle aria-label="Loading..." />}>
-        <CaseDetail overview={overview} access={access} userRole={session?.user?.role} />
+        <CaseDetail overview={overview} access={access} userRole={session?.user?.role ?? null} />
       </Suspense>
     </div>
   );

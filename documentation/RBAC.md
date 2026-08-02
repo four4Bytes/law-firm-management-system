@@ -58,7 +58,7 @@ Combined codes in table cells follow these rules:
 
 ## Global Data Actions
 
-### User
+### [User](./models.md#user)
 
 > Role assignment and user provisioning are managed here. Users with CREATE permission are responsible for adding new users.
 
@@ -71,7 +71,7 @@ Combined codes in table cells follow these rules:
 
 ---
 
-### Global Activity Log
+### Global [Audit Log](./models.md#audit-log)
 
 > System-wide logs for every action across all entities. Strictly **READ-ONLY** (IMMUTABLE).
 > For logs scoped to a specific Case or Consultation, see their respective sub-data sections.
@@ -87,7 +87,7 @@ Combined codes in table cells follow these rules:
 
 ## Case Entities
 
-### Case
+### [Case](./models.md#case)
 
 | Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
 | :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
@@ -100,7 +100,7 @@ Combined codes in table cells follow these rules:
 
 ### Sub-Data of Case
 
-#### Tasks
+#### [Task](./models.md#task)
 
 | Action | Admin | Branch Manager |     Lawyer      |          Paralegal          |    Process Server    |
 | :----- | :---: | :------------: | :-------------: | :-------------------------: | :------------------: |
@@ -109,7 +109,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |       ASSIGNED       |
 | DELETE |  YES  |      YES       | ASSIGNED or OWN |      ASSIGNED and OWN       |          NO          |
 
-#### Payment
+#### [Payment](./models.md#payment)
 
 | Action | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :---: | :------------: | :----: | :-------: | :------------: |
@@ -118,7 +118,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       |   NO   |    NO     |       NO       |
 | DELETE |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-#### Note
+#### [Note](./models.md#note)
 
 | Action | Admin | Branch Manager |     Lawyer      |    Paralegal     |  Process Server  |
 | :----- | :---: | :------------: | :-------------: | :--------------: | :--------------: |
@@ -127,7 +127,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
 | DELETE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
 
-#### Milestone
+#### [Milestone](./models.md#milestone)
 
 | Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
 | :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
@@ -136,7 +136,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED  |    ASSIGNED    |
 | DELETE |  YES  |      YES       | ASSIGNED or OWN |    NO     |       NO       |
 
-#### Attachments
+#### [Document](./models.md#document)
 
 > No update action available. To replace a record, users must delete the old attachment and add a new one.
 
@@ -146,7 +146,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED  |    ASSIGNED    |
 | DELETE |  YES  |      YES       | ASSIGNED or OWN |    OWN    |      OWN       |
 
-#### Case Activity Log
+#### [Audit Log](./models.md#audit-log)
 
 > Activity log scoped specifically to this Case.
 
@@ -161,7 +161,7 @@ Combined codes in table cells follow these rules:
 
 ## Consultation Entities
 
-### Consultation
+### [Consultation](./models.md#consultation)
 
 | Action | Admin | Branch Manager |     Lawyer      | Paralegal | Process Server |
 | :----- | :---: | :------------: | :-------------: | :-------: | :------------: |
@@ -174,7 +174,7 @@ Combined codes in table cells follow these rules:
 
 ### Sub-Data of Consultation
 
-#### Payment
+#### [Payment](./models.md#payment)
 
 | Action | Admin | Branch Manager | Lawyer | Paralegal | Process Server |
 | :----- | :---: | :------------: | :----: | :-------: | :------------: |
@@ -183,7 +183,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       |   NO   |    NO     |       NO       |
 | DELETE |  YES  |      YES       |   NO   |    NO     |       NO       |
 
-#### Note
+#### [Note](./models.md#note)
 
 | Action | Admin | Branch Manager |     Lawyer      |    Paralegal     |  Process Server  |
 | :----- | :---: | :------------: | :-------------: | :--------------: | :--------------: |
@@ -192,7 +192,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
 | DELETE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
 
-#### Attachments
+#### [Document](./models.md#document)
 
 | Action | Admin | Branch Manager |     Lawyer      |    Paralegal     |  Process Server  |
 | :----- | :---: | :------------: | :-------------: | :--------------: | :--------------: |
@@ -200,7 +200,7 @@ Combined codes in table cells follow these rules:
 | READ   |  YES  |      YES       | ASSIGNED or OWN |     ASSIGNED     |     ASSIGNED     |
 | DELETE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED and OWN | ASSIGNED and OWN |
 
-#### Consultation Activity Log
+#### [Audit Log](./models.md#audit-log)
 
 > Activity log scoped specifically to this Consultation.
 

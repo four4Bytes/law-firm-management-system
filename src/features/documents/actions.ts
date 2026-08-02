@@ -246,8 +246,8 @@ export async function deleteDocumentAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    await deleteFile(doc.file_path);
     await deleteDocumentRecord(documentId);
+    await deleteFile(doc.file_path);
 
     after(() =>
       createAuditLog({

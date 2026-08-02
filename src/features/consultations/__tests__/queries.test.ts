@@ -172,6 +172,18 @@ describe("getConsultationsPaginated", () => {
     await expect(getConsultationsPaginated({})).rejects.toThrow(error);
   });
 
+  it("filters by assigned user", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ pageSize: 10 }, "u2");
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { consultationAssignments: { some: { user_id: "u2" } } },
+      }),
+    );
+  });
+
   it("sorts by concern ascending", async () => {
     vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
     await getConsultationsPaginated({ sort: { column: "concern", direction: "asc" } });

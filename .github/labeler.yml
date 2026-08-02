@@ -1,0 +1,14 @@
+feature:
+  - head-branch: ["^feat(ure)?/.*"]
+
+bug:
+  - head-branch: ["^(fix|bugfix)/.*"]
+
+documentation:
+  - head-branch: ["^docs?/.*"]
+
+refactor:
+  - head-branch: ["^refactor/.*"]
+
+chore:
+  - head-branch: ["^chore/.*"]

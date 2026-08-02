@@ -11,6 +11,7 @@ import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createTask, deleteTask, updateTask } from "./mutations";
@@ -39,7 +40,7 @@ export async function getTaskDetailRowByIdAction(
 
   const access = await getTaskAccessContext(session.id, parsed.data.taskId);
   if (!can(session.role, "task.read", access)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
 
   const row = await getTaskDetailRowById(parsed.data.taskId);

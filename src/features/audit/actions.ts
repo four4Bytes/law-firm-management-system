@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { requireAuth, requirePermission } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { can } from "@/lib/rbac";
 
 import { AuditLogRow, getAuditLogPaginated, getEntityActivityLogPaginated } from "./queries";
@@ -32,10 +33,10 @@ export async function getEntityActivityLogAction(
   const { entityType, entityId } = parsed.data;
   if (entityType === "Case") {
     const access = await getCaseAccessContext(session.id, entityId);
-    if (!can(session.role, "case.activity.read", access)) throw new Error("Forbidden");
+    if (!can(session.role, "case.activity.read", access)) throw new ForbiddenError();
   } else if (entityType === "Consultation") {
     const access = await getConsultationAccessContext(session.id, entityId);
-    if (!can(session.role, "consultation.activity.read", access)) throw new Error("Forbidden");
+    if (!can(session.role, "consultation.activity.read", access)) throw new ForbiddenError();
   } else {
     throw new Error("Invalid entity type");
   }

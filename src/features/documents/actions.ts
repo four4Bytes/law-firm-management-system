@@ -9,6 +9,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 import {
@@ -76,7 +77,7 @@ export async function getDocumentsPaginatedAction(
     consultationId,
   });
   if (!can(session.role, "attachment.read", parentAccess)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
 
   return getDocumentsPaginated(parsed.data);
@@ -103,7 +104,7 @@ export async function getDocumentUploadUrlAction(
     consultationId: consultation_id,
   });
   if (!can(session.role, "attachment.create", parentAccess)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
 
   const parentType = case_id ? "cases" : "consultations";
@@ -182,7 +183,7 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
 
   const access = await getDocumentAccessContext(session.id, doc.id);
   if (!can(session.role, "attachment.read", access)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
 
   const exists = await objectExists(doc.file_path);
@@ -208,7 +209,7 @@ export async function getDocumentDetailRowAction(
 
   const access = await getDocumentAccessContext(session.id, doc.id);
   if (!can(session.role, "attachment.read", access)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
 
   const parentCaseId = doc.case_id ?? doc.task_case_id ?? null;

@@ -8,10 +8,13 @@ import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
+import { getCaseAccessContext } from "../cases/queries";
+import { getConsultationAccessContext } from "../consultations/queries";
 import { createPayment, deletePayment, updatePayment } from "./mutations";
 import {
+  getPaymentAccessContext,
   getPaymentById,
   getPaymentRowById,
   getPaymentsPaginated,
@@ -68,6 +71,17 @@ export async function createPaymentAction(
     parsed.data;
 
   try {
+    // Check access to parent case or consultation
+    const parentAccess = case_id
+      ? await getCaseAccessContext(session.id, case_id)
+      : consultation_id
+        ? await getConsultationAccessContext(session.id, consultation_id)
+        : null;
+
+    if (!parentAccess || !can(session.role, "payment.create", parentAccess)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
     const payment = await createPayment({
       amount,
       payment_date,
@@ -115,6 +129,11 @@ export async function updatePaymentAction(
   try {
     const existing = await getPaymentById(paymentId);
     if (!existing) return { success: false, error: "Payment not found" };
+
+    const access = await getPaymentAccessContext(session.id, paymentId);
+    if (!can(session.role, "payment.update", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     if (
       Number(existing.amount) === amount &&
@@ -170,6 +189,11 @@ export async function deletePaymentAction(
   try {
     const existing = await getPaymentById(paymentId);
     if (!existing) return { success: false, error: "Payment not found" };
+
+    const access = await getPaymentAccessContext(session.id, paymentId);
+    if (!can(session.role, "payment.delete", access)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await deletePayment(paymentId);
 

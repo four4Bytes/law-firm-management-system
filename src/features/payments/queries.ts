@@ -2,7 +2,11 @@ import { cache } from "react";
 
 import type { Payment } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
+
+import { getCaseAccessContext } from "../cases/queries";
+import { getConsultationAccessContext } from "../consultations/queries";
 
 export type PaymentRow = Pick<
   Payment,
@@ -106,3 +110,34 @@ export const getPaymentRowById = cache(async (id: string): Promise<PaymentRow | 
     status: payment.status,
   };
 });
+
+// ----- Access context -----
+
+export const getPaymentAccessContext = cache(
+  async (userId: string, paymentId: string): Promise<AccessContext> => {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: {
+        case_id: true,
+        consultation_id: true,
+      },
+    });
+
+    if (!payment) {
+      return { assigned: false, own: false };
+    }
+
+    const parentCaseId = payment.case_id;
+    const parentConsultationId = payment.consultation_id;
+
+    if (parentCaseId) {
+      return getCaseAccessContext(userId, parentCaseId);
+    }
+
+    if (parentConsultationId) {
+      return getConsultationAccessContext(userId, parentConsultationId);
+    }
+
+    return { assigned: false, own: false };
+  },
+);

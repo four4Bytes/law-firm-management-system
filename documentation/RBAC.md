@@ -48,7 +48,9 @@ Combined codes in table cells follow these rules:
 
 ## Note
 
-1. Admins and Branch Managers have unrestricted access across their scope. Lawyers, Paralegals, and Process Servers must be assigned to a Case or Consultation to access its sub-data (Tasks, Notes, Milestones, Attachments). Creating a record grants **OWN** rights to the creator, even before an assignment is made.
+> again this rules are not final yet.
+
+1. Admins and Branch Managers have unrestricted access across their scope. Lawyers, Paralegals, and Process Servers must be assigned to a Case or Consultation to access its sub-data (Tasks, Notes, Milestones, Attachments).
 2. `YES` on Case READ (e.g., Lawyers) means the Case is visible in the case list or table, but its private sub-data (Notes, Financials) is only accessible when assigned.
 3. Activity logs are system-generated audit trails. No user, including Admins, can edit or delete log entries.
 

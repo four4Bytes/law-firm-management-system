@@ -47,12 +47,12 @@ async function getDocumentParentAccessContext({
   consultationId,
 }: DocumentParentPayload): Promise<AccessContext> {
   if (caseId) {
-    return getCaseAccessContext({ userId, caseId });
+    return getCaseAccessContext(userId, caseId);
   }
   if (!consultationId) {
     throw new Error("Invalid query parameters");
   }
-  return getConsultationAccessContext({ userId, consultationId });
+  return getConsultationAccessContext(userId, consultationId);
 }
 
 export async function getDocumentsPaginatedAction(
@@ -180,10 +180,7 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   const doc = await getDocumentById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
 
-  const access = await getDocumentAccessContext({
-    userId: session.id,
-    documentId: doc.id,
-  });
+  const access = await getDocumentAccessContext(session.id, doc.id);
   if (!can(session.role, "attachment.read", access)) {
     throw new Error("Forbidden");
   }
@@ -209,10 +206,7 @@ export async function getDocumentDetailRowAction(
   const doc = await getDocumentDetailRowById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
 
-  const access = await getDocumentAccessContext({
-    userId: session.id,
-    documentId: doc.id,
-  });
+  const access = await getDocumentAccessContext(session.id, doc.id);
   if (!can(session.role, "attachment.read", access)) {
     throw new Error("Forbidden");
   }
@@ -240,7 +234,7 @@ export async function deleteDocumentAction(
     if (!doc) return { success: false, error: "Document not found" };
 
     const parentCaseId = doc.case_id ?? doc.task?.case_id ?? null;
-    const access = await getDocumentAccessContext({ userId: session.id, documentId: doc.id });
+    const access = await getDocumentAccessContext(session.id, doc.id);
     const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
     if (!can(session.role, permission, access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };

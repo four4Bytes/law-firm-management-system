@@ -60,8 +60,17 @@ async function requireCasePermission(
   caseId: string,
   permission: Permission,
 ): Promise<AccessContext> {
-  const access = await getCaseAccessContext({ userId: session.id, caseId });
+  const access = await getCaseAccessContext(session.id, caseId);
   return assertRecordPermission(session, permission, access);
+}
+
+async function hasCasePermission(
+  session: AuthenticatedUser,
+  caseId: string,
+  permission: Permission,
+): Promise<boolean> {
+  const access = await getCaseAccessContext(session.id, caseId);
+  return can(session.role, permission, access);
 }
 
 export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
@@ -349,8 +358,7 @@ export async function updateCaseAction(
     const existing = await getCaseEditData(caseId);
     if (!existing) return { success: false, error: "Case not found" };
 
-    const access = await getCaseAccessContext({ userId: session.id, caseId });
-    if (!can(session.role, "case.update", access)) {
+    if (!(await hasCasePermission(session, caseId, "case.update"))) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
@@ -427,8 +435,7 @@ export async function updateCaseWithClientAction(
     const existing = await getCaseEditData(case_id);
     if (!existing) return { success: false, error: "Case not found" };
 
-    const access = await getCaseAccessContext({ userId: session.id, caseId: case_id });
-    if (!can(session.role, "case.update", access)) {
+    if (!(await hasCasePermission(session, case_id, "case.update"))) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
@@ -501,8 +508,7 @@ export async function deleteCaseAction(
     const existing = await getCaseEditData(parsed.data.caseId);
     if (!existing) return { success: false, error: "Case not found" };
 
-    const access = await getCaseAccessContext({ userId: session.id, caseId: parsed.data.caseId });
-    if (!can(session.role, "case.delete", access)) {
+    if (!(await hasCasePermission(session, parsed.data.caseId, "case.delete"))) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 

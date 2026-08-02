@@ -12,11 +12,6 @@ export type NoteRow = {
   created_at: Date;
 };
 
-export interface NoteAccessPayload {
-  userId: string;
-  noteId: string;
-}
-
 export const getNoteById = cache(async (id: string) => {
   return prisma.note.findUnique({
     where: { id },
@@ -54,7 +49,7 @@ export const getNoteRowById = cache(async (id: string): Promise<NoteRow | null> 
 // ----- Access context -----
 
 export const getNoteAccessContext = cache(
-  async ({ userId, noteId }: NoteAccessPayload): Promise<AccessContext> => {
+  async (userId: string, noteId: string): Promise<AccessContext> => {
     const note = await prisma.note.findUnique({
       where: { id: noteId },
       select: {
@@ -71,9 +66,9 @@ export const getNoteAccessContext = cache(
 
     const parentCaseId = note.case_id ?? note.task?.case_id ?? null;
     const parentAccess = parentCaseId
-      ? await getCaseAccessContext({ userId, caseId: parentCaseId })
+      ? await getCaseAccessContext(userId, parentCaseId)
       : note.consultation_id
-        ? await getConsultationAccessContext({ userId, consultationId: note.consultation_id })
+        ? await getConsultationAccessContext(userId, note.consultation_id)
         : null;
 
     return {

@@ -31,13 +31,10 @@ export async function getEntityActivityLogAction(
 
   const { entityType, entityId } = parsed.data;
   if (entityType === "Case") {
-    const access = await getCaseAccessContext({ userId: session.id, caseId: entityId });
+    const access = await getCaseAccessContext(session.id, entityId);
     if (!can(session.role, "case.activity.read", access)) throw new Error("Forbidden");
   } else if (entityType === "Consultation") {
-    const access = await getConsultationAccessContext({
-      userId: session.id,
-      consultationId: entityId,
-    });
+    const access = await getConsultationAccessContext(session.id, entityId);
     if (!can(session.role, "consultation.activity.read", access)) throw new Error("Forbidden");
   } else {
     throw new Error("Invalid entity type");

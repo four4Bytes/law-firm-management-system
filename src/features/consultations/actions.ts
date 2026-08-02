@@ -56,8 +56,17 @@ async function requireConsultationPermission(
   consultationId: string,
   permission: Permission,
 ): Promise<AccessContext> {
-  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
+  const access = await getConsultationAccessContext(session.id, consultationId);
   return assertRecordPermission(session, permission, access);
+}
+
+async function hasConsultationPermission(
+  session: AuthenticatedUser,
+  consultationId: string,
+  permission: Permission,
+): Promise<boolean> {
+  const access = await getConsultationAccessContext(session.id, consultationId);
+  return can(session.role, permission, access);
 }
 
 export async function getConsultationsPaginatedAction(
@@ -332,8 +341,7 @@ export async function updateConsultationAction(
     const existing = await getConsultationEditData(consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getConsultationAccessContext({ userId: session.id, consultationId });
-    if (!can(session.role, "consultation.update", access)) {
+    if (!(await hasConsultationPermission(session, consultationId, "consultation.update"))) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
@@ -430,11 +438,7 @@ export async function updateConsultationWithClientAction(
     const existing = await getConsultationEditData(consultation_id);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getConsultationAccessContext({
-      userId: session.id,
-      consultationId: consultation_id,
-    });
-    if (!can(session.role, "consultation.update", access)) {
+    if (!(await hasConsultationPermission(session, consultation_id, "consultation.update"))) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
@@ -528,11 +532,9 @@ export async function deleteConsultationAction(
     const existing = await getConsultationEditData(parsed.data.consultationId);
     if (!existing) return { success: false, error: "Consultation not found" };
 
-    const access = await getConsultationAccessContext({
-      userId: session.id,
-      consultationId: parsed.data.consultationId,
-    });
-    if (!can(session.role, "consultation.delete", access)) {
+    if (
+      !(await hasConsultationPermission(session, parsed.data.consultationId, "consultation.delete"))
+    ) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 

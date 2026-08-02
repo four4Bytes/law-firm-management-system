@@ -18,12 +18,13 @@ import { formatFileSize, formatFileType } from "@/lib/file-format";
 import { can, type AccessContext } from "@/lib/rbac";
 
 interface Props {
-  caseId: string;
+  caseId?: string;
+  consultationId?: string;
   access: AccessContext;
   userRole: Role | null;
 }
 
-export function AttachmentsTab({ caseId, access, userRole }: Props) {
+export function AttachmentsTab({ caseId, consultationId, access, userRole }: Props) {
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedDocument, setSelectedDocument] = useState<{
@@ -86,7 +87,7 @@ export function AttachmentsTab({ caseId, access, userRole }: Props) {
     <>
       <ServerDataTable
         refreshTrigger={refreshKey}
-        fetchAction={(p) => getDocumentsPaginatedAction({ caseId, ...p })}
+        fetchAction={(p) => getDocumentsPaginatedAction({ caseId, consultationId, ...p })}
         columns={columns}
         searchPlaceholder="Search attachments..."
         emptyContent="No attachments yet"
@@ -102,6 +103,7 @@ export function AttachmentsTab({ caseId, access, userRole }: Props) {
         onOpenChange={setUploadModalOpen}
         onSuccess={handleRefresh}
         caseId={caseId}
+        consultationId={consultationId}
       />
       {selectedDocument && (
         <ViewAttachmentModal

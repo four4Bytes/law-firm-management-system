@@ -14,6 +14,7 @@ import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCas
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
+import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
@@ -22,7 +23,6 @@ import { can, type AccessContext } from "@/lib/rbac";
 import styles from "./CaseDetail.module.css";
 import { CaseOverview } from "./CaseOverview";
 import { ActivityLogTab } from "./tabs/ActivityLogTab";
-import { AttachmentsTab } from "./tabs/AttachmentsTab";
 import { MilestonesTab } from "./tabs/MilestonesTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { PaymentsTab } from "./tabs/PaymentsTab";

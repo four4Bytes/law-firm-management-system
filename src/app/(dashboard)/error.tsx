@@ -16,7 +16,7 @@ export default function DashboardError({ error, unstable_retry }: ErrorProps) {
     console.error(error);
   }, [error]);
 
-  const isForbidden = error.message === "Forbidden";
+  const isForbidden = error.digest === "FORBIDDEN";
 
   return (
     <main className={styles.page}>

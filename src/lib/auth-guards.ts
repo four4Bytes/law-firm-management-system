@@ -1,5 +1,6 @@
 import { type Role } from "@/generated/prisma/browser";
 import { auth } from "@/lib/auth";
+import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
 
 /** Minimal authenticated-user projection shared by the auth guards. */
@@ -15,16 +16,16 @@ export interface AuthenticatedUser {
  *
  * @returns The authenticated user projection.
  *
- * Throws `"Unauthorized"` when the session is missing any required field
- * (`id`, `email`, `role`, `name`). Use at the top of Server Actions that need
- * the current user regardless of role.
+ * @throws {UnauthorizedError} when the session is missing any required field
+ *         (`id`, `email`, `role`, `name`). Use at the top of Server Actions
+ *         that need the current user regardless of role.
  */
 export async function requireAuth(): Promise<AuthenticatedUser> {
   const session = await auth();
   const user = session?.user;
 
   if (!user?.id || !user.email || !user.role || !user.name) {
-    throw new Error("Unauthorized");
+    throw new UnauthorizedError();
   }
 
   return {
@@ -46,13 +47,13 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
  * @param permissions - One or more granular permissions; the caller must be
  *                      granted at least one.
  * @returns The authenticated user when authorized.
- * @throws `"Unauthorized"` if no session, or `"Forbidden"` if no permission
- *         is granted.
+ * @throws {UnauthorizedError} if no session.
+ * @throws {ForbiddenError} if no permission is granted.
  */
 export async function requirePermission(...permissions: Permission[]): Promise<AuthenticatedUser> {
   const user = await requireAuth();
   if (!permissions.some((permission) => can(user.role, permission))) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
   return user;
 }
@@ -72,10 +73,7 @@ export async function requirePermissionOrNull(
   try {
     return await requirePermission(...permissions);
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message === "Unauthorized" || error.message === "Forbidden")
-    ) {
+    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return null;
     }
     console.error("Unexpected error in requirePermissionOrNull:", error);
@@ -92,7 +90,7 @@ export async function requirePermissionOrNull(
  * @param permission - The record-scoped permission to evaluate.
  * @param context    - The user's relation to the target record.
  * @returns The evaluated context, for callers that need it downstream.
- * @throws `"Forbidden"` when the permission is denied.
+ * @throws {ForbiddenError} when the permission is denied.
  */
 export function assertRecordPermission(
   session: AuthenticatedUser,
@@ -100,7 +98,7 @@ export function assertRecordPermission(
   context: AccessContext,
 ): AccessContext {
   if (!can(session.role, permission, context)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
   return context;
 }

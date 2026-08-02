@@ -9,6 +9,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
@@ -28,7 +29,7 @@ export async function getNoteRowByIdAction(
 
   const access = await getNoteAccessContext(session.id, parsed.data.noteId);
   if (!can(session.role, "note.read", access)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
 
   const row = await getNoteRowById(parsed.data.noteId);

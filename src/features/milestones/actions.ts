@@ -10,6 +10,7 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createMilestone, deleteMilestone, updateMilestone } from "./mutations";
@@ -40,7 +41,7 @@ export async function getMilestoneRowByIdAction(
     milestoneId: parsed.data.milestoneId,
   });
   if (!can(session.role, "milestone.read", access)) {
-    throw new Error("Forbidden");
+    throw new ForbiddenError();
   }
 
   const row = await getMilestoneRowById(parsed.data.milestoneId);

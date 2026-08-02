@@ -132,30 +132,22 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
           <TabPanels>
             {validTabs.includes("notes") && (
               <TabPanel id="notes">
-                {selectedKey === "notes" && (
-                  <NotesTab consultationId={overview.id} access={access} userRole={userRole} />
-                )}
+                <NotesTab consultationId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("attachments") && (
               <TabPanel id="attachments">
-                {selectedKey === "attachments" && (
-                  <AttachmentsTab
-                    consultationId={overview.id}
-                    access={access}
-                    userRole={userRole}
-                  />
-                )}
+                <AttachmentsTab consultationId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("payments") && (
               <TabPanel id="payments">
-                {selectedKey === "payments" && <PaymentsTab consultationId={overview.id} />}
+                <PaymentsTab consultationId={overview.id} />
               </TabPanel>
             )}
             {validTabs.includes("activity") && (
               <TabPanel id="activity">
-                {selectedKey === "activity" && <ActivityLogTab consultationId={overview.id} />}
+                <ActivityLogTab consultationId={overview.id} />
               </TabPanel>
             )}
           </TabPanels>

@@ -12,7 +12,7 @@ import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNot
 import type { NoteRow } from "@/features/notes/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
-import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
+import { can, type AccessContext } from "@/lib/rbac";
 
 interface Props {
   caseId: string;
@@ -46,7 +46,7 @@ export function NotesTab({ caseId, access, userRole }: Props) {
         return;
       }
       if (!data.canUpdate) {
-        queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+        queue.add({ title: "You don't have permission to edit this note." }, { timeout: 5000 });
         return;
       }
       setEditNote(data.row);

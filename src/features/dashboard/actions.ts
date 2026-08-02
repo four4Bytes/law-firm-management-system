@@ -21,6 +21,9 @@ export async function getDashboardStatsAction(): Promise<DashboardStats> {
     casesUserId: can(session.role, "case.read") ? undefined : session.id,
     consultationsUserId: can(session.role, "consultation.read") ? undefined : session.id,
     milestonesUserId: can(session.role, "milestone.read") ? undefined : session.id,
+    milestonesOwnUserId: can(session.role, "milestone.read", { own: true })
+      ? session.id
+      : undefined,
   });
 }
 
@@ -59,5 +62,6 @@ export async function getUpcomingMilestonesAction(limit?: number): Promise<Upcom
   }
 
   const assignedUserId = can(session.role, "milestone.read") ? undefined : session.id;
-  return getUpcomingMilestones(parsed.data ?? 10, assignedUserId);
+  const ownUserId = can(session.role, "milestone.read", { own: true }) ? session.id : undefined;
+  return getUpcomingMilestones(parsed.data ?? 10, assignedUserId, ownUserId);
 }

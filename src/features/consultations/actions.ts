@@ -25,7 +25,12 @@ import {
 } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth, requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
+import {
+  assertRecordPermission,
+  requireAuth,
+  requirePermissionOrNull,
+  type AuthenticatedUser,
+} from "@/lib/auth-guards";
 import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
@@ -52,10 +57,7 @@ async function requireConsultationPermission(
   permission: Permission,
 ): Promise<AccessContext> {
   const access = await getConsultationAccessContext({ userId: session.id, consultationId });
-  if (!can(session.role, permission, access)) {
-    throw new Error("Forbidden");
-  }
-  return access;
+  return assertRecordPermission(session, permission, access);
 }
 
 export async function getConsultationsPaginatedAction(
@@ -130,10 +132,8 @@ export async function getConsultationForEditAction(
 export async function createConsultationAction(
   payload: z.input<typeof ConsultationCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("consultation.create");
-  } catch {
+  const session = await requirePermissionOrNull("consultation.create");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
@@ -225,10 +225,8 @@ export async function createConsultationAction(
 export async function createConsultationWithClientAction(
   payload: z.input<typeof ConsultationWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("consultation.create");
-  } catch {
+  const session = await requirePermissionOrNull("consultation.create");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 

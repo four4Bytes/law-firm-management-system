@@ -1,6 +1,6 @@
 import { type Role } from "@/generated/prisma/browser";
 import { auth } from "@/lib/auth";
-import { can, type Permission } from "@/lib/rbac";
+import { can, type AccessContext, type Permission } from "@/lib/rbac";
 
 /** Minimal authenticated-user projection shared by the auth guards. */
 export interface AuthenticatedUser {
@@ -55,4 +55,45 @@ export async function requirePermission(...permissions: Permission[]): Promise<A
     throw new Error("Forbidden");
   }
   return user;
+}
+
+/**
+ * Same as {@link requirePermission}, but returns `null` instead of throwing.
+ * Use in write actions that must convert a denial into a structured
+ * `ActionStatusResponse` rather than an exception.
+ *
+ * @param permissions - One or more granular permissions; the caller must be
+ *                      granted at least one.
+ * @returns The authenticated user, or `null` when unauthenticated or denied.
+ */
+export async function requirePermissionOrNull(
+  ...permissions: Permission[]
+): Promise<AuthenticatedUser | null> {
+  try {
+    return await requirePermission(...permissions);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Evaluates a record-scoped permission against an {@link AccessContext} and
+ * throws `"Forbidden"` when denied. Call after loading the context for the
+ * specific record (e.g. via `getCaseAccessContext`).
+ *
+ * @param session    - The authenticated user.
+ * @param permission - The record-scoped permission to evaluate.
+ * @param context    - The user's relation to the target record.
+ * @returns The evaluated context, for callers that need it downstream.
+ * @throws `"Forbidden"` when the permission is denied.
+ */
+export function assertRecordPermission(
+  session: AuthenticatedUser,
+  permission: Permission,
+  context: AccessContext,
+): AccessContext {
+  if (!can(session.role, permission, context)) {
+    throw new Error("Forbidden");
+  }
+  return context;
 }

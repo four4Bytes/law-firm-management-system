@@ -140,40 +140,32 @@ export function CaseDetail({ overview, access, userRole }: Props) {
           <TabPanels>
             {validTabs.includes("tasks") && (
               <TabPanel id="tasks">
-                {selectedKey === "tasks" && (
-                  <TasksTab caseId={overview.id} access={access} userRole={userRole} />
-                )}
+                <TasksTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("notes") && (
               <TabPanel id="notes">
-                {selectedKey === "notes" && (
-                  <NotesTab caseId={overview.id} access={access} userRole={userRole} />
-                )}
+                <NotesTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("attachments") && (
               <TabPanel id="attachments">
-                {selectedKey === "attachments" && (
-                  <AttachmentsTab caseId={overview.id} access={access} userRole={userRole} />
-                )}
+                <AttachmentsTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("milestones") && (
               <TabPanel id="milestones">
-                {selectedKey === "milestones" && (
-                  <MilestonesTab caseId={overview.id} access={access} userRole={userRole} />
-                )}
+                <MilestonesTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("payments") && (
               <TabPanel id="payments">
-                {selectedKey === "payments" && <PaymentsTab caseId={overview.id} />}
+                <PaymentsTab caseId={overview.id} />
               </TabPanel>
             )}
             {validTabs.includes("activity") && (
               <TabPanel id="activity">
-                {selectedKey === "activity" && <ActivityLogTab caseId={overview.id} />}
+                <ActivityLogTab caseId={overview.id} />
               </TabPanel>
             )}
           </TabPanels>

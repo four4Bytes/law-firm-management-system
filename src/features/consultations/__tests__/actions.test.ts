@@ -2,9 +2,9 @@ import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Role, type Consultation } from "@/generated/prisma/browser";
-import { requireAuth, requirePermission } from "@/lib/auth-guards";
+import { requireAuth, requirePermissionOrNull } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
   createConsultationAction,
@@ -17,9 +17,13 @@ import {
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
-  requirePermission: vi
+  requirePermissionOrNull: vi
     .fn()
     .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
+  assertRecordPermission: vi.fn((session, permission, context) => {
+    if (!can(session.role, permission, context)) throw new Error("Forbidden");
+    return context;
+  }),
 }));
 
 vi.mock("next/cache", () => ({
@@ -301,7 +305,7 @@ describe("authorization guards for non-Admin users", () => {
   });
 
   it("returns FORBIDDEN_MESSAGE from createConsultationWithClientAction when the role lacks consultation.create", async () => {
-    vi.mocked(requirePermission).mockRejectedValue(new Error("Forbidden"));
+    vi.mocked(requirePermissionOrNull).mockResolvedValue(null);
 
     expect(await createConsultationWithClientAction(createWithClientPayload)).toEqual({
       success: false,

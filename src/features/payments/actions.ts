@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
 import { getParentPath } from "@/lib/path";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
@@ -54,10 +54,8 @@ export async function getPaymentsPaginatedAction(
 export async function createPaymentAction(
   payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("payment.create");
-  } catch {
+  const session = await requirePermissionOrNull("payment.create");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
@@ -102,10 +100,8 @@ export async function createPaymentAction(
 export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("payment.update");
-  } catch {
+  const session = await requirePermissionOrNull("payment.update");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 
@@ -159,10 +155,8 @@ export async function updatePaymentAction(
 export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  let session: AuthenticatedUser;
-  try {
-    session = await requirePermission("payment.delete");
-  } catch {
+  const session = await requirePermissionOrNull("payment.delete");
+  if (!session) {
     return { success: false, error: FORBIDDEN_MESSAGE };
   }
 

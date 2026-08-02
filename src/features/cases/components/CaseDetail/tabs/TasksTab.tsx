@@ -13,7 +13,7 @@ import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTas
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
-import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
+import { can, type AccessContext } from "@/lib/rbac";
 
 import tabStyles from "./Tab.module.css";
 
@@ -94,7 +94,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         return;
       }
       if (!data.canUpdate) {
-        queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+        queue.add({ title: "You don't have permission to edit this task." }, { timeout: 5000 });
         return;
       }
       setEditTask(data.row);

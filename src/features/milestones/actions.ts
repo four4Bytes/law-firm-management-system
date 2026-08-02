@@ -25,7 +25,9 @@ import {
   MilestoneUpdatePayloadSchema,
 } from "./schemas";
 
-export async function getMilestoneRowByIdAction(milestoneId: string): Promise<MilestoneRow | null> {
+export async function getMilestoneRowByIdAction(
+  milestoneId: string,
+): Promise<{ row: MilestoneRow | null; canUpdate: boolean }> {
   const session = await requireAuth();
 
   const parsed = MilestoneIdSchema.safeParse({ milestoneId });
@@ -41,7 +43,12 @@ export async function getMilestoneRowByIdAction(milestoneId: string): Promise<Mi
     throw new Error("Forbidden");
   }
 
-  return getMilestoneRowById(parsed.data.milestoneId);
+  const row = await getMilestoneRowById(parsed.data.milestoneId);
+
+  return {
+    row,
+    canUpdate: row !== null && can(session.role, "milestone.update", access),
+  };
 }
 
 export async function createMilestoneAction(

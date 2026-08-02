@@ -16,7 +16,9 @@ import { createNote, deleteNote, updateNote } from "./mutations";
 import { getNoteAccessContext, getNoteById, getNoteRowById, type NoteRow } from "./queries";
 import { NoteCreatePayloadSchema, NoteIdSchema, NoteUpdatePayloadSchema } from "./schemas";
 
-export async function getNoteRowByIdAction(noteId: string): Promise<NoteRow | null> {
+export async function getNoteRowByIdAction(
+  noteId: string,
+): Promise<{ row: NoteRow | null; canUpdate: boolean }> {
   const session = await requireAuth();
 
   const parsed = NoteIdSchema.safeParse({ noteId });
@@ -29,7 +31,12 @@ export async function getNoteRowByIdAction(noteId: string): Promise<NoteRow | nu
     throw new Error("Forbidden");
   }
 
-  return getNoteRowById(parsed.data.noteId);
+  const row = await getNoteRowById(parsed.data.noteId);
+
+  return {
+    row,
+    canUpdate: row !== null && can(session.role, "note.update", access),
+  };
 }
 
 export async function createNoteAction(

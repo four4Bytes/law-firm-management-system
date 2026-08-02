@@ -26,11 +26,13 @@ interface Props {
 export function AttachmentsTab({ caseId, access, userRole }: Props) {
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedDocument, setSelectedDocument] = useState<DocumentDetailRow | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{
+    row: DocumentDetailRow;
+    canDelete: boolean;
+  } | null>(null);
   const requestRef = useRef(0);
 
   const canCreate = can(userRole, "attachment.create", access);
-  const canDelete = can(userRole, "attachment.delete", access);
 
   const columns: ColumnDef<DocumentRow>[] = useMemo(
     () => [
@@ -69,9 +71,9 @@ export function AttachmentsTab({ caseId, access, userRole }: Props) {
     const requestId = ++requestRef.current;
 
     try {
-      const doc = await getDocumentDetailRowAction(key);
+      const { row, canDelete } = await getDocumentDetailRowAction(key);
       if (requestRef.current !== requestId) return;
-      setSelectedDocument(doc);
+      setSelectedDocument({ row, canDelete });
     } catch {
       queue.add({
         title: "Failed to load document",
@@ -106,8 +108,8 @@ export function AttachmentsTab({ caseId, access, userRole }: Props) {
           isOpen={!!selectedDocument}
           onOpenChange={() => setSelectedDocument(null)}
           onSuccess={handleRefresh}
-          document={selectedDocument}
-          canDelete={canDelete}
+          document={selectedDocument.row}
+          canDelete={selectedDocument.canDelete}
         />
       )}
     </>

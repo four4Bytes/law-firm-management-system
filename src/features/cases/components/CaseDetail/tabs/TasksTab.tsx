@@ -13,7 +13,7 @@ import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTas
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
-import { can, type AccessContext } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 import tabStyles from "./Tab.module.css";
 
@@ -89,11 +89,15 @@ export function TasksTab({ caseId, access, userRole }: Props) {
     try {
       const data = await getTaskDetailRowByIdAction(id);
       if (requestId !== latestRequest.current) return;
-      if (data) {
-        setEditTask(data);
-      } else {
+      if (!data.row) {
         queue.add({ title: "Task not found" }, { timeout: 5000 });
+        return;
       }
+      if (!data.canUpdate) {
+        queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+        return;
+      }
+      setEditTask(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
       queue.add({ title: "Failed to load task" }, { timeout: 5000 });

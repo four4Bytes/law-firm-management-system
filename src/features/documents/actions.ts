@@ -179,7 +179,9 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   return { url, file_name: doc.file_name };
 }
 
-export async function getDocumentDetailRowAction(documentId: string): Promise<DocumentDetailRow> {
+export async function getDocumentDetailRowAction(
+  documentId: string,
+): Promise<{ row: DocumentDetailRow; canDelete: boolean }> {
   const session = await requireAuth();
 
   const parsed = DocumentIdSchema.safeParse({ documentId });
@@ -198,7 +200,10 @@ export async function getDocumentDetailRowAction(documentId: string): Promise<Do
     throw new Error("Forbidden");
   }
 
-  return doc;
+  const parentCaseId = doc.case_id ?? doc.task_case_id ?? null;
+  const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
+
+  return { row: doc, canDelete: can(session.role, permission, access) };
 }
 
 export async function deleteDocumentAction(

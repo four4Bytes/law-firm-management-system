@@ -12,7 +12,7 @@ import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNot
 import type { NoteRow } from "@/features/notes/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
-import { can, type AccessContext } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 interface Props {
   consultationId: string;
@@ -41,11 +41,15 @@ export function NotesTab({ consultationId, access, userRole }: Props) {
     try {
       const data = await getNoteRowByIdAction(id);
       if (requestId !== latestRequest.current) return;
-      if (data) {
-        setEditNote(data);
-      } else {
+      if (!data.row) {
         queue.add({ title: "Note not found" }, { timeout: 5000 });
+        return;
       }
+      if (!data.canUpdate) {
+        queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+        return;
+      }
+      setEditNote(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
       queue.add({ title: "Failed to load note" }, { timeout: 5000 });

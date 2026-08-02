@@ -14,7 +14,7 @@ import { EditMilestoneModal } from "@/features/milestones/components/EditMilesto
 import type { MilestoneRow } from "@/features/milestones/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
-import { can, type AccessContext } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 import tabStyles from "./Tab.module.css";
 
@@ -66,11 +66,15 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
     try {
       const data = await getMilestoneRowByIdAction(id);
       if (requestId !== latestRequest.current) return;
-      if (data) {
-        setEditMilestone(data);
-      } else {
+      if (!data.row) {
         queue.add({ title: "Milestone not found" }, { timeout: 5000 });
+        return;
       }
+      if (!data.canUpdate) {
+        queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+        return;
+      }
+      setEditMilestone(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
       queue.add({ title: "Failed to load milestone" }, { timeout: 5000 });

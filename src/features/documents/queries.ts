@@ -119,6 +119,7 @@ export type DocumentDetailRow = {
   created_at: Date;
   case_id: string | null;
   consultation_id: string | null;
+  task_case_id: string | null;
 };
 
 export const getDocumentDetailRowById = cache(
@@ -134,6 +135,7 @@ export const getDocumentDetailRowById = cache(
         consultation_id: true,
         created_at: true,
         uploadedBy: { select: { name: true } },
+        task: { select: { case_id: true } },
       },
     });
 
@@ -148,6 +150,7 @@ export const getDocumentDetailRowById = cache(
       created_at: doc.created_at,
       case_id: doc.case_id,
       consultation_id: doc.consultation_id,
+      task_case_id: doc.task?.case_id ?? null,
     };
   },
 );

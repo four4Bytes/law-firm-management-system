@@ -24,7 +24,7 @@ import {
   getRoleRecipientIds,
   resolveAssignmentRecipients,
 } from "@/features/notifications/recipients";
-import { NotificationType } from "@/generated/prisma/browser";
+import { NotificationType, type Role } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth, requirePermission } from "@/lib/auth-guards";
 import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
@@ -46,6 +46,24 @@ import {
   ConsultationWithClientCreatePayloadSchema,
   ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
+
+/**
+ * Shared permission guard for consultation actions. Checks if the authenticated
+ * user has the required permission for the given consultation based on their
+ * access context. Throws "Forbidden" error if unauthorized.
+ */
+async function requireConsultationPermission(
+  session: { id: string; role: Role },
+  consultationId: string,
+  permission: Permission,
+): Promise<void> {
+  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
+  if (!can(session.role, permission, access)) {
+    throw new Error("Forbidden");
+  }
+}
+
+type Permission = import("@/lib/rbac").Permission;
 
 export async function getConsultationsPaginatedAction(
   params: z.input<typeof PageQuerySchema>,
@@ -75,12 +93,10 @@ export async function getConsultationOverviewByIdAction(
   }
 
   const consultationId = parsed.data.consultationId;
-  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
-  if (!can(session.role, "consultation.read", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireConsultationPermission(session, consultationId, "consultation.read");
 
   const overview = await getConsultationOverviewById(consultationId);
+  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
 
   return { overview, access };
 }
@@ -98,13 +114,7 @@ export async function getConsultationNotesPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getConsultationAccessContext({
-    userId: session.id,
-    consultationId: parsed.data.consultationId,
-  });
-  if (!can(session.role, "note.read", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireConsultationPermission(session, parsed.data.consultationId, "note.read");
 
   return getConsultationNotesPaginated(parsed.data);
 }
@@ -122,13 +132,7 @@ export async function getConsultationDocumentsPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const access = await getConsultationAccessContext({
-    userId: session.id,
-    consultationId: parsed.data.consultationId,
-  });
-  if (!can(session.role, "attachment.read", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireConsultationPermission(session, parsed.data.consultationId, "attachment.read");
 
   return getDocumentsPaginated(parsed.data);
 }
@@ -144,10 +148,7 @@ export async function getConsultationForEditAction(
   }
 
   const consultationId = parsed.data.consultationId;
-  const access = await getConsultationAccessContext({ userId: session.id, consultationId });
-  if (!can(session.role, "consultation.update", access)) {
-    throw new Error("Forbidden");
-  }
+  await requireConsultationPermission(session, consultationId, "consultation.update");
 
   return getConsultationEditData(consultationId);
 }

@@ -103,26 +103,27 @@ const EVALUATORS: Record<AccessQualifier, (context: AccessContext) => boolean> =
  * documented tables — it is a bootstrap superuser, so it is always `yes`
  * except for immutable log cells (which are `no` for every role).
  *
- * @param admin        - Qualifier for {@link Role.Admin}.
- * @param branchManager - Qualifier for {@link Role.BranchManager}.
- * @param lawyer       - Qualifier for {@link Role.Lawyer}.
- * @param paralegal    - Qualifier for {@link Role.Paralegal}.
- * @param processServer - Qualifier for {@link Role.ProcessServer}.
+ * @param roles - Named object containing qualifiers for each role.
+ * @param roles.Admin - Qualifier for {@link Role.Admin}.
+ * @param roles.BranchManager - Qualifier for {@link Role.BranchManager}.
+ * @param roles.Lawyer - Qualifier for {@link Role.Lawyer}.
+ * @param roles.Paralegal - Qualifier for {@link Role.Paralegal}.
+ * @param roles.ProcessServer - Qualifier for {@link Role.ProcessServer}.
  * @returns A full `Role` → qualifier row for the matrix.
  */
-const cells = (
-  admin: AccessQualifier,
-  branchManager: AccessQualifier,
-  lawyer: AccessQualifier,
-  paralegal: AccessQualifier,
-  processServer: AccessQualifier,
-): Record<Role, AccessQualifier> => ({
+const cells = (roles: {
+  Admin: AccessQualifier;
+  BranchManager: AccessQualifier;
+  Lawyer: AccessQualifier;
+  Paralegal: AccessQualifier;
+  ProcessServer: AccessQualifier;
+}): Record<Role, AccessQualifier> => ({
   Dev: "yes",
-  Admin: admin,
-  BranchManager: branchManager,
-  Lawyer: lawyer,
-  Paralegal: paralegal,
-  ProcessServer: processServer,
+  Admin: roles.Admin,
+  BranchManager: roles.BranchManager,
+  Lawyer: roles.Lawyer,
+  Paralegal: roles.Paralegal,
+  ProcessServer: roles.ProcessServer,
 });
 
 /**
@@ -134,61 +135,259 @@ const cells = (
  * Process Server).
  */
 export const PERMISSION_MATRIX: Record<Permission, Record<Role, AccessQualifier>> = {
-  "user.create": cells("yes", "no", "no", "no", "no"),
-  "user.read": cells("yes", "yes", "yes", "yes", "yes"),
-  "user.update": cells("yes", "no", "no", "no", "no"),
-  "user.delete": cells("yes", "no", "no", "no", "no"),
+  "user.create": cells({
+    Admin: "yes",
+    BranchManager: "no",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "user.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "yes",
+    Paralegal: "yes",
+    ProcessServer: "yes",
+  }),
+  "user.update": cells({
+    Admin: "yes",
+    BranchManager: "no",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "user.delete": cells({
+    Admin: "yes",
+    BranchManager: "no",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
 
-  "case.create": cells("yes", "yes", "yes", "no", "no"),
-  "case.read": cells("yes", "yes", "yes", "assigned", "assigned"),
-  "case.update": cells("yes", "yes", "assigned-or-own", "no", "no"),
-  "case.delete": cells("yes", "yes", "own", "no", "no"),
+  "case.create": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "yes",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "case.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "yes",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "case.update": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "case.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "own",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
 
-  "consultation.create": cells("yes", "yes", "yes", "no", "no"),
-  "consultation.read": cells("yes", "yes", "yes", "assigned", "assigned"),
-  "consultation.update": cells("yes", "yes", "assigned-or-own", "no", "no"),
-  "consultation.delete": cells("yes", "yes", "own", "no", "no"),
+  "consultation.create": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "yes",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "consultation.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "yes",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "consultation.update": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "consultation.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "own",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
 
-  "task.create": cells("yes", "yes", "assigned-or-own", "assigned", "no"),
-  "task.read": cells("yes", "yes", "assigned-or-own", "assigned", "assigned"),
-  "task.update": cells(
-    "yes",
-    "yes",
-    "assigned-or-own",
-    "assigned-task-only-or-own",
-    "assigned-task-only",
-  ),
-  "task.delete": cells("yes", "yes", "assigned-or-own", "assigned-and-own", "no"),
+  "task.create": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "no",
+  }),
+  "task.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "task.update": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned-task-only-or-own",
+    ProcessServer: "assigned-task-only",
+  }),
+  "task.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned-and-own",
+    ProcessServer: "no",
+  }),
 
-  "payment.create": cells("yes", "yes", "no", "no", "no"),
-  "payment.read": cells("yes", "yes", "no", "no", "no"),
-  "payment.update": cells("yes", "yes", "no", "no", "no"),
-  "payment.delete": cells("yes", "yes", "no", "no", "no"),
+  "payment.create": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "payment.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "payment.update": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "payment.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
 
-  "note.create": cells("yes", "yes", "assigned-or-own", "assigned", "assigned"),
-  "note.read": cells("yes", "yes", "assigned-or-own", "assigned", "assigned"),
-  "note.update": cells("yes", "yes", "assigned-or-own", "assigned-and-own", "assigned-and-own"),
-  "note.delete": cells("yes", "yes", "assigned-or-own", "assigned-and-own", "assigned-and-own"),
+  "note.create": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "note.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "note.update": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned-and-own",
+    ProcessServer: "assigned-and-own",
+  }),
+  "note.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned-and-own",
+    ProcessServer: "assigned-and-own",
+  }),
 
-  "milestone.create": cells("yes", "yes", "assigned-or-own", "no", "no"),
-  "milestone.read": cells("yes", "yes", "assigned-or-own", "assigned", "assigned"),
-  "milestone.update": cells("yes", "yes", "assigned-or-own", "no", "no"),
-  "milestone.delete": cells("yes", "yes", "assigned-or-own", "no", "no"),
+  "milestone.create": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "milestone.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "milestone.update": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "milestone.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
 
-  "attachment.create": cells("yes", "yes", "assigned-or-own", "assigned", "assigned"),
-  "attachment.read": cells("yes", "yes", "assigned-or-own", "assigned", "assigned"),
-  "attachment.delete": cells("yes", "yes", "assigned-or-own", "own", "own"),
-  "consultation.attachment.delete": cells(
-    "yes",
-    "yes",
-    "assigned-or-own",
-    "assigned-and-own",
-    "assigned-and-own",
-  ),
+  "attachment.create": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "attachment.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "attachment.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "own",
+    ProcessServer: "own",
+  }),
+  "consultation.attachment.delete": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned-and-own",
+    ProcessServer: "assigned-and-own",
+  }),
 
-  "activity.read": cells("yes", "yes", "no", "no", "no"),
-  "case.activity.read": cells("yes", "yes", "assigned", "assigned", "assigned"),
-  "consultation.activity.read": cells("yes", "yes", "assigned-or-own", "assigned", "assigned"),
+  "activity.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "no",
+    Paralegal: "no",
+    ProcessServer: "no",
+  }),
+  "case.activity.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
+  "consultation.activity.read": cells({
+    Admin: "yes",
+    BranchManager: "yes",
+    Lawyer: "assigned-or-own",
+    Paralegal: "assigned",
+    ProcessServer: "assigned",
+  }),
 };
 
 /**

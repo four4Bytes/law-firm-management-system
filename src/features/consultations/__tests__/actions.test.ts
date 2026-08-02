@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Role, type Consultation } from "@/generated/prisma/browser";
+import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -9,13 +10,15 @@ import {
   deleteConsultationAction,
   getConsultationForEditAction,
   updateConsultationAction,
+  updateConsultationWithClientAction,
 } from "../actions";
 
+const mockRequireAuth = vi.fn();
+const mockRequirePermission = vi.fn();
+
 vi.mock("@/lib/auth-guards", () => ({
-  requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
-  requirePermission: vi
-    .fn()
-    .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
+  requireAuth: mockRequireAuth,
+  requirePermission: mockRequirePermission,
 }));
 
 vi.mock("next/cache", () => ({
@@ -55,6 +58,8 @@ const consultationRecord: ConsultationWithAssignments = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockRequireAuth.mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" });
+  mockRequirePermission.mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" });
   vi.mocked(prisma.consultationAssignment.findFirst).mockResolvedValue(null);
 });
 
@@ -195,6 +200,48 @@ describe("updateConsultationAction", () => {
       error: "Failed to update consultation",
     });
   });
+
+  it("returns FORBIDDEN when user is not assigned and not owner", async () => {
+    mockRequireAuth.mockResolvedValue({ id: "u2", email: "e", role: Role.Lawyer, name: "n" });
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue({
+      ...consultationRecord,
+      created_by_user_id: "u1",
+    });
+    vi.mocked(prisma.consultationAssignment.findFirst).mockResolvedValue(null);
+
+    expect(await updateConsultationAction(validPayload)).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+});
+
+describe("updateConsultationWithClientAction", () => {
+  const validPayload = {
+    consultation_id: uuid,
+    client_id: uuid,
+    client: { name: "John Doe" },
+    consultation: {
+      concern: "Legal advice",
+      booking_datetime: "2024-06-01T10:00:00.000Z",
+      status: "Scheduled" as const,
+      assignee_ids: [],
+    },
+  };
+
+  it("returns FORBIDDEN when user is not assigned and not owner", async () => {
+    mockRequireAuth.mockResolvedValue({ id: "u2", email: "e", role: Role.Lawyer, name: "n" });
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue({
+      ...consultationRecord,
+      created_by_user_id: "u1",
+    });
+    vi.mocked(prisma.consultationAssignment.findFirst).mockResolvedValue(null);
+
+    expect(await updateConsultationWithClientAction(validPayload)).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
 });
 
 describe("deleteConsultationAction", () => {
@@ -223,5 +270,19 @@ describe("deleteConsultationAction", () => {
       select: { id: true },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/consultation");
+  });
+
+  it("returns FORBIDDEN when user is not assigned and not owner", async () => {
+    mockRequireAuth.mockResolvedValue({ id: "u2", email: "e", role: Role.Lawyer, name: "n" });
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue({
+      ...consultationRecord,
+      created_by_user_id: "u1",
+    });
+    vi.mocked(prisma.consultationAssignment.findFirst).mockResolvedValue(null);
+
+    expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
   });
 });

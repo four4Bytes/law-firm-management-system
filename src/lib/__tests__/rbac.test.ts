@@ -26,15 +26,7 @@ const SUPERSET: Record<AccessQualifier, readonly AccessQualifier[]> = {
     "assigned-and-own",
     "no",
   ],
-  "assigned-or-own": [
-    "assigned-or-own",
-    "assigned",
-    "own",
-    "assigned-task-only-or-own",
-    "assigned-task-only",
-    "assigned-and-own",
-    "no",
-  ],
+  "assigned-or-own": ["assigned-or-own", "assigned", "own", "assigned-and-own", "no"],
   "assigned-task-only-or-own": [
     "assigned-task-only-or-own",
     "assigned-task-only",
@@ -58,13 +50,16 @@ const HIERARCHY: readonly Role[] = [
   Role.ProcessServer,
 ];
 
-const QUALIFIER_CONTEXTS: Record<Exclude<AccessQualifier, "yes" | "no">, AccessContext> = {
+const QUALIFIER_CONTEXTS: Record<
+  Exclude<AccessQualifier, "yes" | "no">,
+  AccessContext | AccessContext[]
+> = {
   assigned: { assigned: true },
   own: { own: true },
-  "assigned-or-own": { assigned: true },
+  "assigned-or-own": [{ assigned: true }, { own: true }],
   "assigned-and-own": { assigned: true, own: true },
   "assigned-task-only": { taskOnly: true },
-  "assigned-task-only-or-own": { taskOnly: true },
+  "assigned-task-only-or-own": [{ taskOnly: true }, { own: true }],
 };
 
 describe("rbac matrix", () => {
@@ -77,12 +72,27 @@ describe("rbac matrix", () => {
           expect(can(role, permission)).toBe(true);
           expect(can(role, permission, { assigned: false, own: false })).toBe(true);
         } else if (qualifier === "no") {
-          expect(can(role, permission, QUALIFIER_CONTEXTS.assigned)).toBe(false);
-          expect(can(role, permission, QUALIFIER_CONTEXTS.own)).toBe(false);
-          expect(can(role, permission, QUALIFIER_CONTEXTS["assigned-and-own"])).toBe(false);
+          const assignedContext = Array.isArray(QUALIFIER_CONTEXTS.assigned)
+            ? QUALIFIER_CONTEXTS.assigned[0]
+            : QUALIFIER_CONTEXTS.assigned;
+          const ownContext = Array.isArray(QUALIFIER_CONTEXTS.own)
+            ? QUALIFIER_CONTEXTS.own[0]
+            : QUALIFIER_CONTEXTS.own;
+          const assignedAndOwnContext = Array.isArray(QUALIFIER_CONTEXTS["assigned-and-own"])
+            ? QUALIFIER_CONTEXTS["assigned-and-own"][0]
+            : QUALIFIER_CONTEXTS["assigned-and-own"];
+          expect(can(role, permission, assignedContext)).toBe(false);
+          expect(can(role, permission, ownContext)).toBe(false);
+          expect(can(role, permission, assignedAndOwnContext)).toBe(false);
         } else {
-          const context = QUALIFIER_CONTEXTS[qualifier];
-          expect(can(role, permission, context)).toBe(true);
+          const contexts = QUALIFIER_CONTEXTS[qualifier];
+          if (Array.isArray(contexts)) {
+            for (const context of contexts) {
+              expect(can(role, permission, context)).toBe(true);
+            }
+          } else {
+            expect(can(role, permission, contexts)).toBe(true);
+          }
           expect(can(role, permission)).toBe(false);
         }
       }

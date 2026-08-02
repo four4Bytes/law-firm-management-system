@@ -1,6 +1,6 @@
 # Data Models
 
-This document describes the main entities in the system and their fields.
+This document describes the main entities in the system and their fields. Each field is marked as **required** or **optional**.
 
 ---
 
@@ -10,15 +10,15 @@ This document describes the main entities in the system and their fields.
 
 A person who can sign in and use the system.
 
-| Field   | Type      | Description                        |
-| ------- | --------- | ---------------------------------- |
-| Name    | Text      | Display name                       |
-| Email   | Text      | Email address (unique)             |
-| Role    | Enum      | Access level (see [Roles](#roles)) |
-| Status  | Boolean   | Whether the user can sign in       |
-| Avatar  | Text      | Profile image URL                  |
-| Created | Timestamp | When the account was created       |
-| Updated | Timestamp | When the account was last modified |
+| Field   | Type      | Required | Description                        |
+| ------- | --------- | -------- | ---------------------------------- |
+| Name    | Text      | Yes      | Display name                       |
+| Email   | Text      | Yes      | Email address (unique)             |
+| Role    | Enum      | Yes      | Access level (see [Roles](#roles)) |
+| Status  | Boolean   | Yes      | Whether the user can sign in       |
+| Avatar  | Text      | No       | Profile image URL                  |
+| Created | Timestamp | Yes      | When the account was created       |
+| Updated | Timestamp | Yes      | When the account was last modified |
 
 ---
 
@@ -26,14 +26,14 @@ A person who can sign in and use the system.
 
 An external client (individual or organization) who may have consultations or cases.
 
-| Field   | Type      | Description                       |
-| ------- | --------- | --------------------------------- |
-| Name    | Text      | Client name                       |
-| Email   | Text      | Email address (optional)          |
-| Phone   | Text      | Phone number (optional)           |
-| Address | Text      | Physical address (optional)       |
-| Created | Timestamp | When the record was created       |
-| Updated | Timestamp | When the record was last modified |
+| Field   | Type      | Required | Description                       |
+| ------- | --------- | -------- | --------------------------------- |
+| Name    | Text      | Yes      | Client name                       |
+| Email   | Text      | No       | Email address                     |
+| Phone   | Text      | No       | Phone number                      |
+| Address | Text      | No       | Physical address                  |
+| Created | Timestamp | Yes      | When the record was created       |
+| Updated | Timestamp | Yes      | When the record was last modified |
 
 ---
 
@@ -41,16 +41,16 @@ An external client (individual or organization) who may have consultations or ca
 
 An initial meeting with a client to discuss their legal concern.
 
-| Field         | Type      | Description                                                      |
-| ------------- | --------- | ---------------------------------------------------------------- |
-| Client        | Link      | The client who requested the consultation                        |
-| Created By    | Link      | The user who created the record                                  |
-| Booking Date  | Timestamp | When the consultation is scheduled                               |
-| Concern       | Text      | Description of the client's concern                              |
-| Status        | Enum      | Current status (see [Consultation Status](#consultation-status)) |
-| Reminder Days | Number    | Days before booking to send a reminder (optional)                |
-| Created       | Timestamp | When the record was created                                      |
-| Updated       | Timestamp | When the record was last modified                                |
+| Field         | Type      | Required | Description                                                      |
+| ------------- | --------- | -------- | ---------------------------------------------------------------- |
+| Client        | Link      | Yes      | The client who requested the consultation                        |
+| Created By    | Link      | Yes      | The user who created the record                                  |
+| Booking Date  | Timestamp | Yes      | When the consultation is scheduled                               |
+| Concern       | Text      | Yes      | Description of the client's concern                              |
+| Status        | Enum      | Yes      | Current status (see [Consultation Status](#consultation-status)) |
+| Reminder Days | Number    | No       | Days before booking to send a reminder                           |
+| Created       | Timestamp | Yes      | When the record was created                                      |
+| Updated       | Timestamp | Yes      | When the record was last modified                                |
 
 ---
 
@@ -58,17 +58,17 @@ An initial meeting with a client to discuss their legal concern.
 
 A legal case opened for a client.
 
-| Field               | Type      | Description                                           |
-| ------------------- | --------- | ----------------------------------------------------- |
-| Client              | Link      | The client this case belongs to                       |
-| Title               | Text      | Case title                                            |
-| Type                | Text      | Type of case (e.g., "Civil", "Criminal")              |
-| Parties Involved    | Text      | Other parties in the case (optional)                  |
-| Status              | Enum      | Current status (see [Case Status](#case-status))      |
-| Source Consultation | Link      | The consultation this case originated from (optional) |
-| Created By          | Link      | The user who created the record                       |
-| Created             | Timestamp | When the record was created                           |
-| Updated             | Timestamp | When the record was last modified                     |
+| Field               | Type      | Required | Description                                      |
+| ------------------- | --------- | -------- | ------------------------------------------------ |
+| Client              | Link      | Yes      | The client this case belongs to                  |
+| Title               | Text      | Yes      | Case title                                       |
+| Type                | Text      | Yes      | Type of case (e.g., "Civil", "Criminal")         |
+| Parties Involved    | Text      | No       | Other parties in the case                        |
+| Status              | Enum      | Yes      | Current status (see [Case Status](#case-status)) |
+| Source Consultation | Link      | No       | The consultation this case originated from       |
+| Created By          | Link      | Yes      | The user who created the record                  |
+| Created             | Timestamp | Yes      | When the record was created                      |
+| Updated             | Timestamp | Yes      | When the record was last modified                |
 
 ---
 
@@ -76,16 +76,16 @@ A legal case opened for a client.
 
 A work item within a case.
 
-| Field       | Type      | Description                                      |
-| ----------- | --------- | ------------------------------------------------ |
-| Case        | Link      | The parent case                                  |
-| Title       | Text      | Task title                                       |
-| Description | Text      | Task details (optional)                          |
-| Status      | Enum      | Current status (see [Task Status](#task-status)) |
-| Created By  | Link      | The user who created the task                    |
-| Assignees   | Links     | Users assigned to this task                      |
-| Created     | Timestamp | When the record was created                      |
-| Updated     | Timestamp | When the record was last modified                |
+| Field       | Type      | Required | Description                                      |
+| ----------- | --------- | -------- | ------------------------------------------------ |
+| Case        | Link      | Yes      | The parent case                                  |
+| Title       | Text      | Yes      | Task title                                       |
+| Description | Text      | No       | Task details                                     |
+| Status      | Enum      | Yes      | Current status (see [Task Status](#task-status)) |
+| Created By  | Link      | Yes      | The user who created the task                    |
+| Assignees   | Links     | No       | Users assigned to this task                      |
+| Created     | Timestamp | Yes      | When the record was created                      |
+| Updated     | Timestamp | Yes      | When the record was last modified                |
 
 ---
 
@@ -93,17 +93,17 @@ A work item within a case.
 
 A key deadline or checkpoint within a case.
 
-| Field         | Type      | Description                                                |
-| ------------- | --------- | ---------------------------------------------------------- |
-| Case          | Link      | The parent case                                            |
-| Title         | Text      | Milestone title                                            |
-| Description   | Text      | Milestone details (optional)                               |
-| Due Date      | Date      | When the milestone is due                                  |
-| Status        | Enum      | Current status (see [Milestone Status](#milestone-status)) |
-| Reminder Days | Number    | Days before due date to send a reminder (optional)         |
-| Created By    | Link      | The user who created the milestone                         |
-| Created       | Timestamp | When the record was created                                |
-| Updated       | Timestamp | When the record was last modified                          |
+| Field         | Type      | Required | Description                                                |
+| ------------- | --------- | -------- | ---------------------------------------------------------- |
+| Case          | Link      | Yes      | The parent case                                            |
+| Title         | Text      | Yes      | Milestone title                                            |
+| Description   | Text      | No       | Milestone details                                          |
+| Due Date      | Date      | Yes      | When the milestone is due                                  |
+| Status        | Enum      | Yes      | Current status (see [Milestone Status](#milestone-status)) |
+| Reminder Days | Number    | No       | Days before due date to send a reminder                    |
+| Created By    | Link      | Yes      | The user who created the milestone                         |
+| Created       | Timestamp | Yes      | When the record was created                                |
+| Updated       | Timestamp | Yes      | When the record was last modified                          |
 
 ---
 
@@ -111,18 +111,20 @@ A key deadline or checkpoint within a case.
 
 A financial transaction linked to a case or consultation.
 
-| Field          | Type      | Description                                            |
-| -------------- | --------- | ------------------------------------------------------ |
-| Amount         | Decimal   | Payment amount                                         |
-| Payment Date   | Date      | When the payment was made                              |
-| Status         | Enum      | Current status (see [Payment Status](#payment-status)) |
-| Payment Method | Text      | How the payment was made (optional)                    |
-| Receipt Number | Text      | Receipt or reference number (optional)                 |
-| Case           | Link      | The case this payment belongs to (optional)            |
-| Consultation   | Link      | The consultation this payment belongs to (optional)    |
-| Created By     | Link      | The user who recorded the payment                      |
-| Created        | Timestamp | When the record was created                            |
-| Updated        | Timestamp | When the record was last modified                      |
+| Field          | Type      | Required | Description                                            |
+| -------------- | --------- | -------- | ------------------------------------------------------ |
+| Amount         | Decimal   | Yes      | Payment amount                                         |
+| Payment Date   | Date      | Yes      | When the payment was made                              |
+| Status         | Enum      | Yes      | Current status (see [Payment Status](#payment-status)) |
+| Payment Method | Text      | No       | How the payment was made                               |
+| Receipt Number | Text      | No       | Receipt or reference number                            |
+| Case           | Link      | No       | The case this payment belongs to                       |
+| Consultation   | Link      | No       | The consultation this payment belongs to               |
+| Created By     | Link      | Yes      | The user who recorded the payment                      |
+| Created        | Timestamp | Yes      | When the record was created                            |
+| Updated        | Timestamp | Yes      | When the record was last modified                      |
+
+> Payment must be linked to either a Case or a Consultation (one is required).
 
 ---
 
@@ -130,15 +132,17 @@ A financial transaction linked to a case or consultation.
 
 An internal note attached to a case, consultation, or task.
 
-| Field        | Type      | Description                                      |
-| ------------ | --------- | ------------------------------------------------ |
-| Content      | Text      | The note text                                    |
-| Case         | Link      | The case this note belongs to (optional)         |
-| Consultation | Link      | The consultation this note belongs to (optional) |
-| Task         | Link      | The task this note belongs to (optional)         |
-| Created By   | Link      | The user who wrote the note                      |
-| Created      | Timestamp | When the note was created                        |
-| Updated      | Timestamp | When the note was last modified                  |
+| Field        | Type      | Required | Description                           |
+| ------------ | --------- | -------- | ------------------------------------- |
+| Content      | Text      | Yes      | The note text                         |
+| Case         | Link      | No       | The case this note belongs to         |
+| Consultation | Link      | No       | The consultation this note belongs to |
+| Task         | Link      | No       | The task this note belongs to         |
+| Created By   | Link      | Yes      | The user who wrote the note           |
+| Created      | Timestamp | Yes      | When the note was created             |
+| Updated      | Timestamp | Yes      | When the note was last modified       |
+
+> Note must be linked to a Case, Consultation, or Task (one is required).
 
 ---
 
@@ -146,18 +150,20 @@ An internal note attached to a case, consultation, or task.
 
 A file attachment linked to a case, consultation, or task.
 
-| Field        | Type      | Description                                          |
-| ------------ | --------- | ---------------------------------------------------- |
-| File Name    | Text      | Original file name                                   |
-| File Path    | Text      | Storage location (internal)                          |
-| File Type    | Text      | MIME type (e.g., "application/pdf")                  |
-| File Size    | Number    | Size in bytes (optional)                             |
-| Case         | Link      | The case this document belongs to (optional)         |
-| Consultation | Link      | The consultation this document belongs to (optional) |
-| Task         | Link      | The task this document belongs to (optional)         |
-| Uploaded By  | Link      | The user who uploaded the file                       |
-| Created      | Timestamp | When the file was uploaded                           |
-| Updated      | Timestamp | When the record was last modified                    |
+| Field        | Type      | Required | Description                               |
+| ------------ | --------- | -------- | ----------------------------------------- |
+| File Name    | Text      | Yes      | Original file name                        |
+| File Path    | Text      | Yes      | Storage location (internal)               |
+| File Type    | Text      | Yes      | MIME type (e.g., "application/pdf")       |
+| File Size    | Number    | No       | Size in bytes                             |
+| Case         | Link      | No       | The case this document belongs to         |
+| Consultation | Link      | No       | The consultation this document belongs to |
+| Task         | Link      | No       | The task this document belongs to         |
+| Uploaded By  | Link      | Yes      | The user who uploaded the file            |
+| Created      | Timestamp | Yes      | When the file was uploaded                |
+| Updated      | Timestamp | Yes      | When the record was last modified         |
+
+> Document must be linked to a Case, Consultation, or Task (one is required).
 
 ---
 
@@ -165,19 +171,19 @@ A file attachment linked to a case, consultation, or task.
 
 A system notification sent to a user.
 
-| Field        | Type      | Description                            |
-| ------------ | --------- | -------------------------------------- |
-| User         | Link      | The recipient                          |
-| Type         | Enum      | Notification category                  |
-| Title        | Text      | Notification headline                  |
-| Message      | Text      | Notification body                      |
-| Read         | Boolean   | Whether the user has read it           |
-| Action URL   | Text      | Link to the relevant record (optional) |
-| Case         | Link      | Related case (optional)                |
-| Consultation | Link      | Related consultation (optional)        |
-| Milestone    | Link      | Related milestone (optional)           |
-| Task         | Link      | Related task (optional)                |
-| Created      | Timestamp | When the notification was created      |
+| Field        | Type      | Required | Description                       |
+| ------------ | --------- | -------- | --------------------------------- |
+| User         | Link      | Yes      | The recipient                     |
+| Type         | Enum      | Yes      | Notification category             |
+| Title        | Text      | Yes      | Notification headline             |
+| Message      | Text      | Yes      | Notification body                 |
+| Read         | Boolean   | Yes      | Whether the user has read it      |
+| Action URL   | Text      | No       | Link to the relevant record       |
+| Case         | Link      | No       | Related case                      |
+| Consultation | Link      | No       | Related consultation              |
+| Milestone    | Link      | No       | Related milestone                 |
+| Task         | Link      | No       | Related task                      |
+| Created      | Timestamp | Yes      | When the notification was created |
 
 ---
 
@@ -185,14 +191,14 @@ A system notification sent to a user.
 
 A system-generated record of an action taken in the system. Audit logs are immutable — they cannot be edited or deleted.
 
-| Field       | Type      | Description                            |
-| ----------- | --------- | -------------------------------------- |
-| Actor       | Link      | The user who performed the action      |
-| Action      | Text      | What was done (e.g., "case.created")   |
-| Entity Type | Text      | Type of record affected (e.g., "Case") |
-| Entity ID   | UUID      | ID of the record affected              |
-| Details     | Text      | Human-readable summary (optional)      |
-| Created     | Timestamp | When the action occurred               |
+| Field       | Type      | Required | Description                            |
+| ----------- | --------- | -------- | -------------------------------------- |
+| Actor       | Link      | Yes      | The user who performed the action      |
+| Action      | Text      | Yes      | What was done (e.g., "case.created")   |
+| Entity Type | Text      | Yes      | Type of record affected (e.g., "Case") |
+| Entity ID   | UUID      | Yes      | ID of the record affected              |
+| Details     | Text      | No       | Human-readable summary                 |
+| Created     | Timestamp | Yes      | When the action occurred               |
 
 ---
 
@@ -204,12 +210,12 @@ These records track which users are assigned to which cases, consultations, or t
 
 Links a user to a case.
 
-| Field   | Type      | Description        |
-| ------- | --------- | ------------------ |
-| Case    | Link      | The case           |
-| User    | Link      | The assigned user  |
-| Created | Timestamp | When assigned      |
-| Updated | Timestamp | When last modified |
+| Field   | Type      | Required | Description        |
+| ------- | --------- | -------- | ------------------ |
+| Case    | Link      | Yes      | The case           |
+| User    | Link      | Yes      | The assigned user  |
+| Created | Timestamp | Yes      | When assigned      |
+| Updated | Timestamp | Yes      | When last modified |
 
 ---
 
@@ -217,12 +223,12 @@ Links a user to a case.
 
 Links a user to a consultation.
 
-| Field        | Type      | Description        |
-| ------------ | --------- | ------------------ |
-| Consultation | Link      | The consultation   |
-| User         | Link      | The assigned user  |
-| Created      | Timestamp | When assigned      |
-| Updated      | Timestamp | When last modified |
+| Field        | Type      | Required | Description        |
+| ------------ | --------- | -------- | ------------------ |
+| Consultation | Link      | Yes      | The consultation   |
+| User         | Link      | Yes      | The assigned user  |
+| Created      | Timestamp | Yes      | When assigned      |
+| Updated      | Timestamp | Yes      | When last modified |
 
 ---
 
@@ -230,12 +236,12 @@ Links a user to a consultation.
 
 Links a user to a task.
 
-| Field   | Type      | Description        |
-| ------- | --------- | ------------------ |
-| Task    | Link      | The task           |
-| User    | Link      | The assigned user  |
-| Created | Timestamp | When assigned      |
-| Updated | Timestamp | When last modified |
+| Field   | Type      | Required | Description        |
+| ------- | --------- | -------- | ------------------ |
+| Task    | Link      | Yes      | The task           |
+| User    | Link      | Yes      | The assigned user  |
+| Created | Timestamp | Yes      | When assigned      |
+| Updated | Timestamp | Yes      | When last modified |
 
 ---
 
@@ -243,14 +249,14 @@ Links a user to a task.
 
 Links a reviewer to a task for approval workflows.
 
-| Field        | Type      | Description                               |
-| ------------ | --------- | ----------------------------------------- |
-| Task         | Link      | The task being reviewed                   |
-| Reviewer     | Link      | The user assigned to review               |
-| Delegated By | Link      | The user who assigned the reviewer        |
-| Active       | Boolean   | Whether this reviewer is currently active |
-| Created      | Timestamp | When assigned                             |
-| Updated      | Timestamp | When last modified                        |
+| Field        | Type      | Required | Description                               |
+| ------------ | --------- | -------- | ----------------------------------------- |
+| Task         | Link      | Yes      | The task being reviewed                   |
+| Reviewer     | Link      | Yes      | The user assigned to review               |
+| Delegated By | Link      | Yes      | The user who assigned the reviewer        |
+| Active       | Boolean   | Yes      | Whether this reviewer is currently active |
+| Created      | Timestamp | Yes      | When assigned                             |
+| Updated      | Timestamp | Yes      | When last modified                        |
 
 ---
 

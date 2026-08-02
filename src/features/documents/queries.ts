@@ -160,7 +160,7 @@ export const getDocumentDetailRowById = cache(
 // ----- Access context -----
 
 export const getDocumentAccessContext = cache(
-  async ({ userId, documentId }: DocumentAccessPayload): Promise<AccessContext> => {
+  async (userId: string, documentId: string): Promise<AccessContext> => {
     const document = await prisma.document.findUnique({
       where: { id: documentId },
       select: {
@@ -177,9 +177,9 @@ export const getDocumentAccessContext = cache(
 
     const parentCaseId = document.case_id ?? document.task?.case_id ?? null;
     const parentAccess = parentCaseId
-      ? await getCaseAccessContext({ userId, caseId: parentCaseId })
+      ? await getCaseAccessContext(userId, parentCaseId)
       : document.consultation_id
-        ? await getConsultationAccessContext({ userId, consultationId: document.consultation_id })
+        ? await getConsultationAccessContext(userId, document.consultation_id)
         : null;
 
     return {

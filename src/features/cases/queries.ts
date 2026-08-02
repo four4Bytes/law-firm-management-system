@@ -12,11 +12,6 @@ export interface CasePageQuery extends PageQuery {
   caseId: string;
 }
 
-export interface CaseAccessPayload {
-  userId: string;
-  caseId: string;
-}
-
 const caseSelect = {
   id: true,
   case_title: true,
@@ -407,7 +402,7 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
 // ----- Access context -----
 
 export const getCaseAccessContext = cache(
-  async ({ userId, caseId }: CaseAccessPayload): Promise<AccessContext> => {
+  async (userId: string, caseId: string): Promise<AccessContext> => {
     const [assignment, caseRecord] = await Promise.all([
       prisma.caseAssignment.findFirst({
         where: { case_id: caseId, user_id: userId },

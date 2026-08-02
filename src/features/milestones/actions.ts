@@ -64,7 +64,7 @@ export async function createMilestoneAction(
   const { title, description, due_date, status, case_id, reminder_days } = parsed.data;
 
   try {
-    const caseAccess = await getCaseAccessContext({ userId: session.id, caseId: case_id });
+    const caseAccess = await getCaseAccessContext(session.id, case_id);
     if (!can(session.role, "milestone.create", caseAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

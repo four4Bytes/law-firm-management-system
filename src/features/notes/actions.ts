@@ -26,7 +26,7 @@ export async function getNoteRowByIdAction(
     throw new Error("Invalid note ID");
   }
 
-  const access = await getNoteAccessContext({ userId: session.id, noteId: parsed.data.noteId });
+  const access = await getNoteAccessContext(session.id, parsed.data.noteId);
   if (!can(session.role, "note.read", access)) {
     throw new Error("Forbidden");
   }
@@ -54,15 +54,12 @@ export async function createNoteAction(
   let note: { id: string };
   try {
     if (case_id) {
-      const caseAccess = await getCaseAccessContext({ userId: session.id, caseId: case_id });
+      const caseAccess = await getCaseAccessContext(session.id, case_id);
       if (!can(session.role, "note.create", caseAccess)) {
         return { success: false, error: FORBIDDEN_MESSAGE };
       }
     } else {
-      const consultationAccess = await getConsultationAccessContext({
-        userId: session.id,
-        consultationId: consultation_id!,
-      });
+      const consultationAccess = await getConsultationAccessContext(session.id, consultation_id!);
       if (!can(session.role, "note.create", consultationAccess)) {
         return { success: false, error: FORBIDDEN_MESSAGE };
       }
@@ -109,7 +106,7 @@ export async function updateNoteAction(
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
 
-    const access = await getNoteAccessContext({ userId: session.id, noteId });
+    const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -154,7 +151,7 @@ export async function deleteNoteAction(
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
 
-    const access = await getNoteAccessContext({ userId: session.id, noteId });
+    const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.delete", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }

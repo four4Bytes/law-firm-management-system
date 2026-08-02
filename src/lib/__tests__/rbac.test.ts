@@ -61,10 +61,10 @@ const HIERARCHY: readonly Role[] = [
 const QUALIFIER_CONTEXTS: Record<Exclude<AccessQualifier, "yes" | "no">, AccessContext> = {
   assigned: { assigned: true },
   own: { own: true },
-  "assigned-or-own": { assigned: true },
+  "assigned-or-own": { own: true },
   "assigned-and-own": { assigned: true, own: true },
-  "assigned-task-only": { taskOnly: true },
-  "assigned-task-only-or-own": { taskOnly: true },
+  "assigned-task-only": { assigned: true, taskOnly: true },
+  "assigned-task-only-or-own": { own: true },
 };
 
 describe("rbac matrix", () => {

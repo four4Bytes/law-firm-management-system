@@ -65,7 +65,7 @@ export async function createCaseAction(payload: CasePayload): Promise<ActionStat
 
 ### Role-Based Access Control (RBAC)
 
-RBAC is enforced from the declarative matrix in `src/lib/rbac.ts`, which mirrors [RBAC.md](./RBAC.md) cell-for-cell. Server Actions guard every write via `requirePermission(...)` (context-free cells) and reads via `requireAuth()` + `can(role, permission, access)` after loading the record's access context (`getUserCaseAccess`, `getUserConsultationAccess`, `getTaskAccessContext`, etc.).
+RBAC is enforced from the declarative matrix in `src/lib/rbac.ts`, which mirrors [RBAC.md](./RBAC.md) cell-for-cell. Server Actions guard context-free writes via `requirePermission(...)`, and record-scoped writes and reads via `requireAuth()` + `can(role, permission, access)` after loading the record's access context (`getCaseAccessContext`, `getConsultationAccessContext`, `getTaskAccessContext`, etc.).
 
 The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManager`, `Lawyer`, `Paralegal`, `ProcessServer`.
 

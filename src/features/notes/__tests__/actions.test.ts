@@ -54,14 +54,6 @@ vi.mock("../mutations", () => ({
   deleteNote: vi.fn(),
 }));
 
-vi.mock("@/features/cases/queries", () => ({
-  getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
-}));
-
-vi.mock("@/features/consultations/queries", () => ({
-  getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
-}));
-
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
 const noteRecord = {

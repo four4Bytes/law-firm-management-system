@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { deleteFile } from "@/lib/s3";
 
 import {
   deleteDocumentAction,
@@ -10,6 +11,7 @@ import {
   getDocumentDownloadUrlAction,
   getDocumentsPaginatedAction,
 } from "../actions";
+import { deleteDocument } from "../mutations";
 import { getDocumentAccessContext, getDocumentById, getDocumentDetailRowById } from "../queries";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -167,5 +169,7 @@ describe("deleteDocumentAction", () => {
     const result = await deleteDocumentAction({ documentId: uuid });
 
     expect(result).toEqual({ success: true });
+    expect(deleteDocument).toHaveBeenCalledWith(uuid);
+    expect(deleteFile).toHaveBeenCalledWith(documentRecord.file_path);
   });
 });

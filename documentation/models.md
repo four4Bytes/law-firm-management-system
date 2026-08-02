@@ -1,6 +1,8 @@
 # Data Models
 
-This document describes the main entities in the system and their fields. Each field is marked as **required** or **optional**.
+This document describes the main entities in the system and their fields.
+
+> For the exact database schema, see [schema.prisma](../prisma/schema.prisma).
 
 ---
 

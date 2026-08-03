@@ -2,19 +2,29 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
 
-import { createConsultation, deleteConsultation, updateConsultation } from "../mutations";
+import {
+  createConsultation,
+  createConsultationWithClient,
+  deleteConsultation,
+  updateConsultation,
+  updateConsultationWithClient,
+} from "../mutations";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    consultation: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    consultation: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    client: { create: vi.fn(), update: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 const booking = new Date("2024-07-15T10:00:00.000Z");
+const now = new Date("2024-01-01T00:00:00.000Z");
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback(prisma as never));
 });
 
 it("createConsultation merges created_by_user_id into the create payload", async () => {
@@ -115,6 +125,73 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
         create: [{ user_id: "u2" }],
       },
     },
+    select: { id: true },
+  });
+});
+
+it("createConsultationWithClient forwards reminder_days into consultation create", async () => {
+  vi.mocked(prisma.client.create).mockResolvedValue({
+    id: uuid,
+    name: "Client A",
+    email: null,
+    phone_number: null,
+    address: null,
+    created_at: now,
+    updated_at: now,
+  });
+
+  await createConsultationWithClient({
+    client: { name: "Client A" },
+    consultation: {
+      concern: "Breach of contract",
+      booking_datetime: booking,
+      status: "Scheduled",
+      reminder_days: 3,
+      assignee_ids: ["u1"],
+    },
+    created_by_user_id: "u1",
+  });
+
+  expect(prisma.consultation.create).toHaveBeenCalledWith({
+    data: expect.objectContaining({
+      reminder_days: 3,
+    }),
+    select: { id: true },
+  });
+});
+
+it("updateConsultationWithClient forwards reminder_days into consultation update", async () => {
+  vi.mocked(prisma.consultation.findUnique).mockResolvedValue({
+    id: uuid,
+    client_id: uuid,
+    concern: "Breach of contract",
+    booking_datetime: booking,
+    status: "Scheduled",
+    created_by_user_id: "u1",
+    reminder_days: 3,
+    last_reminded_at: null,
+    created_at: now,
+    updated_at: now,
+  });
+
+  await updateConsultationWithClient({
+    consultation_id: uuid,
+    client_id: uuid,
+    client: { name: "Client A" },
+    consultation: {
+      concern: "Breach of contract",
+      booking_datetime: booking,
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: ["u1"],
+    },
+  });
+
+  expect(prisma.consultation.update).toHaveBeenCalledWith({
+    where: { id: uuid },
+    data: expect.objectContaining({
+      reminder_days: null,
+    }),
     select: { id: true },
   });
 });

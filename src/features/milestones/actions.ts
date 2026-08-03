@@ -123,12 +123,14 @@ export async function updateMilestoneAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
+    const nextReminderDays = reminder_days === undefined ? existing.reminder_days : reminder_days;
+
     if (
       existing.title === title &&
       existing.description === (description || null) &&
       existing.due_date.getTime() === due_date.getTime() &&
       existing.status === status &&
-      existing.reminder_days === (reminder_days ?? existing.reminder_days)
+      existing.reminder_days === nextReminderDays
     ) {
       return { success: true };
     }

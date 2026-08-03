@@ -46,9 +46,11 @@ export async function dispatchNotifications(
   actorUserId: string,
   notifyActor: boolean = false,
 ): Promise<{ count: number }> {
-  const userIds = notifyActor
+  const recipientIds = notifyActor
     ? payload.userIds
     : payload.userIds.filter((id) => id !== actorUserId);
+
+  const userIds = [...new Set(recipientIds)];
 
   if (userIds.length === 0) return { count: 0 };
 

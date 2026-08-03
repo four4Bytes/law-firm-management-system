@@ -15,5 +15,8 @@ ci:
 refactor:
   - head-branch: ["^refactor/.*"]
 
+documentation:
+  - head-branch: ["^docs?/.*"]
+
 dependencies:
   - head-branch: ["^(deps?|dependabot)/.*"]

@@ -16,6 +16,10 @@ changelog:
         - ci
         - refactor
 
+    - title: "Documentation Updates"
+      labels:
+        - documentation
+
     - title: "Dependency Updates"
       labels:
         - dependencies

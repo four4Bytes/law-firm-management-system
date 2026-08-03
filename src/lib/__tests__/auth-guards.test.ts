@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Role } from "@/generated/prisma/browser";
 import { requirePermissionOrNull } from "@/lib/auth-guards";
@@ -17,9 +17,9 @@ const lawyerSession = {
   user: { id: "u2", email: "lawyer@firm.test", role: Role.Lawyer, name: "Lawyer" },
 };
 
-describe("requirePermissionOrNull", () => {
-  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
+describe("requirePermissionOrNull", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -62,4 +62,8 @@ describe("requirePermissionOrNull", () => {
     await expect(requirePermissionOrNull("activity.read")).rejects.toBe(unexpected);
     expect(errorSpy).not.toHaveBeenCalled();
   });
+});
+
+afterAll(() => {
+  errorSpy.mockRestore();
 });

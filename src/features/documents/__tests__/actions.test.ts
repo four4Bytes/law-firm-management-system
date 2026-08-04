@@ -7,12 +7,11 @@ import { deleteFile } from "@/lib/s3";
 
 import {
   deleteDocumentAction,
-  getDocumentDetailRowAction,
   getDocumentDownloadUrlAction,
   getDocumentsPaginatedAction,
 } from "../actions";
 import { deleteDocument } from "../mutations";
-import { getDocumentAccessContext, getDocumentById, getDocumentDetailRowById } from "../queries";
+import { getDocumentAccessContext, getDocumentById } from "../queries";
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }),
@@ -53,7 +52,6 @@ vi.mock("@/lib/s3", () => ({
 vi.mock("../queries", () => ({
   getDocumentAccessContext: vi.fn(),
   getDocumentById: vi.fn(),
-  getDocumentDetailRowById: vi.fn(),
   getDocumentsPaginated: vi.fn().mockResolvedValue({ rows: [], nextCursor: null }),
 }));
 
@@ -73,23 +71,10 @@ const documentRecord = {
   task: null,
 };
 
-const detailRow = {
-  id: "d1",
-  file_name: "file.pdf",
-  file_type: "pdf",
-  file_size: 1024,
-  uploadedBy: "Alice",
-  created_at: new Date("2024-06-01"),
-  case_id: uuid,
-  consultation_id: null,
-  task_case_id: null,
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: false, own: false });
   vi.mocked(getDocumentById).mockResolvedValue(documentRecord);
-  vi.mocked(getDocumentDetailRowById).mockResolvedValue(detailRow);
 });
 
 afterEach(() => {
@@ -112,40 +97,6 @@ describe("getDocumentsPaginatedAction", () => {
 describe("getDocumentDownloadUrlAction", () => {
   it("throws Forbidden when attachment read is denied", async () => {
     await expect(getDocumentDownloadUrlAction(uuid)).rejects.toThrow("Forbidden");
-  });
-});
-
-describe("getDocumentDetailRowAction", () => {
-  it("throws Forbidden when attachment read is denied", async () => {
-    await expect(getDocumentDetailRowAction(uuid)).rejects.toThrow("Forbidden");
-  });
-
-  it("returns canDelete=false for a Paralegal who is assigned but not the uploader", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
-    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: false });
-
-    const result = await getDocumentDetailRowAction(uuid);
-
-    expect(result).toEqual({ row: detailRow, canDelete: false });
-  });
-
-  it("returns canDelete=true for the uploader", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
-    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
-
-    const result = await getDocumentDetailRowAction(uuid);
-
-    expect(result).toEqual({ row: detailRow, canDelete: true });
   });
 });
 

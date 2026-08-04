@@ -72,25 +72,20 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   );
   const selectedKey = validTabs.some((tab) => tab === selectedTab) ? selectedTab : validTabs[0];
   const prevUrlRef = useRef(`${pathname}?${searchParams.toString()}`);
-  const requestedUrlsRef = useRef(new Set<string>());
 
   useEffect(() => {
     const currentUrl = `${pathname}?${searchParams.toString()}`;
     if (currentUrl === prevUrlRef.current) return;
     prevUrlRef.current = currentUrl;
-    if (requestedUrlsRef.current.delete(currentUrl)) return;
-    requestedUrlsRef.current.clear();
-    const requested = searchParams.get("tab");
-    setSelectedTab(validTabs.find((tab) => tab === requested) ?? validTabs[0]);
-  }, [pathname, searchParams, validTabs, requestedTab]);
+    const next = validTabs.find((tab) => tab === searchParams.get("tab")) ?? validTabs[0];
+    setSelectedTab((prev) => (prev === next ? prev : next));
+  }, [pathname, searchParams, validTabs]);
 
   const handleSelectionChange = (key: React.Key) => {
     setSelectedTab(String(key));
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", String(key));
-    const nextUrl = `${pathname}?${params.toString()}`;
-    requestedUrlsRef.current.add(nextUrl);
-    router.replace(nextUrl, { scroll: false });
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   async function handleEdit() {

@@ -6,13 +6,10 @@ import { z } from "zod";
 
 import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { queue } from "@/components/ui/Toast/Toast";
-import { deleteTaskAction, updateTaskAction } from "@/features/tasks/actions";
+import { updateTaskAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { TaskStatus } from "@/generated/prisma/browser";
@@ -48,10 +45,9 @@ export function EditTaskModal({
   const [status, setStatus] = useState<TaskStatus>(task.status as TaskStatus);
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
 
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const { isPending, submitForm } = useModalForm<z.input<typeof TaskUpdatePayloadSchema>>({
+  const { isPending, submitForm, handleCancel } = useModalForm<
+    z.input<typeof TaskUpdatePayloadSchema>
+  >({
     submit: updateTaskAction,
     onOpenChange,
     onSuccess,
@@ -59,11 +55,6 @@ export function EditTaskModal({
     failureMessage: "Failed to update task",
     schema: TaskUpdatePayloadSchema,
   });
-
-  function handleDismiss() {
-    if (isPending || isDeleting) return;
-    onOpenChange(false);
-  }
 
   async function handleSave(event: React.SyntheticEvent) {
     event.preventDefault();
@@ -78,104 +69,56 @@ export function EditTaskModal({
     });
   }
 
-  async function handleDelete() {
-    setIsDeleting(true);
-
-    try {
-      const result = await deleteTaskAction({ taskId: task.id });
-
-      setShowDeleteConfirm(false);
-
-      if (result.success) {
-        queue.add({ title: "Task deleted" }, { timeout: 5000 });
-        onOpenChange(false);
-        onSuccess();
-      } else {
-        queue.add({ title: result.error ?? "Failed to delete task" }, { timeout: 5000 });
-      }
-    } catch {
-      queue.add({ title: "Failed to delete task" }, { timeout: 5000 });
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
-    }
-  }
-
   return (
-    <>
-      <Modal
-        title="Edit Task"
-        isOpen={isOpen}
-        onOpenChange={handleDismiss}
-        className={styles.modal}
-      >
-        <Form onSubmit={handleSave}>
-          <div className={styles.content}>
-            <TextField
-              label="Title"
-              value={title}
-              onChange={setTitle}
-              placeholder="Enter task title..."
-              validate={createFieldValidator(TaskUpdatePayloadSchema.shape.title)}
-              isDisabled={isPending || isDeleting}
-            />
-            <TextField
-              label="Description"
-              isTextArea
-              rows={3}
-              value={description}
-              onChange={setDescription}
-              placeholder="Optional description..."
-              validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
-              isDisabled={isPending || isDeleting}
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={selectEnumHandler(TaskStatus, setStatus)}
-              isDisabled={isPending || isDeleting}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
-            <AssigneeSelect
-              users={users}
-              assigneeIds={assigneeIds}
-              onChange={setAssigneeIds}
-              isDisabled={isPending || isDeleting}
-            />
-            <div className={styles.actions}>
-              <Button
-                variant="secondary"
-                type="submit"
-                isDisabled={isPending || isDeleting}
-                isPending={isPending}
-              >
-                Save
-              </Button>
-              <Button
-                onPress={() => setShowDeleteConfirm(true)}
-                isDisabled={isPending || isDeleting}
-              >
-                {isDeleting ? <ProgressCircle aria-label="Deleting" /> : "Delete"}
-              </Button>
-            </div>
+    <Modal title="Edit Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
+      <Form onSubmit={handleSave}>
+        <div className={styles.content}>
+          <TextField
+            label="Title"
+            value={title}
+            onChange={setTitle}
+            placeholder="Enter task title..."
+            validate={createFieldValidator(TaskUpdatePayloadSchema.shape.title)}
+            isDisabled={isPending}
+          />
+          <TextField
+            label="Description"
+            isTextArea
+            rows={3}
+            value={description}
+            onChange={setDescription}
+            placeholder="Optional description..."
+            validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
+            isDisabled={isPending}
+          />
+          <Select
+            label="Status"
+            value={status}
+            onChange={selectEnumHandler(TaskStatus, setStatus)}
+            isDisabled={isPending}
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s} id={s}>
+                {s}
+              </SelectItem>
+            ))}
+          </Select>
+          <AssigneeSelect
+            users={users}
+            assigneeIds={assigneeIds}
+            onChange={setAssigneeIds}
+            isDisabled={isPending}
+          />
+          <div className={styles.actions}>
+            <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" isDisabled={isPending} isPending={isPending}>
+              Save
+            </Button>
           </div>
-        </Form>
-      </Modal>
-
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        title="Delete Task"
-        confirmLabel="Delete"
-        onConfirm={handleDelete}
-      >
-        Are you sure you want to delete this task? This action cannot be undone.
-      </ConfirmDialog>
-    </>
+        </div>
+      </Form>
+    </Modal>
   );
 }

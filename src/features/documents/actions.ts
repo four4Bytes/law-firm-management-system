@@ -24,9 +24,7 @@ import { createDocument, deleteDocument as deleteDocumentRecord } from "./mutati
 import {
   getDocumentAccessContext,
   getDocumentById,
-  getDocumentDetailRowById,
   getDocumentsPaginated,
-  type DocumentDetailRow,
   type DocumentRow,
 } from "./queries";
 import {
@@ -192,30 +190,6 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   const url = await getPresignedDownloadUrl(doc.file_path, doc.file_name);
 
   return { url, file_name: doc.file_name };
-}
-
-export async function getDocumentDetailRowAction(
-  documentId: string,
-): Promise<{ row: DocumentDetailRow; canDelete: boolean }> {
-  const session = await requireAuth();
-
-  const parsed = DocumentIdSchema.safeParse({ documentId });
-  if (!parsed.success) {
-    throw new Error("Invalid document ID");
-  }
-
-  const doc = await getDocumentDetailRowById(parsed.data.documentId);
-  if (!doc) throw new Error("Document not found");
-
-  const access = await getDocumentAccessContext(session.id, doc.id);
-  if (!can(session.role, "attachment.read", access)) {
-    throw new ForbiddenError();
-  }
-
-  const parentCaseId = doc.case_id ?? doc.task_case_id ?? null;
-  const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
-
-  return { row: doc, canDelete: can(session.role, permission, access) };
 }
 
 export async function deleteDocumentAction(

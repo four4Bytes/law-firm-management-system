@@ -36,6 +36,7 @@ interface ServerDataTableProps<T extends { id: string }> {
   refreshTrigger?: number;
   initialRows?: T[];
   initialCursor?: string | null;
+  collectionDependencies?: unknown[];
 }
 
 export function ServerDataTable<T extends { id: string }>({
@@ -54,6 +55,7 @@ export function ServerDataTable<T extends { id: string }>({
   refreshTrigger,
   initialRows,
   initialCursor,
+  collectionDependencies,
 }: ServerDataTableProps<T>) {
   const [items, setItems] = useState<T[]>(initialRows ?? []);
   const [cursor, setCursor] = useState<string | null>(initialCursor ?? null);
@@ -187,6 +189,7 @@ export function ServerDataTable<T extends { id: string }>({
           isLoading={isLoading}
           emptyContent={computedEmptyContent}
           onRowAction={onRowAction}
+          collectionDependencies={collectionDependencies}
         />
       )}
     </div>

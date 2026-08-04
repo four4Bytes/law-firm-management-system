@@ -142,6 +142,7 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
         loadingMessage="Loading milestones..."
         searchLabel="Search milestones"
         selectionMode="none"
+        collectionDependencies={[pendingEditId]}
         renderAddButton={canCreate}
         addButtonLabel="Add Milestone"
         onAddButtonPress={() => setIsAddOpen(true)}

@@ -41,6 +41,7 @@ export interface DataTableProps<T extends { id: string }> {
   isLoading?: boolean;
   loadMoreContent?: React.ReactNode;
   emptyContent?: React.ReactNode;
+  collectionDependencies?: unknown[];
   className?: string;
 }
 
@@ -58,6 +59,7 @@ export function DataTable<T extends { id: string }>({
   isLoading,
   loadMoreContent,
   emptyContent,
+  collectionDependencies,
   className,
 }: DataTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,7 @@ export function DataTable<T extends { id: string }>({
           ))}
         </TableHeader>
         <TableBody renderEmptyState={emptyContent ? () => <>{emptyContent}</> : undefined}>
-          <Collection items={rows}>
+          <Collection items={rows} dependencies={collectionDependencies}>
             {(item: T) => (
               <Row
                 key={item.id}

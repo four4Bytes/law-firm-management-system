@@ -160,6 +160,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         loadingMessage="Loading tasks..."
         searchLabel="Search tasks"
         selectionMode="none"
+        collectionDependencies={[pendingEditId]}
         renderAddButton={canCreate}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}

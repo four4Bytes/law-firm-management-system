@@ -151,6 +151,7 @@ export function AttachmentsTab({ caseId, consultationId, access, userRole }: Pro
         loadingMessage="Loading attachments..."
         searchLabel="Search attachments"
         selectionMode="none"
+        collectionDependencies={[pendingDownloadId]}
         renderAddButton={canCreate}
         addButtonLabel="Add Attachment"
         onAddButtonPress={() => setUploadModalOpen(true)}

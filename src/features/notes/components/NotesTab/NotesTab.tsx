@@ -118,6 +118,7 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
         loadingMessage="Loading notes..."
         searchLabel="Search notes"
         selectionMode="none"
+        collectionDependencies={[pendingEditId]}
         renderAddButton={canCreate}
         addButtonLabel="Add Note"
         onAddButtonPress={() => setAddOpen(true)}

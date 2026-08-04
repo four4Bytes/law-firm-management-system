@@ -140,6 +140,7 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
         loadingMessage="Loading payments..."
         searchLabel="Search payments"
         selectionMode="none"
+        collectionDependencies={[pendingEditId]}
         renderAddButton
         addButtonLabel="Add Payment"
         onAddButtonPress={() => setIsAddOpen(true)}

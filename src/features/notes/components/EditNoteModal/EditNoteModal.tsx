@@ -48,6 +48,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
       <Form onSubmit={handleSave}>
         <div className={styles.content}>
           <TextField
+            label="Note"
             isTextArea
             rows={5}
             value={content}

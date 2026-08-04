@@ -123,7 +123,11 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
           <Button
             variant="ghost"
             aria-label="Delete milestone"
-            onPress={() => setDeleteTarget(milestone)}
+            onPress={() => {
+              latestRequest.current++;
+              setPendingEditId(null);
+              setDeleteTarget(milestone);
+            }}
           >
             <FaTrashCan className={styles.icon} />
           </Button>

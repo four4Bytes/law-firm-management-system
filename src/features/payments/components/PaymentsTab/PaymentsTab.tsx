@@ -121,7 +121,11 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
           <Button
             variant="ghost"
             aria-label="Delete payment"
-            onPress={() => setDeleteTarget(payment)}
+            onPress={() => {
+              latestRequest.current++;
+              setPendingEditId(null);
+              setDeleteTarget(payment);
+            }}
           >
             <FaTrashCan className={styles.icon} />
           </Button>

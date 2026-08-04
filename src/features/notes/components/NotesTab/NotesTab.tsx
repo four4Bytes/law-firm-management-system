@@ -20,12 +20,10 @@ import { can, type AccessContext } from "@/lib/rbac";
 
 import styles from "./NotesTab.module.css";
 
-interface Props {
-  caseId?: string;
-  consultationId?: string;
+type Props = {
   access: AccessContext;
   userRole: Role | null;
-}
+} & ({ caseId: string; consultationId?: never } | { caseId?: never; consultationId: string });
 
 const columns: ColumnDef<NoteRow>[] = [
   { id: "content", name: "Content", isRowHeader: true },
@@ -95,7 +93,15 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
           >
             <FaPenToSquare className={styles.icon} />
           </Button>
-          <Button variant="ghost" aria-label="Delete note" onPress={() => setDeleteTarget(note)}>
+          <Button
+            variant="ghost"
+            aria-label="Delete note"
+            onPress={() => {
+              latestRequest.current++;
+              setPendingEditId(null);
+              setDeleteTarget(note);
+            }}
+          >
             <FaTrashCan className={styles.icon} />
           </Button>
         </div>
@@ -107,11 +113,15 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
     <>
       <ServerDataTable
         refreshTrigger={refreshKey}
-        fetchAction={(p) =>
-          caseId
-            ? getCaseNotesPaginatedAction({ caseId, ...p })
-            : getConsultationNotesPaginatedAction({ consultationId: consultationId!, ...p })
-        }
+        fetchAction={(p) => {
+          if (caseId) {
+            return getCaseNotesPaginatedAction({ caseId, ...p });
+          }
+          if (consultationId) {
+            return getConsultationNotesPaginatedAction({ consultationId, ...p });
+          }
+          throw new Error("NotesTab requires exactly one parent ID");
+        }}
         columns={[...columns, actionColumn]}
         searchPlaceholder="Search notes..."
         emptyContent="No notes yet"

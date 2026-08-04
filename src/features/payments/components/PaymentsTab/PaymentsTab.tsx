@@ -1,28 +1,28 @@
 "use client";
 
-import clsx from "clsx";
 import { useRef, useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { queue } from "@/components/ui/Toast/Toast";
 import { getPaymentRowByIdAction, getPaymentsPaginatedAction } from "@/features/payments/actions";
 import { AddPaymentModal } from "@/features/payments/components/AddPaymentModal/AddPaymentModal";
 import { EditPaymentModal } from "@/features/payments/components/EditPaymentModal/EditPaymentModal";
 import type { PaymentRow } from "@/features/payments/queries";
+import { PaymentStatus } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
 
-import tabStyles from "./Tab.module.css";
-
 interface Props {
-  consultationId: string;
+  caseId?: string;
+  consultationId?: string;
 }
 
-const statusClassMap: Record<string, string> = {
-  Unpaid: tabStyles.statusPending,
-  Partial: tabStyles.statusInfo,
-  Paid: tabStyles.statusDone,
-  Refunded: tabStyles.statusCancelled,
+const statusClassMap: Record<PaymentStatus, StatusBadgeVariant> = {
+  Unpaid: "pending",
+  Partial: "ongoing",
+  Paid: "done",
+  Refunded: "cancelled",
 };
 
 const columns: ColumnDef<PaymentRow>[] = [
@@ -45,14 +45,13 @@ const columns: ColumnDef<PaymentRow>[] = [
     id: "status",
     name: "Status",
     allowsSorting: true,
-    render: (value) => {
-      const status = value as string;
-      return <span className={clsx(tabStyles.badge, statusClassMap[status])}>{status}</span>;
-    },
+    render: (value) => (
+      <StatusBadge variant={statusClassMap[value as PaymentStatus]}>{value as string}</StatusBadge>
+    ),
   },
 ];
 
-export function PaymentsTab({ consultationId }: Props) {
+export function PaymentsTab({ caseId, consultationId }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editPayment, setEditPayment] = useState<PaymentRow | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -81,7 +80,7 @@ export function PaymentsTab({ consultationId }: Props) {
   return (
     <>
       <ServerDataTable
-        fetchAction={(p) => getPaymentsPaginatedAction({ consultationId, ...p })}
+        fetchAction={(p) => getPaymentsPaginatedAction({ caseId, consultationId, ...p })}
         columns={columns}
         searchPlaceholder="Search payments..."
         emptyContent="No payments yet"
@@ -98,6 +97,7 @@ export function PaymentsTab({ consultationId }: Props) {
         isOpen={isAddOpen}
         onOpenChange={setIsAddOpen}
         onSuccess={handleRefresh}
+        caseId={caseId}
         consultationId={consultationId}
       />
 

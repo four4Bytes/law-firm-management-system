@@ -9,6 +9,7 @@ import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import {
@@ -21,14 +22,13 @@ import type {
   ConsultationOverviewData,
 } from "@/features/consultations/queries";
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
+import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
+import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 
 import styles from "./ConsultationDetail.module.css";
 import { ConsultationOverview } from "./ConsultationOverview";
-import { ActivityLogTab } from "./tabs/ActivityLogTab";
-import { NotesTab } from "./tabs/NotesTab";
-import { PaymentsTab } from "./tabs/PaymentsTab";
 
 interface Props {
   overview: ConsultationOverviewData;
@@ -147,7 +147,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
             )}
             {validTabs.includes("activity") && (
               <TabPanel id="activity">
-                <ActivityLogTab consultationId={overview.id} />
+                <ActivityLogTab entityType="Consultation" entityId={overview.id} />
               </TabPanel>
             )}
           </TabPanels>

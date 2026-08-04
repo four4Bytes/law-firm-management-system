@@ -6,6 +6,7 @@ import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseNotesPaginatedAction } from "@/features/cases/actions";
+import { getConsultationNotesPaginatedAction } from "@/features/consultations/actions";
 import { getNoteRowByIdAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
 import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
@@ -15,7 +16,8 @@ import { formatDateTime } from "@/lib/date";
 import { can, type AccessContext } from "@/lib/rbac";
 
 interface Props {
-  caseId: string;
+  caseId?: string;
+  consultationId?: string;
   access: AccessContext;
   userRole: Role | null;
 }
@@ -26,7 +28,7 @@ const columns: ColumnDef<NoteRow>[] = [
   { id: "created_at", name: "Created At", render: (value) => formatDateTime(value as Date) },
 ];
 
-export function NotesTab({ caseId, access, userRole }: Props) {
+export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
   const [isAddOpen, setAddOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -60,7 +62,11 @@ export function NotesTab({ caseId, access, userRole }: Props) {
     <>
       <ServerDataTable
         refreshTrigger={refreshKey}
-        fetchAction={(p) => getCaseNotesPaginatedAction({ caseId, ...p })}
+        fetchAction={(p) =>
+          caseId
+            ? getCaseNotesPaginatedAction({ caseId, ...p })
+            : getConsultationNotesPaginatedAction({ consultationId: consultationId!, ...p })
+        }
         columns={columns}
         searchPlaceholder="Search notes..."
         emptyContent="No notes yet"
@@ -76,6 +82,7 @@ export function NotesTab({ caseId, access, userRole }: Props) {
         onOpenChange={setAddOpen}
         onSuccess={handleRefresh}
         caseId={caseId}
+        consultationId={consultationId}
       />
       {editNote && (
         <EditNoteModal

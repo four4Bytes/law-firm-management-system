@@ -1,7 +1,5 @@
 feature:
   - head-branch: ["^feat(ure)?/.*"]
-feat:
-  - head-branch: ["^feat(ure)?/.*"]
 
 bug:
   - head-branch: ["^(fix|bugfix)/.*"]

@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
@@ -37,8 +37,6 @@ interface Props {
 export function CaseDetail({ overview, access, userRole }: Props) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [editData, setEditData] = useState<{
     caseData: CaseEditData;
     clientData: ClientEditData;
@@ -69,14 +67,11 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         return can(userRole, "case.activity.read", access);
     }
   });
-  const requestedTab = searchParams.get("tab");
-  const selectedKey = validTabs.find((tab) => tab === requestedTab) ?? validTabs[0];
+  const [selectedTab, setSelectedTab] = useState<string>(validTabs[0]);
+  const selectedKey = validTabs.some((tab) => tab === selectedTab) ? selectedTab : validTabs[0];
 
   const handleSelectionChange = (key: React.Key) => {
-    startLoading();
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", String(key));
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    setSelectedTab(String(key));
   };
 
   async function handleEdit() {

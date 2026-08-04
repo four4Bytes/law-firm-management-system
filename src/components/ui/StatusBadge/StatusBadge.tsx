@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 
 import styles from "./StatusBadge.module.css";
 
-export type StatusBadgeVariant = "pending" | "ongoing" | "info" | "done" | "cancelled";
+export type StatusBadgeVariant =
+  "pending" | "ongoing" | "info" | "done" | "cancelled" | "warning" | "danger" | "accent";
 
 interface StatusBadgeProps {
   variant: StatusBadgeVariant;
@@ -17,6 +18,9 @@ const variantClassMap: Record<StatusBadgeVariant, string> = {
   info: styles.statusInfo,
   done: styles.statusDone,
   cancelled: styles.statusCancelled,
+  warning: styles.statusWarning,
+  danger: styles.statusDanger,
+  accent: styles.statusAccent,
 };
 
 export function StatusBadge({ variant, children, className }: StatusBadgeProps) {

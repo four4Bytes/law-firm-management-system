@@ -1,12 +1,13 @@
 "use client";
 
-import clsx from "clsx";
 import { FaCalendarCheck, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
 import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import type { CaseOverviewData } from "@/features/cases/queries";
+import { CaseStatus } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 
 import styles from "./CaseOverview.module.css";
@@ -18,15 +19,12 @@ interface Props {
   isEditPending?: boolean;
 }
 
-const statusClassMap: Record<string, string> = {
-  Pending: styles.statusPending,
-  Open: styles.statusOpen,
-  Ongoing: styles.statusOngoing,
-  Closed: styles.statusClosed,
-  Terminated: styles.statusTerminated,
-  Settled: styles.statusSettled,
-  Done: styles.statusDone,
-  Cancelled: styles.statusCancelled,
+const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
+  Open: "info",
+  Ongoing: "warning",
+  Closed: "done",
+  Terminated: "danger",
+  Settled: "info",
 };
 
 export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
@@ -35,7 +33,9 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
       <div className={styles.mainContent}>
         <div className={styles.header}>
           <h2 className={styles.title}>{data.case_title}</h2>
-          <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
+          <StatusBadge variant={statusClassMap[data.status as CaseStatus]}>
+            {data.status}
+          </StatusBadge>
           {(onEdit || onDelete) && (
             <div className={styles.headerActions}>
               {onEdit && (

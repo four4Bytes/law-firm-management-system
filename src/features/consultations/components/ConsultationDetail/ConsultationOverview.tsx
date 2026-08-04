@@ -1,12 +1,13 @@
 "use client";
 
-import clsx from "clsx";
 import { FaGavel, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
 import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
+import { ConsultationStatus } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 
 import styles from "./ConsultationOverview.module.css";
@@ -18,12 +19,12 @@ interface Props {
   isEditPending?: boolean;
 }
 
-const statusClassMap: Record<string, string> = {
-  Scheduled: styles.statusScheduled,
-  Completed: styles.statusCompleted,
-  Accepted: styles.statusAccepted,
-  Rejected: styles.statusRejected,
-  Cancelled: styles.statusCancelled,
+const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
+  Scheduled: "info",
+  Completed: "done",
+  Accepted: "accent",
+  Rejected: "danger",
+  Cancelled: "cancelled",
 };
 
 export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: Props) {
@@ -32,7 +33,9 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
       <div className={styles.mainContent}>
         <div className={styles.header}>
           <h2 className={styles.title}>{data.concern}</h2>
-          <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
+          <StatusBadge variant={statusClassMap[data.status as ConsultationStatus]}>
+            {data.status}
+          </StatusBadge>
           {(onEdit || onDelete) && (
             <div className={styles.headerActions}>
               {onEdit && (

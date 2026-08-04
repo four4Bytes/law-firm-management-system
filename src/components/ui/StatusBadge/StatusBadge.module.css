@@ -1,7 +1,7 @@
 .badge {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semi-bold);
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--space-sm);
   border-radius: var(--radius-pill);
   text-transform: uppercase;
 }
@@ -24,5 +24,20 @@
 
 .statusCancelled {
   background: var(--color-neutral);
+  color: var(--color-text-inverse);
+}
+
+.statusWarning {
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+}
+
+.statusDanger {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
+.statusAccent {
+  background: var(--color-brand-accent);
   color: var(--color-text-inverse);
 }

@@ -27,8 +27,8 @@ import { PaymentsTab } from "@/features/payments/components/PaymentsTab/Payments
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 
+import { ConsultationOverview } from "../ConsultationOverview/ConsultationOverview";
 import styles from "./ConsultationDetail.module.css";
-import { ConsultationOverview } from "./ConsultationOverview";
 
 interface Props {
   overview: ConsultationOverviewData;

@@ -1,11 +1,11 @@
 "use client";
 
-import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getCasesPaginatedAction } from "@/features/cases/actions";
@@ -13,17 +13,15 @@ import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseMo
 import type { CaseRow } from "@/features/cases/queries";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
-import type { Role } from "@/generated/prisma/browser";
+import { CaseStatus, type Role } from "@/generated/prisma/browser";
 import { can } from "@/lib/rbac";
 
-import styles from "./CaseTable.module.css";
-
-const statusClassMap: Record<string, string> = {
-  Open: styles.statusOpen,
-  Ongoing: styles.statusOngoing,
-  Closed: styles.statusClosed,
-  Terminated: styles.statusTerminated,
-  Settled: styles.statusSettled,
+const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
+  Open: "info",
+  Ongoing: "warning",
+  Closed: "done",
+  Terminated: "danger",
+  Settled: "info",
 };
 
 const columns: ColumnDef<CaseRow>[] = [
@@ -58,7 +56,7 @@ const columns: ColumnDef<CaseRow>[] = [
     render: (value) => {
       const status = value as string | null;
       if (!status) return null;
-      return <span className={clsx(styles.statusBadge, statusClassMap[status])}>{status}</span>;
+      return <StatusBadge variant={statusClassMap[status as CaseStatus]}>{status}</StatusBadge>;
     },
   },
 ];

@@ -126,7 +126,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
           <TabList aria-label="Consultation details">
             {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
-            {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
+            {validTabs.includes("payments") && <Tab id="payments">Payment</Tab>}
             {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
           </TabList>
           <TabPanels>

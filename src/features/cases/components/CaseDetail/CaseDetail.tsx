@@ -25,8 +25,8 @@ import type { ActiveUserSummary } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 
+import { CaseOverview } from "../CaseOverview/CaseOverview";
 import styles from "./CaseDetail.module.css";
-import { CaseOverview } from "./CaseOverview";
 
 interface Props {
   overview: CaseOverviewData;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -39,6 +39,8 @@ interface Props {
 export function ConsultationDetail({ overview, access, userRole }: Props) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [editData, setEditData] = useState<{
     consultation: ConsultationEditData;
     clientData: ClientEditData;
@@ -64,11 +66,31 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         return can(userRole, "consultation.activity.read", access);
     }
   });
-  const [selectedTab, setSelectedTab] = useState<string>(validTabs[0]);
+  const requestedTab = searchParams.get("tab");
+  const [selectedTab, setSelectedTab] = useState<string>(
+    () => validTabs.find((tab) => tab === requestedTab) ?? validTabs[0],
+  );
   const selectedKey = validTabs.some((tab) => tab === selectedTab) ? selectedTab : validTabs[0];
+  const prevUrlRef = useRef(`${pathname}?${searchParams.toString()}`);
+  const requestedUrlsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    const currentUrl = `${pathname}?${searchParams.toString()}`;
+    if (currentUrl === prevUrlRef.current) return;
+    prevUrlRef.current = currentUrl;
+    if (requestedUrlsRef.current.delete(currentUrl)) return;
+    requestedUrlsRef.current.clear();
+    const requested = searchParams.get("tab");
+    setSelectedTab(validTabs.find((tab) => tab === requested) ?? validTabs[0]);
+  }, [pathname, searchParams, validTabs, requestedTab]);
 
   const handleSelectionChange = (key: React.Key) => {
     setSelectedTab(String(key));
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", String(key));
+    const nextUrl = `${pathname}?${params.toString()}`;
+    requestedUrlsRef.current.add(nextUrl);
+    router.replace(nextUrl, { scroll: false });
   };
 
   async function handleEdit() {

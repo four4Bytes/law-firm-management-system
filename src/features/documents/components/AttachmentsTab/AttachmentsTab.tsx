@@ -35,32 +35,43 @@ export function AttachmentsTab({ caseId, consultationId, access, userRole }: Pro
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
-  const [pendingDownloadId, setPendingDownloadId] = useState<string | null>(null);
-  const requestRef = useRef(0);
+  const [pendingDownloadIds, setPendingDownloadIds] = useState<Set<string>>(new Set());
+  const nextRequestId = useRef(0);
+  const requestRefs = useRef(new Map<string, number>());
 
   const canCreate = can(userRole, "attachment.create", access);
+  const canDelete = can(
+    userRole,
+    caseId ? "attachment.delete" : "consultation.attachment.delete",
+    access,
+  );
 
   const handleRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const handleDownload = useCallback(async (doc: DocumentRow) => {
-    const requestId = ++requestRef.current;
-    setPendingDownloadId(doc.id);
+    const requestId = ++nextRequestId.current;
+    requestRefs.current.set(doc.id, requestId);
+    setPendingDownloadIds((prev) => new Set(prev).add(doc.id));
     try {
       const { url, file_name } = await getDocumentDownloadUrlAction(doc.id);
-      if (requestRef.current !== requestId) return;
+      if (requestRefs.current.get(doc.id) !== requestId) return;
       const anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = file_name;
       anchor.click();
       anchor.remove();
-    } catch (e) {
-      if (requestRef.current !== requestId) return;
-      queue.add(
-        { title: e instanceof Error ? e.message : "Failed to download file" },
-        { timeout: 5000 },
-      );
+    } catch {
+      if (requestRefs.current.get(doc.id) !== requestId) return;
+      queue.add({ title: "Failed to download file" }, { timeout: 5000 });
     } finally {
-      if (requestRef.current === requestId) setPendingDownloadId(null);
+      if (requestRefs.current.get(doc.id) === requestId) {
+        requestRefs.current.delete(doc.id);
+        setPendingDownloadIds((prev) => {
+          const next = new Set(prev);
+          next.delete(doc.id);
+          return next;
+        });
+      }
     }
   }, []);
 
@@ -121,23 +132,25 @@ export function AttachmentsTab({ caseId, consultationId, access, userRole }: Pro
                 variant="ghost"
                 aria-label="Download attachment"
                 onPress={() => handleDownload(doc)}
-                isPending={pendingDownloadId === doc.id}
+                isPending={pendingDownloadIds.has(doc.id)}
               >
                 <FaDownload className={styles.icon} />
               </Button>
-              <Button
-                variant="ghost"
-                aria-label="Delete attachment"
-                onPress={() => setDeleteTarget(doc)}
-              >
-                <FaTrashCan className={styles.icon} />
-              </Button>
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  aria-label="Delete attachment"
+                  onPress={() => setDeleteTarget(doc)}
+                >
+                  <FaTrashCan className={styles.icon} />
+                </Button>
+              )}
             </div>
           );
         },
       },
     ],
-    [pendingDownloadId, handleDownload],
+    [pendingDownloadIds, handleDownload, canDelete],
   );
 
   return (
@@ -151,7 +164,7 @@ export function AttachmentsTab({ caseId, consultationId, access, userRole }: Pro
         loadingMessage="Loading attachments..."
         searchLabel="Search attachments"
         selectionMode="none"
-        collectionDependencies={[pendingDownloadId]}
+        collectionDependencies={[pendingDownloadIds]}
         renderAddButton={canCreate}
         addButtonLabel="Add Attachment"
         onAddButtonPress={() => setUploadModalOpen(true)}

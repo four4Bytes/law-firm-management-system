@@ -142,7 +142,15 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           >
             <FaPenToSquare className={styles.icon} />
           </Button>
-          <Button variant="ghost" aria-label="Delete task" onPress={() => setDeleteTarget(task)}>
+          <Button
+            variant="ghost"
+            aria-label="Delete task"
+            onPress={() => {
+              latestRequest.current++;
+              setPendingEditId(null);
+              setDeleteTarget(task);
+            }}
+          >
             <FaTrashCan className={styles.icon} />
           </Button>
         </div>

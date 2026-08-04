@@ -48,7 +48,11 @@ export function ConfirmDialog({
     <Modal
       className={styles.modal}
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      isDismissable={!isPending}
+      onOpenChange={(open) => {
+        if (!open && isPending) return;
+        onOpenChange(open);
+      }}
       title={title}
       role="alertdialog"
     >

@@ -1,21 +1,19 @@
 "use client";
 
-import clsx from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import { getActiveUsersAction, getTaskDetailRowByIdAction } from "@/features/tasks/actions";
 import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
 import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTaskModal";
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
-import type { Role } from "@/generated/prisma/browser";
+import { TaskStatus, type Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { can, type AccessContext } from "@/lib/rbac";
-
-import tabStyles from "./Tab.module.css";
 
 interface Props {
   caseId: string;
@@ -23,13 +21,13 @@ interface Props {
   userRole: Role | null;
 }
 
-const statusClassMap: Record<string, string> = {
-  Pending: tabStyles.statusPending,
-  Ongoing: tabStyles.statusOngoing,
-  Submitted: tabStyles.statusInfo,
-  Accepted: tabStyles.statusDone,
-  Rejected: tabStyles.statusCancelled,
-  Cancelled: tabStyles.statusCancelled,
+const statusClassMap: Record<TaskStatus, StatusBadgeVariant> = {
+  Pending: "pending",
+  Ongoing: "ongoing",
+  Submitted: "info",
+  Accepted: "done",
+  Rejected: "cancelled",
+  Cancelled: "cancelled",
 };
 
 const columns: ColumnDef<TaskRow>[] = [
@@ -38,10 +36,9 @@ const columns: ColumnDef<TaskRow>[] = [
     id: "status",
     name: "Status",
     allowsSorting: true,
-    render: (value) => {
-      const s = value as string;
-      return <span className={clsx(tabStyles.badge, statusClassMap[s])}>{s}</span>;
-    },
+    render: (value) => (
+      <StatusBadge variant={statusClassMap[value as TaskStatus]}>{value as string}</StatusBadge>
+    ),
   },
   { id: "assignTo", name: "Assigned To" },
   {

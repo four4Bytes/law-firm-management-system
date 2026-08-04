@@ -9,24 +9,24 @@ import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
 import { deleteCaseAction, getCaseForEditAction } from "@/features/cases/actions";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
+import { MilestonesTab } from "@/features/milestones/components/MilestonesTab/MilestonesTab";
+import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
+import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
 import { getActiveUsersAction } from "@/features/tasks/actions";
+import { TasksTab } from "@/features/tasks/components/TasksTab/TasksTab";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 
 import styles from "./CaseDetail.module.css";
 import { CaseOverview } from "./CaseOverview";
-import { ActivityLogTab } from "./tabs/ActivityLogTab";
-import { MilestonesTab } from "./tabs/MilestonesTab";
-import { NotesTab } from "./tabs/NotesTab";
-import { PaymentsTab } from "./tabs/PaymentsTab";
-import { TasksTab } from "./tabs/TasksTab";
 
 interface Props {
   overview: CaseOverviewData;
@@ -165,7 +165,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
             )}
             {validTabs.includes("activity") && (
               <TabPanel id="activity">
-                <ActivityLogTab caseId={overview.id} />
+                <ActivityLogTab entityType="Case" entityId={overview.id} />
               </TabPanel>
             )}
           </TabPanels>

@@ -7,7 +7,8 @@ import type { AuditLogRow } from "@/features/audit/queries";
 import { formatDateTime } from "@/lib/date";
 
 interface Props {
-  caseId: string;
+  entityType: "Case" | "Consultation";
+  entityId: string;
 }
 
 const columns: ColumnDef<AuditLogRow>[] = [
@@ -17,12 +18,10 @@ const columns: ColumnDef<AuditLogRow>[] = [
   { id: "created_at", name: "Timestamp", render: (value) => formatDateTime(value as Date) },
 ];
 
-export function ActivityLogTab({ caseId }: Props) {
+export function ActivityLogTab({ entityType, entityId }: Props) {
   return (
     <ServerDataTable
-      fetchAction={(p) =>
-        getEntityActivityLogAction({ entityType: "Case", entityId: caseId, ...p })
-      }
+      fetchAction={(p) => getEntityActivityLogAction({ entityType, entityId, ...p })}
       columns={columns}
       searchPlaceholder="Search activity..."
       emptyContent="No activity yet"

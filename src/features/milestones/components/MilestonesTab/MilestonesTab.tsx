@@ -1,10 +1,10 @@
 "use client";
 
-import clsx from "clsx";
 import { useRef, useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
 import type { CaseMilestoneListRow } from "@/features/cases/queries";
@@ -12,11 +12,9 @@ import { getMilestoneRowByIdAction } from "@/features/milestones/actions";
 import { AddMilestoneModal } from "@/features/milestones/components/AddMilestoneModal/AddMilestoneModal";
 import { EditMilestoneModal } from "@/features/milestones/components/EditMilestoneModal/EditMilestoneModal";
 import type { MilestoneRow } from "@/features/milestones/queries";
-import type { Role } from "@/generated/prisma/browser";
+import { CaseMilestoneStatus, type Role } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
 import { can, type AccessContext } from "@/lib/rbac";
-
-import tabStyles from "./Tab.module.css";
 
 interface Props {
   caseId: string;
@@ -24,10 +22,10 @@ interface Props {
   userRole: Role | null;
 }
 
-const statusClassMap: Record<string, string> = {
-  Pending: tabStyles.statusPending,
-  Done: tabStyles.statusDone,
-  Cancelled: tabStyles.statusCancelled,
+const statusClassMap: Record<CaseMilestoneStatus, StatusBadgeVariant> = {
+  Pending: "pending",
+  Done: "done",
+  Cancelled: "cancelled",
 };
 
 const columns: ColumnDef<CaseMilestoneListRow>[] = [
@@ -42,10 +40,11 @@ const columns: ColumnDef<CaseMilestoneListRow>[] = [
     id: "status",
     name: "Status",
     allowsSorting: true,
-    render: (value) => {
-      const s = value as string;
-      return <span className={clsx(tabStyles.badge, statusClassMap[s])}>{s}</span>;
-    },
+    render: (value) => (
+      <StatusBadge variant={statusClassMap[value as CaseMilestoneStatus]}>
+        {value as string}
+      </StatusBadge>
+    ),
   },
 ];
 

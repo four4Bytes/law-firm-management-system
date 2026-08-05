@@ -26,6 +26,7 @@ export interface SelectProps<
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
+  alwaysPlaceholder?: boolean;
   items?: Iterable<T>;
   children: React.ReactNode | ((item: T) => React.ReactNode);
 }
@@ -34,6 +35,7 @@ export function Select<T extends object, M extends "single" | "multiple" = "sing
   label,
   description,
   errorMessage,
+  alwaysPlaceholder,
   children,
   items,
   className,
@@ -43,7 +45,15 @@ export function Select<T extends object, M extends "single" | "multiple" = "sing
     <AriaSelect {...props} className={clsx(styles.select, className)}>
       {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
       <Button variant="ghost" className={styles.trigger}>
-        <AriaSelectValue className={styles.value} />
+        <AriaSelectValue className={styles.value}>
+          {({ isPlaceholder, defaultChildren }) =>
+            alwaysPlaceholder && !isPlaceholder ? (
+              <span className={styles.valuePlaceholder}>{props.placeholder}</span>
+            ) : (
+              defaultChildren
+            )
+          }
+        </AriaSelectValue>
         <FaChevronDown className={styles.chevron} />
       </Button>
       {description && (

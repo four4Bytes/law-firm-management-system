@@ -5,6 +5,8 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  max-height: 7rem;
+  overflow-y: auto;
 
   .chip {
     background: var(--color-surface-hover);

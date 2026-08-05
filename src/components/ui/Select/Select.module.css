@@ -71,6 +71,11 @@
       }
     }
 
+    .valuePlaceholder {
+      color: var(--color-text-muted);
+      font-weight: var(--font-weight-normal);
+    }
+
     .chevron {
       flex-shrink: 0;
       width: var(--icon-size-xs);

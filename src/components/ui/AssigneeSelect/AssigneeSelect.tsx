@@ -1,5 +1,6 @@
 "use client";
 
+import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { keysToSet } from "@/lib/form-utils";
 
@@ -18,6 +19,8 @@ export interface AssigneeSelectProps {
 }
 
 export function AssigneeSelect({ users, assigneeIds, onChange, isDisabled }: AssigneeSelectProps) {
+  const selected = users.filter((user) => assigneeIds.has(user.id));
+
   return (
     <>
       <Select
@@ -28,20 +31,11 @@ export function AssigneeSelect({ users, assigneeIds, onChange, isDisabled }: Ass
         placeholder="Select assignees..."
         items={users}
         isDisabled={isDisabled}
+        alwaysPlaceholder
       >
         {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
       </Select>
-      {assigneeIds.size > 0 && (
-        <ul className={styles.selectedAssignees}>
-          {users
-            .filter((u) => assigneeIds.has(u.id))
-            .map((u) => (
-              <li key={u.id} className={styles.selectedAssignee}>
-                {u.name}
-              </li>
-            ))}
-        </ul>
-      )}
+      {selected.length > 0 && <AssigneeChips assignees={selected} />}
     </>
   );
 }

@@ -52,7 +52,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
   const canDelete = can(userRole, "case.delete", access);
   const canViewPayments = can(userRole, "payment.read");
 
-  const allTabs = ["attachments", "tasks", "notes", "milestones", "payments", "activity"] as const;
+  const allTabs = ["tasks", "attachments", "notes", "milestones", "payments", "activity"] as const;
   const validTabs = allTabs.filter((t) => {
     switch (t) {
       case "attachments":
@@ -142,8 +142,8 @@ export function CaseDetail({ overview, access, userRole }: Props) {
       {selectedKey ? (
         <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
           <TabList aria-label="Case details">
-            {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("tasks") && <Tab id="tasks">Tasks</Tab>}
+            {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
             {validTabs.includes("milestones") && <Tab id="milestones">Milestone</Tab>}
             {validTabs.includes("payments") && <Tab id="payments">Payment</Tab>}
@@ -155,14 +155,14 @@ export function CaseDetail({ overview, access, userRole }: Props) {
                 <TasksTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
-            {validTabs.includes("notes") && (
-              <TabPanel id="notes">
-                <NotesTab caseId={overview.id} access={access} userRole={userRole} />
-              </TabPanel>
-            )}
             {validTabs.includes("attachments") && (
               <TabPanel id="attachments">
                 <AttachmentsTab caseId={overview.id} access={access} userRole={userRole} />
+              </TabPanel>
+            )}
+            {validTabs.includes("notes") && (
+              <TabPanel id="notes">
+                <NotesTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("milestones") && (

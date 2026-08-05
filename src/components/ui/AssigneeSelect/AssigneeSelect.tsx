@@ -4,8 +4,6 @@ import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { keysToSet } from "@/lib/form-utils";
 
-import styles from "./AssigneeSelect.module.css";
-
 export interface AssigneeOption {
   id: string;
   name: string;

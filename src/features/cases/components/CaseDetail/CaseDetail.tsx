@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -9,24 +9,24 @@ import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
 import { deleteCaseAction, getCaseForEditAction } from "@/features/cases/actions";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
+import { MilestonesTab } from "@/features/milestones/components/MilestonesTab/MilestonesTab";
+import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
+import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
 import { getActiveUsersAction } from "@/features/tasks/actions";
+import { TasksTab } from "@/features/tasks/components/TasksTab/TasksTab";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 
+import { CaseOverview } from "../CaseOverview/CaseOverview";
 import styles from "./CaseDetail.module.css";
-import { CaseOverview } from "./CaseOverview";
-import { ActivityLogTab } from "./tabs/ActivityLogTab";
-import { MilestonesTab } from "./tabs/MilestonesTab";
-import { NotesTab } from "./tabs/NotesTab";
-import { PaymentsTab } from "./tabs/PaymentsTab";
-import { TasksTab } from "./tabs/TasksTab";
 
 interface Props {
   overview: CaseOverviewData;
@@ -52,7 +52,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
   const canDelete = can(userRole, "case.delete", access);
   const canViewPayments = can(userRole, "payment.read");
 
-  const allTabs = ["attachments", "tasks", "notes", "milestones", "payments", "activity"] as const;
+  const allTabs = ["tasks", "attachments", "notes", "milestones", "payments", "activity"] as const;
   const validTabs = allTabs.filter((t) => {
     switch (t) {
       case "attachments":
@@ -70,10 +70,22 @@ export function CaseDetail({ overview, access, userRole }: Props) {
     }
   });
   const requestedTab = searchParams.get("tab");
-  const selectedKey = validTabs.find((tab) => tab === requestedTab) ?? validTabs[0];
+  const [selectedTab, setSelectedTab] = useState<string>(
+    () => validTabs.find((tab) => tab === requestedTab) ?? validTabs[0],
+  );
+  const selectedKey = validTabs.some((tab) => tab === selectedTab) ? selectedTab : validTabs[0];
+  const prevUrlRef = useRef(`${pathname}?${searchParams.toString()}`);
+
+  useEffect(() => {
+    const currentUrl = `${pathname}?${searchParams.toString()}`;
+    if (currentUrl === prevUrlRef.current) return;
+    prevUrlRef.current = currentUrl;
+    const next = validTabs.find((tab) => tab === searchParams.get("tab")) ?? validTabs[0];
+    setSelectedTab((prev) => (prev === next ? prev : next));
+  }, [pathname, searchParams, validTabs]);
 
   const handleSelectionChange = (key: React.Key) => {
-    startLoading();
+    setSelectedTab(String(key));
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", String(key));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -130,11 +142,11 @@ export function CaseDetail({ overview, access, userRole }: Props) {
       {selectedKey ? (
         <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
           <TabList aria-label="Case details">
-            {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("tasks") && <Tab id="tasks">Tasks</Tab>}
+            {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
             {validTabs.includes("milestones") && <Tab id="milestones">Milestone</Tab>}
-            {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
+            {validTabs.includes("payments") && <Tab id="payments">Payment</Tab>}
             {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
           </TabList>
           <TabPanels>
@@ -143,14 +155,14 @@ export function CaseDetail({ overview, access, userRole }: Props) {
                 <TasksTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
-            {validTabs.includes("notes") && (
-              <TabPanel id="notes">
-                <NotesTab caseId={overview.id} access={access} userRole={userRole} />
-              </TabPanel>
-            )}
             {validTabs.includes("attachments") && (
               <TabPanel id="attachments">
                 <AttachmentsTab caseId={overview.id} access={access} userRole={userRole} />
+              </TabPanel>
+            )}
+            {validTabs.includes("notes") && (
+              <TabPanel id="notes">
+                <NotesTab caseId={overview.id} access={access} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("milestones") && (
@@ -165,7 +177,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
             )}
             {validTabs.includes("activity") && (
               <TabPanel id="activity">
-                <ActivityLogTab caseId={overview.id} />
+                <ActivityLogTab entityType="Case" entityId={overview.id} />
               </TabPanel>
             )}
           </TabPanels>

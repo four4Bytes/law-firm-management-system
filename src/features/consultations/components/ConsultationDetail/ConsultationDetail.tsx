@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -9,6 +9,7 @@ import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import {
@@ -21,14 +22,13 @@ import type {
   ConsultationOverviewData,
 } from "@/features/consultations/queries";
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
+import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
+import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 
+import { ConsultationOverview } from "../ConsultationOverview/ConsultationOverview";
 import styles from "./ConsultationDetail.module.css";
-import { ConsultationOverview } from "./ConsultationOverview";
-import { ActivityLogTab } from "./tabs/ActivityLogTab";
-import { NotesTab } from "./tabs/NotesTab";
-import { PaymentsTab } from "./tabs/PaymentsTab";
 
 interface Props {
   overview: ConsultationOverviewData;
@@ -67,10 +67,22 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
     }
   });
   const requestedTab = searchParams.get("tab");
-  const selectedKey = validTabs.find((tab) => tab === requestedTab) ?? validTabs[0];
+  const [selectedTab, setSelectedTab] = useState<string>(
+    () => validTabs.find((tab) => tab === requestedTab) ?? validTabs[0],
+  );
+  const selectedKey = validTabs.some((tab) => tab === selectedTab) ? selectedTab : validTabs[0];
+  const prevUrlRef = useRef(`${pathname}?${searchParams.toString()}`);
+
+  useEffect(() => {
+    const currentUrl = `${pathname}?${searchParams.toString()}`;
+    if (currentUrl === prevUrlRef.current) return;
+    prevUrlRef.current = currentUrl;
+    const next = validTabs.find((tab) => tab === searchParams.get("tab")) ?? validTabs[0];
+    setSelectedTab((prev) => (prev === next ? prev : next));
+  }, [pathname, searchParams, validTabs]);
 
   const handleSelectionChange = (key: React.Key) => {
-    startLoading();
+    setSelectedTab(String(key));
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", String(key));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -126,7 +138,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
           <TabList aria-label="Consultation details">
             {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
-            {validTabs.includes("payments") && <Tab id="payments">Payment Log</Tab>}
+            {validTabs.includes("payments") && <Tab id="payments">Payment</Tab>}
             {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
           </TabList>
           <TabPanels>
@@ -147,7 +159,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
             )}
             {validTabs.includes("activity") && (
               <TabPanel id="activity">
-                <ActivityLogTab consultationId={overview.id} />
+                <ActivityLogTab entityType="Consultation" entityId={overview.id} />
               </TabPanel>
             )}
           </TabPanels>

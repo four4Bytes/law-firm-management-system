@@ -76,7 +76,6 @@ export async function requirePermissionOrNull(
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return null;
     }
-    console.error("Unexpected error in requirePermissionOrNull:", error);
     throw error;
   }
 }

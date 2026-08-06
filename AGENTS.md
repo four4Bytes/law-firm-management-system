@@ -69,6 +69,7 @@
 ### Components
 
 - Always scan and use existing components from `components/` first.
+- Scan `src/lib/` for existing utilities before creating new types/functions to avoid duplication.
 - Interactive/browser API components: start with `"use client"`.
 - Co-locate in `src/components/{category}/{ComponentName}/` — component, CSS module.
 - Stories live in `src/stories/`, imported via `@/` aliases (no relative `./` imports).
@@ -90,6 +91,7 @@
 - Prisma client vs browser entry: Any module reachable by client components (UI components, and Zod schemas referenced at runtime in the browser) MUST import enums/models from `@/generated/prisma/browser`, never `@/generated/prisma/client`. The `client` entry imports `node:` builtins and breaks `next build` (Turbopack `node:module` error) if pulled into the client bundle.
 - Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly shared/reusable components in `src/components/ui/`.
 - Client-side role checks: Use `can(userRole, permission, access?)` from `@/lib/rbac` for UI presentation (show/hide tabs, buttons, columns). This is a pure boolean check — never use it for enforcement. All security boundaries must remain server-side in Server Actions via `requirePermission(...)` (context-free cells) or `requireAuth()` + `can(...)` (record-scoped cells).
+- Scan `src/lib/` for existing utilities before creating new types/functions to avoid duplication.
 
 ### Testing
 

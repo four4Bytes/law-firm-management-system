@@ -1,11 +1,11 @@
 "use client";
 
-import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
@@ -13,18 +13,16 @@ import { AddConsultationModal } from "@/features/consultations/components/AddCon
 import type { ConsultationRow } from "@/features/consultations/queries";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
-import type { Role } from "@/generated/prisma/browser";
+import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { can } from "@/lib/rbac";
 
-import styles from "./ConsultationTable.module.css";
-
-const statusClassMap: Record<string, string> = {
-  Scheduled: styles.statusScheduled,
-  Completed: styles.statusCompleted,
-  Accepted: styles.statusAccepted,
-  Rejected: styles.statusRejected,
-  Cancelled: styles.statusCancelled,
+const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
+  Scheduled: "info",
+  Completed: "done",
+  Accepted: "accent",
+  Rejected: "danger",
+  Cancelled: "cancelled",
 };
 
 const columns: ColumnDef<ConsultationRow>[] = [
@@ -64,7 +62,9 @@ const columns: ColumnDef<ConsultationRow>[] = [
     render: (value) => {
       const status = value as string | null;
       if (!status) return null;
-      return <span className={clsx(styles.statusBadge, statusClassMap[status])}>{status}</span>;
+      return (
+        <StatusBadge variant={statusClassMap[status as ConsultationStatus]}>{status}</StatusBadge>
+      );
     },
   },
 ];

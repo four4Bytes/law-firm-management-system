@@ -1,44 +1,47 @@
 "use client";
 
-import clsx from "clsx";
-import { FaGavel, FaPenToSquare, FaTrash } from "react-icons/fa6";
+import { FaCalendarCheck, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
 import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
-import type { ConsultationOverviewData } from "@/features/consultations/queries";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import type { CaseOverviewData } from "@/features/cases/queries";
+import { CaseStatus } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 
-import styles from "./ConsultationOverview.module.css";
+import styles from "./CaseOverview.module.css";
 
 interface Props {
-  data: ConsultationOverviewData;
+  data: CaseOverviewData;
   onEdit?: () => void;
   onDelete?: () => void;
   isEditPending?: boolean;
 }
 
-const statusClassMap: Record<string, string> = {
-  Scheduled: styles.statusScheduled,
-  Completed: styles.statusCompleted,
-  Accepted: styles.statusAccepted,
-  Rejected: styles.statusRejected,
-  Cancelled: styles.statusCancelled,
+const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
+  Open: "info",
+  Ongoing: "warning",
+  Closed: "done",
+  Terminated: "danger",
+  Settled: "info",
 };
 
-export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: Props) {
+export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
         <div className={styles.header}>
-          <h2 className={styles.title}>{data.concern}</h2>
-          <span className={clsx(styles.badge, statusClassMap[data.status])}>{data.status}</span>
+          <h2 className={styles.title}>{data.case_title}</h2>
+          <StatusBadge variant={statusClassMap[data.status as CaseStatus]}>
+            {data.status}
+          </StatusBadge>
           {(onEdit || onDelete) && (
             <div className={styles.headerActions}>
               {onEdit && (
                 <Button
                   variant="ghost"
-                  aria-label="Edit consultation"
+                  aria-label="Edit case"
                   onPress={onEdit}
                   isPending={isEditPending}
                 >
@@ -46,7 +49,7 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
                 </Button>
               )}
               {onDelete && (
-                <Button variant="ghost" aria-label="Delete consultation" onPress={onDelete}>
+                <Button variant="ghost" aria-label="Delete case" onPress={onDelete}>
                   <FaTrash />
                 </Button>
               )}
@@ -73,12 +76,24 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
               <span className={styles.value}>{data.client.address ?? "—"}</span>
             </div>
             <div className={styles.field}>
-              <span className={styles.label}>Booking Date & Time</span>
-              <span className={styles.value}>{formatDateTime(data.booking_datetime)}</span>
+              <span className={styles.label}>Case Type</span>
+              <span className={styles.value}>{data.case_type}</span>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Latest Milestone</span>
+              <span className={styles.value}>
+                {data.latestMilestone
+                  ? `${data.latestMilestone.title} (${data.latestMilestone.status})`
+                  : "—"}
+              </span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>
               <AssigneeChips assignees={data.assignTo} />
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Parties Involved</span>
+              <span className={styles.value}>{data.parties_involved ?? "—"}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Created By</span>
@@ -93,12 +108,12 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
               <span className={styles.value}>{formatDateTime(data.updated_at)}</span>
             </div>
           </div>
-          {data.relatedCase && (
+          {data.sourceConsultation && (
             <RelatedLinkCard
-              href={`/case/${data.relatedCase.id}`}
-              label="Related Case"
-              title={data.relatedCase.case_title}
-              icon={<FaGavel />}
+              href={`/consultation/${data.sourceConsultation.id}`}
+              label="Source Consultation"
+              title={data.sourceConsultation.concern}
+              icon={<FaCalendarCheck />}
             />
           )}
         </div>

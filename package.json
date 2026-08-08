@@ -78,7 +78,7 @@
     "eslint-plugin-storybook": "^10.5.3",
     "husky": "^9.1.7",
     "lint-staged": "^17.2.0",
-    "playwright": "^1.62.0",
+    "playwright": "^1.62.1",
     "prettier": "^3.9.6",
     "prisma": "^7.9.1",
     "storybook": "^10.5.5",

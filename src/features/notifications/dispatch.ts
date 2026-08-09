@@ -8,6 +8,8 @@ import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
 import {
   caseAssignedTemplate,
+  caseUpdatedTemplate,
+  consultationAssignedTemplate,
   consultationCreatedTemplate,
   consultationOverdueTemplate,
   consultationReminderTemplate,
@@ -44,10 +46,10 @@ function pickTemplate(type: NotificationType) {
       return taskUpdatedTemplate;
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
+    case NotificationType.CaseUpdated:
+      return caseUpdatedTemplate;
     case NotificationType.ConsultationAssigned:
-      throw new Error(
-        `Notification type "${type}" is not dispatched and has no email template (see documentation/notifications.md)`,
-      );
+      return consultationAssignedTemplate;
     default:
       return assertNever(type);
   }

@@ -60,6 +60,7 @@ enum NotificationType {
   TaskAssigned
   TaskStatusChanged
   CaseAssigned
+  CaseUpdated
   ConsultationAssigned
 }
 

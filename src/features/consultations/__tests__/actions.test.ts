@@ -1,7 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Role, type Consultation } from "@/generated/prisma/browser";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { NotificationType, Role, type Consultation } from "@/generated/prisma/browser";
 import { requireAuth, requirePermissionOrNull } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
@@ -14,6 +15,18 @@ import {
   updateConsultationAction,
   updateConsultationWithClientAction,
 } from "../actions";
+import { getConsultationAssigneeIds, getConsultationEditData } from "../queries";
+
+async function flushAfterCallbacks(): Promise<void> {
+  const server = (await import("next/server")) as unknown as {
+    __flushAfterCallbacks: () => Promise<void>;
+  };
+  await server.__flushAfterCallbacks();
+}
+
+afterEach(async () => {
+  await flushAfterCallbacks();
+});
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
@@ -30,15 +43,42 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("next/server", () => ({
-  after: vi.fn(),
+vi.mock("next/server", () => {
+  const afterCallbacks: Array<() => void | Promise<void>> = [];
+  return {
+    after: vi.fn((fn: () => void | Promise<void>) => {
+      afterCallbacks.push(fn);
+    }),
+    __flushAfterCallbacks: () =>
+      Promise.all(afterCallbacks.splice(0).map((fn) => Promise.resolve(fn()))),
+  };
+});
+
+vi.mock("@/features/audit/mutations", () => ({
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    consultation: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
-    consultationAssignment: { findFirst: vi.fn() },
-  },
+vi.mock("@/features/notifications/dispatch", () => ({
+  dispatchNotifications: vi.fn().mockResolvedValue({ count: 0 }),
+}));
+
+vi.mock("@/lib/prisma", () => {
+  const consultation = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() };
+  const consultationAssignment = { findFirst: vi.fn(), findMany: vi.fn() };
+  const client = { create: vi.fn(), update: vi.fn() };
+  const prisma = {
+    consultation,
+    consultationAssignment,
+    client,
+    $transaction: vi.fn((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
+  };
+  return { prisma };
+});
+
+vi.mock("../queries", () => ({
+  getConsultationEditData: vi.fn(),
+  getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+  getConsultationAssigneeIds: vi.fn().mockResolvedValue([]),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -64,37 +104,26 @@ const consultationRecord: ConsultationWithAssignments = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(prisma.consultationAssignment.findFirst).mockResolvedValue(null);
+  vi.mocked(prisma.consultationAssignment.findMany).mockResolvedValue([]);
 });
 
 describe("getConsultationForEditAction", () => {
   it("returns edit data for a valid id", async () => {
-    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
-
-    const result = await getConsultationForEditAction(uuid);
-
-    expect(result).toEqual({
+    const editData = {
       id: "1",
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Scheduled" as const,
       reminder_days: null,
       assignee_ids: [],
-    });
-    expect(prisma.consultation.findUnique).toHaveBeenLastCalledWith({
-      where: { id: uuid },
-      select: {
-        id: true,
-        client_id: true,
-        concern: true,
-        booking_datetime: true,
-        status: true,
-        reminder_days: true,
-        consultationAssignments: {
-          select: { user_id: true },
-        },
-      },
-    });
+    };
+    vi.mocked(getConsultationEditData).mockResolvedValue(editData);
+
+    const result = await getConsultationForEditAction(uuid);
+
+    expect(result).toEqual(editData);
+    expect(getConsultationEditData).toHaveBeenCalledWith(uuid);
   });
 
   it("throws for an invalid id", async () => {
@@ -180,7 +209,7 @@ describe("updateConsultationAction", () => {
   });
 
   it("returns an error when the consultation is not found", async () => {
-    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue(null);
 
     expect(await updateConsultationAction(validPayload)).toEqual({
       success: false,
@@ -189,7 +218,15 @@ describe("updateConsultationAction", () => {
   });
 
   it("updates a consultation and revalidates", async () => {
-    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: [],
+    });
 
     expect(await updateConsultationAction(validPayload)).toEqual({ success: true });
     expect(revalidatePath).toHaveBeenCalledWith(`/consultation/${uuid}`);
@@ -197,7 +234,15 @@ describe("updateConsultationAction", () => {
   });
 
   it("returns an error when update fails", async () => {
-    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: [],
+    });
     vi.mocked(prisma.consultation.update).mockRejectedValue(new Error("db error"));
 
     expect(await updateConsultationAction(validPayload)).toEqual({
@@ -216,7 +261,7 @@ describe("deleteConsultationAction", () => {
   });
 
   it("returns an error when the consultation is not found", async () => {
-    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue(null);
 
     expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({
       success: false,
@@ -225,7 +270,15 @@ describe("deleteConsultationAction", () => {
   });
 
   it("deletes a consultation and revalidates the list", async () => {
-    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: [],
+    });
 
     expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({ success: true });
     expect(prisma.consultation.delete).toHaveBeenCalledWith({
@@ -273,7 +326,15 @@ describe("authorization guards for non-Admin users", () => {
       role: Role.Lawyer,
       name: "n2",
     });
-    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: [],
+    });
   });
 
   afterEach(() => {
@@ -313,5 +374,92 @@ describe("authorization guards for non-Admin users", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+});
+
+describe("updateConsultationAction notification split", () => {
+  const validPayload = {
+    consultationId: uuid,
+    client_id: uuid,
+    concern: "Legal advice",
+    booking_datetime: "2024-06-01T10:00:00.000Z",
+    status: "Scheduled" as const,
+  };
+
+  const assignee1 = uuid;
+  const assignee2 = "550e8400-e29b-41d4-a716-446655440001";
+  const assignee3 = "550e8400-e29b-41d4-a716-446655440002";
+
+  const existingEditData = {
+    id: "1",
+    client_id: uuid,
+    concern: "Legal advice",
+    booking_datetime: consultationRecord.booking_datetime,
+    status: "Scheduled" as const,
+    reminder_days: null,
+    assignee_ids: [assignee1, assignee2],
+  };
+
+  beforeEach(() => {
+    vi.mocked(getConsultationEditData).mockResolvedValue(existingEditData);
+    vi.mocked(getConsultationAssigneeIds).mockResolvedValue([assignee1, assignee2, assignee3]);
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
+    vi.mocked(prisma.consultation.update).mockResolvedValue(consultationRecord);
+  });
+
+  it("dispatches ConsultationAssigned only to the new assignee and ConsultationUpdated to the rest", async () => {
+    await updateConsultationAction({
+      ...validPayload,
+      assignee_ids: [assignee1, assignee2, assignee3],
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const assigned = calls.find(
+      ([payload]) => payload.type === NotificationType.ConsultationAssigned,
+    );
+    const updated = calls.find(
+      ([payload]) => payload.type === NotificationType.ConsultationUpdated,
+    );
+
+    expect(calls).toHaveLength(2);
+    expect(assigned?.[0].userIds).toEqual([assignee3]);
+    expect(updated?.[0].userIds).toEqual([assignee1, assignee2]);
+  });
+
+  it("dispatches only ConsultationUpdated when no assignee was added", async () => {
+    vi.mocked(getConsultationAssigneeIds).mockResolvedValue([assignee1, assignee2]);
+
+    await updateConsultationAction(validPayload);
+    await flushAfterCallbacks();
+
+    const types = vi.mocked(dispatchNotifications).mock.calls.map(([payload]) => payload.type);
+    expect(types).toEqual([NotificationType.ConsultationUpdated]);
+  });
+
+  it("splits updateConsultationWithClientAction notices the same way", async () => {
+    await updateConsultationWithClientAction({
+      consultation_id: uuid,
+      client_id: uuid,
+      client: { name: "John Doe" },
+      consultation: {
+        concern: "Legal advice",
+        booking_datetime: "2024-06-01T10:00:00.000Z",
+        status: "Scheduled" as const,
+        assignee_ids: [assignee1, assignee2, assignee3],
+      },
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const assigned = calls.find(
+      ([payload]) => payload.type === NotificationType.ConsultationAssigned,
+    );
+    const updated = calls.find(
+      ([payload]) => payload.type === NotificationType.ConsultationUpdated,
+    );
+
+    expect(assigned?.[0].userIds).toEqual([assignee3]);
+    expect(updated?.[0].userIds).toEqual([assignee1, assignee2]);
   });
 });

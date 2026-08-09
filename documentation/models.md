@@ -339,8 +339,9 @@ Links a reviewer to a task for approval workflows.
 | MilestoneUpdated       | Milestone details changed                                 |
 | TaskAssigned           | User assigned to a task                                   |
 | TaskStatusChanged      | Task status changed                                       |
-| CaseAssigned           | Case created or updated (all current case assignees)      |
-| ConsultationAssigned   | Enum value kept, not currently dispatched                 |
+| CaseAssigned           | User assigned to a case (case created or assignee added)  |
+| CaseUpdated            | Case updated (existing case assignees)                    |
+| ConsultationAssigned   | Consultation assignee added                               |
 
 > See [Notifications & Reminders](./notifications.md) for the full delivery rules.
 

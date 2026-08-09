@@ -18,7 +18,10 @@ import {
 } from "@/features/consultations/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { resolveAssignmentRecipients } from "@/features/notifications/recipients";
+import {
+  diffNewAssigneeIds,
+  resolveAssignmentRecipients,
+} from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import {
@@ -340,22 +343,37 @@ export async function updateConsultationAction(
       }
 
       try {
-        const notifyIds = await resolveAssignmentRecipients({
-          entityId: consultationId,
-          getExistingDirectUserIds: getConsultationAssigneeIds,
-        });
+        const currentAssigneeIds = await getConsultationAssigneeIds(consultationId);
+        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
+        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
 
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.ConsultationUpdated,
-            title: "Consultation updated",
-            message: `Consultation was updated: "${concern.substring(0, 100)}"`,
-            actionUrl: `/consultation/${consultationId}`,
-            consultationId,
-          },
-          session.id,
-        );
+        if (newAssigneeIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: newAssigneeIds,
+              type: NotificationType.ConsultationAssigned,
+              title: `Consultation assigned: ${concern.substring(0, 100)}`,
+              message: `You have been assigned to consultation: "${concern.substring(0, 100)}"`,
+              actionUrl: `/consultation/${consultationId}`,
+              consultationId,
+            },
+            session.id,
+          );
+        }
+
+        if (updatedRecipientIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: updatedRecipientIds,
+              type: NotificationType.ConsultationUpdated,
+              title: "Consultation updated",
+              message: `Consultation was updated: "${concern.substring(0, 100)}"`,
+              actionUrl: `/consultation/${consultationId}`,
+              consultationId,
+            },
+            session.id,
+          );
+        }
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }
@@ -420,22 +438,37 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveAssignmentRecipients({
-          entityId: consultation_id,
-          getExistingDirectUserIds: getConsultationAssigneeIds,
-        });
+        const currentAssigneeIds = await getConsultationAssigneeIds(consultation_id);
+        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
+        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
 
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.ConsultationUpdated,
-            title: "Consultation updated",
-            message: `Consultation was updated: "${consultation.concern.substring(0, 100)}"`,
-            actionUrl: `/consultation/${consultation_id}`,
-            consultationId: consultation_id,
-          },
-          session.id,
-        );
+        if (newAssigneeIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: newAssigneeIds,
+              type: NotificationType.ConsultationAssigned,
+              title: `Consultation assigned: ${consultation.concern.substring(0, 100)}`,
+              message: `You have been assigned to consultation: "${consultation.concern.substring(0, 100)}"`,
+              actionUrl: `/consultation/${consultation_id}`,
+              consultationId: consultation_id,
+            },
+            session.id,
+          );
+        }
+
+        if (updatedRecipientIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: updatedRecipientIds,
+              type: NotificationType.ConsultationUpdated,
+              title: "Consultation updated",
+              message: `Consultation was updated: "${consultation.concern.substring(0, 100)}"`,
+              actionUrl: `/consultation/${consultation_id}`,
+              consultationId: consultation_id,
+            },
+            session.id,
+          );
+        }
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }

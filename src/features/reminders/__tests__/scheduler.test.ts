@@ -51,6 +51,7 @@ const callOrder: string[] = [];
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.spyOn(console, "error").mockImplementation(() => {});
   callOrder.length = 0;
 
   vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([]);
@@ -100,6 +101,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 it("prunes old notifications before processing reminders", async () => {

@@ -1,3 +1,4 @@
+import { getStartOfDay } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 export interface MilestoneReminderCandidate {
@@ -18,8 +19,7 @@ export interface ConsultationReminderCandidate {
 }
 
 export async function getMilestonesNeedingReminder(): Promise<MilestoneReminderCandidate[]> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getStartOfDay(new Date());
 
   const milestones = await prisma.caseMilestone.findMany({
     where: {
@@ -54,8 +54,7 @@ export async function getMilestonesNeedingReminder(): Promise<MilestoneReminderC
 }
 
 export async function getConsultationsNeedingReminder(): Promise<ConsultationReminderCandidate[]> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getStartOfDay(new Date());
 
   const consultations = await prisma.consultation.findMany({
     where: {

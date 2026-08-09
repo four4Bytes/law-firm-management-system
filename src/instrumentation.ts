@@ -19,6 +19,10 @@ export async function register() {
     const REMINDER_CRON_SCHEDULE = "0 0 * * *";
     const cron = await import("node-cron");
     const { runReminderCheck } = await import("@/features/reminders/scheduler");
-    cron.schedule(REMINDER_CRON_SCHEDULE, runReminderCheck, { noOverlap: true });
+    const { getAppTimeZone } = await import("@/lib/date");
+    cron.schedule(REMINDER_CRON_SCHEDULE, runReminderCheck, {
+      noOverlap: true,
+      timezone: getAppTimeZone(),
+    });
   }
 }

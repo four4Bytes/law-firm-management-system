@@ -373,6 +373,8 @@ export async function updateCaseAction(
       assignee_ids,
     });
 
+    const recipientIds = assignee_ids ?? existing.assignee_ids;
+
     after(async () => {
       try {
         await createAuditLog({
@@ -387,9 +389,8 @@ export async function updateCaseAction(
       }
 
       try {
-        const currentAssigneeIds = await getCaseAssigneeIds(caseId);
-        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
-        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
+        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(
@@ -459,6 +460,8 @@ export async function updateCaseWithClientAction(
       case: caseData,
     });
 
+    const recipientIds = caseData.assignee_ids ?? existing.assignee_ids;
+
     after(async () => {
       try {
         await createAuditLog({
@@ -473,9 +476,8 @@ export async function updateCaseWithClientAction(
       }
 
       try {
-        const currentAssigneeIds = await getCaseAssigneeIds(case_id);
-        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
-        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
+        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(

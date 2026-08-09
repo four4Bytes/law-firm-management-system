@@ -325,6 +325,8 @@ export async function updateConsultationAction(
       resetReminderTiming,
     });
 
+    const recipientIds = assignee_ids ?? existing.assignee_ids;
+
     after(async () => {
       try {
         await createAuditLog({
@@ -343,9 +345,8 @@ export async function updateConsultationAction(
       }
 
       try {
-        const currentAssigneeIds = await getConsultationAssigneeIds(consultationId);
-        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
-        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
+        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(
@@ -421,6 +422,8 @@ export async function updateConsultationWithClientAction(
       resetReminderTiming,
     });
 
+    const recipientIds = consultation.assignee_ids ?? existing.assignee_ids;
+
     after(async () => {
       try {
         await createAuditLog({
@@ -439,9 +442,8 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const currentAssigneeIds = await getConsultationAssigneeIds(consultation_id);
-        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
-        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
+        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(

@@ -1,7 +1,6 @@
 # Notifications & Reminders
 
 > The current system implementation will be based on this document.
-
 > This is the initial notifications & reminders draft - all rules below are subject to change.
 
 ---
@@ -15,7 +14,7 @@ Every notification is delivered through **two channels** from a single dispatch 
 
 A `NotificationType` value (see [models.md](./models.md#notification-type)) drives both the in-app row and the email template chosen for it.
 
-No notification can be "silent": every **dispatched** type is always delivered as a DB row and has an email template, so **the email is the durable record**. The bell is a transient unread surface; there is no full history page.
+Every **dispatched** type is always delivered as a DB row and has an email template. **Email is best-effort, not a durable archive**: a notification can be permanently lost when email delivery fails, the recipient has no email address, or the in-app row is pruned by retention. The bell is a transient unread surface; there is no full history page.
 
 ---
 
@@ -95,10 +94,10 @@ Fired by Server Actions, from `after()` callbacks, after the mutation succeeds (
 
 ### Trigger
 
-| Deployment           | Trigger                                                                                            | Details                                               |
-| -------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Vercel (serverless)  | Cron job `0 0 * * *` (midnight UTC) → `GET /api/cron/reminders`                                    | Authenticated via `Bearer CRON_SECRET`; otherwise 401 |
-| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` (midnight server-local time, skipped when `VERCEL` is set) | `noOverlap: true`                                     |
+| Deployment           | Trigger                                                                                                                           | Details                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Vercel (serverless)  | Cron job `0 0 * * *` (midnight UTC) → `GET /api/cron/reminders`                                                                   | Authenticated via `Bearer CRON_SECRET`; otherwise 401 |
+| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` (midnight app time — `APP_TIMEZONE`, fallback server-local; skipped when `VERCEL` is set) | `noOverlap: true`                                     |
 
 Both paths call the same `runReminderCheck()` in `src/features/reminders/scheduler.ts`, which runs three phases **in order**, each isolated in its own try/catch:
 
@@ -159,7 +158,7 @@ The guard (claim/suppress) happens **before** dispatch, within one try/catch per
 
 - At the start of every `runReminderCheck()`, `pruneNotifications(retentionDays)` deletes every `Notification` row older than `retentionDays`.
 - `retentionDays` comes from `NOTIFICATION_RETENTION_DAYS` (env, default `90`).
-- Rows are deleted for **all users**, including **unread** ones. The email is the archive; the bell surface is short-lived.
+- Rows are deleted for **all users**, including **unread** ones. There is no separate archive; a pruned row that also failed to email is lost permanently. The bell surface is short-lived.
 - A prune failure is logged and does not stop reminder processing.
 - `created_at` is the cutoff basis.
 
@@ -207,20 +206,20 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 
 ## 9. Environment Variables
 
-| Variable                      | Required   | Default      | Purpose                                                   |
-| ----------------------------- | ---------- | ------------ | --------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS`       | No         | `3`          | Global fallback when a record has no `reminder_days` set  |
-| `NOTIFICATION_RETENTION_DAYS` | No         | `90`         | Delete Notification rows older than this                  |
-| `CRON_SECRET`                 | Yes (all)  | -            | Bearer secret authenticating `GET /api/cron/reminders`    |
-| `APP_TIMEZONE`                | No         | server local | IANA timezone for server-side date/time formatting        |
-| `APP_ORIGIN`                  | Yes (prod) | -            | Origin used to build absolute `actionUrl` links in emails |
+| Variable                      | Required   | Default      | Purpose                                                                                                         |
+| ----------------------------- | ---------- | ------------ | --------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_REMINDER_DAYS`       | No         | `3`          | Global fallback when a record has no `reminder_days` set                                                        |
+| `NOTIFICATION_RETENTION_DAYS` | No         | `90`         | Delete Notification rows older than this                                                                        |
+| `CRON_SECRET`                 | Yes (all)  | -            | Bearer secret authenticating `GET /api/cron/reminders`                                                          |
+| `APP_TIMEZONE`                | No         | server local | IANA timezone for server-side date/time formatting, the reminder day boundary, and the self-hosted cron trigger |
+| `APP_ORIGIN`                  | Yes (prod) | -            | Origin used to build absolute `actionUrl` links in emails                                                       |
 
 ---
 
 ## 10. Failure & Resilience Semantics (as designed)
 
 1. **Scheduled dispatch failure** leaves the record eligible for the next daily run (no lost reminders; possible back-to-back retries).
-2. **Email failure** for one recipient never blocks other recipients or the in-app row (logged only).
+2. **Email failure** for one recipient never blocks other recipients or the in-app row (logged only, no retry queue) — if the recipient lacks an email or delivery fails, and the in-app row is later pruned, that notification is gone.
 3. **Phase isolation** - prune, milestones, and consultations are independent try/catch scopes.
 4. **Once-per-day claim** is a conditional optimistic guard executed **before** dispatch: concurrent duplicate cron invocations can generate at most one delivery per record per day, and a crashed run can at worst delay a reminder to the next daily cycle (never duplicate it). The guard is per-record, not global.
 5. Seeded/deactivated developer accounts exist only as a bootstrap mechanism and receive no special notification behavior.

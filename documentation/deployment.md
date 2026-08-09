@@ -216,11 +216,12 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
 
 ### Environment variables
 
-| Variable                      | Required       | Default | Description                                                                                                                |
-| ----------------------------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS`       | No             | `3`     | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                        |
-| `NOTIFICATION_RETENTION_DAYS` | No             | `90`    | Delete Notification rows older than this many days (runs with the daily job)                                               |
-| `CRON_SECRET`                 | Yes (all envs) | —       | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables. |
+| Variable                      | Required       | Default      | Description                                                                                                                |
+| ----------------------------- | -------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_REMINDER_DAYS`       | No             | `3`          | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                        |
+| `NOTIFICATION_RETENTION_DAYS` | No             | `90`         | Delete Notification rows older than this many days (runs with the daily job)                                               |
+| `APP_TIMEZONE`                | No             | server local | IANA timezone for server-side date/time formatting, the reminder day boundary, and the self-hosted cron trigger            |
+| `CRON_SECRET`                 | Yes (all envs) | —            | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables. |
 
 ### Setting up with Vercel Cron Jobs
 
@@ -247,4 +248,4 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
 
 4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
-The cron runs daily at midnight (`0 0 * * *`), matching the self-hosted `node-cron` schedule in `src/instrumentation.ts`. To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.
+The cron runs daily at `0 0 * * *`. Vercel interprets the schedule in UTC; the self-hosted `node-cron` in `src/instrumentation.ts` fires at app-timezone midnight (`APP_TIMEZONE`, falling back to server-local), so the two only align when server-local is UTC. To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.

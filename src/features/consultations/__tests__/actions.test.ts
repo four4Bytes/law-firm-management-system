@@ -1,6 +1,10 @@
 import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  getConsultationAssigneeIds,
+  getConsultationEditData,
+} from "@/features/consultations/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Consultation } from "@/generated/prisma/browser";
 import { requireAuth, requirePermissionOrNull } from "@/lib/auth-guards";
@@ -15,7 +19,6 @@ import {
   updateConsultationAction,
   updateConsultationWithClientAction,
 } from "../actions";
-import { getConsultationAssigneeIds, getConsultationEditData } from "../queries";
 
 async function flushAfterCallbacks(): Promise<void> {
   const server = (await import("next/server")) as unknown as {
@@ -75,7 +78,7 @@ vi.mock("@/lib/prisma", () => {
   return { prisma };
 });
 
-vi.mock("../queries", () => ({
+vi.mock("@/features/consultations/queries", () => ({
   getConsultationEditData: vi.fn(),
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
   getConsultationAssigneeIds: vi.fn().mockResolvedValue([]),

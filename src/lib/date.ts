@@ -1,25 +1,60 @@
 import { CalendarDate, getLocalTimeZone, Time, toCalendarDateTime } from "@internationalized/date";
 
-import { getOptionalEnvVar } from "@/lib/env";
-
 /** Date and time conversion/formatting helpers built on `@internationalized/date`. */
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
+ * Validates a timezone identifier against `Intl.DateTimeFormat`, throwing a
+ * clear configuration error when it is present but unsupported.
+ *
+ * @param value - The IANA timezone value, or `undefined` when unset.
+ * @param source - The configuration source name for error messages.
+ * @returns The validated timezone, or `undefined` when the value was unset.
+ */
+function resolveTimeZone(value: string | undefined, source: string): string | undefined {
+  if (value === undefined) return undefined;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+  } catch {
+    throw new Error(`${source} must be a valid IANA timezone, got: ${value}`);
+  }
+  return value;
+}
+
+/**
  * Resolves the application timezone for display formatting.
  *
- * On the server the `APP_TIMEZONE` environment variable is honored (e.g.
- * `"Asia/Manila"`), falling back to the runtime's local timezone when unset.
- * Client-side rendering always uses the browser's local timezone.
+ * Both the server and the client resolve from the same `APP_TIMEZONE` value
+ * (`NEXT_PUBLIC_APP_TIMEZONE` is inlined for the browser), so `formatDate` /
+ * `formatDateTime` produce identical text before and after hydration. When the
+ * variable is unset, each side falls back to its local timezone.
  *
  * @returns An IANA timezone identifier (e.g. `"Asia/Manila"`).
  */
 export function getAppTimeZone(): string {
-  if (typeof window === "undefined") {
-    return getOptionalEnvVar("APP_TIMEZONE", getLocalTimeZone());
-  }
-  return getLocalTimeZone();
+  const value =
+    typeof window === "undefined" ? process.env.APP_TIMEZONE : process.env.NEXT_PUBLIC_APP_TIMEZONE;
+  return resolveTimeZone(value, "APP_TIMEZONE") ?? getLocalTimeZone();
+}
+
+/**
+ * Computes the start of the day (local midnight) in a given timezone for a
+ * calendar date, as an absolute instant.
+ *
+ * @param date - The reference instant whose calendar day is wanted.
+ * @param timeZone - The IANA timezone to compute the day boundary in (defaults to the app timezone).
+ * @returns A Date representing `00:00` of that day in the target timezone.
+ */
+export function getStartOfDay(date: Date, timeZone: string = getAppTimeZone()): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return new CalendarDate(get("year"), get("month"), get("day")).toDate(timeZone);
 }
 
 /**
@@ -67,7 +102,7 @@ export function toTimeValue(date: Date): Time {
  * @returns A combined JavaScript Date in the local timezone.
  */
 export function combineDateTime(date: CalendarDate, time: Time): Date {
-  return toCalendarDateTime(date, time).toDate(getLocalTimeZone());
+  return toCalendarDateTime(date, time).toDate(getAppTimeZone());
 }
 
 /**

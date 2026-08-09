@@ -26,6 +26,7 @@ vi.mock("@/lib/email-templates", () => ({
   consultationCreatedTemplate: vi.fn(() => "<html/>"),
   consultationUpdatedTemplate: vi.fn(() => "<html/>"),
   consultationAssignedTemplate: vi.fn(() => "<html/>"),
+  consultationOverdueTemplate: vi.fn(() => "<html/>"),
   consultationReminderTemplate: vi.fn(() => "<html/>"),
   milestoneTemplate: vi.fn(() => "<html/>"),
   taskAssignedTemplate: vi.fn(() => "<html/>"),

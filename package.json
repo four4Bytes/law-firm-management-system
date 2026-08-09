@@ -4,6 +4,9 @@
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "pnpm prisma:generate && next build",

@@ -345,6 +345,10 @@ export async function updateConsultationAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
+    const resetReminderTiming =
+      existing.booking_datetime.getTime() !== booking_datetime.getTime() ||
+      existing.reminder_days !== reminder_days;
+
     await updateConsultation({
       consultationId,
       client_id,
@@ -353,6 +357,7 @@ export async function updateConsultationAction(
       status,
       reminder_days,
       assignee_ids,
+      resetReminderTiming,
     });
 
     after(async () => {
@@ -443,12 +448,16 @@ export async function updateConsultationWithClientAction(
     }
 
     const existingAssigneeIds = await getConsultationAssigneeIds(consultation_id);
+    const resetReminderTiming =
+      existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime() ||
+      existing.reminder_days !== consultation.reminder_days;
 
     await updateConsultationWithClient({
       consultation_id,
       client_id,
       client,
       consultation,
+      resetReminderTiming,
     });
 
     after(async () => {

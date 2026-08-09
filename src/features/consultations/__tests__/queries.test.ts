@@ -539,6 +539,7 @@ describe("getConsultationEditData", () => {
         concern: true,
         booking_datetime: true,
         status: true,
+        reminder_days: true,
         consultationAssignments: {
           select: { user_id: true },
         },

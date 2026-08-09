@@ -152,12 +152,12 @@ The app automatically sends reminder notifications for approaching milestone dea
 
 ### How it works
 
-An hourly background job checks for milestones and consultations that need reminders:
+A daily background job (midnight local time for self-hosted, midnight UTC on Vercel) checks for milestones and consultations that need reminders:
 
 - **Milestones** — Queries pending milestones where `due_date` is within `reminder_days` (per-record or env default). Sends `MilestoneDueSoon`. Past-due milestones send `MilestoneOverdue`.
 - **Consultations** — Queries scheduled consultations within the same window. Sends `ConsultationReminder` to Admins and Branch Managers.
 
-Each record is only reminded once per day via the `last_reminded_at` field.
+Each record is only reminded once per day via the `last_reminded_at` field. Past-due milestones are notified once (`MilestoneOverdue`); rescheduling a milestone or consultation resets its reminder state so reminders re-arm for the new schedule.
 
 ### Trigger mechanism
 
@@ -198,4 +198,4 @@ Each record is only reminded once per day via the `last_reminded_at` field.
 
 4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
-The cron runs daily at midnight (`0 0 * * *`). To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.
+The cron runs daily at midnight (`0 0 * * *`), matching the self-hosted `node-cron` schedule in `src/instrumentation.ts`. To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.

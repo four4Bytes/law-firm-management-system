@@ -37,6 +37,9 @@ function createTransport(config: ReturnType<typeof getEmailConfig>) {
     port: config.port,
     secure: config.secure,
     auth: { user: config.user, pass: config.pass },
+    greetingTimeout: 10_000,
+    connectionTimeout: 10_000,
+    socketTimeout: 15_000,
   });
 }
 

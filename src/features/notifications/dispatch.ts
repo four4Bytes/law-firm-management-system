@@ -1,6 +1,6 @@
 import { createNotifications } from "@/features/notifications/mutations";
 import type { NotificationDispatchPayload } from "@/features/notifications/schemas";
-import { getUserNameById, getUsersByIds } from "@/features/users/queries";
+import { getActiveUserIds, getUserNameById, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
 import {
@@ -46,10 +46,14 @@ export async function dispatchNotifications(
   actorUserId: string,
   notifyActor: boolean = false,
 ): Promise<{ count: number }> {
-  const userIds = notifyActor
-    ? payload.userIds
+  const actorFilteredIds = notifyActor
+    ? [...payload.userIds]
     : payload.userIds.filter((id) => id !== actorUserId);
 
+  if (actorFilteredIds.length === 0) return { count: 0 };
+
+  const activeIds = await getActiveUserIds({ ids: actorFilteredIds });
+  const userIds = [...new Set(activeIds)];
   if (userIds.length === 0) return { count: 0 };
 
   const filteredPayload = { ...payload, userIds };

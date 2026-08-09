@@ -16,7 +16,7 @@ export async function register() {
   }
 
   if (!process.env.VERCEL) {
-    const REMINDER_CRON_SCHEDULE = "0 * * * *";
+    const REMINDER_CRON_SCHEDULE = "0 0 * * *";
     const cron = await import("node-cron");
     const { runReminderCheck } = await import("@/features/reminders/scheduler");
     cron.schedule(REMINDER_CRON_SCHEDULE, runReminderCheck, { noOverlap: true });

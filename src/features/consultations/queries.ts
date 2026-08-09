@@ -214,7 +214,7 @@ export const getConsultationsPaginated = cache(
 
 export type ConsultationEditData = Pick<
   Consultation,
-  "id" | "client_id" | "concern" | "booking_datetime" | "status"
+  "id" | "client_id" | "concern" | "booking_datetime" | "status" | "reminder_days"
 > & { assignee_ids: string[] };
 
 export const getConsultationAssigneeIds = cache(
@@ -237,6 +237,7 @@ export const getConsultationEditData = cache(
         concern: true,
         booking_datetime: true,
         status: true,
+        reminder_days: true,
         consultationAssignments: {
           select: { user_id: true },
         },
@@ -251,6 +252,7 @@ export const getConsultationEditData = cache(
       concern: data.concern,
       booking_datetime: data.booking_datetime,
       status: data.status,
+      reminder_days: data.reminder_days,
       assignee_ids: data.consultationAssignments.map((a) => a.user_id),
     };
   },

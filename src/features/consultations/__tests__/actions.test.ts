@@ -78,6 +78,7 @@ describe("getConsultationForEditAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      reminder_days: null,
       assignee_ids: [],
     });
     expect(prisma.consultation.findUnique).toHaveBeenLastCalledWith({
@@ -88,6 +89,7 @@ describe("getConsultationForEditAction", () => {
         concern: true,
         booking_datetime: true,
         status: true,
+        reminder_days: true,
         consultationAssignments: {
           select: { user_id: true },
         },

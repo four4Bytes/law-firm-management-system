@@ -6,10 +6,7 @@ import { getOptionalInteger } from "@/lib/env";
 import {
   claimConsultationReminder,
   claimMilestoneReminder,
-  releaseConsultationReminder,
-  releaseMilestoneReminder,
-  updateConsultationsRemindedAt,
-  updateMilestonesRemindedAt,
+  suppressMilestoneOverdue,
 } from "./mutations";
 import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from "./queries";
 
@@ -34,7 +31,6 @@ export async function runReminderCheck(): Promise<void> {
 
 async function processMilestones(defaultDays: number, now: Date): Promise<void> {
   const milestones = await getMilestonesNeedingReminder();
-  const reminded: string[] = [];
 
   for (const m of milestones) {
     const reminderDays = m.reminderDays ?? defaultDays;
@@ -44,8 +40,6 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
 
     if (!isDueSoon && !isOverdue) continue;
     if (m.assigneeIds.length === 0) continue;
-
-    if (!(await claimMilestoneReminder(m.id))) continue;
 
     const type = isOverdue ? NotificationType.MilestoneOverdue : NotificationType.MilestoneDueSoon;
     const label = isOverdue ? "overdue" : "due soon";
@@ -63,15 +57,15 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
         },
         SYSTEM_USER_ID,
       );
-      reminded.push(m.id);
+
+      if (isOverdue) {
+        await suppressMilestoneOverdue(m.id);
+      } else {
+        await claimMilestoneReminder(m.id);
+      }
     } catch (err) {
       console.error(`Failed to dispatch milestone reminder ${m.id}:`, err);
-      await releaseMilestoneReminder(m.id);
     }
-  }
-
-  if (reminded.length > 0) {
-    await updateMilestonesRemindedAt(reminded);
   }
 }
 
@@ -82,14 +76,10 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
   const adminIds = await getRoleRecipientIds(NotificationType.ConsultationReminder);
   if (adminIds.length === 0) return;
 
-  const reminded: string[] = [];
-
   for (const c of consultations) {
     const reminderDays = c.reminderDays ?? defaultDays;
     const remindThreshold = new Date(now.getTime() + reminderDays * 86_400_000);
     if (!(c.booking_datetime <= remindThreshold && c.booking_datetime > now)) continue;
-
-    if (!(await claimConsultationReminder(c.id))) continue;
 
     try {
       await dispatchNotifications(
@@ -103,14 +93,10 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
         },
         SYSTEM_USER_ID,
       );
-      reminded.push(c.id);
+
+      await claimConsultationReminder(c.id);
     } catch (err) {
       console.error(`Failed to dispatch consultation reminder ${c.id}:`, err);
-      await releaseConsultationReminder(c.id);
     }
-  }
-
-  if (reminded.length > 0) {
-    await updateConsultationsRemindedAt(reminded);
   }
 }

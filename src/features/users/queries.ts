@@ -15,6 +15,16 @@ export const getActiveUserIdsByRoles = cache(
   },
 );
 
+export const getActiveUserIds = cache(async (payload: { ids: string[] }): Promise<string[]> => {
+  const { ids } = payload;
+  if (ids.length === 0) return [];
+  const users = await prisma.user.findMany({
+    where: { id: { in: ids }, is_active: true },
+    select: { id: true },
+  });
+  return users.map((u) => u.id);
+});
+
 const userSelect = {
   id: true,
   name: true,

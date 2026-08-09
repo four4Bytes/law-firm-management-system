@@ -81,7 +81,6 @@ src/
 │   ├── types.ts                         # Shared type definitions
 │   ├── useDebounce.ts                   # Debounce hook
 │   ├── useModalForm.ts                  # Modal form lifecycle hook
-│   ├── notification-config.ts           # Notification role mapping
 │   └── developer-emails.ts              # Dev account allowlist
 ├── styles/
 │   └── variables.css                    # Design tokens (primitives → semantic)

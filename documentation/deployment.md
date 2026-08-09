@@ -148,16 +148,16 @@ mc stat local/law-firm-files/OBJECT_KEY       # → Encryption method: AES256
 
 ## Scheduled Reminder System
 
-The app automatically sends reminder notifications for approaching milestone deadlines and upcoming consultations.
+> The full behavior (recipients, windows, claim/suppress semantics, retention) is specified in [Notifications & Reminders](./notifications.md). This section covers deployment concerns only.
 
 ### How it works
 
 A daily background job (midnight local time for self-hosted, midnight UTC on Vercel) checks for milestones and consultations that need reminders:
 
 - **Milestones** — Queries pending milestones where `due_date` is within `reminder_days` (per-record or env default). Sends `MilestoneDueSoon`. Past-due milestones send `MilestoneOverdue`.
-- **Consultations** — Queries scheduled consultations within the same window. Sends `ConsultationReminder` to Admins and Branch Managers.
+- **Consultations** — Queries scheduled consultations within the same window. Sends `ConsultationReminder` to consultation assignees; past-due bookings send `ConsultationOverdue`.
 
-Each record is only reminded once per day via the `last_reminded_at` field. Past-due milestones are notified once (`MilestoneOverdue`); rescheduling a milestone or consultation resets its reminder state so reminders re-arm for the new schedule.
+Each record is only reminded once per day via the `last_reminded_at` field. Past-due records are notified once; rescheduling a milestone or consultation resets its reminder state so reminders re-arm for the new schedule.
 
 ### Trigger mechanism
 
@@ -168,10 +168,11 @@ Each record is only reminded once per day via the `last_reminded_at` field. Past
 
 ### Environment variables
 
-| Variable                | Required       | Default | Description                                                                                                                |
-| ----------------------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS` | No             | `3`     | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                        |
-| `CRON_SECRET`           | Yes (all envs) | —       | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables. |
+| Variable                      | Required       | Default | Description                                                                                                                |
+| ----------------------------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_REMINDER_DAYS`       | No             | `3`     | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                        |
+| `NOTIFICATION_RETENTION_DAYS` | No             | `90`    | Delete Notification rows older than this many days (runs with the daily job)                                               |
+| `CRON_SECRET`                 | Yes (all envs) | —       | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables. |
 
 ### Setting up with Vercel Cron Jobs
 

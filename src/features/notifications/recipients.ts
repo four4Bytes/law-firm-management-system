@@ -1,12 +1,3 @@
-import { getActiveUserIdsByRoles } from "@/features/users/queries";
-import { notificationRoleConfig } from "@/lib/notification-config";
-
-export async function getRoleRecipientIds(
-  type: keyof typeof notificationRoleConfig,
-): Promise<string[]> {
-  return getActiveUserIdsByRoles({ roles: notificationRoleConfig[type] });
-}
-
 export interface AssignmentRecipientsPayload {
   directUserIds?: string[];
   entityId?: string;

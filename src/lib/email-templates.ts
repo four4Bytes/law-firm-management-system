@@ -202,16 +202,16 @@ function button(url: string, label: string): string {
 // ── Templates ─────────────────────────────────────────────────────────────────
 
 /**
- * Renders the email body for a consultation-assigned notification.
+ * Renders the email body for a consultation-updated notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.
  * @returns A complete HTML string (via {@link emailLayout}).
  */
-export function consultationAssignedTemplate(ctx: TemplateContext): string {
+export function consultationUpdatedTemplate(ctx: TemplateContext): string {
   return emailLayout(
-    "New Consultation Assigned",
+    "Consultation Updated",
     greeting(ctx.toName) +
-      rawText(`${escapeHtml(ctx.actorName)} has assigned you a consultation.`) +
+      text("A consultation has been updated.") +
       text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
   );
@@ -261,22 +261,6 @@ export function consultationCreatedTemplate(ctx: TemplateContext): string {
     greeting(ctx.toName) +
       text(`${ctx.actorName} has scheduled a new consultation.`) +
       quoted(ctx.message) +
-      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
-  );
-}
-
-/**
- * Renders the email body for a consultation-updated notification.
- *
- * @param ctx - Standard template context with recipient, actor, and message data.
- * @returns A complete HTML string (via {@link emailLayout}).
- */
-export function consultationUpdatedTemplate(ctx: TemplateContext): string {
-  return emailLayout(
-    "Consultation Updated",
-    greeting(ctx.toName) +
-      text("A consultation has been updated.") +
-      text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
   );
 }

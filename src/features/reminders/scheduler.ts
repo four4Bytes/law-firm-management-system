@@ -1,3 +1,6 @@
+// Mirrors documentation/notifications.md — the reminder scheduling rules are the spec.
+// Change the doc and this implementation together.
+
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
 import { NotificationType } from "@/generated/prisma/browser";

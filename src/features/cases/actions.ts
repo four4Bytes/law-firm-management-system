@@ -22,10 +22,7 @@ import {
 } from "@/features/cases/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import {
-  diffNewAssigneeIds,
-  resolveAssignmentRecipients,
-} from "@/features/notifications/recipients";
+import { resolveAssignmentRecipients } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
@@ -388,7 +385,6 @@ export async function updateCaseAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
           entityId: caseId,
           getExistingDirectUserIds: getCaseAssigneeIds,
         });
@@ -403,7 +399,6 @@ export async function updateCaseAction(
             caseId,
           },
           session.id,
-          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -439,8 +434,6 @@ export async function updateCaseWithClientAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    const existingAssigneeIds = await getCaseAssigneeIds(case_id);
-
     await updateCaseWithClient({
       case_id,
       client_id,
@@ -463,7 +456,6 @@ export async function updateCaseWithClientAction(
 
       try {
         const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: diffNewAssigneeIds(caseData.assignee_ids, existingAssigneeIds),
           entityId: case_id,
           getExistingDirectUserIds: getCaseAssigneeIds,
         });
@@ -478,7 +470,6 @@ export async function updateCaseWithClientAction(
             caseId: case_id,
           },
           session.id,
-          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);

@@ -18,11 +18,7 @@ import {
 } from "@/features/consultations/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import {
-  diffNewAssigneeIds,
-  getRoleRecipientIds,
-  resolveAssignmentRecipients,
-} from "@/features/notifications/recipients";
+import { resolveAssignmentRecipients } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import {
@@ -183,23 +179,6 @@ export async function createConsultationAction(
       }
 
       try {
-        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationCreated);
-        await dispatchNotifications(
-          {
-            userIds: adminIds,
-            type: NotificationType.ConsultationCreated,
-            title: "New consultation booked",
-            message: `A consultation was scheduled for ${concern.substring(0, 100)}`,
-            actionUrl: `/consultation/${createdConsultation.id}`,
-            consultationId: createdConsultation.id,
-          },
-          session.id,
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
-
-      try {
         const notifyIds = await resolveAssignmentRecipients({
           directUserIds: assignee_ids,
           entityId: createdConsultation.id,
@@ -209,9 +188,9 @@ export async function createConsultationAction(
         await dispatchNotifications(
           {
             userIds: notifyIds,
-            type: NotificationType.ConsultationAssigned,
-            title: "New consultation assigned",
-            message: `You have been assigned to consultation "${concern.substring(0, 100)}"`,
+            type: NotificationType.ConsultationCreated,
+            title: "New consultation booked",
+            message: `A consultation was scheduled for ${concern.substring(0, 100)}`,
             actionUrl: `/consultation/${createdConsultation.id}`,
             consultationId: createdConsultation.id,
           },
@@ -269,23 +248,6 @@ export async function createConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationCreated);
-        await dispatchNotifications(
-          {
-            userIds: adminIds,
-            type: NotificationType.ConsultationCreated,
-            title: "New consultation booked",
-            message: `A consultation was scheduled for ${parsed.data.consultation.concern.substring(0, 100)}`,
-            actionUrl: `/consultation/${createdWithClient.id}`,
-            consultationId: createdWithClient.id,
-          },
-          session.id,
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
-
-      try {
         const notifyIds = await resolveAssignmentRecipients({
           directUserIds: parsed.data.consultation.assignee_ids,
           entityId: createdWithClient.id,
@@ -295,9 +257,9 @@ export async function createConsultationWithClientAction(
         await dispatchNotifications(
           {
             userIds: notifyIds,
-            type: NotificationType.ConsultationAssigned,
-            title: "New consultation assigned",
-            message: `You have been assigned to consultation "${parsed.data.consultation.concern.substring(0, 100)}"`,
+            type: NotificationType.ConsultationCreated,
+            title: "New consultation booked",
+            message: `A consultation was scheduled for ${parsed.data.consultation.concern.substring(0, 100)}`,
             actionUrl: `/consultation/${createdWithClient.id}`,
             consultationId: createdWithClient.id,
           },
@@ -378,25 +340,7 @@ export async function updateConsultationAction(
       }
 
       try {
-        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationUpdated);
-        await dispatchNotifications(
-          {
-            userIds: adminIds,
-            type: NotificationType.ConsultationUpdated,
-            title: "Consultation updated",
-            message: `Consultation was updated: "${concern.substring(0, 100)}"`,
-            actionUrl: `/consultation/${consultationId}`,
-            consultationId,
-          },
-          session.id,
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
-
-      try {
         const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: diffNewAssigneeIds(assignee_ids, existing.assignee_ids),
           entityId: consultationId,
           getExistingDirectUserIds: getConsultationAssigneeIds,
         });
@@ -404,14 +348,13 @@ export async function updateConsultationAction(
         await dispatchNotifications(
           {
             userIds: notifyIds,
-            type: NotificationType.ConsultationAssigned,
-            title: "Consultation assigned",
-            message: `You have been assigned to consultation "${concern.substring(0, 100)}"`,
+            type: NotificationType.ConsultationUpdated,
+            title: "Consultation updated",
+            message: `Consultation was updated: "${concern.substring(0, 100)}"`,
             actionUrl: `/consultation/${consultationId}`,
             consultationId,
           },
           session.id,
-          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
@@ -447,7 +390,6 @@ export async function updateConsultationWithClientAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    const existingAssigneeIds = await getConsultationAssigneeIds(consultation_id);
     const resetReminderTiming =
       existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime() ||
       existing.reminder_days !== consultation.reminder_days;
@@ -478,25 +420,7 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const adminIds = await getRoleRecipientIds(NotificationType.ConsultationUpdated);
-        await dispatchNotifications(
-          {
-            userIds: adminIds,
-            type: NotificationType.ConsultationUpdated,
-            title: "Consultation updated",
-            message: `Consultation was updated: "${consultation.concern.substring(0, 100)}"`,
-            actionUrl: `/consultation/${consultation_id}`,
-            consultationId: consultation_id,
-          },
-          session.id,
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
-
-      try {
         const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: diffNewAssigneeIds(consultation.assignee_ids, existingAssigneeIds),
           entityId: consultation_id,
           getExistingDirectUserIds: getConsultationAssigneeIds,
         });
@@ -504,14 +428,13 @@ export async function updateConsultationWithClientAction(
         await dispatchNotifications(
           {
             userIds: notifyIds,
-            type: NotificationType.ConsultationAssigned,
-            title: "Consultation assigned",
-            message: `You have been assigned to consultation "${consultation.concern.substring(0, 100)}"`,
+            type: NotificationType.ConsultationUpdated,
+            title: "Consultation updated",
+            message: `Consultation was updated: "${consultation.concern.substring(0, 100)}"`,
             actionUrl: `/consultation/${consultation_id}`,
             consultationId: consultation_id,
           },
           session.id,
-          notifyIds.includes(session.id),
         );
       } catch (err) {
         console.error("Failed to dispatch notification:", err);

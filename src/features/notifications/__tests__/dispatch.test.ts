@@ -22,10 +22,9 @@ vi.mock("@/lib/email", () => ({
 }));
 
 vi.mock("@/lib/email-templates", () => ({
-  consultationAssignedTemplate: vi.fn(() => "<html/>"),
   consultationCreatedTemplate: vi.fn(() => "<html/>"),
-  consultationReminderTemplate: vi.fn(() => "<html/>"),
   consultationUpdatedTemplate: vi.fn(() => "<html/>"),
+  consultationReminderTemplate: vi.fn(() => "<html/>"),
   milestoneTemplate: vi.fn(() => "<html/>"),
   taskAssignedTemplate: vi.fn(() => "<html/>"),
   taskUpdatedTemplate: vi.fn(() => "<html/>"),

@@ -1,3 +1,6 @@
+// Mirrors documentation/notifications.md — the dispatch/recipient/email pipeline is the spec.
+// Change the doc and this implementation together.
+
 import { createNotifications } from "@/features/notifications/mutations";
 import type { NotificationDispatchPayload } from "@/features/notifications/schemas";
 import { getActiveUserIds, getUserNameById, getUsersByIds } from "@/features/users/queries";
@@ -5,7 +8,6 @@ import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
 import {
   caseAssignedTemplate,
-  consultationAssignedTemplate,
   consultationCreatedTemplate,
   consultationOverdueTemplate,
   consultationReminderTemplate,
@@ -17,16 +19,14 @@ import {
 
 function pickTemplate(type: NotificationType) {
   switch (type) {
-    case NotificationType.ConsultationAssigned:
-      return consultationAssignedTemplate;
     case NotificationType.ConsultationCreated:
       return consultationCreatedTemplate;
+    case NotificationType.ConsultationUpdated:
+      return consultationUpdatedTemplate;
     case NotificationType.ConsultationReminder:
       return consultationReminderTemplate;
     case NotificationType.ConsultationOverdue:
       return consultationOverdueTemplate;
-    case NotificationType.ConsultationUpdated:
-      return consultationUpdatedTemplate;
     case NotificationType.MilestoneDueSoon:
     case NotificationType.MilestoneCompleted:
     case NotificationType.MilestoneStatusChanged:

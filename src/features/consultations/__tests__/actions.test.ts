@@ -233,6 +233,26 @@ describe("updateConsultationAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/consultation");
   });
 
+  it("does not clear last_reminded_at when booking and reminder_days are unchanged", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: [],
+    });
+
+    expect(await updateConsultationAction(validPayload)).toEqual({ success: true });
+
+    expect(prisma.consultation.update).toHaveBeenCalledWith({
+      where: { id: uuid },
+      data: expect.not.objectContaining({ last_reminded_at: expect.anything() }),
+      select: { id: true },
+    });
+  });
+
   it("returns an error when update fails", async () => {
     vi.mocked(getConsultationEditData).mockResolvedValue({
       id: uuid,

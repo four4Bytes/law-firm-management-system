@@ -205,6 +205,28 @@ describe("updateMilestoneAction", () => {
 
     expect(result).toEqual({ success: true });
   });
+
+  it("clears reminder_days to null without early-returning", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, reminder_days: 3 });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const payload = {
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: milestoneRecord.due_date,
+      status: milestoneRecord.status,
+      reminder_days: null,
+    };
+
+    const result = await updateMilestoneAction(payload);
+
+    expect(result).toEqual({ success: true });
+    expect(updateMilestone).toHaveBeenCalledWith(
+      uuid,
+      expect.objectContaining({ reminder_days: null, resetReminderTiming: true }),
+    );
+  });
 });
 
 describe("deleteMilestoneAction", () => {

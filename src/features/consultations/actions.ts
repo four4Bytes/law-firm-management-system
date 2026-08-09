@@ -312,7 +312,7 @@ export async function updateConsultationAction(
 
     const resetReminderTiming =
       existing.booking_datetime.getTime() !== booking_datetime.getTime() ||
-      existing.reminder_days !== reminder_days;
+      (reminder_days !== undefined && existing.reminder_days !== reminder_days);
 
     await updateConsultation({
       consultationId,
@@ -410,7 +410,8 @@ export async function updateConsultationWithClientAction(
 
     const resetReminderTiming =
       existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime() ||
-      existing.reminder_days !== consultation.reminder_days;
+      (consultation.reminder_days !== undefined &&
+        existing.reminder_days !== consultation.reminder_days);
 
     await updateConsultationWithClient({
       consultation_id,

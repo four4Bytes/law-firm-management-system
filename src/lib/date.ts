@@ -1,22 +1,40 @@
 import { CalendarDate, getLocalTimeZone, Time, toCalendarDateTime } from "@internationalized/date";
 
+import { getOptionalEnvVar } from "@/lib/env";
+
 /** Date and time conversion/formatting helpers built on `@internationalized/date`. */
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Parses a `Date` or ISO string into a local-timezone `Date`.
- * Date-only strings (`YYYY-MM-DD`) are treated as local calendar dates
- * to avoid the UTC-to-local shift that `new Date("YYYY-MM-DD")` produces.
+ * Resolves the application timezone for display formatting.
+ *
+ * On the server the `APP_TIMEZONE` environment variable is honored (e.g.
+ * `"Asia/Manila"`), falling back to the runtime's local timezone when unset.
+ * Client-side rendering always uses the browser's local timezone.
+ *
+ * @returns An IANA timezone identifier (e.g. `"Asia/Manila"`).
+ */
+export function getAppTimeZone(): string {
+  if (typeof window === "undefined") {
+    return getOptionalEnvVar("APP_TIMEZONE", getLocalTimeZone());
+  }
+  return getLocalTimeZone();
+}
+
+/**
+ * Parses a `Date` or ISO string into an app-timezone `Date`.
+ * Date-only strings (`YYYY-MM-DD`) are treated as calendar dates in the app
+ * timezone to avoid the UTC-to-local shift that `new Date("YYYY-MM-DD")` produces.
  *
  * @param date - A Date object or ISO 8601 string.
- * @returns A Date object in the local timezone.
+ * @returns A Date object in the app timezone.
  */
 function toLocalDate(date: Date | string): Date {
   if (typeof date !== "string") return date;
   if (DATE_ONLY_RE.test(date)) {
     const [y, m, d] = date.split("-").map(Number);
-    return new CalendarDate(y, m, d).toDate(getLocalTimeZone());
+    return new CalendarDate(y, m, d).toDate(getAppTimeZone());
   }
   return new Date(date);
 }
@@ -61,6 +79,7 @@ export function combineDateTime(date: CalendarDate, time: Time): Date {
 export function formatDate(date: Date | string): string {
   const d = toLocalDate(date);
   return new Intl.DateTimeFormat("en-US", {
+    timeZone: getAppTimeZone(),
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -77,6 +96,7 @@ export function formatDateTime(date: Date | string): string {
   const d = toLocalDate(date);
   const dateStr = formatDate(d);
   const timeStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: getAppTimeZone(),
     hour: "numeric",
     minute: "2-digit",
   }).format(d);

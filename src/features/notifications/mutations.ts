@@ -37,3 +37,13 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
     data: { is_read: true },
   });
 }
+
+export async function pruneNotifications(retentionDays: number): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - retentionDays);
+
+  const result = await prisma.notification.deleteMany({
+    where: { created_at: { lt: cutoff } },
+  });
+  return result.count;
+}

@@ -234,6 +234,22 @@ export function consultationReminderTemplate(ctx: TemplateContext): string {
 }
 
 /**
+ * Renders the email body for a consultation-overdue notification.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
+export function consultationOverdueTemplate(ctx: TemplateContext): string {
+  return emailLayout(
+    "Overdue Consultation",
+    greeting(ctx.toName) +
+      text("This is a reminder that you have an overdue consultation.") +
+      quoted(ctx.message) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
+  );
+}
+
+/**
  * Renders the email body for a consultation-created notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.

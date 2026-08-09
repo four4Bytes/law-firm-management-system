@@ -144,10 +144,11 @@ A milestone or consultation is a _candidate_ when all of:
 
 ### Failure semantics
 
-Dispatch happens **before** claiming/suppressing, within one try/catch per candidate:
+The guard (claim/suppress) happens **before** dispatch, within one try/catch per candidate:
 
-- dispatch throws → the record is left un-claimed/un-suppressed → it remains eligible for the next daily run.
-- claim is idempotent: it only affects records that are still eligible today.
+- the guard is a conditional update that only wins for records still eligible today — if a concurrent invocation already claimed/suppressed the record, the guard is lost and the candidate is **skipped without dispatching** (a duplicate cron run can never send the same reminder twice);
+- dispatch throws → the guard is released (claim reset to `null` / suppression removed), so the record is still eligible for the next daily run;
+- the guard release is scoped to the exact value this run wrote (`last_reminded_at = {claimedAt}` / the sentinel), so it never clears a guard won by another invocation.
 
 ---
 
@@ -182,7 +183,7 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 | `TaskStatusChanged`      | taskUpdatedTemplate          | Task Updated                   |
 | `CaseAssigned`           | caseAssignedTemplate         | New Case Created               |
 
-> `ConsultationAssigned` exists in the `NotificationType` enum but is **not dispatched** and has no template - the `ConsultationUpdated` notice (all current assignees) covers newly added assignees too.
+> `ConsultationAssigned` exists in the `NotificationType` enum but is **not dispatched** and has no template - the `ConsultationUpdated` notice (all current assignees) covers newly added assignees too. `pickTemplate` in `dispatch.ts` is exhaustive: dispatching any type without a template fails loudly at compile time and at runtime.
 
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
 - All interpolated text is HTML-escaped.
@@ -218,5 +219,5 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 1. **Scheduled dispatch failure** leaves the record eligible for the next daily run (no lost reminders; possible back-to-back retries).
 2. **Email failure** for one recipient never blocks other recipients or the in-app row (logged only).
 3. **Phase isolation** - prune, milestones, and consultations are independent try/catch scopes.
-4. **Once-per-day claim** is an optimistic concurrency guard (claim is conditional on still being un-claimed today) and is the only idempotency mechanism - there is no global lock; duplicate cron invocations within the same day can duplicate emails for the same record.
+4. **Once-per-day claim** is a conditional optimistic guard executed **before** dispatch: concurrent duplicate cron invocations can generate at most one delivery per record per day, and a crashed run can at worst delay a reminder to the next daily cycle (never duplicate it). The guard is per-record, not global.
 5. Seeded/deactivated developer accounts exist only as a bootstrap mechanism and receive no special notification behavior.

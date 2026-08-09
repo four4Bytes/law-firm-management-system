@@ -8,8 +8,12 @@ import { getOptionalInteger } from "@/lib/env";
 import {
   claimConsultationReminder,
   claimMilestoneReminder,
+  retractConsultationOverdue,
+  retractMilestoneOverdue,
   suppressConsultationOverdue,
   suppressMilestoneOverdue,
+  unclaimConsultationReminder,
+  unclaimMilestoneReminder,
 } from "../mutations";
 import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from "../queries";
 import { runReminderCheck } from "../scheduler";
@@ -25,10 +29,14 @@ vi.mock("../queries", () => ({
 }));
 
 vi.mock("../mutations", () => ({
-  claimMilestoneReminder: vi.fn().mockResolvedValue(true),
-  claimConsultationReminder: vi.fn().mockResolvedValue(true),
-  suppressMilestoneOverdue: vi.fn().mockResolvedValue(undefined),
-  suppressConsultationOverdue: vi.fn().mockResolvedValue(undefined),
+  claimMilestoneReminder: vi.fn().mockResolvedValue(new Date("2026-08-09T10:00:00")),
+  claimConsultationReminder: vi.fn().mockResolvedValue(new Date("2026-08-09T10:00:00")),
+  unclaimMilestoneReminder: vi.fn().mockResolvedValue(undefined),
+  unclaimConsultationReminder: vi.fn().mockResolvedValue(undefined),
+  suppressMilestoneOverdue: vi.fn().mockResolvedValue(true),
+  suppressConsultationOverdue: vi.fn().mockResolvedValue(true),
+  retractMilestoneOverdue: vi.fn().mockResolvedValue(undefined),
+  retractConsultationOverdue: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/notifications/dispatch", () => ({
@@ -47,6 +55,7 @@ beforeEach(() => {
 
   vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([]);
   vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([]);
+  vi.mocked(getOptionalInteger).mockReturnValue(3);
 
   vi.mocked(dispatchNotifications).mockImplementation(async () => {
     callOrder.push("dispatch");
@@ -54,17 +63,31 @@ beforeEach(() => {
   });
   vi.mocked(claimMilestoneReminder).mockImplementation(async () => {
     callOrder.push("claimMilestone");
-    return true;
+    return new Date("2026-08-09T10:00:00");
   });
   vi.mocked(claimConsultationReminder).mockImplementation(async () => {
     callOrder.push("claimConsultation");
-    return true;
+    return new Date("2026-08-09T10:00:00");
+  });
+  vi.mocked(unclaimMilestoneReminder).mockImplementation(async () => {
+    callOrder.push("unclaimMilestone");
+  });
+  vi.mocked(unclaimConsultationReminder).mockImplementation(async () => {
+    callOrder.push("unclaimConsultation");
   });
   vi.mocked(suppressMilestoneOverdue).mockImplementation(async () => {
     callOrder.push("suppressMilestoneOverdue");
+    return true;
   });
   vi.mocked(suppressConsultationOverdue).mockImplementation(async () => {
     callOrder.push("suppressConsultationOverdue");
+    return true;
+  });
+  vi.mocked(retractMilestoneOverdue).mockImplementation(async () => {
+    callOrder.push("retractMilestoneOverdue");
+  });
+  vi.mocked(retractConsultationOverdue).mockImplementation(async () => {
+    callOrder.push("retractConsultationOverdue");
   });
   vi.mocked(pruneNotifications).mockImplementation(async () => {
     callOrder.push("prune");
@@ -86,7 +109,7 @@ it("prunes old notifications before processing reminders", async () => {
   expect(callOrder).toEqual(["prune"]);
 });
 
-it("dispatches a due-soon milestone reminder before claiming it", async () => {
+it("claims a due-soon milestone before dispatching its reminder", async () => {
   vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
     {
       id: "m1",
@@ -104,8 +127,26 @@ it("dispatches a due-soon milestone reminder before claiming it", async () => {
     expect.objectContaining({ type: NotificationType.MilestoneDueSoon }),
     expect.any(String),
   );
-  expect(callOrder.slice(1)).toEqual(["dispatch", "claimMilestone"]);
+  expect(callOrder.slice(1)).toEqual(["claimMilestone", "dispatch"]);
   expect(suppressMilestoneOverdue).not.toHaveBeenCalled();
+});
+
+it("skips dispatch when another invocation already claimed the milestone", async () => {
+  vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
+    {
+      id: "m1",
+      title: "File complaint",
+      due_date: new Date("2026-08-12T10:00:00"),
+      caseId: "c1",
+      assigneeIds: ["u1"],
+      reminderDays: 3,
+    },
+  ]);
+  vi.mocked(claimMilestoneReminder).mockResolvedValue(null);
+
+  await runReminderCheck();
+
+  expect(dispatchNotifications).not.toHaveBeenCalled();
 });
 
 it("skips milestones outside the reminder window", async () => {
@@ -143,7 +184,7 @@ it("skips milestones without assignees", async () => {
   expect(dispatchNotifications).not.toHaveBeenCalled();
 });
 
-it("dispatches an overdue milestone once and suppresses it afterwards", async () => {
+it("suppresses an overdue milestone before dispatching its reminder", async () => {
   vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
     {
       id: "m1",
@@ -161,11 +202,29 @@ it("dispatches an overdue milestone once and suppresses it afterwards", async ()
     expect.objectContaining({ type: NotificationType.MilestoneOverdue }),
     expect.any(String),
   );
-  expect(callOrder.slice(1)).toEqual(["dispatch", "suppressMilestoneOverdue"]);
+  expect(callOrder.slice(1)).toEqual(["suppressMilestoneOverdue", "dispatch"]);
   expect(claimMilestoneReminder).not.toHaveBeenCalled();
 });
 
-it("leaves the milestone unclaimed when dispatch fails", async () => {
+it("skips dispatch when another invocation already suppressed the overdue milestone", async () => {
+  vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
+    {
+      id: "m1",
+      title: "File complaint",
+      due_date: new Date("2026-08-01T10:00:00"),
+      caseId: "c1",
+      assigneeIds: ["u1"],
+      reminderDays: 3,
+    },
+  ]);
+  vi.mocked(suppressMilestoneOverdue).mockResolvedValue(false);
+
+  await runReminderCheck();
+
+  expect(dispatchNotifications).not.toHaveBeenCalled();
+});
+
+it("releases the milestone claim when dispatch fails", async () => {
   vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
     {
       id: "m1",
@@ -180,11 +239,28 @@ it("leaves the milestone unclaimed when dispatch fails", async () => {
 
   await runReminderCheck();
 
-  expect(claimMilestoneReminder).not.toHaveBeenCalled();
-  expect(suppressMilestoneOverdue).not.toHaveBeenCalled();
+  expect(unclaimMilestoneReminder).toHaveBeenCalledWith("m1", new Date("2026-08-09T10:00:00"));
 });
 
-it("dispatches due-soon consultation reminders to assignees before claiming", async () => {
+it("retracts an overdue milestone suppression when dispatch fails", async () => {
+  vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
+    {
+      id: "m1",
+      title: "File complaint",
+      due_date: new Date("2026-08-01T10:00:00"),
+      caseId: "c1",
+      assigneeIds: ["u1"],
+      reminderDays: 3,
+    },
+  ]);
+  vi.mocked(dispatchNotifications).mockRejectedValue(new Error("smtp down"));
+
+  await runReminderCheck();
+
+  expect(retractMilestoneOverdue).toHaveBeenCalledWith("m1");
+});
+
+it("claims a due-soon consultation before dispatching to assignees", async () => {
   vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([
     {
       id: "c1",
@@ -204,8 +280,25 @@ it("dispatches due-soon consultation reminders to assignees before claiming", as
     }),
     expect.any(String),
   );
-  expect(callOrder.slice(1)).toEqual(["dispatch", "claimConsultation"]);
+  expect(callOrder.slice(1)).toEqual(["claimConsultation", "dispatch"]);
   expect(suppressConsultationOverdue).not.toHaveBeenCalled();
+});
+
+it("skips when another invocation already claimed the consultation", async () => {
+  vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([
+    {
+      id: "c1",
+      concern: "Boundary dispute",
+      booking_datetime: new Date("2026-08-12T10:00:00"),
+      reminderDays: 3,
+      assigneeIds: ["u1"],
+    },
+  ]);
+  vi.mocked(claimConsultationReminder).mockResolvedValue(null);
+
+  await runReminderCheck();
+
+  expect(dispatchNotifications).not.toHaveBeenCalled();
 });
 
 it("skips consultations outside the reminder window", async () => {
@@ -242,7 +335,7 @@ it("skips consultations without assignees", async () => {
   expect(claimConsultationReminder).not.toHaveBeenCalled();
 });
 
-it("dispatches an overdue consultation once and suppresses it afterwards", async () => {
+it("suppresses an overdue consultation before dispatching its reminder", async () => {
   vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([
     {
       id: "c1",
@@ -259,11 +352,28 @@ it("dispatches an overdue consultation once and suppresses it afterwards", async
     expect.objectContaining({ type: NotificationType.ConsultationOverdue }),
     expect.any(String),
   );
-  expect(callOrder.slice(1)).toEqual(["dispatch", "suppressConsultationOverdue"]);
+  expect(callOrder.slice(1)).toEqual(["suppressConsultationOverdue", "dispatch"]);
   expect(claimConsultationReminder).not.toHaveBeenCalled();
 });
 
-it("leaves the consultation unclaimed when dispatch fails", async () => {
+it("skips dispatch when another invocation already suppressed the consultation", async () => {
+  vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([
+    {
+      id: "c1",
+      concern: "Boundary dispute",
+      booking_datetime: new Date("2026-08-01T10:00:00"),
+      reminderDays: 3,
+      assigneeIds: ["u1"],
+    },
+  ]);
+  vi.mocked(suppressConsultationOverdue).mockResolvedValue(false);
+
+  await runReminderCheck();
+
+  expect(dispatchNotifications).not.toHaveBeenCalled();
+});
+
+it("releases the consultation claim when dispatch fails", async () => {
   vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([
     {
       id: "c1",
@@ -277,8 +387,24 @@ it("leaves the consultation unclaimed when dispatch fails", async () => {
 
   await runReminderCheck();
 
-  expect(claimConsultationReminder).not.toHaveBeenCalled();
-  expect(suppressConsultationOverdue).not.toHaveBeenCalled();
+  expect(unclaimConsultationReminder).toHaveBeenCalledWith("c1", new Date("2026-08-09T10:00:00"));
+});
+
+it("retracts an overdue consultation suppression when dispatch fails", async () => {
+  vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([
+    {
+      id: "c1",
+      concern: "Boundary dispute",
+      booking_datetime: new Date("2026-08-01T10:00:00"),
+      reminderDays: 3,
+      assigneeIds: ["u1"],
+    },
+  ]);
+  vi.mocked(dispatchNotifications).mockRejectedValue(new Error("smtp down"));
+
+  await runReminderCheck();
+
+  expect(retractConsultationOverdue).toHaveBeenCalledWith("c1");
 });
 
 it("uses the env default when reminder_days is not set", async () => {

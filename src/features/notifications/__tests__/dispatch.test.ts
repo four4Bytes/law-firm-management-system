@@ -117,4 +117,11 @@ describe("dispatchNotifications", () => {
 
     expect(sendEmail).not.toHaveBeenCalled();
   });
+
+  it("fails loudly when dispatching a type with no email template", async () => {
+    await expect(
+      dispatchNotifications({ ...payload, type: NotificationType.ConsultationAssigned }, "u9"),
+    ).rejects.toThrow();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
 });

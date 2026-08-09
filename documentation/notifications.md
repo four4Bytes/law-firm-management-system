@@ -86,8 +86,6 @@ Fired by Server Actions, from `after()` callbacks, after the mutation succeeds (
 | Consultation created | Consultation assignees                 | `ConsultationCreated` | Actor included if also an assignee                       |
 | Consultation updated | **All current consultation assignees** | `ConsultationUpdated` | Actor excluded; new assignees covered by the same notice |
 
-> Consultations behave like Cases: only the people assigned to the record are notified - on creation and on every update. Role-based recipients do not exist for consultations.
-
 ---
 
 ## 5. Scheduled Reminders (daily cron)
@@ -138,7 +136,7 @@ A milestone or consultation is a _candidate_ when all of:
 | Overdue                                        | `ConsultationOverdue`  | Consultation assignees | `suppressConsultationOverdue` → sentinel, retired      |
 | No assignees or `Cancelled`/`Completed` status | - (skipped)            | -                      | -                                                      |
 
-**Message dates** use `formatDate`/`formatDateTime` (see [Timezone](#8-timezone-and-formatting)).
+**Message dates** use `formatDate`/`formatDateTime`.
 
 ### Re-arm on reschedule
 
@@ -192,15 +190,7 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 
 ---
 
-## 8. Timezone & Formatting
-
-- Display formatting goes through `formatDate`, `formatDateTime`, `timeAgo` in `src/lib/date.ts`.
-- **Server-side**, formatting uses `APP_TIMEZONE` (IANA, e.g. `Asia/Manila`); unset → server's local timezone.
-- **Client-side**, the browser's own timezone is always used (non-public env vars are never exposed to the client).
-
----
-
-## 9. Bell UI Behavior
+## 8. Bell UI Behavior
 
 - The unread badge shows the server-computed initial count, capped visually at `99+`.
 - The count refreshes: every 30 seconds, on tab visibility change, and on window focus.
@@ -211,7 +201,7 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 
 ---
 
-## 10. Environment Variables
+## 9. Environment Variables
 
 | Variable                      | Required   | Default      | Purpose                                                   |
 | ----------------------------- | ---------- | ------------ | --------------------------------------------------------- |
@@ -223,7 +213,7 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 
 ---
 
-## 11. Failure & Resilience Semantics (as designed)
+## 10. Failure & Resilience Semantics (as designed)
 
 1. **Scheduled dispatch failure** leaves the record eligible for the next daily run (no lost reminders; possible back-to-back retries).
 2. **Email failure** for one recipient never blocks other recipients or the in-app row (logged only).

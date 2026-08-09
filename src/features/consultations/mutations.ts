@@ -24,17 +24,22 @@ export async function createConsultation(
   });
 }
 
+export interface ConsultationUpdateData extends ConsultationUpdatePayload {
+  resetReminderTiming?: boolean;
+}
+
 export async function updateConsultation(
-  data: ConsultationUpdatePayload,
+  data: ConsultationUpdateData,
   tx?: TransactionClient,
 ): Promise<{ id: string }> {
-  const { consultationId, assignee_ids, ...rest } = data;
+  const { consultationId, assignee_ids, resetReminderTiming, ...rest } = data;
   const client = tx || prisma;
 
   return client.consultation.update({
     where: { id: consultationId },
     data: {
       ...rest,
+      ...(resetReminderTiming ? { last_reminded_at: null } : {}),
       ...(assignee_ids !== undefined
         ? {
             consultationAssignments: {
@@ -79,8 +84,12 @@ export async function createConsultationWithClient(
   });
 }
 
+export interface ConsultationWithClientUpdateData extends ConsultationWithClientUpdatePayload {
+  resetReminderTiming?: boolean;
+}
+
 export async function updateConsultationWithClient(
-  data: ConsultationWithClientUpdatePayload & { consultation_id: string; client_id: string },
+  data: ConsultationWithClientUpdateData,
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
     // Verify that the consultation belongs to the specified client
@@ -110,7 +119,9 @@ export async function updateConsultationWithClient(
         concern: data.consultation.concern,
         booking_datetime: data.consultation.booking_datetime,
         status: data.consultation.status,
+        reminder_days: data.consultation.reminder_days,
         assignee_ids: data.consultation.assignee_ids,
+        resetReminderTiming: data.resetReminderTiming,
       },
       tx,
     );

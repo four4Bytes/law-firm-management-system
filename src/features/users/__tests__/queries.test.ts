@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
 
-import { getUserByEmail, getUsers, getUsersPaginated } from "../queries";
+import { getActiveUserIds, getUserByEmail, getUsers, getUsersPaginated } from "../queries";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: { user: { findUnique: vi.fn(), findMany: vi.fn() } },
@@ -200,5 +200,35 @@ describe("getUsersPaginated", () => {
     expect(prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: { created_at: "desc" } }),
     );
+  });
+});
+
+describe("getActiveUserIds", () => {
+  it("returns only the ids of active users", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser({ id: "1" })]);
+
+    const result = await getActiveUserIds({ ids: ["1", "2"] });
+
+    expect(result).toEqual(["1"]);
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ["1", "2"] }, is_active: true },
+      select: { id: true },
+    });
+  });
+
+  it("returns an empty array without querying when no ids are given", async () => {
+    vi.mocked(prisma.user.findMany).mockClear();
+
+    const result = await getActiveUserIds({ ids: [] });
+
+    expect(result).toEqual([]);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it("propagates database errors", async () => {
+    const error = new Error("connection failed");
+    vi.mocked(prisma.user.findMany).mockRejectedValue(error);
+
+    await expect(getActiveUserIds({ ids: ["1"] })).rejects.toThrow(error);
   });
 });

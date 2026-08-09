@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 
+/** Far-future timestamp persisted to `last_reminded_at` to retire an overdue reminder. */
+export const REMINDER_SUPPRESSED_AT = new Date("9999-12-31T23:59:59.000Z");
+
 export async function claimMilestoneReminder(id: string): Promise<boolean> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -28,32 +31,9 @@ export async function claimConsultationReminder(id: string): Promise<boolean> {
   return count > 0;
 }
 
-export async function releaseMilestoneReminder(id: string): Promise<void> {
+export async function suppressMilestoneOverdue(id: string): Promise<void> {
   await prisma.caseMilestone.update({
     where: { id },
-    data: { last_reminded_at: null },
-  });
-}
-
-export async function releaseConsultationReminder(id: string): Promise<void> {
-  await prisma.consultation.update({
-    where: { id },
-    data: { last_reminded_at: null },
-  });
-}
-
-export async function updateMilestonesRemindedAt(ids: string[]): Promise<void> {
-  if (ids.length === 0) return;
-  await prisma.caseMilestone.updateMany({
-    where: { id: { in: ids } },
-    data: { last_reminded_at: new Date() },
-  });
-}
-
-export async function updateConsultationsRemindedAt(ids: string[]): Promise<void> {
-  if (ids.length === 0) return;
-  await prisma.consultation.updateMany({
-    where: { id: { in: ids } },
-    data: { last_reminded_at: new Date() },
+    data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
   });
 }

@@ -141,6 +141,63 @@ it("updates a milestone with description", async () => {
   });
 });
 
+it("clears last_reminded_at when resetReminderTiming is set", async () => {
+  vi.mocked(prisma.caseMilestone.update).mockResolvedValue({
+    id: "m1",
+    title: "Updated",
+    description: null,
+    due_date: new Date("2024-08-01"),
+    status: "Pending",
+    case_id: "c1",
+    created_by_user_id: "u1",
+    created_at: new Date(),
+    updated_at: new Date(),
+  } as never);
+
+  await updateMilestone("m1", {
+    title: "Updated",
+    due_date: new Date("2024-08-01"),
+    status: "Pending",
+    resetReminderTiming: true,
+  });
+
+  expect(prisma.caseMilestone.update).toHaveBeenCalledWith({
+    where: { id: "m1" },
+    data: expect.objectContaining({
+      last_reminded_at: null,
+    }),
+    select: { id: true },
+  });
+});
+
+it("omits last_reminded_at when resetReminderTiming is not set", async () => {
+  vi.mocked(prisma.caseMilestone.update).mockResolvedValue({
+    id: "m1",
+    title: "Updated",
+    description: null,
+    due_date: new Date("2024-08-01"),
+    status: "Pending",
+    case_id: "c1",
+    created_by_user_id: "u1",
+    created_at: new Date(),
+    updated_at: new Date(),
+  } as never);
+
+  await updateMilestone("m1", {
+    title: "Updated",
+    due_date: new Date("2024-08-01"),
+    status: "Pending",
+  });
+
+  expect(prisma.caseMilestone.update).toHaveBeenCalledWith({
+    where: { id: "m1" },
+    data: expect.not.objectContaining({
+      last_reminded_at: expect.anything(),
+    }),
+    select: { id: true },
+  });
+});
+
 it("deletes a milestone", async () => {
   vi.mocked(prisma.caseMilestone.delete).mockResolvedValue({
     id: "m1",

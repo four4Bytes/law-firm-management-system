@@ -133,12 +133,17 @@ export async function updateMilestoneAction(
       return { success: true };
     }
 
+    const resetReminderTiming =
+      existing.due_date.getTime() !== due_date.getTime() ||
+      existing.reminder_days !== (reminder_days ?? existing.reminder_days);
+
     await updateMilestone(milestoneId, {
       title,
       description: description || undefined,
       due_date,
       status,
       reminder_days,
+      resetReminderTiming,
     });
 
     after(async () => {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getStartOfDay } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -21,6 +22,8 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+const TODAY_START = getStartOfDay(new Date("2026-08-09T10:00:00"));
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
@@ -41,7 +44,7 @@ describe("claimMilestoneReminder", () => {
     expect(prisma.caseMilestone.updateMany).toHaveBeenCalledWith({
       where: {
         id: "m1",
-        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: expect.any(Date) } }],
+        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: TODAY_START } }],
       },
       data: { last_reminded_at: new Date("2026-08-09T10:00:00") },
     });
@@ -66,7 +69,7 @@ describe("claimConsultationReminder", () => {
     expect(prisma.consultation.updateMany).toHaveBeenCalledWith({
       where: {
         id: "c1",
-        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: expect.any(Date) } }],
+        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: TODAY_START } }],
       },
       data: { last_reminded_at: new Date("2026-08-09T10:00:00") },
     });
@@ -91,7 +94,7 @@ describe("suppressMilestoneOverdue", () => {
     expect(prisma.caseMilestone.updateMany).toHaveBeenCalledWith({
       where: {
         id: "m1",
-        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: expect.any(Date) } }],
+        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: TODAY_START } }],
       },
       data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
     });
@@ -116,7 +119,7 @@ describe("suppressConsultationOverdue", () => {
     expect(prisma.consultation.updateMany).toHaveBeenCalledWith({
       where: {
         id: "c1",
-        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: expect.any(Date) } }],
+        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: TODAY_START } }],
       },
       data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
     });

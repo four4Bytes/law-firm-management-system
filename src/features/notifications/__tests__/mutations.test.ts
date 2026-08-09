@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { pruneNotifications } from "@/features/notifications/mutations";
 import { prisma } from "@/lib/prisma";
-
-import { pruneNotifications } from "../mutations";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -38,5 +37,26 @@ describe("pruneNotifications", () => {
     const result = await pruneNotifications(90);
 
     expect(result).toBe(0);
+  });
+
+  it("rejects a negative retention window", async () => {
+    await expect(pruneNotifications(-1)).rejects.toThrow(
+      "retentionDays must be a non-negative safe integer",
+    );
+    expect(prisma.notification.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-integer retention window", async () => {
+    await expect(pruneNotifications(3.5)).rejects.toThrow(
+      "retentionDays must be a non-negative safe integer",
+    );
+    expect(prisma.notification.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unsafe retention window", async () => {
+    await expect(pruneNotifications(Number.MAX_SAFE_INTEGER + 1)).rejects.toThrow(
+      "retentionDays must be a non-negative safe integer",
+    );
+    expect(prisma.notification.deleteMany).not.toHaveBeenCalled();
   });
 });

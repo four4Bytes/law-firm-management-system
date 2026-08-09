@@ -19,7 +19,7 @@ import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from ".
 import { runReminderCheck } from "../scheduler";
 
 vi.mock("@/lib/env", () => ({
-  getOptionalInteger: vi.fn().mockReturnValue(3),
+  getOptionalInteger: vi.fn((name: string) => (name === "NOTIFICATION_RETENTION_DAYS" ? 90 : 3)),
   getOptionalEnvVar: vi.fn().mockReturnValue("UTC"),
 }));
 
@@ -56,7 +56,9 @@ beforeEach(() => {
 
   vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([]);
   vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([]);
-  vi.mocked(getOptionalInteger).mockReturnValue(3);
+  vi.mocked(getOptionalInteger).mockImplementation((name) =>
+    name === "NOTIFICATION_RETENTION_DAYS" ? 90 : 3,
+  );
 
   vi.mocked(dispatchNotifications).mockImplementation(async () => {
     callOrder.push("dispatch");
@@ -107,7 +109,7 @@ afterEach(() => {
 it("prunes old notifications before processing reminders", async () => {
   await runReminderCheck();
 
-  expect(pruneNotifications).toHaveBeenCalledWith(3);
+  expect(pruneNotifications).toHaveBeenCalledWith(90);
   expect(callOrder).toEqual(["prune"]);
 });
 
@@ -407,6 +409,58 @@ it("retracts an overdue consultation suppression when dispatch fails", async () 
   await runReminderCheck();
 
   expect(retractConsultationOverdue).toHaveBeenCalledWith("c1");
+});
+
+it("continues past a failed milestone claim rollback so later milestones still dispatch", async () => {
+  vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
+    {
+      id: "m1",
+      title: "File complaint",
+      due_date: new Date("2026-08-12T10:00:00"),
+      caseId: "c1",
+      assigneeIds: ["u1"],
+      reminderDays: 3,
+    },
+    {
+      id: "m2",
+      title: "Serve summons",
+      due_date: new Date("2026-08-12T09:00:00"),
+      caseId: "c2",
+      assigneeIds: ["u2"],
+      reminderDays: 3,
+    },
+  ]);
+  vi.mocked(dispatchNotifications).mockRejectedValue(new Error("smtp down"));
+  vi.mocked(unclaimMilestoneReminder).mockRejectedValue(new Error("db down"));
+
+  await runReminderCheck();
+
+  expect(dispatchNotifications).toHaveBeenCalledTimes(2);
+});
+
+it("continues past a failed consultation rollback so later consultations still dispatch", async () => {
+  vi.mocked(getConsultationsNeedingReminder).mockResolvedValue([
+    {
+      id: "c1",
+      concern: "Boundary dispute",
+      booking_datetime: new Date("2026-08-01T10:00:00"),
+      reminderDays: 3,
+      assigneeIds: ["u1"],
+    },
+    {
+      id: "c2",
+      concern: "Contract review",
+      booking_datetime: new Date("2026-08-02T10:00:00"),
+      reminderDays: 3,
+      assigneeIds: ["u2"],
+    },
+  ]);
+  vi.mocked(dispatchNotifications).mockRejectedValue(new Error("smtp down"));
+  vi.mocked(retractConsultationOverdue).mockRejectedValue(new Error("db down"));
+
+  await runReminderCheck();
+
+  expect(dispatchNotifications).toHaveBeenCalledTimes(2);
 });
 
 it("uses the env default when reminder_days is not set", async () => {

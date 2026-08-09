@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  getActiveUserIds,
+  getUserByEmail,
+  getUsers,
+  getUsersPaginated,
+} from "@/features/users/queries";
 import { prisma } from "@/lib/prisma";
-
-import { getActiveUserIds, getUserByEmail, getUsers, getUsersPaginated } from "../queries";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: { user: { findUnique: vi.fn(), findMany: vi.fn() } },

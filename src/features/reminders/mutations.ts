@@ -1,13 +1,8 @@
+import { getStartOfDay } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 /** Far-future timestamp persisted to `last_reminded_at` to retire an overdue reminder. */
 export const REMINDER_SUPPRESSED_AT = new Date("9999-12-31T23:59:59.000Z");
-
-function getTodayStart(): Date {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  return todayStart;
-}
 
 /**
  * Claims a reminder of today for a record, returning the written timestamp
@@ -62,7 +57,7 @@ export async function unclaimConsultationReminder(id: string, claimedAt: Date): 
  * @returns The claim timestamp, or `null` when the claim was lost.
  */
 export async function claimMilestoneReminder(id: string): Promise<Date | null> {
-  const todayStart = getTodayStart();
+  const todayStart = getStartOfDay(new Date());
   return claimReminder((claimedAt) =>
     prisma.caseMilestone.updateMany({
       where: { id, OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: todayStart } }] },
@@ -78,7 +73,7 @@ export async function claimMilestoneReminder(id: string): Promise<Date | null> {
  * @returns The claim timestamp, or `null` when the claim was lost.
  */
 export async function claimConsultationReminder(id: string): Promise<Date | null> {
-  const todayStart = getTodayStart();
+  const todayStart = getStartOfDay(new Date());
   return claimReminder((claimedAt) =>
     prisma.consultation.updateMany({
       where: { id, OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: todayStart } }] },
@@ -96,7 +91,7 @@ export async function claimConsultationReminder(id: string): Promise<Date | null
  * @returns `true` when the guard was won, `false` when already suppressed.
  */
 export async function suppressMilestoneOverdue(id: string): Promise<boolean> {
-  const todayStart = getTodayStart();
+  const todayStart = getStartOfDay(new Date());
   const { count } = await prisma.caseMilestone.updateMany({
     where: { id, OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: todayStart } }] },
     data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
@@ -125,7 +120,7 @@ export async function retractMilestoneOverdue(id: string): Promise<void> {
  * @returns `true` when the guard was won, `false` when already suppressed.
  */
 export async function suppressConsultationOverdue(id: string): Promise<boolean> {
-  const todayStart = getTodayStart();
+  const todayStart = getStartOfDay(new Date());
   const { count } = await prisma.consultation.updateMany({
     where: { id, OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: todayStart } }] },
     data: { last_reminded_at: REMINDER_SUPPRESSED_AT },

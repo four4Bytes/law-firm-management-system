@@ -61,10 +61,12 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
     const label = isOverdue ? "overdue" : "due soon";
 
     let claimedAt: Date | null = null;
-    const guardWon = isOverdue
-      ? await suppressMilestoneOverdue(m.id)
-      : (claimedAt = await claimMilestoneReminder(m.id)) !== null;
-    if (!guardWon) continue;
+    if (isOverdue) {
+      if (!(await suppressMilestoneOverdue(m.id))) continue;
+    } else {
+      claimedAt = await claimMilestoneReminder(m.id);
+      if (claimedAt === null) continue;
+    }
 
     try {
       await dispatchNotifications(
@@ -80,10 +82,14 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
         SYSTEM_USER_ID,
       );
     } catch (err) {
-      if (isOverdue) {
-        await retractMilestoneOverdue(m.id);
-      } else {
-        await unclaimMilestoneReminder(m.id, claimedAt!);
+      try {
+        if (isOverdue) {
+          await retractMilestoneOverdue(m.id);
+        } else if (claimedAt !== null) {
+          await unclaimMilestoneReminder(m.id, claimedAt);
+        }
+      } catch (rollbackErr) {
+        console.error(`Failed to roll back milestone reminder ${m.id}:`, rollbackErr);
       }
       console.error(`Failed to dispatch milestone reminder ${m.id}:`, err);
     }
@@ -108,10 +114,12 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
     const label = isOverdue ? "overdue" : "upcoming";
 
     let claimedAt: Date | null = null;
-    const guardWon = isOverdue
-      ? await suppressConsultationOverdue(c.id)
-      : (claimedAt = await claimConsultationReminder(c.id)) !== null;
-    if (!guardWon) continue;
+    if (isOverdue) {
+      if (!(await suppressConsultationOverdue(c.id))) continue;
+    } else {
+      claimedAt = await claimConsultationReminder(c.id);
+      if (claimedAt === null) continue;
+    }
 
     try {
       await dispatchNotifications(
@@ -126,10 +134,14 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
         SYSTEM_USER_ID,
       );
     } catch (err) {
-      if (isOverdue) {
-        await retractConsultationOverdue(c.id);
-      } else {
-        await unclaimConsultationReminder(c.id, claimedAt!);
+      try {
+        if (isOverdue) {
+          await retractConsultationOverdue(c.id);
+        } else if (claimedAt !== null) {
+          await unclaimConsultationReminder(c.id, claimedAt);
+        }
+      } catch (rollbackErr) {
+        console.error(`Failed to roll back consultation reminder ${c.id}:`, rollbackErr);
       }
       console.error(`Failed to dispatch consultation reminder ${c.id}:`, err);
     }

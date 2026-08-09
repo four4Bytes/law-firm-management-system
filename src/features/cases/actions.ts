@@ -22,7 +22,10 @@ import {
 } from "@/features/cases/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { resolveAssignmentRecipients } from "@/features/notifications/recipients";
+import {
+  diffNewAssigneeIds,
+  resolveAssignmentRecipients,
+} from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
@@ -384,22 +387,37 @@ export async function updateCaseAction(
       }
 
       try {
-        const notifyIds = await resolveAssignmentRecipients({
-          entityId: caseId,
-          getExistingDirectUserIds: getCaseAssigneeIds,
-        });
+        const currentAssigneeIds = await getCaseAssigneeIds(caseId);
+        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
+        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
 
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.CaseAssigned,
-            title: `Case updated: ${case_title}`,
-            message: `Case "${case_title}" was updated`,
-            actionUrl: `/case/${caseId}`,
-            caseId,
-          },
-          session.id,
-        );
+        if (newAssigneeIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: newAssigneeIds,
+              type: NotificationType.CaseAssigned,
+              title: `Case assigned: ${case_title}`,
+              message: `You have been assigned to case: "${case_title}"`,
+              actionUrl: `/case/${caseId}`,
+              caseId,
+            },
+            session.id,
+          );
+        }
+
+        if (updatedRecipientIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: updatedRecipientIds,
+              type: NotificationType.CaseUpdated,
+              title: `Case updated: ${case_title}`,
+              message: `Case "${case_title}" was updated`,
+              actionUrl: `/case/${caseId}`,
+              caseId,
+            },
+            session.id,
+          );
+        }
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }
@@ -455,22 +473,37 @@ export async function updateCaseWithClientAction(
       }
 
       try {
-        const notifyIds = await resolveAssignmentRecipients({
-          entityId: case_id,
-          getExistingDirectUserIds: getCaseAssigneeIds,
-        });
+        const currentAssigneeIds = await getCaseAssigneeIds(case_id);
+        const newAssigneeIds = diffNewAssigneeIds(currentAssigneeIds, existing.assignee_ids);
+        const updatedRecipientIds = currentAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
 
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.CaseAssigned,
-            title: `Case updated: ${caseData.case_title}`,
-            message: `Case "${caseData.case_title}" was updated for client "${client.name}"`,
-            actionUrl: `/case/${case_id}`,
-            caseId: case_id,
-          },
-          session.id,
-        );
+        if (newAssigneeIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: newAssigneeIds,
+              type: NotificationType.CaseAssigned,
+              title: `Case assigned: ${caseData.case_title}`,
+              message: `You have been assigned to case: "${caseData.case_title}"`,
+              actionUrl: `/case/${case_id}`,
+              caseId: case_id,
+            },
+            session.id,
+          );
+        }
+
+        if (updatedRecipientIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: updatedRecipientIds,
+              type: NotificationType.CaseUpdated,
+              title: `Case updated: ${caseData.case_title}`,
+              message: `Case "${caseData.case_title}" was updated for client "${client.name}"`,
+              actionUrl: `/case/${case_id}`,
+              caseId: case_id,
+            },
+            session.id,
+          );
+        }
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }

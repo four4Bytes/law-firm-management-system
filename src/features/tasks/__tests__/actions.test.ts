@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Role } from "@/generated/prisma/browser";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { NotificationType, Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
@@ -10,7 +11,19 @@ import {
   getTaskDetailRowByIdAction,
   updateTaskAction,
 } from "../actions";
+import { updateTask } from "../mutations";
 import { getTaskAccessContext, getTaskById, getTaskDetailRowById } from "../queries";
+
+async function flushAfterCallbacks(): Promise<void> {
+  const server = (await import("next/server")) as unknown as {
+    __flushAfterCallbacks: () => Promise<void>;
+  };
+  await server.__flushAfterCallbacks();
+}
+
+afterEach(async () => {
+  await flushAfterCallbacks();
+});
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }),
@@ -21,24 +34,27 @@ vi.mock("@/features/cases/queries", () => ({
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
-  createAuditLog: vi.fn(),
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/notifications/dispatch", () => ({
-  dispatchNotifications: vi.fn(),
-}));
-
-vi.mock("@/features/notifications/recipients", () => ({
-  diffNewAssigneeIds: vi.fn(),
+  dispatchNotifications: vi.fn().mockResolvedValue({ count: 0 }),
 }));
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("next/server", () => ({
-  after: vi.fn(),
-}));
+vi.mock("next/server", () => {
+  const afterCallbacks: Array<() => void | Promise<void>> = [];
+  return {
+    after: vi.fn((fn: () => void | Promise<void>) => {
+      afterCallbacks.push(fn);
+    }),
+    __flushAfterCallbacks: () =>
+      Promise.all(afterCallbacks.splice(0).map((fn) => Promise.resolve(fn()))),
+  };
+});
 
 vi.mock("../queries", () => ({
   getActiveUsers: vi.fn(),
@@ -171,6 +187,57 @@ describe("updateTaskAction", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+});
+
+describe("updateTaskAction notification split", () => {
+  const assignee1 = uuid;
+  const assignee2 = "550e8400-e29b-41d4-a716-446655440001";
+
+  beforeEach(() => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      taskAssignments: [{ user_id: assignee1, user: { name: "n2" } }],
+    });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
+  });
+
+  it("dispatches TaskAssigned only to the new assignee and TaskStatusChanged to the rest", async () => {
+    await updateTaskAction({
+      taskId: uuid,
+      title: "Renamed",
+      description: undefined,
+      status: "Ongoing" as const,
+      assignee_ids: [assignee1, assignee2],
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const assigned = calls.find(([payload]) => payload.type === NotificationType.TaskAssigned);
+    const updated = calls.find(([payload]) => payload.type === NotificationType.TaskStatusChanged);
+
+    expect(calls).toHaveLength(2);
+    expect(assigned?.[0].userIds).toEqual([assignee2]);
+    expect(updated?.[0].userIds).toEqual([assignee1]);
+  });
+
+  it("dispatches only TaskAssigned when only the assignee set changed", async () => {
+    await updateTaskAction({
+      taskId: uuid,
+      title: "Draft memo",
+      description: undefined,
+      status: "Pending" as const,
+      assignee_ids: [assignee1, assignee2],
+    });
+    await flushAfterCallbacks();
+
+    const types = vi.mocked(dispatchNotifications).mock.calls.map(([payload]) => payload.type);
+    expect(types).toEqual([NotificationType.TaskAssigned]);
   });
 });
 

@@ -55,18 +55,18 @@ Fired by Server Actions, from `after()` callbacks, after the mutation succeeds (
 
 ### Cases
 
-| Event        | Recipients                     | Type           | Notes                                                                         |
-| ------------ | ------------------------------ | -------------- | ----------------------------------------------------------------------------- |
-| Case created | Case assignees (at creation)   | `CaseAssigned` | Actor included when actor is also an assignee                                 |
-| Case updated | **All current case assignees** | `CaseAssigned` | Actor excluded (their own edit); new assignees are covered by the same notice |
+| Event                         | Recipients                       | Type           | Notes                                         |
+| ----------------------------- | -------------------------------- | -------------- | --------------------------------------------- |
+| Case created                  | Case assignees (at creation)     | `CaseAssigned` | Actor included when actor is also an assignee |
+| Case updated - assignee added | Only the newly added assignee(s) | `CaseAssigned` | Actor always excluded                         |
+| Case updated - other changes  | Remaining current case assignees | `CaseUpdated`  | Actor excluded (their own edit)               |
 
 ### Tasks (sub-data of Case)
 
-| Event                         | Recipients                       | Type                | Notes                                         |
-| ----------------------------- | -------------------------------- | ------------------- | --------------------------------------------- |
-| Task created                  | Task assignees                   | `TaskAssigned`      | Actor included when actor is also an assignee |
-| Task updated - status change  | Current task assignees           | `TaskStatusChanged` | Actor always excluded                         |
-| Task updated - assignee added | Only the newly added assignee(s) | `TaskAssigned`      | Actor always excluded                         |
+| Event                        | Recipients             | Type                | Notes                                                           |
+| ---------------------------- | ---------------------- | ------------------- | --------------------------------------------------------------- |
+| Task created                 | Task assignees         | `TaskAssigned`      | Actor included when actor is also an assignee                   |
+| Task updated - status change | Current task assignees | `TaskStatusChanged` | Actor always excluded; newly added assignees get `TaskAssigned` |
 
 ### Milestones (sub-data of Case)
 
@@ -81,10 +81,13 @@ Fired by Server Actions, from `after()` callbacks, after the mutation succeeds (
 
 ### Consultations
 
-| Event                | Recipients                             | Type                  | Notes                                                    |
-| -------------------- | -------------------------------------- | --------------------- | -------------------------------------------------------- |
-| Consultation created | Consultation assignees                 | `ConsultationCreated` | Actor included if also an assignee                       |
-| Consultation updated | **All current consultation assignees** | `ConsultationUpdated` | Actor excluded; new assignees covered by the same notice |
+| Event                                  | Recipients                               | Type                   | Notes                              |
+| -------------------------------------- | ---------------------------------------- | ---------------------- | ---------------------------------- |
+| Consultation created                   | Consultation assignees                   | `ConsultationCreated`  | Actor included if also an assignee |
+| Consultation updated - assignee joined | Only the newly added assignee(s)         | `ConsultationAssigned` | Actor always excluded              |
+| Consultation updated - other changes   | Remaining current consultation assignees | `ConsultationUpdated`  | Actor excluded (own edit)          |
+
+> **Single-notice rule:** each recipient receives exactly **one** notification per event — users newly added to an assignment get the "assigned" notice, existing assignees get the "updated" notice; never both.
 
 ---
 
@@ -181,9 +184,9 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 | `MilestoneUpdated`       | milestoneTemplate            | (uses notification title)      |
 | `TaskAssigned`           | taskAssignedTemplate         | Task Assigned                  |
 | `TaskStatusChanged`      | taskUpdatedTemplate          | Task Updated                   |
-| `CaseAssigned`           | caseAssignedTemplate         | New Case Created               |
-
-> `ConsultationAssigned` exists in the `NotificationType` enum but is **not dispatched** and has no template - the `ConsultationUpdated` notice (all current assignees) covers newly added assignees too. `pickTemplate` in `dispatch.ts` is exhaustive: dispatching any type without a template fails loudly at compile time and at runtime.
+| `CaseAssigned`           | caseAssignedTemplate         | Case Assigned                  |
+| `CaseUpdated`            | caseUpdatedTemplate          | Case Updated                   |
+| `ConsultationAssigned`   | consultationAssignedTemplate | Consultation Assigned          |
 
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
 - All interpolated text is HTML-escaped.

@@ -1,0 +1,1 @@
+CREATE INDEX "Notification_created_at_idx" ON "Notification"("created_at");

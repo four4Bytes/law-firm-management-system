@@ -191,11 +191,12 @@ it("omits last_reminded_at when resetReminderTiming is not set", async () => {
 
   expect(prisma.caseMilestone.update).toHaveBeenCalledWith({
     where: { id: "m1" },
-    data: expect.not.objectContaining({
-      last_reminded_at: expect.anything(),
-    }),
+    data: expect.any(Object),
     select: { id: true },
   });
+  expect(vi.mocked(prisma.caseMilestone.update).mock.calls[0][0].data).not.toHaveProperty(
+    "last_reminded_at",
+  );
 });
 
 it("deletes a milestone", async () => {

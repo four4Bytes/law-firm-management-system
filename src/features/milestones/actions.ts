@@ -128,14 +128,14 @@ export async function updateMilestoneAction(
       existing.description === (description || null) &&
       existing.due_date.getTime() === due_date.getTime() &&
       existing.status === status &&
-      existing.reminder_days === (reminder_days ?? existing.reminder_days)
+      (reminder_days === undefined || existing.reminder_days === reminder_days)
     ) {
       return { success: true };
     }
 
     const resetReminderTiming =
       existing.due_date.getTime() !== due_date.getTime() ||
-      existing.reminder_days !== (reminder_days ?? existing.reminder_days);
+      (reminder_days !== undefined && existing.reminder_days !== reminder_days);
 
     await updateMilestone(milestoneId, {
       title,

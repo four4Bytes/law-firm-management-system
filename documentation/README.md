@@ -11,5 +11,6 @@
 | [Security](./security.md)               | AuthN/AuthZ, input validation, action security, file upload safety, audit logging |
 | [Deployment](./deployment.md)           | Release process, Docker, Vercel, storage encryption, reminders                    |
 | [RBAC](./RBAC.md)                       | Role Based Access Control (canonical)                                             |
+| [Notifications](./notifications.md)     | Notification & reminder pipelines (canonical)                                     |
 
 For a quickstart, see [Getting Started](./getting-started.md).

@@ -324,6 +324,28 @@ Links a reviewer to a task for approval workflows.
 
 ---
 
+### Notification Type
+
+| Value                  | Description                                               |
+| ---------------------- | --------------------------------------------------------- |
+| ConsultationCreated    | New consultation booked (consultation assignees)          |
+| ConsultationUpdated    | Consultation updated (all current consultation assignees) |
+| ConsultationReminder   | Upcoming consultation — due within reminder window        |
+| ConsultationOverdue    | Consultation booking date has passed                      |
+| MilestoneDueSoon       | Milestone due within reminder window                      |
+| MilestoneCompleted     | Milestone marked Done                                     |
+| MilestoneStatusChanged | Milestone status changed                                  |
+| MilestoneOverdue       | Milestone due date has passed                             |
+| MilestoneUpdated       | Milestone details changed                                 |
+| TaskAssigned           | User assigned to a task                                   |
+| TaskStatusChanged      | Task status changed                                       |
+| CaseAssigned           | Case created or updated (all current case assignees)      |
+| ConsultationAssigned   | Enum value kept, not currently dispatched                 |
+
+> See [Notifications & Reminders](./notifications.md) for the full delivery rules.
+
+---
+
 ### Payment Status
 
 | Value    | Description                |

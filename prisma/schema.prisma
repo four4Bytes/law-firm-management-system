@@ -309,6 +309,7 @@ model Notification {
 
   @@index([user_id, is_read, created_at])
   @@index([user_id, created_at])
+  @@index([created_at])
 }
 
 model Payment {

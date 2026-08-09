@@ -12,7 +12,7 @@ vi.mock("@/lib/prisma", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-08-09T10:00:00"));
+  vi.setSystemTime(new Date("2026-08-09T10:00:00Z"));
 });
 
 afterEach(() => {
@@ -27,7 +27,7 @@ describe("pruneNotifications", () => {
 
     expect(result).toBe(3);
     expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
-      where: { created_at: { lt: new Date("2026-05-11T10:00:00") } },
+      where: { created_at: { lt: new Date("2026-05-11T10:00:00Z") } },
     });
   });
 

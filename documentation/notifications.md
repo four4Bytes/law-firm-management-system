@@ -124,19 +124,19 @@ A milestone or consultation is a _candidate_ when all of:
 
 ### Milestones
 
-| State        | Type               | Recipients     | After dispatch                                                                     |
-| ------------ | ------------------ | -------------- | ---------------------------------------------------------------------------------- |
-| Due soon     | `MilestoneDueSoon` | Case assignees | `claimMilestoneReminder` → `last_reminded_at = now`                                |
-| Overdue      | `MilestoneOverdue` | Case assignees | `suppressMilestoneOverdue` → `last_reminded_at = 9999-12-31` (sentinel, permanent) |
-| No assignees | - (skipped)        | -              | -                                                                                  |
+| State        | Type               | Recipients     | Guard and dispatch result                                                                                                                                                       |
+| ------------ | ------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Due soon     | `MilestoneDueSoon` | Case assignees | `claimMilestoneReminder` → `last_reminded_at = now` **before** dispatch; a failed dispatch releases the claim, keeping the record eligible for the next run                     |
+| Overdue      | `MilestoneOverdue` | Case assignees | `suppressMilestoneOverdue` → `last_reminded_at = 9999-12-31` (sentinel, permanent) **before** dispatch; a failed dispatch retracts the sentinel, re-arming the overdue reminder |
+| No assignees | - (skipped)        | -              | -                                                                                                                                                                               |
 
 ### Consultations
 
-| State                                          | Type                   | Recipients             | After dispatch                                         |
-| ---------------------------------------------- | ---------------------- | ---------------------- | ------------------------------------------------------ |
-| Upcoming                                       | `ConsultationReminder` | Consultation assignees | `claimConsultationReminder` → `last_reminded_at = now` |
-| Overdue                                        | `ConsultationOverdue`  | Consultation assignees | `suppressConsultationOverdue` → sentinel, retired      |
-| No assignees or `Cancelled`/`Completed` status | - (skipped)            | -                      | -                                                      |
+| State                                          | Type                   | Recipients             | Guard and dispatch result                                                                                                                                      |
+| ---------------------------------------------- | ---------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Upcoming                                       | `ConsultationReminder` | Consultation assignees | `claimConsultationReminder` → `last_reminded_at = now` **before** dispatch; a failed dispatch releases the claim, keeping the record eligible for the next run |
+| Overdue                                        | `ConsultationOverdue`  | Consultation assignees | `suppressConsultationOverdue` → sentinel, retired **before** dispatch; a failed dispatch retracts the sentinel, re-arming the overdue reminder                 |
+| No assignees or `Cancelled`/`Completed` status | - (skipped)            | -                      | -                                                                                                                                                              |
 
 **Message dates** use `formatDate`/`formatDateTime`.
 

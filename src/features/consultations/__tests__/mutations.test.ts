@@ -149,9 +149,10 @@ it("updateConsultation omits last_reminded_at when resetReminderTiming is not se
 
   expect(prisma.consultation.update).toHaveBeenCalledWith({
     where: { id: uuid },
-    data: expect.not.objectContaining({
-      last_reminded_at: expect.anything(),
-    }),
+    data: expect.any(Object),
     select: { id: true },
   });
+  expect(vi.mocked(prisma.consultation.update).mock.calls[0][0].data).not.toHaveProperty(
+    "last_reminded_at",
+  );
 });

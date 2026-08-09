@@ -17,6 +17,11 @@ import {
   taskUpdatedTemplate,
 } from "@/lib/email-templates";
 
+/** Compile-time exhaustiveness guard — `value` must be `never` at this point. */
+function assertNever(value: never): never {
+  throw new Error(`Unhandled notification type: ${String(value)}`);
+}
+
 function pickTemplate(type: NotificationType) {
   switch (type) {
     case NotificationType.ConsultationCreated:
@@ -39,8 +44,12 @@ function pickTemplate(type: NotificationType) {
       return taskUpdatedTemplate;
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
+    case NotificationType.ConsultationAssigned:
+      throw new Error(
+        `Notification type "${type}" is not dispatched and has no email template (see documentation/notifications.md)`,
+      );
     default:
-      return null;
+      return assertNever(type);
   }
 }
 
@@ -79,23 +88,21 @@ export async function dispatchNotifications(
 
   const template = pickTemplate(payload.type);
 
-  if (template) {
-    for (const user of recipients) {
-      try {
-        if (!user.email) continue;
+  for (const user of recipients) {
+    try {
+      if (!user.email) continue;
 
-        const html = template({
-          toName: user.name ?? user.email,
-          actorName,
-          title: payload.title,
-          message: payload.message,
-          actionUrl: payload.actionUrl,
-        });
+      const html = template({
+        toName: user.name ?? user.email,
+        actorName,
+        title: payload.title,
+        message: payload.message,
+        actionUrl: payload.actionUrl,
+      });
 
-        await sendEmail({ to: user.email, subject: payload.title, html });
-      } catch (err) {
-        console.error(`Failed to send email notification to user ${user.id}:`, err);
-      }
+      await sendEmail({ to: user.email, subject: payload.title, html });
+    } catch (err) {
+      console.error(`Failed to send email notification to user ${user.id}:`, err);
     }
   }
 

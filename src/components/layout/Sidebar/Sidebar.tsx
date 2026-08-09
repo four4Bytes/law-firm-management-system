@@ -79,7 +79,13 @@ export function Sidebar({ initialCollapsed = false, userName, userRole, userImag
     <>
       <aside className={clsx(styles.sidebar, collapsed && styles.collapsed)} data-open={isOpen}>
         <div className={styles.topRow}>
-          <Image src={LogoBlackBckgd} alt="Anino Law" className={styles.logo} />
+          <Button
+            variant="ghost"
+            aria-label="Go to dashboard"
+            onPress={() => handleNavClick("/dashboard")}
+          >
+            <Image src={LogoBlackBckgd} alt="Anino Law" className={styles.logo} />
+          </Button>
           <Button
             variant="ghost"
             className={styles.closeButton}

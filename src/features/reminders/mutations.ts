@@ -37,3 +37,10 @@ export async function suppressMilestoneOverdue(id: string): Promise<void> {
     data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
   });
 }
+
+export async function suppressConsultationOverdue(id: string): Promise<void> {
+  await prisma.consultation.update({
+    where: { id },
+    data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
+  });
+}

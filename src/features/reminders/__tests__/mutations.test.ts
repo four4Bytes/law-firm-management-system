@@ -6,13 +6,14 @@ import {
   claimConsultationReminder,
   claimMilestoneReminder,
   REMINDER_SUPPRESSED_AT,
+  suppressConsultationOverdue,
   suppressMilestoneOverdue,
 } from "../mutations";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     caseMilestone: { updateMany: vi.fn(), update: vi.fn() },
-    consultation: { updateMany: vi.fn() },
+    consultation: { updateMany: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -87,6 +88,22 @@ describe("suppressMilestoneOverdue", () => {
 
     expect(prisma.caseMilestone.update).toHaveBeenCalledWith({
       where: { id: "m1" },
+      data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
+    });
+  });
+});
+
+describe("suppressConsultationOverdue", () => {
+  it("persists the far-future sentinel to last_reminded_at", async () => {
+    vi.mocked(prisma.consultation.update).mockResolvedValue({
+      id: "c1",
+      last_reminded_at: REMINDER_SUPPRESSED_AT,
+    } as never);
+
+    await suppressConsultationOverdue("c1");
+
+    expect(prisma.consultation.update).toHaveBeenCalledWith({
+      where: { id: "c1" },
       data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
     });
   });

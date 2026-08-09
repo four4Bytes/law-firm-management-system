@@ -7,6 +7,7 @@ import {
   caseAssignedTemplate,
   consultationAssignedTemplate,
   consultationCreatedTemplate,
+  consultationOverdueTemplate,
   consultationReminderTemplate,
   consultationUpdatedTemplate,
   milestoneTemplate,
@@ -22,6 +23,8 @@ function pickTemplate(type: NotificationType) {
       return consultationCreatedTemplate;
     case NotificationType.ConsultationReminder:
       return consultationReminderTemplate;
+    case NotificationType.ConsultationOverdue:
+      return consultationOverdueTemplate;
     case NotificationType.ConsultationUpdated:
       return consultationUpdatedTemplate;
     case NotificationType.MilestoneDueSoon:

@@ -51,6 +51,7 @@ enum NotificationType {
   ConsultationCreated
   ConsultationUpdated
   ConsultationReminder
+  ConsultationOverdue
   MilestoneDueSoon
   MilestoneCompleted
   MilestoneStatusChanged

@@ -202,22 +202,6 @@ function button(url: string, label: string): string {
 // ── Templates ─────────────────────────────────────────────────────────────────
 
 /**
- * Renders the email body for a consultation-updated notification.
- *
- * @param ctx - Standard template context with recipient, actor, and message data.
- * @returns A complete HTML string (via {@link emailLayout}).
- */
-export function consultationUpdatedTemplate(ctx: TemplateContext): string {
-  return emailLayout(
-    "Consultation Updated",
-    greeting(ctx.toName) +
-      text("A consultation has been updated.") +
-      text(ctx.message, true) +
-      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
-  );
-}
-
-/**
  * Renders the email body for a consultation-reminder notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.
@@ -315,22 +299,6 @@ export function taskAssignedTemplate(ctx: TemplateContext): string {
 }
 
 /**
- * Renders the email body for a task-updated notification.
- *
- * @param ctx - Standard template context with recipient, actor, and message data.
- * @returns A complete HTML string (via {@link emailLayout}).
- */
-export function taskUpdatedTemplate(ctx: TemplateContext): string {
-  return emailLayout(
-    "Task Updated",
-    greeting(ctx.toName) +
-      rawText(`A task has been updated: ${strongLabel(ctx.title)}.`) +
-      text(ctx.message, true) +
-      (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
-  );
-}
-
-/**
  * Renders the email body for a case-assigned notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.
@@ -341,22 +309,6 @@ export function caseAssignedTemplate(ctx: TemplateContext): string {
     "Case Assigned",
     greeting(ctx.toName) +
       rawText(`${escapeHtml(ctx.actorName)} has assigned you a case: ${strongLabel(ctx.title)}.`) +
-      text(ctx.message, true) +
-      (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
-  );
-}
-
-/**
- * Renders the email body for a case-updated notification.
- *
- * @param ctx - Standard template context with recipient, actor, and message data.
- * @returns A complete HTML string (via {@link emailLayout}).
- */
-export function caseUpdatedTemplate(ctx: TemplateContext): string {
-  return emailLayout(
-    "Case Updated",
-    greeting(ctx.toName) +
-      text("A case has been updated.") +
       text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
   );

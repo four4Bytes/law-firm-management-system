@@ -49,7 +49,6 @@ enum CaseMilestoneStatus {
 
 enum NotificationType {
   ConsultationCreated
-  ConsultationUpdated
   ConsultationReminder
   ConsultationOverdue
   MilestoneDueSoon
@@ -58,9 +57,7 @@ enum NotificationType {
   MilestoneOverdue
   MilestoneUpdated
   TaskAssigned
-  TaskStatusChanged
   CaseAssigned
-  CaseUpdated
   ConsultationAssigned
 }
 

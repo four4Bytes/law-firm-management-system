@@ -449,27 +449,24 @@ describe("updateCaseAction notification split", () => {
     vi.mocked(updateCase).mockResolvedValue({ id: uuid });
   });
 
-  it("dispatches CaseAssigned only to the new assignee and CaseUpdated to the rest", async () => {
+  it("dispatches CaseAssigned only to the new assignee", async () => {
     await updateCaseAction({ ...validPayload, assignee_ids: [assignee1, assignee2, assignee3] });
     await flushAfterCallbacks();
 
     const calls = vi.mocked(dispatchNotifications).mock.calls;
     const assigned = calls.find(([payload]) => payload.type === NotificationType.CaseAssigned);
-    const updated = calls.find(([payload]) => payload.type === NotificationType.CaseUpdated);
 
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee3]);
-    expect(updated?.[0].userIds).toEqual([assignee1, assignee2]);
   });
 
-  it("dispatches only CaseUpdated when no assignee was added", async () => {
+  it("dispatches nothing when no assignee was added", async () => {
     vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee1, assignee2]);
 
     await updateCaseAction(validPayload);
     await flushAfterCallbacks();
 
-    const types = vi.mocked(dispatchNotifications).mock.calls.map(([payload]) => payload.type);
-    expect(types).toEqual([NotificationType.CaseUpdated]);
+    expect(vi.mocked(dispatchNotifications)).not.toHaveBeenCalled();
   });
 
   it("dispatches only CaseAssigned for a brand-new assignee list", async () => {
@@ -492,7 +489,7 @@ describe("updateCaseAction notification split", () => {
     expect(types).toEqual([NotificationType.CaseAssigned]);
   });
 
-  it("splits updateCaseWithClientAction notices the same way", async () => {
+  it("dispatches CaseAssigned only for updateCaseWithClientAction", async () => {
     vi.mocked(updateCaseWithClient).mockResolvedValue({ id: uuid });
 
     await updateCaseWithClientAction({
@@ -510,9 +507,8 @@ describe("updateCaseAction notification split", () => {
 
     const calls = vi.mocked(dispatchNotifications).mock.calls;
     const assigned = calls.find(([payload]) => payload.type === NotificationType.CaseAssigned);
-    const updated = calls.find(([payload]) => payload.type === NotificationType.CaseUpdated);
 
+    expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee3]);
-    expect(updated?.[0].userIds).toEqual([assignee1, assignee2]);
   });
 });

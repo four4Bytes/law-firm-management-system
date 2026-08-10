@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getActiveUserIds, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
-import { caseUpdatedTemplate, consultationAssignedTemplate } from "@/lib/email-templates";
+import { consultationAssignedTemplate } from "@/lib/email-templates";
 
 import { dispatchNotifications } from "../dispatch";
 import { createNotifications } from "../mutations";
@@ -24,15 +24,12 @@ vi.mock("@/lib/email", () => ({
 
 vi.mock("@/lib/email-templates", () => ({
   consultationCreatedTemplate: vi.fn(() => "<html/>"),
-  consultationUpdatedTemplate: vi.fn(() => "<html/>"),
   consultationAssignedTemplate: vi.fn(() => "<html/>"),
   consultationOverdueTemplate: vi.fn(() => "<html/>"),
   consultationReminderTemplate: vi.fn(() => "<html/>"),
   milestoneTemplate: vi.fn(() => "<html/>"),
   taskAssignedTemplate: vi.fn(() => "<html/>"),
-  taskUpdatedTemplate: vi.fn(() => "<html/>"),
   caseAssignedTemplate: vi.fn(() => "<html/>"),
-  caseUpdatedTemplate: vi.fn(() => "<html/>"),
 }));
 
 const payload = {
@@ -126,13 +123,6 @@ describe("dispatchNotifications", () => {
     await dispatchNotifications({ ...payload, type: NotificationType.ConsultationAssigned }, "u9");
 
     expect(vi.mocked(consultationAssignedTemplate)).toHaveBeenCalledTimes(3);
-    expect(sendEmail).toHaveBeenCalledTimes(3);
-  });
-
-  it("resolves the updated template for case-updated dispatches", async () => {
-    await dispatchNotifications({ ...payload, type: NotificationType.CaseUpdated }, "u9");
-
-    expect(vi.mocked(caseUpdatedTemplate)).toHaveBeenCalledTimes(3);
     expect(sendEmail).toHaveBeenCalledTimes(3);
   });
 });

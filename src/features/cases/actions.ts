@@ -373,8 +373,6 @@ export async function updateCaseAction(
       assignee_ids,
     });
 
-    const recipientIds = assignee_ids ?? existing.assignee_ids;
-
     after(async () => {
       try {
         await createAuditLog({
@@ -389,8 +387,10 @@ export async function updateCaseAction(
       }
 
       try {
-        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
-        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(
+          assignee_ids ?? existing.assignee_ids,
+          existing.assignee_ids,
+        );
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(
@@ -399,20 +399,6 @@ export async function updateCaseAction(
               type: NotificationType.CaseAssigned,
               title: `Case assigned: ${case_title}`,
               message: `You have been assigned to case: "${case_title}"`,
-              actionUrl: `/case/${caseId}`,
-              caseId,
-            },
-            session.id,
-          );
-        }
-
-        if (updatedRecipientIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: updatedRecipientIds,
-              type: NotificationType.CaseUpdated,
-              title: `Case updated: ${case_title}`,
-              message: `Case "${case_title}" was updated`,
               actionUrl: `/case/${caseId}`,
               caseId,
             },
@@ -460,8 +446,6 @@ export async function updateCaseWithClientAction(
       case: caseData,
     });
 
-    const recipientIds = caseData.assignee_ids ?? existing.assignee_ids;
-
     after(async () => {
       try {
         await createAuditLog({
@@ -476,8 +460,10 @@ export async function updateCaseWithClientAction(
       }
 
       try {
-        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
-        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(
+          caseData.assignee_ids ?? existing.assignee_ids,
+          existing.assignee_ids,
+        );
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(
@@ -486,20 +472,6 @@ export async function updateCaseWithClientAction(
               type: NotificationType.CaseAssigned,
               title: `Case assigned: ${caseData.case_title}`,
               message: `You have been assigned to case: "${caseData.case_title}"`,
-              actionUrl: `/case/${case_id}`,
-              caseId: case_id,
-            },
-            session.id,
-          );
-        }
-
-        if (updatedRecipientIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: updatedRecipientIds,
-              type: NotificationType.CaseUpdated,
-              title: `Case updated: ${caseData.case_title}`,
-              message: `Case "${caseData.case_title}" was updated for client "${client.name}"`,
               actionUrl: `/case/${case_id}`,
               caseId: case_id,
             },

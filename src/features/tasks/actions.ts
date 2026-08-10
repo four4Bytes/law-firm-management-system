@@ -169,30 +169,6 @@ export async function updateTaskAction(
         parsed.data.assignee_ids ?? existingAssigneeIds,
         existingAssigneeIds,
       );
-      const updatedRecipientIds = (parsed.data.assignee_ids ?? existingAssigneeIds).filter(
-        (id) => !newAssigneeIds.includes(id),
-      );
-
-      if (existing.status !== status) {
-        try {
-          if (updatedRecipientIds.length > 0) {
-            await dispatchNotifications(
-              {
-                userIds: updatedRecipientIds,
-                type: NotificationType.TaskStatusChanged,
-                title: `Task updated: ${title}`,
-                message: `Task "${title}" status: ${status}`,
-                actionUrl: `/case/${existing.case_id}`,
-                caseId: existing.case_id,
-                taskId: existing.id,
-              },
-              session.id,
-            );
-          }
-        } catch (err) {
-          console.error("Failed to dispatch notification:", err);
-        }
-      }
 
       if (newAssigneeIds.length > 0) {
         try {

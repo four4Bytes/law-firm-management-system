@@ -297,3 +297,22 @@ export function caseAssignedTemplate(ctx: TemplateContext): string {
       (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
   );
 }
+
+/**
+ * Renders the email body for a status-change notification.
+ *
+ * The title is used as the email heading and the message (which states the
+ * transition as `from <before> to <after>`) as the body. The action button
+ * label is derived from the URL path (`/case/...` → "View Case",
+ * `/consultation/...` → "View Consultation").
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
+export function statusChangeTemplate(ctx: TemplateContext): string {
+  const label = ctx.actionUrl?.startsWith("/consultation") ? "View Consultation" : "View Case";
+  return emailLayout(
+    ctx.title,
+    greeting(ctx.toName) + text(ctx.message) + (ctx.actionUrl ? button(ctx.actionUrl, label) : ""),
+  );
+}

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import {
   getCaseAccessContext,
+  getCaseAssigneeIds,
   getCaseBySourceConsultationId,
   getCaseEditData,
   getCaseMilestonesPaginated,
@@ -358,6 +359,27 @@ export async function updateCaseAction(
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }
+
+      try {
+        if (existing.status !== status) {
+          const assigneeIds = await getCaseAssigneeIds(caseId);
+          if (assigneeIds.length > 0) {
+            await dispatchNotifications(
+              {
+                userIds: assigneeIds,
+                type: NotificationType.CaseStatusChanged,
+                title: `Case status changed: ${case_title}`,
+                message: `Case "${case_title}" status changed from ${existing.status} to ${status}`,
+                actionUrl: `/case/${caseId}`,
+                caseId,
+              },
+              session.id,
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to dispatch status change notification:", err);
+      }
     });
 
     revalidatePath(`/case/${caseId}`);
@@ -430,6 +452,27 @@ export async function updateCaseWithClientAction(
         }
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
+      }
+
+      try {
+        if (existing.status !== caseData.status) {
+          const assigneeIds = await getCaseAssigneeIds(case_id);
+          if (assigneeIds.length > 0) {
+            await dispatchNotifications(
+              {
+                userIds: assigneeIds,
+                type: NotificationType.CaseStatusChanged,
+                title: `Case status changed: ${caseData.case_title}`,
+                message: `Case "${caseData.case_title}" status changed from ${existing.status} to ${caseData.status}`,
+                actionUrl: `/case/${case_id}`,
+                caseId: case_id,
+              },
+              session.id,
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to dispatch status change notification:", err);
       }
     });
 

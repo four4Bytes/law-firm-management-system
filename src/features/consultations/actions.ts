@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import {
   getConsultationAccessContext,
+  getConsultationAssigneeIds,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
@@ -314,6 +315,27 @@ export async function updateConsultationAction(
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }
+
+      try {
+        if (existing.status !== status) {
+          const assigneeIds = await getConsultationAssigneeIds(consultationId);
+          if (assigneeIds.length > 0) {
+            await dispatchNotifications(
+              {
+                userIds: assigneeIds,
+                type: NotificationType.ConsultationStatusChanged,
+                title: `Consultation status changed: ${concern.substring(0, 100)}`,
+                message: `Consultation "${concern.substring(0, 100)}" status changed from ${existing.status} to ${status}`,
+                actionUrl: `/consultation/${consultationId}`,
+                consultationId,
+              },
+              session.id,
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to dispatch status change notification:", err);
+      }
     });
 
     revalidatePath(`/consultation/${consultationId}`);
@@ -396,6 +418,27 @@ export async function updateConsultationWithClientAction(
         }
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
+      }
+
+      try {
+        if (existing.status !== consultation.status) {
+          const assigneeIds = await getConsultationAssigneeIds(consultation_id);
+          if (assigneeIds.length > 0) {
+            await dispatchNotifications(
+              {
+                userIds: assigneeIds,
+                type: NotificationType.ConsultationStatusChanged,
+                title: `Consultation status changed: ${consultation.concern.substring(0, 100)}`,
+                message: `Consultation "${consultation.concern.substring(0, 100)}" status changed from ${existing.status} to ${consultation.status}`,
+                actionUrl: `/consultation/${consultation_id}`,
+                consultationId: consultation_id,
+              },
+              session.id,
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to dispatch status change notification:", err);
       }
     });
 

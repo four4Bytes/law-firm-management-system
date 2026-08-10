@@ -12,6 +12,7 @@ import {
   consultationOverdueTemplate,
   consultationReminderTemplate,
   milestoneTemplate,
+  statusChangeTemplate,
   taskAssignedTemplate,
 } from "@/lib/email-templates";
 
@@ -27,13 +28,16 @@ function pickTemplate(type: NotificationType) {
     case NotificationType.ConsultationOverdue:
       return consultationOverdueTemplate;
     case NotificationType.MilestoneDueSoon:
-    case NotificationType.MilestoneStatusChanged:
     case NotificationType.MilestoneOverdue:
       return milestoneTemplate;
     case NotificationType.TaskAssigned:
       return taskAssignedTemplate;
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
+    case NotificationType.MilestoneStatusChanged:
+    case NotificationType.CaseStatusChanged:
+    case NotificationType.ConsultationStatusChanged:
+      return statusChangeTemplate;
     case NotificationType.ConsultationAssigned:
       return consultationAssignedTemplate;
     default:

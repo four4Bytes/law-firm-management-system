@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { diffNewAssigneeIds } from "../recipients";
+import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 
 describe("diffNewAssigneeIds", () => {
   it("returns only ids not already present", () => {

@@ -12,7 +12,7 @@ Each notification is delivered from a single dispatch point through two channels
 1. **In-app** — a `Notification` DB row, shown in the header bell (unread badge + list).
 2. **Email** — an HTML template rendered per `NotificationType` (see [models.md](./models.md#notification-type)), sent to each recipient.
 
-Every dispatched type writes a DB row and has an email template. **Email is best-effort, not a durable archive**: a notification is lost if email fails, the recipient has no address, or the row is pruned by retention. The bell is a transient unread surface — there is no history page.
+Every dispatched type writes a DB row and has an email template. **Email is best-effort, not a durable archive**: a missing recipient address or failed email delivery does not remove the in-app row — it stays available until normal retention pruning. A notification is lost only when its row is pruned by retention. The bell is a transient unread surface — there is no history page.
 
 ---
 
@@ -81,9 +81,9 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 | Consultation status changed            | All consultation assignees | `ConsultationStatusChanged` | Actor always excluded |
 
 > Any status transition (incl. → `Accepted`/`Completed`/`Rejected`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Scheduled to Accepted`). Actor always excluded.
-
+>
 > **Accepted = New Case:** when a consultation transitions to `Accepted`, a new case is created from it. The status-change notification fires on the transition; the case creation itself dispatches nothing (creation is audited, not announced). If the user cancels case creation, the status reverts to the previous value and the revert dispatches its own status-change notification (`from Accepted to <previous>`).
-
+>
 > **Single-notice rule:** each recipient gets at most one assignment notice per event.
 
 ---

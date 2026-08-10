@@ -186,6 +186,7 @@ describe("createTaskAction", () => {
     });
 
     expect(result).toEqual({ success: true, data: { id: "t1" } });
+    await flushAfterCallbacks();
     expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 });

@@ -7,34 +7,32 @@
 
 ## 1. Overview
 
-Every notification is delivered through **two channels** from a single dispatch point:
+Each notification is delivered from a single dispatch point through two channels:
 
-1. **In-app notification** - a database row (`Notification` model), surfaced in the header bell (unread badge + unread list).
-2. **HTML email** - a transactional email, rendered per notification type, sent to each recipient's address.
+1. **In-app** — a `Notification` DB row, shown in the header bell (unread badge + list).
+2. **Email** — an HTML template rendered per `NotificationType` (see [models.md](./models.md#notification-type)), sent to each recipient.
 
-A `NotificationType` value (see [models.md](./models.md#notification-type)) drives both the in-app row and the email template chosen for it.
-
-Every **dispatched** type is always delivered as a DB row and has an email template. **Email is best-effort, not a durable archive**: a notification can be permanently lost when email delivery fails, the recipient has no email address, or the in-app row is pruned by retention. The bell is a transient unread surface; there is no full history page.
+Every dispatched type writes a DB row and has an email template. **Email is best-effort, not a durable archive**: a notification is lost if email fails, the recipient has no address, or the row is pruned by retention. The bell is a transient unread surface — there is no history page.
 
 ---
 
 ## 2. Dispatch Pipeline
 
-All notifications (event-driven and scheduled) go through `dispatchNotifications(payload, actorUserId, notifyActor=false)` in `src/features/notifications/dispatch.ts`, in this order:
+All notifications pass through `dispatchNotifications(payload, actorUserId, notifyActor = false)` in `src/features/notifications/dispatch.ts`, in order:
 
-1. **Actor exclusion** - when `notifyActor` is `false`, the actor's own ID is removed from the recipient list.
-2. **Active users only** - recipients are filtered to users with `is_active = true`. Deactivated users never receive notifications or emails.
-3. **Deduplication** - duplicate IDs are collapsed.
-4. **Database row** - one `Notification` row is created per recipient with `is_read = false`.
-5. **Email** - for each recipient with an email address, the type's template is rendered and sent. Email failures are logged per recipient and never block or roll back the in-app row.
+1. **Actor exclusion** — the actor is removed from recipients unless `notifyActor` is `true`.
+2. **Active users only** — deactivated users never receive anything.
+3. **Deduplication** — duplicate IDs are collapsed.
+4. **Database row** — one `is_read = false` row per recipient.
+5. **Email** — per recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
 
-The dispatch payload carries: `userIds`, `type`, `title`, `message`, `actionUrl` (optional), and the related `caseId` / `consultationId` / `milestoneId` / `taskId` (optional).
+Payload: `userIds`, `type`, `title`, `message`, optional `actionUrl`, and related `caseId` / `consultationId` / `milestoneId` / `taskId`.
 
 ---
 
 ## 3. Recipient Resolution
 
-All recipients are resolved from **assignments** - the users assigned to the record itself:
+Recipients come only from **assignment** — the users assigned to the record:
 
 | Entity       | Assignment source        |
 | ------------ | ------------------------ |
@@ -42,48 +40,45 @@ All recipients are resolved from **assignments** - the users assigned to the rec
 | Task         | `TaskAssignment`         |
 | Consultation | `ConsultationAssignment` |
 
-Only **active users** receive notifications or emails; deactivated users never do. There is no role-based recipient model - the exact per-event recipient set is defined in [section 4](#4-event-driven-notifications-immediate).
-
-**Default rule:** the acting user (the _actor_) is excluded from their own notification unless the dispatch site explicitly passes `notifyActor`.
+Only **active** users are eligible; recipients are per-event, not role-based ([section 4](#4-event-driven-notifications-immediate)). By default the acting user (_actor_) is excluded from their own notification unless the dispatch site passes `notifyActor`.
 
 ---
 
 ## 4. Event-Driven Notifications (immediate)
 
-Fired by Server Actions, from `after()` callbacks, after the mutation succeeds (audited, non-blocking).
+Fired by Server Actions in `after()` callbacks after the mutation succeeds (audited, non-blocking).
 
 ### Cases
 
-| Event                         | Recipients                       | Type           | Notes                                         |
-| ----------------------------- | -------------------------------- | -------------- | --------------------------------------------- |
-| Case created                  | Case assignees (at creation)     | `CaseAssigned` | Actor included when actor is also an assignee |
-| Case updated - assignee added | Only the newly added assignee(s) | `CaseAssigned` | Actor always excluded                         |
+| Event                         | Recipients            | Type           | Notes                              |
+| ----------------------------- | --------------------- | -------------- | ---------------------------------- |
+| Case created                  | Case assignees        | `CaseAssigned` | Actor included if also an assignee |
+| Case updated - assignee added | Newly added assignees | `CaseAssigned` | Actor always excluded              |
 
 ### Tasks (sub-data of Case)
 
-| Event        | Recipients     | Type           | Notes                                         |
-| ------------ | -------------- | -------------- | --------------------------------------------- |
-| Task created | Task assignees | `TaskAssigned` | Actor included when actor is also an assignee |
+| Event        | Recipients     | Type           | Notes                              |
+| ------------ | -------------- | -------------- | ---------------------------------- |
+| Task created | Task assignees | `TaskAssigned` | Actor included if also an assignee |
 
 ### Milestones (sub-data of Case)
 
-| Event                                   | Recipients             | Type                     |
-| --------------------------------------- | ---------------------- | ------------------------ |
-| Milestone updated - status → `Done`     | **All case assignees** | `MilestoneCompleted`     |
-| Milestone updated - other status change | All case assignees     | `MilestoneStatusChanged` |
-| Milestone updated - content-only change | All case assignees     | `MilestoneUpdated`       |
+| Event                                   | Recipients         | Type                     |
+| --------------------------------------- | ------------------ | ------------------------ |
+| Milestone updated - status → `Done`     | All case assignees | `MilestoneCompleted`     |
+| Milestone updated - other status change | All case assignees | `MilestoneStatusChanged` |
+| Milestone updated - content-only        | All case assignees | `MilestoneUpdated`       |
 
-> Milestone _creation_ does **not** dispatch any notification. Only updates notify.
-> Actor always excluded from milestone events.
+> Milestone _creation_ dispatches nothing; only updates notify. Actor always excluded.
 
 ### Consultations
 
-| Event                                  | Recipients                       | Type                   | Notes                              |
-| -------------------------------------- | -------------------------------- | ---------------------- | ---------------------------------- |
-| Consultation created                   | Consultation assignees           | `ConsultationCreated`  | Actor included if also an assignee |
-| Consultation updated - assignee joined | Only the newly added assignee(s) | `ConsultationAssigned` | Actor always excluded              |
+| Event                                  | Recipients             | Type                   | Notes                              |
+| -------------------------------------- | ---------------------- | ---------------------- | ---------------------------------- |
+| Consultation created                   | Consultation assignees | `ConsultationCreated`  | Actor included if also an assignee |
+| Consultation updated - assignee joined | Newly added assignees  | `ConsultationAssigned` | Actor always excluded              |
 
-> **Single-notice rule:** each recipient receives at most **one** notification per event — the newly added assignee is the only recipient of an assignment notice.
+> **Single-notice rule:** each recipient gets at most one assignment notice per event.
 
 ---
 
@@ -91,81 +86,60 @@ Fired by Server Actions, from `after()` callbacks, after the mutation succeeds (
 
 ### Trigger
 
-| Deployment           | Trigger                                                                                                                           | Details                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Vercel (serverless)  | Cron job `0 0 * * *` (midnight UTC) → `GET /api/cron/reminders`                                                                   | Authenticated via `Bearer CRON_SECRET`; otherwise 401 |
-| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` (midnight app time — `APP_TIMEZONE`, fallback server-local; skipped when `VERCEL` is set) | `noOverlap: true`                                     |
+| Deployment           | Trigger                                                                                                                            | Details                                 |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Vercel               | Cron `0 0 * * *` (UTC) → `GET /api/cron/reminders`                                                                                 | `Bearer CRON_SECRET` required; else 401 |
+| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` at midnight app time (`APP_TIMEZONE`, fallback server-local; skipped when `VERCEL` is set) | `noOverlap: true`                       |
 
-Both paths call the same `runReminderCheck()` in `src/features/reminders/scheduler.ts`, which runs three phases **in order**, each isolated in its own try/catch:
+Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, running three **isolated** phases in order — a phase failure is logged and does not stop the next:
 
-1. **Prune** - delete notifications older than `NOTIFICATION_RETENTION_DAYS`.
-2. **Milestones** - process milestone reminders.
-3. **Consultations** - process consultation reminders.
+1. **Prune** — delete notifications older than `NOTIFICATION_RETENTION_DAYS`.
+2. **Milestones** — process milestone reminders.
+3. **Consultations** — process consultation reminders.
 
-A failure in any phase is logged and does not stop the next phase.
+### Candidate & window
 
-### Reminder eligibility
-
-A milestone or consultation is a _candidate_ when all of:
-
-- its status is `Pending` / `Scheduled`.
-- `last_reminded_at` is `null`, or was set before today (each record qualifies **once per day**).
-
-### Window
-
-- `reminder_days` (per record) else `DEFAULT_REMINDER_DAYS` (env, default `3`).
-- `threshold = now + reminder_days * 24h`.
-- `due soon` = due datetime is within `threshold` and in the future.
-- `overdue` = due datetime is before now.
-- Outside both windows → skipped (no dispatch, no claim).
+A milestone/consultation is a candidate when its status is `Pending`/`Scheduled` **and** `last_reminded_at` is `null` or before today (qualifies once per day). Window: `reminder_days` (or `DEFAULT_REMINDER_DAYS`, default 3); `threshold = now + reminder_days * 24h`; `due soon` = due within threshold (future), `overdue` = due before now; outside both → skipped. Message dates use `formatDate`/`formatDateTime`.
 
 ### Milestones
 
-| State        | Type               | Recipients     | Guard and dispatch result                                                                                                                                                       |
-| ------------ | ------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Due soon     | `MilestoneDueSoon` | Case assignees | `claimMilestoneReminder` → `last_reminded_at = now` **before** dispatch; a failed dispatch releases the claim, keeping the record eligible for the next run                     |
-| Overdue      | `MilestoneOverdue` | Case assignees | `suppressMilestoneOverdue` → `last_reminded_at = 9999-12-31` (sentinel, permanent) **before** dispatch; a failed dispatch retracts the sentinel, re-arming the overdue reminder |
-| No assignees | - (skipped)        | -              | -                                                                                                                                                                               |
+| State        | Type               | Recipients     | Guard                                                                      |
+| ------------ | ------------------ | -------------- | -------------------------------------------------------------------------- |
+| Due soon     | `MilestoneDueSoon` | Case assignees | Claim first (`last_reminded_at = now`); failed dispatch releases the claim |
+| Overdue      | `MilestoneOverdue` | Case assignees | Suppress first (`last_reminded_at = 9999-12-31`); failed dispatch retracts |
+| No assignees | - (skipped)        | -              | -                                                                          |
 
 ### Consultations
 
-| State                                          | Type                   | Recipients             | Guard and dispatch result                                                                                                                                      |
-| ---------------------------------------------- | ---------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Upcoming                                       | `ConsultationReminder` | Consultation assignees | `claimConsultationReminder` → `last_reminded_at = now` **before** dispatch; a failed dispatch releases the claim, keeping the record eligible for the next run |
-| Overdue                                        | `ConsultationOverdue`  | Consultation assignees | `suppressConsultationOverdue` → sentinel, retired **before** dispatch; a failed dispatch retracts the sentinel, re-arming the overdue reminder                 |
-| No assignees or `Cancelled`/`Completed` status | - (skipped)            | -                      | -                                                                                                                                                              |
-
-**Message dates** use `formatDate`/`formatDateTime`.
+| State                                  | Type                   | Recipients             | Guard                                           |
+| -------------------------------------- | ---------------------- | ---------------------- | ----------------------------------------------- |
+| Upcoming                               | `ConsultationReminder` | Consultation assignees | Claim first; failed dispatch releases the claim |
+| Overdue                                | `ConsultationOverdue`  | Consultation assignees | Suppress first; failed dispatch retracts it     |
+| No assignees / `Cancelled`/`Completed` | - (skipped)            | -                      | -                                               |
 
 ### Re-arm on reschedule
 
-`update` actions recompute a `resetReminderTiming` flag: when the due/booking datetime **or** `reminder_days` changes, `last_reminded_at` is reset to `null`. This re-arms both the reminder window and the overdue suppression, so a rescheduled (previously overdue-suppressed) milestone/consultation gets notified again for its new date.
+`update` recomputes a `resetReminderTiming` flag: when the due/booking datetime or `reminder_days` changes, `last_reminded_at` resets to `null`, re-arming the reminder window and overdue suppression for the new date.
 
 ### Failure semantics
 
-The guard (claim/suppress) happens **before** dispatch, within one try/catch per candidate:
+The guard runs **before** dispatch, in one try/catch per candidate:
 
-- the guard is a conditional update that only wins for records still eligible today — if a concurrent invocation already claimed/suppressed the record, the guard is lost and the candidate is **skipped without dispatching** (a duplicate cron run can never send the same reminder twice);
-- dispatch throws → the guard is released (claim reset to `null` / suppression removed), so the record is still eligible for the next daily run;
-- the guard release is scoped to the exact value this run wrote (`last_reminded_at = {claimedAt}` / the sentinel), so it never clears a guard won by another invocation.
+- it is a conditional update that only wins for records still eligible — a concurrent invocation that already claimed/suppressed wins, and this run **skips** (concurrent cron runs never double-send);
+- dispatch throws → the guard is released (claim reset to `null` / suppression removed), so the record stays eligible next run;
+- release is scoped to the exact value this run wrote, so it never clears another invocation's guard.
 
 ---
 
 ## 6. Retention & Cleanup
 
-- At the start of every `runReminderCheck()`, `pruneNotifications(retentionDays)` deletes every `Notification` row older than `retentionDays`.
-- `retentionDays` comes from `NOTIFICATION_RETENTION_DAYS` (env, default `90`).
-- Rows are deleted for **all users**, including **unread** ones. There is no separate archive; a pruned row that also failed to email is lost permanently. The bell surface is short-lived.
-- A prune failure is logged and does not stop reminder processing.
-- `created_at` is the cutoff basis.
-
-The bell intentionally has **no paginated history** - see [Overview](#1-overview).
+At the start of each `runReminderCheck()`, `pruneNotifications(retentionDays)` deletes `Notification` rows older than `retentionDays` (`NOTIFICATION_RETENTION_DAYS`, default 90) — **all users**, unread included, with no archive: a row that also failed to email is lost permanently. Cutoff is `created_at`; a prune failure is logged and does not stop processing. The bell intentionally has no paginated history ([Overview](#1-overview)).
 
 ---
 
 ## 7. Email Templates
 
-All templates live in `src/lib/email-templates.ts`. Every dispatched notification type maps to an HTML template:
+All templates live in `src/lib/email-templates.ts`. Every dispatched type maps to one:
 
 | Notification type        | Template                     | Email subject (heading)        |
 | ------------------------ | ---------------------------- | ------------------------------ |
@@ -183,37 +157,36 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched notificatio
 
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
 - All interpolated text is HTML-escaped.
-- Recipients without an email address are skipped (in-app row still created).
+- Recipients without an email are skipped (the in-app row is still created).
 
 ---
 
 ## 8. Bell UI Behavior
 
-- The unread badge shows the server-computed initial count, capped visually at `99+`.
-- The count refreshes: every 30 seconds, on tab visibility change, and on window focus.
-- Opening the popover loads the latest **unread only** notifications (limit 30, newest first).
-- Clicking an item: marks it read, removes it from the popover, decrements the badge, and navigates to `actionUrl` when present.
-- "Mark all read" marks every unread row of the user and clears the badge.
-- The badge is strictly informative - authorization for reads/writes stays on the server via `requireAuth()`.
+- Badge shows the server-computed unread count, capped visually at `99+`; refreshes every 30 s, on tab visibility change, and on focus.
+- Popover loads unread only (30, newest first).
+- Clicking an item: marks it read, removes it from the popover, decrements the badge, navigates to `actionUrl` when present.
+- "Mark all read" clears all unread and the badge.
+- The badge is informative only — authorization stays server-side via `requireAuth()`.
 
 ---
 
 ## 9. Environment Variables
 
-| Variable                      | Required   | Default      | Purpose                                                                                                         |
-| ----------------------------- | ---------- | ------------ | --------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS`       | No         | `3`          | Global fallback when a record has no `reminder_days` set                                                        |
-| `NOTIFICATION_RETENTION_DAYS` | No         | `90`         | Delete Notification rows older than this                                                                        |
-| `CRON_SECRET`                 | Yes (all)  | -            | Bearer secret authenticating `GET /api/cron/reminders`                                                          |
-| `APP_TIMEZONE`                | No         | server local | IANA timezone for server-side date/time formatting, the reminder day boundary, and the self-hosted cron trigger |
-| `APP_ORIGIN`                  | Yes (prod) | -            | Origin used to build absolute `actionUrl` links in emails                                                       |
+| Variable                      | Required   | Default      | Purpose                                                                         |
+| ----------------------------- | ---------- | ------------ | ------------------------------------------------------------------------------- |
+| `DEFAULT_REMINDER_DAYS`       | No         | `3`          | Fallback when a record has no `reminder_days`                                   |
+| `NOTIFICATION_RETENTION_DAYS` | No         | `90`         | Delete Notification rows older than this                                        |
+| `CRON_SECRET`                 | Yes (all)  | -            | Bearer secret for `GET /api/cron/reminders`                                     |
+| `APP_TIMEZONE`                | No         | server local | IANA timezone: date formatting, reminder day boundary, self-hosted cron trigger |
+| `APP_ORIGIN`                  | Yes (prod) | -            | Origin for absolute `actionUrl` links in emails                                 |
 
 ---
 
-## 10. Failure & Resilience Semantics (as designed)
+## 10. Failure & Resilience Semantics
 
-1. **Scheduled dispatch failure** leaves the record eligible for the next daily run (no lost reminders; possible back-to-back retries).
-2. **Email failure** for one recipient never blocks other recipients or the in-app row (logged only, no retry queue) — if the recipient lacks an email or delivery fails, and the in-app row is later pruned, that notification is gone.
-3. **Phase isolation** - prune, milestones, and consultations are independent try/catch scopes.
-4. **Once-per-day claim** is a conditional optimistic guard executed **before** dispatch: concurrent duplicate cron invocations can generate at most one delivery per record per day, and a crashed run can at worst delay a reminder to the next daily cycle (never duplicate it). The guard is per-record, not global.
-5. Seeded/deactivated developer accounts exist only as a bootstrap mechanism and receive no special notification behavior.
+1. **Scheduled failure** — the record stays eligible for the next run (no lost reminders; possible retry next day).
+2. **Email failure** — never blocks other recipients or the in-app row (logged only, no retry queue); a failed/absent email plus a pruned row means the notification is gone.
+3. **Phase isolation** — prune, milestones, and consultations each run in their own try/catch.
+4. **Once-per-day claim** — an optimistic, per-record guard run **before** dispatch; concurrent runs at most deliver once, a crashed run delays to the next cycle, never duplicates.
+5. **Developer accounts** — seeded/deactivated accounts are bootstrap-only and get no special notification behavior.

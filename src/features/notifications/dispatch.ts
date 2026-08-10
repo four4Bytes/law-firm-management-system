@@ -8,15 +8,12 @@ import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
 import {
   caseAssignedTemplate,
-  caseUpdatedTemplate,
   consultationAssignedTemplate,
   consultationCreatedTemplate,
   consultationOverdueTemplate,
   consultationReminderTemplate,
-  consultationUpdatedTemplate,
   milestoneTemplate,
   taskAssignedTemplate,
-  taskUpdatedTemplate,
 } from "@/lib/email-templates";
 
 /** Compile-time exhaustiveness guard — `value` must be `never` at this point. */
@@ -28,8 +25,6 @@ function pickTemplate(type: NotificationType) {
   switch (type) {
     case NotificationType.ConsultationCreated:
       return consultationCreatedTemplate;
-    case NotificationType.ConsultationUpdated:
-      return consultationUpdatedTemplate;
     case NotificationType.ConsultationReminder:
       return consultationReminderTemplate;
     case NotificationType.ConsultationOverdue:
@@ -42,12 +37,8 @@ function pickTemplate(type: NotificationType) {
       return milestoneTemplate;
     case NotificationType.TaskAssigned:
       return taskAssignedTemplate;
-    case NotificationType.TaskStatusChanged:
-      return taskUpdatedTemplate;
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
-    case NotificationType.CaseUpdated:
-      return caseUpdatedTemplate;
     case NotificationType.ConsultationAssigned:
       return consultationAssignedTemplate;
     default:

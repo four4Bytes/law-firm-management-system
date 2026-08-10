@@ -325,8 +325,6 @@ export async function updateConsultationAction(
       resetReminderTiming,
     });
 
-    const recipientIds = assignee_ids ?? existing.assignee_ids;
-
     after(async () => {
       try {
         await createAuditLog({
@@ -345,8 +343,10 @@ export async function updateConsultationAction(
       }
 
       try {
-        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
-        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(
+          assignee_ids ?? existing.assignee_ids,
+          existing.assignee_ids,
+        );
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(
@@ -355,20 +355,6 @@ export async function updateConsultationAction(
               type: NotificationType.ConsultationAssigned,
               title: `Consultation assigned: ${concern.substring(0, 100)}`,
               message: `You have been assigned to consultation: "${concern.substring(0, 100)}"`,
-              actionUrl: `/consultation/${consultationId}`,
-              consultationId,
-            },
-            session.id,
-          );
-        }
-
-        if (updatedRecipientIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: updatedRecipientIds,
-              type: NotificationType.ConsultationUpdated,
-              title: "Consultation updated",
-              message: `Consultation was updated: "${concern.substring(0, 100)}"`,
               actionUrl: `/consultation/${consultationId}`,
               consultationId,
             },
@@ -422,8 +408,6 @@ export async function updateConsultationWithClientAction(
       resetReminderTiming,
     });
 
-    const recipientIds = consultation.assignee_ids ?? existing.assignee_ids;
-
     after(async () => {
       try {
         await createAuditLog({
@@ -442,8 +426,10 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        const newAssigneeIds = diffNewAssigneeIds(recipientIds, existing.assignee_ids);
-        const updatedRecipientIds = recipientIds.filter((id) => !newAssigneeIds.includes(id));
+        const newAssigneeIds = diffNewAssigneeIds(
+          consultation.assignee_ids ?? existing.assignee_ids,
+          existing.assignee_ids,
+        );
 
         if (newAssigneeIds.length > 0) {
           await dispatchNotifications(
@@ -452,20 +438,6 @@ export async function updateConsultationWithClientAction(
               type: NotificationType.ConsultationAssigned,
               title: `Consultation assigned: ${consultation.concern.substring(0, 100)}`,
               message: `You have been assigned to consultation: "${consultation.concern.substring(0, 100)}"`,
-              actionUrl: `/consultation/${consultation_id}`,
-              consultationId: consultation_id,
-            },
-            session.id,
-          );
-        }
-
-        if (updatedRecipientIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: updatedRecipientIds,
-              type: NotificationType.ConsultationUpdated,
-              title: "Consultation updated",
-              message: `Consultation was updated: "${consultation.concern.substring(0, 100)}"`,
               actionUrl: `/consultation/${consultation_id}`,
               consultationId: consultation_id,
             },

@@ -207,7 +207,7 @@ describe("updateTaskAction notification split", () => {
     vi.mocked(updateTask).mockResolvedValue({ id: uuid });
   });
 
-  it("dispatches TaskAssigned only to the new assignee and TaskStatusChanged to the rest", async () => {
+  it("dispatches TaskAssigned only to the new assignee", async () => {
     await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
@@ -219,11 +219,9 @@ describe("updateTaskAction notification split", () => {
 
     const calls = vi.mocked(dispatchNotifications).mock.calls;
     const assigned = calls.find(([payload]) => payload.type === NotificationType.TaskAssigned);
-    const updated = calls.find(([payload]) => payload.type === NotificationType.TaskStatusChanged);
 
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee2]);
-    expect(updated?.[0].userIds).toEqual([assignee1]);
   });
 
   it("dispatches only TaskAssigned when only the assignee set changed", async () => {

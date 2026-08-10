@@ -433,7 +433,7 @@ describe("updateConsultationAction notification split", () => {
     vi.mocked(prisma.consultation.update).mockResolvedValue(consultationRecord);
   });
 
-  it("dispatches ConsultationAssigned only to the new assignee and ConsultationUpdated to the rest", async () => {
+  it("dispatches ConsultationAssigned only to the new assignee", async () => {
     await updateConsultationAction({
       ...validPayload,
       assignee_ids: [assignee1, assignee2, assignee3],
@@ -444,26 +444,21 @@ describe("updateConsultationAction notification split", () => {
     const assigned = calls.find(
       ([payload]) => payload.type === NotificationType.ConsultationAssigned,
     );
-    const updated = calls.find(
-      ([payload]) => payload.type === NotificationType.ConsultationUpdated,
-    );
 
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee3]);
-    expect(updated?.[0].userIds).toEqual([assignee1, assignee2]);
   });
 
-  it("dispatches only ConsultationUpdated when no assignee was added", async () => {
+  it("dispatches nothing when no assignee was added", async () => {
     vi.mocked(getConsultationAssigneeIds).mockResolvedValue([assignee1, assignee2]);
 
     await updateConsultationAction(validPayload);
     await flushAfterCallbacks();
 
-    const types = vi.mocked(dispatchNotifications).mock.calls.map(([payload]) => payload.type);
-    expect(types).toEqual([NotificationType.ConsultationUpdated]);
+    expect(vi.mocked(dispatchNotifications)).not.toHaveBeenCalled();
   });
 
-  it("splits updateConsultationWithClientAction notices the same way", async () => {
+  it("dispatches ConsultationAssigned only for updateConsultationWithClientAction", async () => {
     await updateConsultationWithClientAction({
       consultation_id: uuid,
       client_id: uuid,
@@ -481,11 +476,8 @@ describe("updateConsultationAction notification split", () => {
     const assigned = calls.find(
       ([payload]) => payload.type === NotificationType.ConsultationAssigned,
     );
-    const updated = calls.find(
-      ([payload]) => payload.type === NotificationType.ConsultationUpdated,
-    );
 
+    expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee3]);
-    expect(updated?.[0].userIds).toEqual([assignee1, assignee2]);
   });
 });

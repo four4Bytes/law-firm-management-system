@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getActiveUserIds, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
-import { consultationAssignedTemplate } from "@/lib/email-templates";
+import { consultationAssignedTemplate, statusChangeTemplate } from "@/lib/email-templates";
 
 import { dispatchNotifications } from "../dispatch";
 import { createNotifications } from "../mutations";
@@ -27,6 +27,7 @@ vi.mock("@/lib/email-templates", () => ({
   consultationOverdueTemplate: vi.fn(() => "<html/>"),
   consultationReminderTemplate: vi.fn(() => "<html/>"),
   milestoneTemplate: vi.fn(() => "<html/>"),
+  statusChangeTemplate: vi.fn(() => "<html/>"),
   taskAssignedTemplate: vi.fn(() => "<html/>"),
   caseAssignedTemplate: vi.fn(() => "<html/>"),
 }));
@@ -122,6 +123,17 @@ describe("dispatchNotifications", () => {
     await dispatchNotifications({ ...payload, type: NotificationType.ConsultationAssigned }, "u9");
 
     expect(vi.mocked(consultationAssignedTemplate)).toHaveBeenCalledTimes(3);
+    expect(sendEmail).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([
+    NotificationType.MilestoneStatusChanged,
+    NotificationType.CaseStatusChanged,
+    NotificationType.ConsultationStatusChanged,
+  ])("resolves statusChangeTemplate for %s dispatches", async (type) => {
+    await dispatchNotifications({ ...payload, type }, "u9");
+
+    expect(vi.mocked(statusChangeTemplate)).toHaveBeenCalledTimes(3);
     expect(sendEmail).toHaveBeenCalledTimes(3);
   });
 });

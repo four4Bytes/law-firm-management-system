@@ -85,10 +85,10 @@ export function EditConsultationModal({
 
   const previousStatus = consultation.status as ConsultationStatus;
 
-  async function revertConsultationStatus() {
-    if (previousStatus === fields.status) return;
+  async function revertConsultationStatus(): Promise<boolean> {
+    if (previousStatus === fields.status) return true;
     try {
-      await updateConsultationWithClientAction({
+      const result = await updateConsultationWithClientAction({
         consultation_id: consultation.id,
         client_id: clientId,
         client: {
@@ -104,8 +104,10 @@ export function EditConsultationModal({
           assignee_ids: Array.from(assigneeIds),
         },
       });
+      return result.success;
     } catch {
       console.error("Failed to revert consultation status");
+      return false;
     }
   }
 

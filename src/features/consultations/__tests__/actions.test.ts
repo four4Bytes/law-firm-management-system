@@ -481,4 +481,47 @@ describe("updateConsultationAction notification split", () => {
     expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee3]);
   });
+
+  it("dispatches ConsultationStatusChanged on status change for updateConsultationAction", async () => {
+    await updateConsultationAction({
+      ...validPayload,
+      status: "Accepted" as const,
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const statusChange = calls.find(
+      ([payload]) => payload.type === NotificationType.ConsultationStatusChanged,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2, assignee3]);
+    expect(statusChange?.[0].message).toContain("Scheduled");
+    expect(statusChange?.[0].message).toContain("Accepted");
+  });
+
+  it("dispatches ConsultationStatusChanged on status change for updateConsultationWithClientAction", async () => {
+    await updateConsultationWithClientAction({
+      consultation_id: uuid,
+      client_id: uuid,
+      client: { name: "John Doe" },
+      consultation: {
+        concern: "Legal advice",
+        booking_datetime: "2024-06-01T10:00:00.000Z",
+        status: "Accepted" as const,
+        assignee_ids: [assignee1, assignee2],
+      },
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const statusChange = calls.find(
+      ([payload]) => payload.type === NotificationType.ConsultationStatusChanged,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2, assignee3]);
+    expect(statusChange?.[0].message).toContain("Scheduled");
+    expect(statusChange?.[0].message).toContain("Accepted");
+  });
 });

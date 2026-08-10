@@ -326,19 +326,16 @@ Links a reviewer to a task for approval workflows.
 
 ### Notification Type
 
-| Value                  | Description                                              |
-| ---------------------- | -------------------------------------------------------- |
-| ConsultationCreated    | New consultation booked (consultation assignees)         |
-| ConsultationReminder   | Upcoming consultation — due within reminder window       |
-| ConsultationOverdue    | Consultation booking date has passed                     |
-| MilestoneDueSoon       | Milestone due within reminder window                     |
-| MilestoneCompleted     | Milestone marked Done                                    |
-| MilestoneStatusChanged | Milestone status changed                                 |
-| MilestoneOverdue       | Milestone due date has passed                            |
-| MilestoneUpdated       | Milestone details changed                                |
-| TaskAssigned           | User assigned to a task                                  |
-| CaseAssigned           | User assigned to a case (case created or assignee added) |
-| ConsultationAssigned   | Consultation assignee added                              |
+| Value                  | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| ConsultationReminder   | Upcoming consultation — due within reminder window |
+| ConsultationOverdue    | Consultation booking date has passed               |
+| MilestoneDueSoon       | Milestone due within reminder window               |
+| MilestoneStatusChanged | Any milestone status change                        |
+| MilestoneOverdue       | Milestone due date has passed                      |
+| TaskAssigned           | User assigned to a task                            |
+| CaseAssigned           | User assigned to a case (assignee added)           |
+| ConsultationAssigned   | Consultation assignee added                        |
 
 > See [Notifications & Reminders](./notifications.md) for the full delivery rules.
 

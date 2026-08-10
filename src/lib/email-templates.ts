@@ -234,22 +234,6 @@ export function consultationOverdueTemplate(ctx: TemplateContext): string {
 }
 
 /**
- * Renders the email body for a consultation-created notification.
- *
- * @param ctx - Standard template context with recipient, actor, and message data.
- * @returns A complete HTML string (via {@link emailLayout}).
- */
-export function consultationCreatedTemplate(ctx: TemplateContext): string {
-  return emailLayout(
-    "New Consultation Scheduled",
-    greeting(ctx.toName) +
-      text(`${ctx.actorName} has scheduled a new consultation.`) +
-      quoted(ctx.message) +
-      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
-  );
-}
-
-/**
  * Renders the email body for a consultation-assigned notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.

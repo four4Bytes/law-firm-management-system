@@ -7,7 +7,6 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import {
   getConsultationAccessContext,
-  getConsultationAssigneeIds,
   getConsultationEditData,
   getConsultationNotesPaginated,
   getConsultationOverviewById,
@@ -18,10 +17,7 @@ import {
 } from "@/features/consultations/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import {
-  diffNewAssigneeIds,
-  resolveAssignmentRecipients,
-} from "@/features/notifications/recipients";
+import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import {
@@ -180,29 +176,6 @@ export async function createConsultationAction(
           err,
         );
       }
-
-      try {
-        const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: assignee_ids,
-          entityId: createdConsultation.id,
-          getExistingDirectUserIds: getConsultationAssigneeIds,
-        });
-
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.ConsultationCreated,
-            title: "New consultation booked",
-            message: `A consultation was scheduled for ${concern.substring(0, 100)}`,
-            actionUrl: `/consultation/${createdConsultation.id}`,
-            consultationId: createdConsultation.id,
-          },
-          session.id,
-          notifyIds.includes(session.id),
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
     });
 
     revalidatePath("/consultation");
@@ -248,29 +221,6 @@ export async function createConsultationWithClientAction(
           createdWithClient.id,
           err,
         );
-      }
-
-      try {
-        const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: parsed.data.consultation.assignee_ids,
-          entityId: createdWithClient.id,
-          getExistingDirectUserIds: getConsultationAssigneeIds,
-        });
-
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.ConsultationCreated,
-            title: "New consultation booked",
-            message: `A consultation was scheduled for ${parsed.data.consultation.concern.substring(0, 100)}`,
-            actionUrl: `/consultation/${createdWithClient.id}`,
-            consultationId: createdWithClient.id,
-          },
-          session.id,
-          notifyIds.includes(session.id),
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
       }
     });
 

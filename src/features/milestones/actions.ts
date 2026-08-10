@@ -162,29 +162,14 @@ export async function updateMilestoneAction(
       try {
         const assigneeIds = await getCaseAssigneeIds(existing.case_id);
         if (assigneeIds.length === 0) return;
-
-        let notificationType: NotificationType;
-        let label: string;
-        if (status === "Done" && existing.status !== "Done") {
-          notificationType = NotificationType.MilestoneCompleted;
-          label = "completed";
-        } else if (existing.status !== status) {
-          notificationType = NotificationType.MilestoneStatusChanged;
-          label = "status changed";
-        } else {
-          notificationType = NotificationType.MilestoneUpdated;
-          label = "updated";
-        }
+        if (existing.status === status) return;
 
         await dispatchNotifications(
           {
             userIds: assigneeIds,
-            type: notificationType,
-            title: `Milestone ${label}: ${title}`,
-            message:
-              notificationType === NotificationType.MilestoneStatusChanged
-                ? `Milestone "${title}" status changed`
-                : `Milestone "${title}" was ${label}`,
+            type: NotificationType.MilestoneStatusChanged,
+            title: `Milestone status changed: ${title}`,
+            message: `Milestone "${title}" status changed from ${existing.status} to ${status}`,
             actionUrl: `/case/${existing.case_id}`,
             caseId: existing.case_id,
             milestoneId: existing.id,

@@ -7,7 +7,6 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import {
   getCaseAccessContext,
-  getCaseAssigneeIds,
   getCaseBySourceConsultationId,
   getCaseEditData,
   getCaseMilestonesPaginated,
@@ -22,10 +21,7 @@ import {
 } from "@/features/cases/queries";
 import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import {
-  diffNewAssigneeIds,
-  resolveAssignmentRecipients,
-} from "@/features/notifications/recipients";
+import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
@@ -229,29 +225,6 @@ export async function createCaseAction(
       } catch (err) {
         console.error("Failed to log case.created audit for Case", createdCase.id, err);
       }
-
-      try {
-        const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: assignee_ids,
-          entityId: createdCase.id,
-          getExistingDirectUserIds: getCaseAssigneeIds,
-        });
-
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.CaseAssigned,
-            title: `New case: ${case_title}`,
-            message: `A new case "${case_title}" was created`,
-            actionUrl: `/case/${createdCase.id}`,
-            caseId: createdCase.id,
-          },
-          session.id,
-          notifyIds.includes(session.id),
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
     });
 
     revalidatePath("/case");
@@ -299,29 +272,6 @@ export async function createCaseWithClientAction(
         });
       } catch (err) {
         console.error("Failed to log case.created audit for Case", createdWithClient.id, err);
-      }
-
-      try {
-        const notifyIds = await resolveAssignmentRecipients({
-          directUserIds: caseData.assignee_ids,
-          entityId: createdWithClient.id,
-          getExistingDirectUserIds: getCaseAssigneeIds,
-        });
-
-        await dispatchNotifications(
-          {
-            userIds: notifyIds,
-            type: NotificationType.CaseAssigned,
-            title: `New case: ${caseData.case_title}`,
-            message: `A new case "${caseData.case_title}" was created for client "${client.name}"`,
-            actionUrl: `/case/${createdWithClient.id}`,
-            caseId: createdWithClient.id,
-          },
-          session.id,
-          notifyIds.includes(session.id),
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
       }
     });
 

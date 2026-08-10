@@ -88,27 +88,6 @@ export async function createTaskAction(
       } catch (err) {
         console.error("Failed to log task.created audit for Case", case_id, err);
       }
-
-      try {
-        const assigneeIds = parsed.data.assignee_ids ?? [];
-        if (assigneeIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: assigneeIds,
-              type: NotificationType.TaskAssigned,
-              title: `New task: ${title}`,
-              message: `You have been assigned a new task: "${title}"`,
-              actionUrl: `/case/${case_id}`,
-              caseId: case_id,
-              taskId: task.id,
-            },
-            session.id,
-            assigneeIds.includes(session.id),
-          );
-        }
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
     });
 
     revalidatePath(`/case/${case_id}`);

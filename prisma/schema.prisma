@@ -55,7 +55,9 @@ enum NotificationType {
   MilestoneOverdue
   TaskAssigned
   CaseAssigned
+  CaseStatusChanged
   ConsultationAssigned
+  ConsultationStatusChanged
 }
 
 enum PaymentStatus {

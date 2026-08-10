@@ -48,13 +48,16 @@ Only **active** users are eligible; recipients are per-event, not role-based ([s
 
 Fired by Server Actions in `after()` callbacks after the mutation succeeds (audited, non-blocking).
 
-> Creation and deletion never dispatch for any entity type — those are audited, not announced. Immediate notifications cover assignment changes (case/task/consultation) and any milestone status change.
+> Creation and deletion never dispatch for any entity type — those are audited, not announced. Immediate notifications cover assignment changes (case/task/consultation), status changes (case/consultation/milestone), and the Accepted→New Case consultation transition.
 
 ### Cases
 
-| Event                         | Recipients            | Type           | Notes                 |
-| ----------------------------- | --------------------- | -------------- | --------------------- |
-| Case updated - assignee added | Newly added assignees | `CaseAssigned` | Actor always excluded |
+| Event                         | Recipients            | Type                | Notes                 |
+| ----------------------------- | --------------------- | ------------------- | --------------------- |
+| Case updated - assignee added | Newly added assignees | `CaseAssigned`      | Actor always excluded |
+| Case status changed           | All case assignees    | `CaseStatusChanged` | Actor always excluded |
+
+> Any status transition (incl. → `Closed`/`Settled`/`Terminated`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Open to Closed`). Actor always excluded.
 
 ### Tasks (sub-data of Case)
 
@@ -72,9 +75,14 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 ### Consultations
 
-| Event                                  | Recipients            | Type                   | Notes                 |
-| -------------------------------------- | --------------------- | ---------------------- | --------------------- |
-| Consultation updated - assignee joined | Newly added assignees | `ConsultationAssigned` | Actor always excluded |
+| Event                                  | Recipients                 | Type                        | Notes                 |
+| -------------------------------------- | -------------------------- | --------------------------- | --------------------- |
+| Consultation updated - assignee joined | Newly added assignees      | `ConsultationAssigned`      | Actor always excluded |
+| Consultation status changed            | All consultation assignees | `ConsultationStatusChanged` | Actor always excluded |
+
+> Any status transition (incl. → `Accepted`/`Completed`/`Rejected`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Scheduled to Accepted`). Actor always excluded.
+
+> **Accepted = New Case:** when a consultation transitions to `Accepted`, a new case is created from it. The status-change notification fires on the transition; the case creation itself dispatches nothing (creation is audited, not announced). If the user cancels case creation, the status reverts to the previous value and the revert dispatches its own status-change notification (`from Accepted to <previous>`).
 
 > **Single-notice rule:** each recipient gets at most one assignment notice per event.
 
@@ -139,19 +147,21 @@ At the start of each `runReminderCheck()`, `pruneNotifications(retentionDays)` d
 
 All templates live in `src/lib/email-templates.ts`. Every dispatched type maps to one:
 
-| Notification type        | Template                     | Email subject (heading)        |
-| ------------------------ | ---------------------------- | ------------------------------ |
-| `ConsultationReminder`   | consultationReminderTemplate | Upcoming Consultation Reminder |
-| `ConsultationOverdue`    | consultationOverdueTemplate  | Overdue Consultation           |
-| `MilestoneDueSoon`       | milestoneTemplate            | (uses notification title)      |
-| `MilestoneOverdue`       | milestoneTemplate            | (uses notification title)      |
-| `MilestoneStatusChanged` | milestoneTemplate            | (uses notification title)      |
-| `TaskAssigned`           | taskAssignedTemplate         | Task Assigned                  |
-| `CaseAssigned`           | caseAssignedTemplate         | Case Assigned                  |
-| `ConsultationAssigned`   | consultationAssignedTemplate | Consultation Assigned          |
+| Notification type           | Template                     | Email subject (heading)        |
+| --------------------------- | ---------------------------- | ------------------------------ |
+| `ConsultationReminder`      | consultationReminderTemplate | Upcoming Consultation Reminder |
+| `ConsultationOverdue`       | consultationOverdueTemplate  | Overdue Consultation           |
+| `MilestoneDueSoon`          | milestoneTemplate            | (uses notification title)      |
+| `MilestoneOverdue`          | milestoneTemplate            | (uses notification title)      |
+| `MilestoneStatusChanged`    | statusChangeTemplate         | (uses notification title)      |
+| `TaskAssigned`              | taskAssignedTemplate         | Task Assigned                  |
+| `CaseAssigned`              | caseAssignedTemplate         | Case Assigned                  |
+| `CaseStatusChanged`         | statusChangeTemplate         | (uses notification title)      |
+| `ConsultationAssigned`      | consultationAssignedTemplate | Consultation Assigned          |
+| `ConsultationStatusChanged` | statusChangeTemplate         | (uses notification title)      |
 
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
-- `MilestoneStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
+- `MilestoneStatusChanged`, `CaseStatusChanged`, and `ConsultationStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
 - All interpolated text is HTML-escaped.
 - Recipients without an email are skipped (the in-app row is still created).
 

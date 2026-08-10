@@ -83,6 +83,32 @@ export function EditConsultationModal({
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const router = useRouter();
 
+  const previousStatus = consultation.status as ConsultationStatus;
+
+  async function revertConsultationStatus() {
+    if (previousStatus === fields.status) return;
+    try {
+      await updateConsultationWithClientAction({
+        consultation_id: consultation.id,
+        client_id: clientId,
+        client: {
+          name: requiredString(clientName),
+          email: optionalString(clientEmail),
+          phone_number: optionalString(clientPhone),
+          address: optionalString(clientAddress),
+        },
+        consultation: {
+          concern: requiredString(fields.concern),
+          booking_datetime: combineDateTime(fields.date, fields.time),
+          status: previousStatus,
+          assignee_ids: Array.from(assigneeIds),
+        },
+      });
+    } catch {
+      console.error("Failed to revert consultation status");
+    }
+  }
+
   useEffect(() => {
     if (!isOpen) return;
     void (async () => {
@@ -301,6 +327,7 @@ export function EditConsultationModal({
           onOpenChange(false);
           router.push(`/case/${caseId}`);
         }}
+        onCancel={revertConsultationStatus}
         consultationId={consultation.id}
         clientId={clientId}
         defaultTitle={fields.concern}

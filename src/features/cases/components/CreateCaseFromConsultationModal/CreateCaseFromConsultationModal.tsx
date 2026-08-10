@@ -28,6 +28,7 @@ interface CreateCaseFromConsultationModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: (caseId: string) => void;
+  onCancel?: () => void;
   consultationId: string;
   clientId: string;
   defaultTitle: string;
@@ -54,6 +55,7 @@ export function CreateCaseFromConsultationModal({
   isOpen,
   onOpenChange,
   onSuccess,
+  onCancel,
   consultationId,
   clientId,
   defaultTitle,
@@ -69,6 +71,7 @@ export function CreateCaseFromConsultationModal({
     if (isPending) return;
     setFields(resetFields(defaultTitle));
     setAssigneeIds(new Set());
+    onCancel?.();
     onOpenChange(false);
   }
 

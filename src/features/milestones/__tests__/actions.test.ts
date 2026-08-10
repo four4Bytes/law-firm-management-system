@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getCaseAccessContext } from "@/features/cases/queries";
-import { Role } from "@/generated/prisma/browser";
+import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { NotificationType, Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
@@ -14,6 +15,17 @@ import {
 import { createMilestone, deleteMilestone, updateMilestone } from "../mutations";
 import { getMilestoneAccessContext, getMilestoneById, getMilestoneRowById } from "../queries";
 
+async function flushAfterCallbacks(): Promise<void> {
+  const server = (await import("next/server")) as unknown as {
+    __flushAfterCallbacks: () => Promise<void>;
+  };
+  await server.__flushAfterCallbacks();
+}
+
+afterEach(async () => {
+  await flushAfterCallbacks();
+});
+
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }),
 }));
@@ -24,7 +36,7 @@ vi.mock("@/features/cases/queries", () => ({
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
-  createAuditLog: vi.fn(),
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/notifications/dispatch", () => ({
@@ -35,9 +47,16 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("next/server", () => ({
-  after: vi.fn(),
-}));
+vi.mock("next/server", () => {
+  const afterCallbacks: Array<() => void | Promise<void>> = [];
+  return {
+    after: vi.fn((fn: () => void | Promise<void>) => {
+      afterCallbacks.push(fn);
+    }),
+    __flushAfterCallbacks: () =>
+      Promise.all(afterCallbacks.splice(0).map((fn) => Promise.resolve(fn()))),
+  };
+});
 
 vi.mock("@/lib/path", () => ({
   getParentPath: vi.fn(),
@@ -226,6 +245,53 @@ describe("updateMilestoneAction", () => {
       uuid,
       expect.objectContaining({ reminder_days: null, resetReminderTiming: true }),
     );
+  });
+});
+
+describe("updateMilestoneAction notifications", () => {
+  const assignee1 = uuid;
+  const assignee2 = "550e8400-e29b-41d4-a716-446655440001";
+
+  beforeEach(() => {
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee1, assignee2]);
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+  });
+
+  it("dispatches MilestoneStatusChanged to case assignees on a status change", async () => {
+    await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: milestoneRecord.due_date,
+      status: "Done" as const,
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    expect(calls).toHaveLength(1);
+
+    const [payload, actorUserId] = calls[0];
+    expect(payload.type).toBe(NotificationType.MilestoneStatusChanged);
+    expect(payload.userIds).toEqual([assignee1, assignee2]);
+    expect(payload.title).toBe(`Milestone status changed: ${milestoneRecord.title}`);
+    expect(payload.message).toBe(
+      `Milestone "${milestoneRecord.title}" status changed from Pending to Done`,
+    );
+    expect(actorUserId).toBe("u2");
+  });
+
+  it("dispatches nothing when only content changes", async () => {
+    await updateMilestoneAction({
+      milestoneId: uuid,
+      title: "Renamed",
+      description: undefined,
+      due_date: milestoneRecord.due_date,
+      status: milestoneRecord.status,
+    });
+    await flushAfterCallbacks();
+
+    expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 });
 

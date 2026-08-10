@@ -15,37 +15,6 @@ interface NotificationSeed {
 }
 
 const notificationSeeds: NotificationSeed[] = [
-  // ── ConsultationCreated ──
-  {
-    userEmail: "miguel.cruz@aninolaw.com",
-    type: NotificationType.ConsultationCreated,
-    title: "Consultation booked: Trademark registration",
-    message:
-      "A new consultation has been created for Kristine Aguilar regarding trademark registration.",
-    is_read: true,
-    daysAgo: 7,
-    consultationClientEmail: "kristine.aguilar@email.com",
-  },
-  {
-    userEmail: "catherine.diaz@aninolaw.com",
-    type: NotificationType.ConsultationCreated,
-    title: "Consultation booked: Contract review",
-    message:
-      "A new consultation has been created for Jose Mercado regarding software development contract review.",
-    is_read: false,
-    daysAgo: 1,
-    consultationClientEmail: "jose.mercado@email.com",
-  },
-  {
-    userEmail: "robert.santos@aninolaw.com",
-    type: NotificationType.ConsultationCreated,
-    title: "Consultation booked: Child custody modification",
-    message:
-      "A new consultation has been created for Diana Navarro regarding child custody modification.",
-    is_read: false,
-    daysAgo: 10,
-    consultationClientEmail: "diana.navarro@email.com",
-  },
   // ── ConsultationReminder ──
   {
     userEmail: "jessica.lim@aninolaw.com",
@@ -98,40 +67,6 @@ const notificationSeeds: NotificationSeed[] = [
     daysAgo: 2,
     caseTitle: "Reyes vs. San Miguel Logistics",
     milestoneTitle: "Pre-Trial Conference",
-  },
-  // ── MilestoneCompleted ──
-  {
-    userEmail: "miguel.cruz@aninolaw.com",
-    type: NotificationType.MilestoneCompleted,
-    title: "Milestone completed: Complaint Filed with RTC",
-    message:
-      'Milestone "Complaint Filed with RTC" for Reyes vs. San Miguel Logistics has been completed.',
-    is_read: true,
-    daysAgo: 2,
-    caseTitle: "Reyes vs. San Miguel Logistics",
-    milestoneTitle: "Complaint Filed with RTC",
-  },
-  {
-    userEmail: "jessica.lim@aninolaw.com",
-    type: NotificationType.MilestoneCompleted,
-    title: "Milestone completed: Complaint Filed with RTC",
-    message:
-      'Milestone "Complaint Filed with RTC" for Reyes vs. San Miguel Logistics has been completed.',
-    is_read: true,
-    daysAgo: 2,
-    caseTitle: "Reyes vs. San Miguel Logistics",
-    milestoneTitle: "Complaint Filed with RTC",
-  },
-  {
-    userEmail: "gina.reyes@aninolaw.com",
-    type: NotificationType.MilestoneCompleted,
-    title: "Milestone completed: Tax Reduction Approved",
-    message:
-      'Milestone "Tax Reduction Approved by LBAA" for Hernandez Property Tax Protest has been completed.',
-    is_read: false,
-    daysAgo: 0,
-    caseTitle: "Hernandez Property Tax Protest",
-    milestoneTitle: "Tax Reduction Approved by LBAA",
   },
   // ── MilestoneStatusChanged ──
   {
@@ -187,29 +122,6 @@ const notificationSeeds: NotificationSeed[] = [
       'Milestone "Due Diligence Document Submission" for Ramirez Corp — Series A Funding is overdue by 1 day.',
     is_read: false,
     daysAgo: 0,
-    caseTitle: "Ramirez Corp — Series A Funding",
-    milestoneTitle: "Due Diligence Document Submission",
-  },
-  // ── MilestoneUpdated ──
-  {
-    userEmail: "marco.lopez@aninolaw.com",
-    type: NotificationType.MilestoneUpdated,
-    title: "Milestone updated: Loan Restructuring Negotiation Deadline",
-    message:
-      'Milestone "Loan Restructuring Negotiation Deadline" for Santos Foreclosure Defense has been updated — deadline extended by 3 days.',
-    is_read: true,
-    daysAgo: 3,
-    caseTitle: "Santos Foreclosure Defense",
-    milestoneTitle: "Loan Restructuring Negotiation Deadline",
-  },
-  {
-    userEmail: "angela.mercado@aninolaw.com",
-    type: NotificationType.MilestoneUpdated,
-    title: "Milestone updated: Due Diligence Document Submission",
-    message:
-      'Milestone "Due Diligence Document Submission" for Ramirez Corp — Series A Funding — additional documents requested by investor.',
-    is_read: false,
-    daysAgo: 1,
     caseTitle: "Ramirez Corp — Series A Funding",
     milestoneTitle: "Due Diligence Document Submission",
   },

@@ -48,35 +48,33 @@ Only **active** users are eligible; recipients are per-event, not role-based ([s
 
 Fired by Server Actions in `after()` callbacks after the mutation succeeds (audited, non-blocking).
 
+> Creation and deletion never dispatch for any entity type — those are audited, not announced. Immediate notifications cover assignment changes (case/task/consultation) and any milestone status change.
+
 ### Cases
 
-| Event                         | Recipients            | Type           | Notes                              |
-| ----------------------------- | --------------------- | -------------- | ---------------------------------- |
-| Case created                  | Case assignees        | `CaseAssigned` | Actor included if also an assignee |
-| Case updated - assignee added | Newly added assignees | `CaseAssigned` | Actor always excluded              |
+| Event                         | Recipients            | Type           | Notes                 |
+| ----------------------------- | --------------------- | -------------- | --------------------- |
+| Case updated - assignee added | Newly added assignees | `CaseAssigned` | Actor always excluded |
 
 ### Tasks (sub-data of Case)
 
-| Event        | Recipients     | Type           | Notes                              |
-| ------------ | -------------- | -------------- | ---------------------------------- |
-| Task created | Task assignees | `TaskAssigned` | Actor included if also an assignee |
+| Event                         | Recipients            | Type           | Notes                 |
+| ----------------------------- | --------------------- | -------------- | --------------------- |
+| Task updated - assignee added | Newly added assignees | `TaskAssigned` | Actor always excluded |
 
 ### Milestones (sub-data of Case)
 
-| Event                                   | Recipients         | Type                     |
-| --------------------------------------- | ------------------ | ------------------------ |
-| Milestone updated - status → `Done`     | All case assignees | `MilestoneCompleted`     |
-| Milestone updated - other status change | All case assignees | `MilestoneStatusChanged` |
-| Milestone updated - content-only        | All case assignees | `MilestoneUpdated`       |
+| Event                    | Recipients         | Type                     |
+| ------------------------ | ------------------ | ------------------------ |
+| Milestone status changed | All case assignees | `MilestoneStatusChanged` |
 
-> Milestone _creation_ dispatches nothing; only updates notify. Actor always excluded.
+> Any status transition (incl. → `Done`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Pending to Done`). Actor always excluded.
 
 ### Consultations
 
-| Event                                  | Recipients             | Type                   | Notes                              |
-| -------------------------------------- | ---------------------- | ---------------------- | ---------------------------------- |
-| Consultation created                   | Consultation assignees | `ConsultationCreated`  | Actor included if also an assignee |
-| Consultation updated - assignee joined | Newly added assignees  | `ConsultationAssigned` | Actor always excluded              |
+| Event                                  | Recipients            | Type                   | Notes                 |
+| -------------------------------------- | --------------------- | ---------------------- | --------------------- |
+| Consultation updated - assignee joined | Newly added assignees | `ConsultationAssigned` | Actor always excluded |
 
 > **Single-notice rule:** each recipient gets at most one assignment notice per event.
 
@@ -143,19 +141,17 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 
 | Notification type        | Template                     | Email subject (heading)        |
 | ------------------------ | ---------------------------- | ------------------------------ |
-| `ConsultationCreated`    | consultationCreatedTemplate  | New Consultation Scheduled     |
 | `ConsultationReminder`   | consultationReminderTemplate | Upcoming Consultation Reminder |
 | `ConsultationOverdue`    | consultationOverdueTemplate  | Overdue Consultation           |
 | `MilestoneDueSoon`       | milestoneTemplate            | (uses notification title)      |
 | `MilestoneOverdue`       | milestoneTemplate            | (uses notification title)      |
-| `MilestoneCompleted`     | milestoneTemplate            | (uses notification title)      |
 | `MilestoneStatusChanged` | milestoneTemplate            | (uses notification title)      |
-| `MilestoneUpdated`       | milestoneTemplate            | (uses notification title)      |
 | `TaskAssigned`           | taskAssignedTemplate         | Task Assigned                  |
 | `CaseAssigned`           | caseAssignedTemplate         | Case Assigned                  |
 | `ConsultationAssigned`   | consultationAssignedTemplate | Consultation Assigned          |
 
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
+- `MilestoneStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
 - All interpolated text is HTML-escaped.
 - Recipients without an email are skipped (the in-app row is still created).
 

@@ -189,6 +189,7 @@ describe("createCaseAction", () => {
       }),
     );
     expect(revalidatePath).toHaveBeenCalledWith("/case");
+    expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 
   it("returns an error when creation fails", async () => {

@@ -450,10 +450,7 @@ export async function seedMilestones(
         await prisma.notification.create({
           data: {
             user_id: userId,
-            type:
-              m.status === "Done"
-                ? NotificationType.MilestoneCompleted
-                : NotificationType.MilestoneStatusChanged,
+            type: NotificationType.MilestoneStatusChanged,
             title: `Milestone: ${m.title}`,
             message: `Milestone "${m.title}" for case "${m.caseTitle}" is ${m.status === "Done" ? "completed" : "due on " + dueDate.toLocaleDateString()}`,
             is_read: m.status === "Done",

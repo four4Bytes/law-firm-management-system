@@ -9,7 +9,6 @@ import { sendEmail } from "@/lib/email";
 import {
   caseAssignedTemplate,
   consultationAssignedTemplate,
-  consultationCreatedTemplate,
   consultationOverdueTemplate,
   consultationReminderTemplate,
   milestoneTemplate,
@@ -23,17 +22,13 @@ function assertNever(value: never): never {
 
 function pickTemplate(type: NotificationType) {
   switch (type) {
-    case NotificationType.ConsultationCreated:
-      return consultationCreatedTemplate;
     case NotificationType.ConsultationReminder:
       return consultationReminderTemplate;
     case NotificationType.ConsultationOverdue:
       return consultationOverdueTemplate;
     case NotificationType.MilestoneDueSoon:
-    case NotificationType.MilestoneCompleted:
     case NotificationType.MilestoneStatusChanged:
     case NotificationType.MilestoneOverdue:
-    case NotificationType.MilestoneUpdated:
       return milestoneTemplate;
     case NotificationType.TaskAssigned:
       return taskAssignedTemplate;

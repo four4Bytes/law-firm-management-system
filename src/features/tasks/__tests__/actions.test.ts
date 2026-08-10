@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
@@ -11,7 +12,7 @@ import {
   getTaskDetailRowByIdAction,
   updateTaskAction,
 } from "../actions";
-import { updateTask } from "../mutations";
+import { createTask, updateTask } from "../mutations";
 import { getTaskAccessContext, getTaskById, getTaskDetailRowById } from "../queries";
 
 async function flushAfterCallbacks(): Promise<void> {
@@ -170,6 +171,22 @@ describe("createTaskAction", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+
+  it("creates a task without dispatching a notification", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(createTask).mockResolvedValue({ id: "t1" });
+
+    const result = await createTaskAction({
+      title: "Draft memo",
+      description: undefined,
+      status: "Pending" as const,
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
+
+    expect(result).toEqual({ success: true, data: { id: "t1" } });
+    expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 });
 

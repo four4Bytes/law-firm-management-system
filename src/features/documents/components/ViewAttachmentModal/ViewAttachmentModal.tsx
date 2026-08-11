@@ -32,6 +32,8 @@ export function ViewAttachmentModal({
           file_size={doc.file_size}
           uploadedBy={doc.uploadedBy}
           created_at={doc.created_at}
+          linkedTaskTitle={doc.task?.title}
+          linkedTaskCaseId={doc.task?.case_id}
         />
       </div>
     </Modal>

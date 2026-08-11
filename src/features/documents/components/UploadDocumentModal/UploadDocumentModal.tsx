@@ -70,27 +70,34 @@ export function UploadDocumentModal({
   }
 
   async function handleUploadAll() {
-    const { uploaded, failed } = await uploadFiles();
+    try {
+      const { uploaded, failed } = await uploadFiles();
 
-    if (uploaded > 0) {
-      queue.add(
-        { title: `${uploaded} file${uploaded > 1 ? "s" : ""} uploaded` },
-        { timeout: 5000 },
-      );
-    }
+      if (uploaded > 0) {
+        queue.add(
+          { title: `${uploaded} file${uploaded > 1 ? "s" : ""} uploaded` },
+          { timeout: 5000 },
+        );
+      }
 
-    if (failed === 0) {
-      resetFiles();
-      onOpenChange(false);
-    }
+      if (failed === 0) {
+        resetFiles();
+        onOpenChange(false);
+      }
 
-    if (uploaded > 0) {
-      onSuccess();
+      if (uploaded > 0) {
+        onSuccess();
+      }
+    } catch {
+      queue.add({
+        title: "Upload failed",
+        description: "An unexpected error occurred. Please try again.",
+      });
     }
   }
 
   function handleRetryFailed() {
-    handleUploadAll();
+    void handleUploadAll();
   }
 
   return (

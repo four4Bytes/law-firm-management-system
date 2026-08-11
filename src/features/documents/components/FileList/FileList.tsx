@@ -22,6 +22,7 @@ interface FileListProps {
   onRemove: (id: number) => void;
   existingDocuments?: Pick<DocumentRow, "id" | "file_name" | "file_size">[];
   onDelete?: (documentId: string) => void;
+  isLoading?: boolean;
 }
 
 export function FileList({
@@ -30,7 +31,16 @@ export function FileList({
   onRemove,
   existingDocuments,
   onDelete,
+  isLoading,
 }: FileListProps) {
+  if (isLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <ProgressCircle aria-label="Loading attachments" />
+      </div>
+    );
+  }
+
   if (entries.length === 0 && (!existingDocuments || existingDocuments.length === 0)) return null;
 
   return (

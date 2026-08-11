@@ -65,6 +65,7 @@ export function EditTaskModal({
   const [isPending, setIsPending] = useState(false);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload({
     taskId: task.id,
@@ -81,6 +82,8 @@ export function EditTaskModal({
       } catch {
         if (cancelled) return;
         queue.add({ title: "Failed to load attachments" }, { timeout: 5000 });
+      } finally {
+        if (!cancelled) setIsLoadingDocuments(false);
       }
     }
 
@@ -233,6 +236,7 @@ export function EditTaskModal({
               onRemove={removeFile}
               existingDocuments={documents}
               onDelete={handleRemoveDocument}
+              isLoading={isLoadingDocuments}
             />
           </div>
         </div>

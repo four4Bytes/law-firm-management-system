@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa6";
 import type { IconType } from "react-icons/lib";
 
+import { Link } from "@/components/ui/Link/Link";
 import {
   classifyFileType,
   formatFileSize,
@@ -47,6 +48,8 @@ interface FilePreviewCardProps {
   file_size: number | null;
   uploadedBy: string;
   created_at: Date;
+  linkedTaskTitle?: string;
+  linkedTaskCaseId?: string;
 }
 
 export function FilePreviewCard({
@@ -55,6 +58,8 @@ export function FilePreviewCard({
   file_size,
   uploadedBy,
   created_at,
+  linkedTaskTitle,
+  linkedTaskCaseId,
 }: FilePreviewCardProps) {
   const { icon: Icon, label } = getFileTypeConfig(file_type);
   const fileCategory = classifyFileType(file_type);
@@ -84,6 +89,14 @@ export function FilePreviewCard({
           </div>
         </div>
       </div>
+      {linkedTaskTitle && linkedTaskCaseId && (
+        <div className={styles.taskLink}>
+          <span>Linked to task:</span>
+          <Link href={`/case/${linkedTaskCaseId}`} className={styles.link}>
+            {linkedTaskTitle}
+          </Link>
+        </div>
+      )}
       <div className={styles.footer}>
         <span>Uploaded by {uploadedBy}</span>
         <span className={styles.separator} aria-hidden="true">

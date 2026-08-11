@@ -13,11 +13,13 @@ export type DocumentRow = {
   file_size: number | null;
   uploadedBy: string;
   created_at: Date;
+  task?: { id: string; title: string; case_id: string } | null;
 };
 
 export interface DocumentPageQuery extends PageQuery {
   caseId?: string;
   consultationId?: string;
+  taskId?: string;
 }
 
 export interface DocumentAccessPayload {
@@ -29,6 +31,7 @@ export const getDocumentsPaginated = cache(
   async ({
     caseId,
     consultationId,
+    taskId,
     search = "",
     cursor,
     pageSize = 20,
@@ -40,6 +43,7 @@ export const getDocumentsPaginated = cache(
     const where: Record<string, unknown> = {};
     if (caseId) where.case_id = caseId;
     if (consultationId) where.consultation_id = consultationId;
+    if (taskId) where.task_id = taskId;
     if (search) {
       where.file_name = { contains: search, mode: "insensitive" as const };
     }
@@ -65,6 +69,7 @@ export const getDocumentsPaginated = cache(
       orderBy,
       include: {
         uploadedBy: { select: { name: true } },
+        task: { select: { id: true, title: true, case_id: true } },
       },
     });
 
@@ -78,6 +83,7 @@ export const getDocumentsPaginated = cache(
       file_size: d.file_size,
       uploadedBy: d.uploadedBy.name,
       created_at: d.created_at,
+      task: d.task,
     }));
 
     return {

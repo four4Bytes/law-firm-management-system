@@ -48,18 +48,16 @@ enum CaseMilestoneStatus {
 }
 
 enum NotificationType {
-  ConsultationCreated
-  ConsultationUpdated
   ConsultationReminder
+  ConsultationOverdue
   MilestoneDueSoon
-  MilestoneCompleted
   MilestoneStatusChanged
   MilestoneOverdue
-  MilestoneUpdated
   TaskAssigned
-  TaskStatusChanged
   CaseAssigned
+  CaseStatusChanged
   ConsultationAssigned
+  ConsultationStatusChanged
 }
 
 enum PaymentStatus {
@@ -307,6 +305,7 @@ model Notification {
 
   @@index([user_id, is_read, created_at])
   @@index([user_id, created_at])
+  @@index([created_at])
 }
 
 model Payment {

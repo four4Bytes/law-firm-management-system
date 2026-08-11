@@ -1,15 +1,21 @@
+// Mirrors documentation/notifications.md — the reminder scheduling rules are the spec.
+// Change the doc and this implementation together.
+
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { getRoleRecipientIds } from "@/features/notifications/recipients";
+import { pruneNotifications } from "@/features/notifications/mutations";
 import { NotificationType } from "@/generated/prisma/browser";
+import { formatDate, formatDateTime } from "@/lib/date";
 import { getOptionalInteger } from "@/lib/env";
 
 import {
   claimConsultationReminder,
   claimMilestoneReminder,
-  releaseConsultationReminder,
-  releaseMilestoneReminder,
-  updateConsultationsRemindedAt,
-  updateMilestonesRemindedAt,
+  retractConsultationOverdue,
+  retractMilestoneOverdue,
+  suppressConsultationOverdue,
+  suppressMilestoneOverdue,
+  unclaimConsultationReminder,
+  unclaimMilestoneReminder,
 } from "./mutations";
 import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from "./queries";
 
@@ -17,7 +23,14 @@ const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 
 export async function runReminderCheck(): Promise<void> {
   const defaultDays = getOptionalInteger("DEFAULT_REMINDER_DAYS", 3);
+  const retentionDays = getOptionalInteger("NOTIFICATION_RETENTION_DAYS", 90);
   const now = new Date();
+
+  try {
+    await pruneNotifications(retentionDays);
+  } catch (err) {
+    console.error("[reminders] Notification pruning failed:", err);
+  }
 
   try {
     await processMilestones(defaultDays, now);
@@ -34,7 +47,6 @@ export async function runReminderCheck(): Promise<void> {
 
 async function processMilestones(defaultDays: number, now: Date): Promise<void> {
   const milestones = await getMilestonesNeedingReminder();
-  const reminded: string[] = [];
 
   for (const m of milestones) {
     const reminderDays = m.reminderDays ?? defaultDays;
@@ -45,10 +57,16 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
     if (!isDueSoon && !isOverdue) continue;
     if (m.assigneeIds.length === 0) continue;
 
-    if (!(await claimMilestoneReminder(m.id))) continue;
-
     const type = isOverdue ? NotificationType.MilestoneOverdue : NotificationType.MilestoneDueSoon;
     const label = isOverdue ? "overdue" : "due soon";
+
+    let claimedAt: Date | null = null;
+    if (isOverdue) {
+      if (!(await suppressMilestoneOverdue(m.id))) continue;
+    } else {
+      claimedAt = await claimMilestoneReminder(m.id);
+      if (claimedAt === null) continue;
+    }
 
     try {
       await dispatchNotifications(
@@ -56,61 +74,76 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
           userIds: m.assigneeIds,
           type,
           title: `Milestone ${label}: ${m.title}`,
-          message: `Milestone "${m.title}" is ${label} — due ${m.due_date.toLocaleDateString()}`,
+          message: `Milestone "${m.title}" is ${label} — due ${formatDate(m.due_date)}`,
           actionUrl: `/case/${m.caseId}`,
           caseId: m.caseId,
           milestoneId: m.id,
         },
         SYSTEM_USER_ID,
       );
-      reminded.push(m.id);
     } catch (err) {
+      try {
+        if (isOverdue) {
+          await retractMilestoneOverdue(m.id);
+        } else if (claimedAt !== null) {
+          await unclaimMilestoneReminder(m.id, claimedAt);
+        }
+      } catch (rollbackErr) {
+        console.error(`Failed to roll back milestone reminder ${m.id}:`, rollbackErr);
+      }
       console.error(`Failed to dispatch milestone reminder ${m.id}:`, err);
-      await releaseMilestoneReminder(m.id);
     }
-  }
-
-  if (reminded.length > 0) {
-    await updateMilestonesRemindedAt(reminded);
   }
 }
 
 async function processConsultations(defaultDays: number, now: Date): Promise<void> {
   const consultations = await getConsultationsNeedingReminder();
-  if (consultations.length === 0) return;
-
-  const adminIds = await getRoleRecipientIds(NotificationType.ConsultationReminder);
-  if (adminIds.length === 0) return;
-
-  const reminded: string[] = [];
 
   for (const c of consultations) {
     const reminderDays = c.reminderDays ?? defaultDays;
     const remindThreshold = new Date(now.getTime() + reminderDays * 86_400_000);
-    if (!(c.booking_datetime <= remindThreshold && c.booking_datetime > now)) continue;
+    const isDueSoon = c.booking_datetime <= remindThreshold && c.booking_datetime > now;
+    const isOverdue = c.booking_datetime < now;
 
-    if (!(await claimConsultationReminder(c.id))) continue;
+    if (!isDueSoon && !isOverdue) continue;
+    if (c.assigneeIds.length === 0) continue;
+
+    const type = isOverdue
+      ? NotificationType.ConsultationOverdue
+      : NotificationType.ConsultationReminder;
+    const label = isOverdue ? "overdue" : "upcoming";
+
+    let claimedAt: Date | null = null;
+    if (isOverdue) {
+      if (!(await suppressConsultationOverdue(c.id))) continue;
+    } else {
+      claimedAt = await claimConsultationReminder(c.id);
+      if (claimedAt === null) continue;
+    }
 
     try {
       await dispatchNotifications(
         {
-          userIds: adminIds,
-          type: NotificationType.ConsultationReminder,
-          title: "Upcoming consultation reminder",
-          message: `A consultation about "${c.concern}" is scheduled for ${c.booking_datetime.toLocaleString()}`,
+          userIds: c.assigneeIds,
+          type,
+          title: label === "overdue" ? "Overdue consultation" : "Upcoming consultation reminder",
+          message: `A consultation about "${c.concern}" is ${label} — scheduled for ${formatDateTime(c.booking_datetime)}`,
           actionUrl: `/consultation/${c.id}`,
           consultationId: c.id,
         },
         SYSTEM_USER_ID,
       );
-      reminded.push(c.id);
     } catch (err) {
+      try {
+        if (isOverdue) {
+          await retractConsultationOverdue(c.id);
+        } else if (claimedAt !== null) {
+          await unclaimConsultationReminder(c.id, claimedAt);
+        }
+      } catch (rollbackErr) {
+        console.error(`Failed to roll back consultation reminder ${c.id}:`, rollbackErr);
+      }
       console.error(`Failed to dispatch consultation reminder ${c.id}:`, err);
-      await releaseConsultationReminder(c.id);
     }
-  }
-
-  if (reminded.length > 0) {
-    await updateConsultationsRemindedAt(reminded);
   }
 }

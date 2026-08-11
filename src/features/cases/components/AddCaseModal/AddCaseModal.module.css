@@ -1,6 +1,5 @@
 .modal {
-  width: 1040px;
-  max-width: 94vw;
+  width: var(--modal-wide-width);
 
   .columns {
     display: flex;

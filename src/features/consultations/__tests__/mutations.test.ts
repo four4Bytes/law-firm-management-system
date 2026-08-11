@@ -118,3 +118,41 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
     select: { id: true },
   });
 });
+
+it("updateConsultation clears last_reminded_at when resetReminderTiming is set", async () => {
+  await updateConsultation({
+    consultationId: uuid,
+    client_id: uuid,
+    concern: "Breach of contract",
+    booking_datetime: booking,
+    status: "Scheduled",
+    resetReminderTiming: true,
+  });
+
+  expect(prisma.consultation.update).toHaveBeenCalledWith({
+    where: { id: uuid },
+    data: expect.objectContaining({
+      last_reminded_at: null,
+    }),
+    select: { id: true },
+  });
+});
+
+it("updateConsultation omits last_reminded_at when resetReminderTiming is not set", async () => {
+  await updateConsultation({
+    consultationId: uuid,
+    client_id: uuid,
+    concern: "Breach of contract",
+    booking_datetime: booking,
+    status: "Scheduled",
+  });
+
+  expect(prisma.consultation.update).toHaveBeenCalledWith({
+    where: { id: uuid },
+    data: expect.any(Object),
+    select: { id: true },
+  });
+  expect(vi.mocked(prisma.consultation.update).mock.calls[0][0].data).not.toHaveProperty(
+    "last_reminded_at",
+  );
+});

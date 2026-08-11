@@ -49,6 +49,59 @@ From the GitHub Actions tab:
 2. Click **Run workflow**
 3. Select branch `main` and run
 
+## CI & GitHub Actions
+
+All automation lives in `.github/`. Workflows key off the `dev` → `main` pull flow: pull requests run the checks, pushes to `main` additionally release and push the Docker image.
+
+### Workflow files
+
+| File             | Purpose                             | Triggers                                                              |
+| ---------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| `ci-release.yml` | Checks, CalVer release, Docker push | Push to `main`, any pull request, manual `workflow_dispatch`          |
+| `codeql.yml`     | CodeQL security scanning            | Push / PR to `main` or `dev`, scheduled weekly (Wed 12:17 UTC)        |
+| `labeler.yml`    | Auto-label PRs from branch prefixes | Pull request opened / synchronized / reopened (`pull_request_target`) |
+
+### PR labeling & release notes
+
+`.github/labeler.yml` maps branch prefixes to PR labels:
+
+| Branch prefix          | Labels          |
+| ---------------------- | --------------- |
+| `feat/`, `feature/`    | `feature`       |
+| `fix/`, `bugfix/`      | `bug`, `fix`    |
+| `chore/`               | `chore`         |
+| `ci/`                  | `ci`            |
+| `refactor/`            | `refactor`      |
+| `docs/`, `doc/`        | `documentation` |
+| `deps/`, `dependabot/` | `dependencies`  |
+
+These labels select the release-notes categories in `.github/release.yml`: `New Features`, `Bug Fixes`, `Maintenance & CI`, `Documentation Updates`, `Dependency Updates`, `Other Changes`.
+
+Dependabot (`.github/dependabot.yml`) opens weekly npm dependency PRs against **`dev`**, so they are labeled `dependencies` automatically.
+
+### CI & Release pipeline (`ci-release.yml`)
+
+On every push to `main`, a three-stage pipeline runs: **`ci`** → **`release`** → **`docker`**. Pull requests only run the **`ci`** stage; a failing check blocks merging.
+
+**`ci`** — `ubuntu-latest`: Node 22 via `pnpm/action-setup` + `setup-node` (pnpm cache), `pnpm install --frozen-lockfile`, then `pnpm build` → `pnpm validate` → `pnpm test` (ESLint and Next.js build caches are persisted between runs).
+
+**`release`** — push to `main` only, requires `ci`; authenticated via a dedicated GitHub App using the `RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY` secrets (elevates to `contents: write`):
+
+1. Computes the next CalVer tag `v{YYYY}.{MM}.{DD}.{PATCH}` (increments same-day tags).
+2. Bumps `package.json` to that version and pushes the commit `chore: bump package.json to {version} [skip ci]` — the `[skip ci]` marker keeps the sync commit from re-triggering the pipeline.
+3. Generates the changelog from PRs merged into **`dev`** (`release-notes generate-notes`, categories from `.github/release.yml`).
+4. Creates the GitHub Release tagged with the CalVer, targeting the `main` commit.
+
+**`docker`** — push to `main` only, requires `release`: builds from the root `Dockerfile` with `NEXT_PUBLIC_APP_VERSION` = CalVer version and pushes `ghcr.io/four4bytes/law-firm-management-system` under the **CalVer tag** and **`latest`** (GHCR auth via the automatic `GITHUB_TOKEN`, `packages: write`). See [Docker Image](#docker-image).
+
+### Required repository secrets
+
+| Secret                    | Used by   | Purpose                                                         |
+| ------------------------- | --------- | --------------------------------------------------------------- |
+| `RELEASE_APP_ID`          | `release` | GitHub App ID issuing the bot token for release writes          |
+| `RELEASE_APP_PRIVATE_KEY` | `release` | GitHub App PEM private key for the bot token                    |
+| `GITHUB_TOKEN`            | all       | Automatic token (perms per job: `packages: write` for `docker`) |
+
 ## Auto-Review (CodeRabbit)
 
 Every PR targeting `dev` or `main` is automatically reviewed by [CodeRabbit](https://coderabbit.ai).
@@ -148,16 +201,11 @@ mc stat local/law-firm-files/OBJECT_KEY       # → Encryption method: AES256
 
 ## Scheduled Reminder System
 
-The app automatically sends reminder notifications for approaching milestone deadlines and upcoming consultations.
+> The full behavior (recipients, windows, claim/suppress semantics, retention) is specified in [Notifications & Reminders](./notifications.md). This section covers deployment concerns only.
 
 ### How it works
 
-An hourly background job checks for milestones and consultations that need reminders:
-
-- **Milestones** — Queries pending milestones where `due_date` is within `reminder_days` (per-record or env default). Sends `MilestoneDueSoon`. Past-due milestones send `MilestoneOverdue`.
-- **Consultations** — Queries scheduled consultations within the same window. Sends `ConsultationReminder` to Admins and Branch Managers.
-
-Each record is only reminded once per day via the `last_reminded_at` field.
+The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` daily — all behavioral rules (recipients, windows, claim/suppress semantics, retention) live in the spec linked above. This section only covers the operational setup required to run it.
 
 ### Trigger mechanism
 
@@ -168,10 +216,12 @@ Each record is only reminded once per day via the `last_reminded_at` field.
 
 ### Environment variables
 
-| Variable                | Required       | Default | Description                                                                                                                |
-| ----------------------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS` | No             | `3`     | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                        |
-| `CRON_SECRET`           | Yes (all envs) | —       | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables. |
+| Variable                      | Required       | Default      | Description                                                                                                                |
+| ----------------------------- | -------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_REMINDER_DAYS`       | No             | `3`          | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                        |
+| `NOTIFICATION_RETENTION_DAYS` | No             | `90`         | Delete Notification rows older than this many days (runs with the daily job)                                               |
+| `APP_TIMEZONE`                | No             | server local | IANA timezone for server-side date/time formatting, the reminder day boundary, and the self-hosted cron trigger            |
+| `CRON_SECRET`                 | Yes (all envs) | —            | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables. |
 
 ### Setting up with Vercel Cron Jobs
 
@@ -198,4 +248,4 @@ Each record is only reminded once per day via the `last_reminded_at` field.
 
 4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
-The cron runs daily at midnight (`0 0 * * *`). To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.
+The cron runs daily at `0 0 * * *`. Vercel interprets the schedule in UTC; the self-hosted `node-cron` in `src/instrumentation.ts` fires at app-timezone midnight (`APP_TIMEZONE`, falling back to server-local), so the two only align when server-local is UTC. To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.

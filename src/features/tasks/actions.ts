@@ -88,27 +88,6 @@ export async function createTaskAction(
       } catch (err) {
         console.error("Failed to log task.created audit for Case", case_id, err);
       }
-
-      try {
-        const assigneeIds = parsed.data.assignee_ids ?? [];
-        if (assigneeIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: assigneeIds,
-              type: NotificationType.TaskAssigned,
-              title: `New task: ${title}`,
-              message: `You have been assigned a new task: "${title}"`,
-              actionUrl: `/case/${case_id}`,
-              caseId: case_id,
-              taskId: task.id,
-            },
-            session.id,
-            assigneeIds.includes(session.id),
-          );
-        }
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
-      }
     });
 
     revalidatePath(`/case/${case_id}`);
@@ -165,51 +144,27 @@ export async function updateTaskAction(
         console.error("Failed to log task.updated audit for Case", existing.case_id, err);
       }
 
-      if (existing.status !== status) {
+      const newAssigneeIds = diffNewAssigneeIds(
+        parsed.data.assignee_ids ?? existingAssigneeIds,
+        existingAssigneeIds,
+      );
+
+      if (newAssigneeIds.length > 0) {
         try {
-          const assigneeIds =
-            parsed.data.assignee_ids ?? existing.taskAssignments.map((a) => a.user_id);
-          if (assigneeIds.length > 0) {
-            await dispatchNotifications(
-              {
-                userIds: assigneeIds,
-                type: NotificationType.TaskStatusChanged,
-                title: `Task updated: ${title}`,
-                message: `Task "${title}" status: ${status}`,
-                actionUrl: `/case/${existing.case_id}`,
-                caseId: existing.case_id,
-                taskId: existing.id,
-              },
-              session.id,
-            );
-          }
+          await dispatchNotifications(
+            {
+              userIds: newAssigneeIds,
+              type: NotificationType.TaskAssigned,
+              title: `Task assigned: ${title}`,
+              message: `You have been assigned to task: "${title}"`,
+              actionUrl: `/case/${existing.case_id}`,
+              caseId: existing.case_id,
+              taskId: existing.id,
+            },
+            session.id,
+          );
         } catch (err) {
           console.error("Failed to dispatch notification:", err);
-        }
-      }
-
-      if (parsed.data.assignee_ids) {
-        const newAssigneeIds = diffNewAssigneeIds(
-          parsed.data.assignee_ids,
-          existing.taskAssignments.map((a) => a.user_id),
-        );
-        if (newAssigneeIds.length > 0) {
-          try {
-            await dispatchNotifications(
-              {
-                userIds: newAssigneeIds,
-                type: NotificationType.TaskAssigned,
-                title: `Task assigned: ${title}`,
-                message: `You have been assigned to task: "${title}"`,
-                actionUrl: `/case/${existing.case_id}`,
-                caseId: existing.case_id,
-                taskId: existing.id,
-              },
-              session.id,
-            );
-          } catch (err) {
-            console.error("Failed to dispatch notification:", err);
-          }
         }
       }
     });

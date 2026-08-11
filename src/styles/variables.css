@@ -184,6 +184,7 @@ Plan: add more than one theme later
   /* Responsive */
   --page-padding: var(--space-lg);
   --modal-max-width: 90vw;
+  --modal-wide-width: 1040px;
 }
 
 /* Desktop */

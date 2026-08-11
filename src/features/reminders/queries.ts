@@ -1,3 +1,4 @@
+import { getStartOfDay } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 export interface MilestoneReminderCandidate {
@@ -14,11 +15,11 @@ export interface ConsultationReminderCandidate {
   concern: string;
   booking_datetime: Date;
   reminderDays: number | null;
+  assigneeIds: string[];
 }
 
 export async function getMilestonesNeedingReminder(): Promise<MilestoneReminderCandidate[]> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getStartOfDay(new Date());
 
   const milestones = await prisma.caseMilestone.findMany({
     where: {
@@ -53,8 +54,7 @@ export async function getMilestonesNeedingReminder(): Promise<MilestoneReminderC
 }
 
 export async function getConsultationsNeedingReminder(): Promise<ConsultationReminderCandidate[]> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getStartOfDay(new Date());
 
   const consultations = await prisma.consultation.findMany({
     where: {
@@ -66,6 +66,10 @@ export async function getConsultationsNeedingReminder(): Promise<ConsultationRem
       concern: true,
       booking_datetime: true,
       reminder_days: true,
+      consultationAssignments: {
+        where: { user: { is_active: true } },
+        select: { user_id: true },
+      },
     },
   });
 
@@ -74,5 +78,6 @@ export async function getConsultationsNeedingReminder(): Promise<ConsultationRem
     concern: c.concern,
     booking_datetime: c.booking_datetime,
     reminderDays: c.reminder_days,
+    assigneeIds: c.consultationAssignments.map((a) => a.user_id),
   }));
 }

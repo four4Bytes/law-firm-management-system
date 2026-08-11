@@ -15,58 +15,6 @@ interface NotificationSeed {
 }
 
 const notificationSeeds: NotificationSeed[] = [
-  // ── ConsultationCreated ──
-  {
-    userEmail: "miguel.cruz@aninolaw.com",
-    type: NotificationType.ConsultationCreated,
-    title: "Consultation booked: Trademark registration",
-    message:
-      "A new consultation has been created for Kristine Aguilar regarding trademark registration.",
-    is_read: true,
-    daysAgo: 7,
-    consultationClientEmail: "kristine.aguilar@email.com",
-  },
-  {
-    userEmail: "catherine.diaz@aninolaw.com",
-    type: NotificationType.ConsultationCreated,
-    title: "Consultation booked: Contract review",
-    message:
-      "A new consultation has been created for Jose Mercado regarding software development contract review.",
-    is_read: false,
-    daysAgo: 1,
-    consultationClientEmail: "jose.mercado@email.com",
-  },
-  {
-    userEmail: "robert.santos@aninolaw.com",
-    type: NotificationType.ConsultationCreated,
-    title: "Consultation booked: Child custody modification",
-    message:
-      "A new consultation has been created for Diana Navarro regarding child custody modification.",
-    is_read: false,
-    daysAgo: 10,
-    consultationClientEmail: "diana.navarro@email.com",
-  },
-  // ── ConsultationUpdated ──
-  {
-    userEmail: "jessica.lim@aninolaw.com",
-    type: NotificationType.ConsultationUpdated,
-    title: "Consultation rescheduled: Boundary dispute",
-    message:
-      "Antonio Lopez's consultation has been rescheduled to 3 days from now due to the client's availability.",
-    is_read: true,
-    daysAgo: 5,
-    consultationClientEmail: "antonio.lopez@email.com",
-  },
-  {
-    userEmail: "kevin.garcia@aninolaw.com",
-    type: NotificationType.ConsultationUpdated,
-    title: "Consultation updated: Medical malpractice",
-    message:
-      "Patricia Luna's consultation details have been updated — client added new medical records.",
-    is_read: false,
-    daysAgo: 1,
-    consultationClientEmail: "patricia.luna@email.com",
-  },
   // ── ConsultationReminder ──
   {
     userEmail: "jessica.lim@aninolaw.com",
@@ -119,40 +67,6 @@ const notificationSeeds: NotificationSeed[] = [
     daysAgo: 2,
     caseTitle: "Reyes vs. San Miguel Logistics",
     milestoneTitle: "Pre-Trial Conference",
-  },
-  // ── MilestoneCompleted ──
-  {
-    userEmail: "miguel.cruz@aninolaw.com",
-    type: NotificationType.MilestoneCompleted,
-    title: "Milestone completed: Complaint Filed with RTC",
-    message:
-      'Milestone "Complaint Filed with RTC" for Reyes vs. San Miguel Logistics has been completed.',
-    is_read: true,
-    daysAgo: 2,
-    caseTitle: "Reyes vs. San Miguel Logistics",
-    milestoneTitle: "Complaint Filed with RTC",
-  },
-  {
-    userEmail: "jessica.lim@aninolaw.com",
-    type: NotificationType.MilestoneCompleted,
-    title: "Milestone completed: Complaint Filed with RTC",
-    message:
-      'Milestone "Complaint Filed with RTC" for Reyes vs. San Miguel Logistics has been completed.',
-    is_read: true,
-    daysAgo: 2,
-    caseTitle: "Reyes vs. San Miguel Logistics",
-    milestoneTitle: "Complaint Filed with RTC",
-  },
-  {
-    userEmail: "gina.reyes@aninolaw.com",
-    type: NotificationType.MilestoneCompleted,
-    title: "Milestone completed: Tax Reduction Approved",
-    message:
-      'Milestone "Tax Reduction Approved by LBAA" for Hernandez Property Tax Protest has been completed.',
-    is_read: false,
-    daysAgo: 0,
-    caseTitle: "Hernandez Property Tax Protest",
-    milestoneTitle: "Tax Reduction Approved by LBAA",
   },
   // ── MilestoneStatusChanged ──
   {
@@ -211,29 +125,6 @@ const notificationSeeds: NotificationSeed[] = [
     caseTitle: "Ramirez Corp — Series A Funding",
     milestoneTitle: "Due Diligence Document Submission",
   },
-  // ── MilestoneUpdated ──
-  {
-    userEmail: "marco.lopez@aninolaw.com",
-    type: NotificationType.MilestoneUpdated,
-    title: "Milestone updated: Loan Restructuring Negotiation Deadline",
-    message:
-      'Milestone "Loan Restructuring Negotiation Deadline" for Santos Foreclosure Defense has been updated — deadline extended by 3 days.',
-    is_read: true,
-    daysAgo: 3,
-    caseTitle: "Santos Foreclosure Defense",
-    milestoneTitle: "Loan Restructuring Negotiation Deadline",
-  },
-  {
-    userEmail: "angela.mercado@aninolaw.com",
-    type: NotificationType.MilestoneUpdated,
-    title: "Milestone updated: Due Diligence Document Submission",
-    message:
-      'Milestone "Due Diligence Document Submission" for Ramirez Corp — Series A Funding — additional documents requested by investor.',
-    is_read: false,
-    daysAgo: 1,
-    caseTitle: "Ramirez Corp — Series A Funding",
-    milestoneTitle: "Due Diligence Document Submission",
-  },
   // ── TaskAssigned ──
   {
     userEmail: "jessica.lim@aninolaw.com",
@@ -267,51 +158,6 @@ const notificationSeeds: NotificationSeed[] = [
     daysAgo: 5,
     caseTitle: "Santos Foreclosure Defense",
     taskTitle: "Review Loan Documents for Predatory Clauses",
-  },
-  // ── TaskStatusChanged ──
-  {
-    userEmail: "jessica.lim@aninolaw.com",
-    type: NotificationType.TaskStatusChanged,
-    title: "Task submitted: Coordinate Tax Payment with BIR",
-    message:
-      'Task "Coordinate Tax Payment with BIR" has been submitted for review for Dela Cruz Property Title Transfer.',
-    is_read: true,
-    daysAgo: 2,
-    caseTitle: "Dela Cruz Property Title Transfer",
-    taskTitle: "Coordinate Tax Payment with BIR",
-  },
-  {
-    userEmail: "david.tan@aninolaw.com",
-    type: NotificationType.TaskStatusChanged,
-    title: "Task submitted for your review: Coordinate Tax Payment with BIR",
-    message:
-      'Task "Coordinate Tax Payment with BIR" has been submitted for your review for Dela Cruz Property Title Transfer.',
-    is_read: true,
-    daysAgo: 2,
-    caseTitle: "Dela Cruz Property Title Transfer",
-    taskTitle: "Coordinate Tax Payment with BIR",
-  },
-  {
-    userEmail: "kevin.garcia@aninolaw.com",
-    type: NotificationType.TaskStatusChanged,
-    title: "Task rejected: Revise Petition per Supervising Counsel Comments",
-    message:
-      'Task "Revise Petition per Supervising Counsel Comments" was rejected — initial draft lacked specific factual basis for Alcantara Annulment Proceedings.',
-    is_read: false,
-    daysAgo: 4,
-    caseTitle: "Alcantara Annulment Proceedings",
-    taskTitle: "Revise Petition per Supervising Counsel Comments",
-  },
-  {
-    userEmail: "marco.lopez@aninolaw.com",
-    type: NotificationType.TaskStatusChanged,
-    title: "Task status: File Reply to Bank's Opposition to TRO Application",
-    message:
-      'Task "File Reply to Bank\'s Opposition to TRO Application" is now Ongoing for Santos Foreclosure Defense.',
-    is_read: false,
-    daysAgo: 1,
-    caseTitle: "Santos Foreclosure Defense",
-    taskTitle: "File Reply to Bank's Opposition to TRO Application",
   },
   // ── CaseAssigned ──
   {

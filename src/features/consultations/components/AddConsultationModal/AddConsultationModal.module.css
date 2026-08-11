@@ -1,6 +1,5 @@
 .modal {
-  width: 1040px;
-  max-width: 94vw;
+  width: var(--modal-wide-width);
 
   .columns {
     display: flex;
@@ -29,6 +28,15 @@
 
     > * {
       flex: 1;
+    }
+  }
+
+  .addressField {
+    flex: 1;
+
+    textarea {
+      flex: 1;
+      max-height: none;
     }
   }
 }

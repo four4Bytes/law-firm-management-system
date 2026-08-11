@@ -1,7 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Role, type Case } from "@/generated/prisma/browser";
+import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { NotificationType, Role, type Case } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
@@ -14,7 +15,23 @@ import {
   updateCaseWithClientAction,
 } from "../actions";
 import { createCase, deleteCase, updateCase, updateCaseWithClient } from "../mutations";
-import { getCaseAccessContext, getCaseBySourceConsultationId, getCaseEditData } from "../queries";
+import {
+  getCaseAccessContext,
+  getCaseAssigneeIds,
+  getCaseBySourceConsultationId,
+  getCaseEditData,
+} from "../queries";
+
+async function flushAfterCallbacks(): Promise<void> {
+  const server = (await import("next/server")) as unknown as {
+    __flushAfterCallbacks: () => Promise<void>;
+  };
+  await server.__flushAfterCallbacks();
+}
+
+afterEach(async () => {
+  await flushAfterCallbacks();
+});
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
@@ -31,8 +48,23 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("next/server", () => ({
-  after: vi.fn(),
+vi.mock("next/server", () => {
+  const afterCallbacks: Array<() => void | Promise<void>> = [];
+  return {
+    after: vi.fn((fn: () => void | Promise<void>) => {
+      afterCallbacks.push(fn);
+    }),
+    __flushAfterCallbacks: () =>
+      Promise.all(afterCallbacks.splice(0).map((fn) => Promise.resolve(fn()))),
+  };
+});
+
+vi.mock("@/features/audit/mutations", () => ({
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/features/notifications/dispatch", () => ({
+  dispatchNotifications: vi.fn().mockResolvedValue({ count: 0 }),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -157,6 +189,7 @@ describe("createCaseAction", () => {
       }),
     );
     expect(revalidatePath).toHaveBeenCalledWith("/case");
+    expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 
   it("returns an error when creation fails", async () => {
@@ -385,5 +418,98 @@ describe("authorization guards for non-Admin users", () => {
     const result = await deleteCaseAction({ caseId: uuid });
 
     expect(result).toEqual({ success: true });
+  });
+});
+
+describe("updateCaseAction notification split", () => {
+  const validPayload = {
+    caseId: uuid,
+    client_id: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open" as const,
+  };
+
+  const assignee1 = uuid;
+  const assignee2 = "550e8400-e29b-41d4-a716-446655440001";
+  const assignee3 = "550e8400-e29b-41d4-a716-446655440002";
+
+  beforeEach(() => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getCaseEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [assignee1, assignee2],
+    });
+    vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee1, assignee2, assignee3]);
+    vi.mocked(updateCase).mockResolvedValue({ id: uuid });
+  });
+
+  it("dispatches CaseAssigned only to the new assignee", async () => {
+    await updateCaseAction({ ...validPayload, assignee_ids: [assignee1, assignee2, assignee3] });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const assigned = calls.find(([payload]) => payload.type === NotificationType.CaseAssigned);
+
+    expect(calls).toHaveLength(1);
+    expect(assigned?.[0].userIds).toEqual([assignee3]);
+  });
+
+  it("dispatches nothing when no assignee was added", async () => {
+    vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee1, assignee2]);
+
+    await updateCaseAction(validPayload);
+    await flushAfterCallbacks();
+
+    expect(vi.mocked(dispatchNotifications)).not.toHaveBeenCalled();
+  });
+
+  it("dispatches only CaseAssigned for a brand-new assignee list", async () => {
+    vi.mocked(getCaseEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open",
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [],
+    });
+    vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee3]);
+
+    await updateCaseAction({ ...validPayload, assignee_ids: [assignee3] });
+    await flushAfterCallbacks();
+
+    const types = vi.mocked(dispatchNotifications).mock.calls.map(([payload]) => payload.type);
+    expect(types).toEqual([NotificationType.CaseAssigned]);
+  });
+
+  it("dispatches CaseAssigned only for updateCaseWithClientAction", async () => {
+    vi.mocked(updateCaseWithClient).mockResolvedValue({ id: uuid });
+
+    await updateCaseWithClientAction({
+      case_id: uuid,
+      client_id: uuid,
+      client: { name: "John Doe" },
+      case: {
+        case_title: "Smith vs Jones",
+        case_type: "Civil",
+        status: "Open" as const,
+        assignee_ids: [assignee1, assignee2, assignee3],
+      },
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const assigned = calls.find(([payload]) => payload.type === NotificationType.CaseAssigned);
+
+    expect(calls).toHaveLength(1);
+    expect(assigned?.[0].userIds).toEqual([assignee3]);
   });
 });

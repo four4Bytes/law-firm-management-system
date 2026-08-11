@@ -4,16 +4,15 @@ import { Role, type User } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
-export const getActiveUserIdsByRoles = cache(
-  async (payload: { roles: Role[] }): Promise<string[]> => {
-    const { roles } = payload;
-    const users = await prisma.user.findMany({
-      where: { is_active: true, role: { in: roles } },
-      select: { id: true },
-    });
-    return users.map((u) => u.id);
-  },
-);
+export const getActiveUserIds = cache(async (payload: { ids: string[] }): Promise<string[]> => {
+  const { ids } = payload;
+  if (ids.length === 0) return [];
+  const users = await prisma.user.findMany({
+    where: { id: { in: ids }, is_active: true },
+    select: { id: true },
+  });
+  return users.map((u) => u.id);
+});
 
 const userSelect = {
   id: true,

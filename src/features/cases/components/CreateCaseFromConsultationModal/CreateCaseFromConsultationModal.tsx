@@ -28,6 +28,7 @@ interface CreateCaseFromConsultationModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: (caseId: string) => void;
+  onCancel?: () => Promise<boolean>;
   consultationId: string;
   clientId: string;
   defaultTitle: string;
@@ -54,6 +55,7 @@ export function CreateCaseFromConsultationModal({
   isOpen,
   onOpenChange,
   onSuccess,
+  onCancel,
   consultationId,
   clientId,
   defaultTitle,
@@ -65,10 +67,20 @@ export function CreateCaseFromConsultationModal({
 
   const { caseTitle, caseType, status, partiesInvolved } = fields;
 
-  function handleCancel() {
+  async function handleCancel() {
     if (isPending) return;
     setFields(resetFields(defaultTitle));
     setAssigneeIds(new Set());
+    if (onCancel) {
+      const reverted = await onCancel();
+      if (!reverted) {
+        queue.add(
+          { title: "Failed to revert consultation status. Please try again." },
+          { timeout: 5000 },
+        );
+        return;
+      }
+    }
     onOpenChange(false);
   }
 

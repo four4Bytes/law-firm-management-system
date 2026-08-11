@@ -202,22 +202,6 @@ function button(url: string, label: string): string {
 // ── Templates ─────────────────────────────────────────────────────────────────
 
 /**
- * Renders the email body for a consultation-assigned notification.
- *
- * @param ctx - Standard template context with recipient, actor, and message data.
- * @returns A complete HTML string (via {@link emailLayout}).
- */
-export function consultationAssignedTemplate(ctx: TemplateContext): string {
-  return emailLayout(
-    "New Consultation Assigned",
-    greeting(ctx.toName) +
-      rawText(`${escapeHtml(ctx.actorName)} has assigned you a consultation.`) +
-      text(ctx.message, true) +
-      (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
-  );
-}
-
-/**
  * Renders the email body for a consultation-reminder notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.
@@ -234,32 +218,34 @@ export function consultationReminderTemplate(ctx: TemplateContext): string {
 }
 
 /**
- * Renders the email body for a consultation-created notification.
+ * Renders the email body for a consultation-overdue notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.
  * @returns A complete HTML string (via {@link emailLayout}).
  */
-export function consultationCreatedTemplate(ctx: TemplateContext): string {
+export function consultationOverdueTemplate(ctx: TemplateContext): string {
   return emailLayout(
-    "New Consultation Scheduled",
+    "Overdue Consultation",
     greeting(ctx.toName) +
-      text(`${ctx.actorName} has scheduled a new consultation.`) +
+      text("This is a reminder that you have an overdue consultation.") +
       quoted(ctx.message) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
   );
 }
 
 /**
- * Renders the email body for a consultation-updated notification.
+ * Renders the email body for a consultation-assigned notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.
  * @returns A complete HTML string (via {@link emailLayout}).
  */
-export function consultationUpdatedTemplate(ctx: TemplateContext): string {
+export function consultationAssignedTemplate(ctx: TemplateContext): string {
   return emailLayout(
-    "Consultation Updated",
+    "Consultation Assigned",
     greeting(ctx.toName) +
-      text("A consultation has been updated.") +
+      rawText(
+        `${escapeHtml(ctx.actorName)} has assigned you a consultation: ${strongLabel(ctx.title)}.`,
+      ) +
       text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Consultation") : ""),
   );
@@ -297,22 +283,6 @@ export function taskAssignedTemplate(ctx: TemplateContext): string {
 }
 
 /**
- * Renders the email body for a task-updated notification.
- *
- * @param ctx - Standard template context with recipient, actor, and message data.
- * @returns A complete HTML string (via {@link emailLayout}).
- */
-export function taskUpdatedTemplate(ctx: TemplateContext): string {
-  return emailLayout(
-    "Task Updated",
-    greeting(ctx.toName) +
-      rawText(`A task has been updated: ${strongLabel(ctx.title)}.`) +
-      text(ctx.message, true) +
-      (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
-  );
-}
-
-/**
  * Renders the email body for a case-assigned notification.
  *
  * @param ctx - Standard template context with recipient, actor, and message data.
@@ -320,10 +290,29 @@ export function taskUpdatedTemplate(ctx: TemplateContext): string {
  */
 export function caseAssignedTemplate(ctx: TemplateContext): string {
   return emailLayout(
-    "New Case Created",
+    "Case Assigned",
     greeting(ctx.toName) +
-      rawText(`${escapeHtml(ctx.actorName)} created a new case: ${strongLabel(ctx.title)}.`) +
+      rawText(`${escapeHtml(ctx.actorName)} has assigned you a case: ${strongLabel(ctx.title)}.`) +
       text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
+  );
+}
+
+/**
+ * Renders the email body for a status-change notification.
+ *
+ * The title is used as the email heading and the message (which states the
+ * transition as `from <before> to <after>`) as the body. The action button
+ * label is derived from the URL path (`/case/...` → "View Case",
+ * `/consultation/...` → "View Consultation").
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
+export function statusChangeTemplate(ctx: TemplateContext): string {
+  const label = ctx.actionUrl?.startsWith("/consultation") ? "View Consultation" : "View Case";
+  return emailLayout(
+    ctx.title,
+    greeting(ctx.toName) + text(ctx.message) + (ctx.actionUrl ? button(ctx.actionUrl, label) : ""),
   );
 }

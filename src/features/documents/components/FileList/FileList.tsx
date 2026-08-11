@@ -4,7 +4,8 @@ import { FaCheck, FaRegFileLines, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
-import { truncateFilename } from "@/lib/file-format";
+import type { DocumentRow } from "@/features/documents/queries";
+import { formatFileSize, truncateFilename } from "@/lib/file-format";
 
 import styles from "./FileList.module.css";
 
@@ -19,19 +20,43 @@ interface FileListProps {
   entries: FileEntry[];
   isBusy: boolean;
   onRemove: (id: number) => void;
+  existingDocuments?: Pick<DocumentRow, "id" | "file_name" | "file_size">[];
+  onDelete?: (documentId: string) => void;
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-export function FileList({ entries, isBusy, onRemove }: FileListProps) {
-  if (entries.length === 0) return null;
+export function FileList({
+  entries,
+  isBusy,
+  onRemove,
+  existingDocuments,
+  onDelete,
+}: FileListProps) {
+  if (entries.length === 0 && (!existingDocuments || existingDocuments.length === 0)) return null;
 
   return (
     <div className={styles.fileList}>
+      {existingDocuments?.map((doc) => (
+        <div key={doc.id} className={styles.fileRow}>
+          <FaRegFileLines className={styles.fileIcon} aria-hidden="true" />
+          <span className={styles.fileName} aria-label={doc.file_name}>
+            {truncateFilename(doc.file_name)}
+          </span>
+          <span className={styles.fileSize}>{formatFileSize(doc.file_size)}</span>
+
+          {onDelete && (
+            <Button
+              variant="ghost"
+              className={styles.removeButton}
+              aria-label={`Delete ${doc.file_name}`}
+              isDisabled={isBusy}
+              onPress={() => onDelete(doc.id)}
+            >
+              <FaXmark />
+            </Button>
+          )}
+        </div>
+      ))}
+
       {entries.map((entry) => (
         <div key={entry.id} className={styles.fileRow}>
           <FaRegFileLines className={styles.fileIcon} aria-hidden="true" />

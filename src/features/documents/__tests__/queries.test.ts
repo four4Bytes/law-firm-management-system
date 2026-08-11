@@ -94,6 +94,28 @@ describe("getDocumentsPaginated", () => {
     );
   });
 
+  it("filters by task_id", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([
+      mockDocument({
+        task_id: "t1",
+        task: { id: "t1", title: "Review evidence", case_id: "c1" },
+      }),
+    ]);
+
+    const result = await getDocumentsPaginated({ taskId: "t1" });
+
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { task_id: "t1" },
+      }),
+    );
+    expect(result.rows[0].task).toEqual({
+      id: "t1",
+      title: "Review evidence",
+      case_id: "c1",
+    });
+  });
+
   it("filters by file_name search", async () => {
     vi.mocked(prisma.document.findMany).mockResolvedValue([mockDocument()]);
 

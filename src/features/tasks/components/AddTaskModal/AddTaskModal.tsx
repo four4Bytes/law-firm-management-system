@@ -101,7 +101,9 @@ export function AddTaskModal({
     setIsPending(true);
 
     try {
-      if (!createdTaskId) {
+      let taskId = createdTaskId;
+
+      if (!taskId) {
         const result = await createTaskAction(parsed.data);
 
         if (!result.success || !result.data) {
@@ -111,9 +113,8 @@ export function AddTaskModal({
         }
 
         setCreatedTaskId(result.data.id);
+        taskId = result.data.id;
       }
-
-      const taskId = createdTaskId!;
 
       if (hasFiles) {
         setParent({ taskId });

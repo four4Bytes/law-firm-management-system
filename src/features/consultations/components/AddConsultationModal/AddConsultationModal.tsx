@@ -162,7 +162,8 @@ export function AddConsultationModal({
               onChange={(v) => setClientField("address", v)}
               placeholder="Optional"
               isTextArea
-              rows={3}
+              rows={6}
+              className={styles.addressField}
               validate={createFieldValidator(
                 ConsultationWithClientCreatePayloadSchema.shape.client.shape.address,
               )}

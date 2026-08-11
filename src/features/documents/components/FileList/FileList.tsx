@@ -4,6 +4,7 @@ import { FaCheck, FaRegFileLines, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import type { DocumentRow } from "@/features/documents/queries";
 import { formatFileSize, truncateFilename } from "@/lib/file-format";
 
 import styles from "./FileList.module.css";
@@ -15,17 +16,11 @@ export interface FileEntry {
   error?: string;
 }
 
-interface ExistingDocument {
-  id: string;
-  file_name: string;
-  file_size: number | null;
-}
-
 interface FileListProps {
   entries: FileEntry[];
   isBusy: boolean;
   onRemove: (id: number) => void;
-  existingDocuments?: ExistingDocument[];
+  existingDocuments?: Pick<DocumentRow, "id" | "file_name" | "file_size">[];
   onDelete?: (documentId: string) => void;
 }
 

@@ -145,9 +145,15 @@ export function EditTaskModal({
       }
 
       if (markedForDeletion.size > 0) {
-        await Promise.all(
+        const results = await Promise.all(
           Array.from(markedForDeletion).map((id) => deleteDocumentAction({ documentId: id })),
         );
+        const failedCount = results.filter((r) => !r.success).length;
+        if (failedCount > 0) {
+          queue.add({
+            title: `Failed to delete ${failedCount} document${failedCount > 1 ? "s" : ""}`,
+          });
+        }
       }
 
       if (hasFailedUploads) {

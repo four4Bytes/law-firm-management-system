@@ -61,9 +61,15 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 ### Tasks (sub-data of Case)
 
-| Event                         | Recipients            | Type           | Notes                 |
-| ----------------------------- | --------------------- | -------------- | --------------------- |
-| Task updated - assignee added | Newly added assignees | `TaskAssigned` | Actor always excluded |
+| Event                          | Recipients            | Type                | Notes                 |
+| ------------------------------ | --------------------- | ------------------- | --------------------- |
+| Task updated - assignee added  | Newly added assignees | `TaskAssigned`      | Actor always excluded |
+| Task updated - reviewer added  | Newly added reviewer  | `TaskAssigned`      | Actor always excluded |
+| Task submitted (→ `Submitted`) | All reviewers         | `TaskStatusChanged` | Actor always excluded |
+| Task completed (→ `Completed`) | All assignees         | `TaskStatusChanged` | Actor always excluded |
+| Task rejected (→ `Pending`)    | All assignees         | `TaskStatusChanged` | Actor always excluded |
+
+> Task status changes fire only on the review transitions — → `Submitted` (assignee submits), → `Completed` (all reviewers accepted), → `Pending` (any reviewer rejected); creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Submitted to Completed`). Actor always excluded.
 
 ### Milestones (sub-data of Case)
 
@@ -155,13 +161,14 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 | `MilestoneOverdue`          | milestoneTemplate            | (uses notification title)      |
 | `MilestoneStatusChanged`    | statusChangeTemplate         | (uses notification title)      |
 | `TaskAssigned`              | taskAssignedTemplate         | Task Assigned                  |
+| `TaskStatusChanged`         | statusChangeTemplate         | (uses notification title)      |
 | `CaseAssigned`              | caseAssignedTemplate         | Case Assigned                  |
 | `CaseStatusChanged`         | statusChangeTemplate         | (uses notification title)      |
 | `ConsultationAssigned`      | consultationAssignedTemplate | Consultation Assigned          |
 | `ConsultationStatusChanged` | statusChangeTemplate         | (uses notification title)      |
 
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
-- `MilestoneStatusChanged`, `CaseStatusChanged`, and `ConsultationStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
+- `MilestoneStatusChanged`, `TaskStatusChanged`, `CaseStatusChanged`, and `ConsultationStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
 - All interpolated text is HTML-escaped.
 - Recipients without an email are skipped (the in-app row is still created).
 

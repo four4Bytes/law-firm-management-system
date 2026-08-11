@@ -27,13 +27,13 @@ ADMIN
 
 **Access Qualifiers:**
 
-| Code          | Access Level        | Meaning                                                                                                 |
-| ------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| **YES**       | Full Access         | Can perform this action anywhere in the organization.                                                   |
-| **NO**        | No Access           | Cannot perform this action under any circumstances.                                                     |
-| **ASSIGNED**  | Directly Assigned   | Only if assigned to this specific record (Case, Task, or Consultation) or its parent Case/Consultation. |
-| **OWN**       | Creator Only        | Only on records created by the user.                                                                    |
-| **TASK_ONLY** | Task-Level Modifier | With `ASSIGNED`: requires assignment to that specific Task; parent Case assignment alone is not enough. |
+| Code          | Access Level        | Meaning                                                                                                                                |
+| ------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **YES**       | Full Access         | Can perform this action anywhere in the organization.                                                                                  |
+| **NO**        | No Access           | Cannot perform this action under any circumstances.                                                                                    |
+| **ASSIGNED**  | Directly Assigned   | Only if assigned to this specific record (Case, Task, or Consultation) or its parent Case/Consultation.                                |
+| **OWN**       | Creator Only        | Only on records created by the user.                                                                                                   |
+| **TASK_ONLY** | Task-Level Modifier | With `ASSIGNED`: requires attachment to that specific Task as an assignee **or** reviewer; parent Case assignment alone is not enough. |
 
 **CRUD:**
 
@@ -51,7 +51,7 @@ ADMIN
 Combined codes in table cells follow these rules:
 
 1. **`ASSIGNED or OWN`** - Act on the item if you are assigned to it **or** if you created it.
-2. **`ASSIGNED + TASK_ONLY`** - Act on a task only if it is assigned directly to you; you cannot act on other tasks in the same parent Case.
+2. **`ASSIGNED + TASK_ONLY`** - Act on a task only if it is assigned directly to you (as assignee or reviewer); you cannot act on other tasks in the same parent Case.
 3. **`ASSIGNED and OWN`** - Act on an item only if you created it **and** you are currently assigned to the parent Case/Consultation.
 4. **`ASSIGNED + TASK_ONLY or OWN`** - The assigned path requires parent Case access and assignment to that specific Task. The OWN path requires no assignment: creating a task grants the creator update rights on it, even if task or parent assignment is later removed.
 
@@ -119,6 +119,10 @@ Combined codes in table cells follow these rules:
 | UPDATE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY |
 | READ   |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |       ASSIGNED       |
 | DELETE |  YES  |      YES       | ASSIGNED or OWN |      ASSIGNED and OWN       |          NO          |
+
+> **Task attachment rule:** Anyone added to a Task — as an assignee **or** reviewer — who is not already a member of the parent Case is automatically granted read-only Case membership, so `ASSIGNED` is always satisfied for task-attached users. Task access beyond the case is scoped by `TASK_ONLY` (attachment to that specific Task) and the role's qualifier.
+>
+> **Review workflow:** The task creator is always auto-added as the first reviewer; their task READ/UPDATE/DELETE comes from `OWN`, their review actions (accept/reject) are expressed through task `UPDATE`. Added reviewers are task-attached users (`ASSIGNED + TASK_ONLY`) with READ/UPDATE only. Review decisions and comments are normal task updates; status-based locking (e.g. files locked while `Submitted`) is enforced in the actions layer, not the RBAC matrix.
 
 #### [Payment](./models.md#payment)
 

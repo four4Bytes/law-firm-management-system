@@ -334,6 +334,7 @@ Links a reviewer to a task for approval workflows.
 | MilestoneStatusChanged    | Any milestone status change                        |
 | MilestoneOverdue          | Milestone due date has passed                      |
 | TaskAssigned              | User assigned to a task                            |
+| TaskStatusChanged         | Any task status change (review workflow)           |
 | CaseAssigned              | User assigned to a case (assignee added)           |
 | CaseStatusChanged         | Any case status change                             |
 | ConsultationAssigned      | Consultation assignee added                        |

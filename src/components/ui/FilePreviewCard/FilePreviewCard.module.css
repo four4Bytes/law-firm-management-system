@@ -83,6 +83,19 @@
     }
   }
 
+  .taskLink {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+
+    .link {
+      color: var(--color-brand-primary);
+      font-weight: var(--font-weight-semi-bold);
+    }
+  }
+
   .footer {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);

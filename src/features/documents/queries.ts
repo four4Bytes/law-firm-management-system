@@ -13,6 +13,7 @@ export type DocumentRow = {
   file_size: number | null;
   uploadedBy: string;
   created_at: Date;
+  task?: { id: string; title: string; case_id: string } | null;
 };
 
 export interface DocumentPageQuery extends PageQuery {
@@ -68,6 +69,7 @@ export const getDocumentsPaginated = cache(
       orderBy,
       include: {
         uploadedBy: { select: { name: true } },
+        task: { select: { id: true, title: true, case_id: true } },
       },
     });
 
@@ -81,6 +83,7 @@ export const getDocumentsPaginated = cache(
       file_size: d.file_size,
       uploadedBy: d.uploadedBy.name,
       created_at: d.created_at,
+      task: d.task,
     }));
 
     return {

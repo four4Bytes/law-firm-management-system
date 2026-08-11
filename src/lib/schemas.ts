@@ -33,16 +33,18 @@ export const ClientDataSchema = z.object({
 interface ParentRefinementPayload {
   case_id?: string | null;
   consultation_id?: string | null;
+  task_id?: string | null;
 }
 
 /**
- * Zod refinement asserting that exactly one parent (`case_id` XOR
- * `consultation_id`) is present.
+ * Zod refinement asserting that exactly one parent (`case_id`,
+ * `consultation_id`, or `task_id`) is present.
  *
- * @param payload - The parent identifiers; must include exactly one of `case_id` or `consultation_id`.
- * @returns True when exactly one parent is provided (XOR), false when both or neither are set.
+ * @param payload - The parent identifiers; must include exactly one of `case_id`, `consultation_id`, or `task_id`.
+ * @returns True when exactly one parent is provided, false when more than one or none are set.
  */
 export function exactlyOneParentRefinement(payload: ParentRefinementPayload): boolean {
-  const { case_id, consultation_id } = payload;
-  return Boolean(case_id) !== Boolean(consultation_id);
+  const count =
+    Number(!!payload.case_id) + Number(!!payload.consultation_id) + Number(!!payload.task_id);
+  return count === 1;
 }

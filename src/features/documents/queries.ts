@@ -18,6 +18,7 @@ export type DocumentRow = {
 export interface DocumentPageQuery extends PageQuery {
   caseId?: string;
   consultationId?: string;
+  taskId?: string;
 }
 
 export interface DocumentAccessPayload {
@@ -29,6 +30,7 @@ export const getDocumentsPaginated = cache(
   async ({
     caseId,
     consultationId,
+    taskId,
     search = "",
     cursor,
     pageSize = 20,
@@ -40,6 +42,7 @@ export const getDocumentsPaginated = cache(
     const where: Record<string, unknown> = {};
     if (caseId) where.case_id = caseId;
     if (consultationId) where.consultation_id = consultationId;
+    if (taskId) where.task_id = taskId;
     if (search) {
       where.file_name = { contains: search, mode: "insensitive" as const };
     }

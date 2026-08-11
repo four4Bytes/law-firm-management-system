@@ -124,15 +124,16 @@ export function EditTaskModal({
         return;
       }
 
+      let hasFailedUploads = false;
+
       if (hasFiles) {
         const { uploaded, failed } = await uploadFiles();
+        hasFailedUploads = failed > 0;
         if (failed === 0 && uploaded > 0) {
           queue.add(
             { title: `Task updated with ${uploaded} file${uploaded > 1 ? "s" : ""}` },
             { timeout: 5000 },
           );
-        } else if (failed > 0) {
-          queue.add({ title: "Task updated, but some files failed to upload" }, { timeout: 5000 });
         }
       } else {
         queue.add({ title: "Task updated" }, { timeout: 5000 });
@@ -142,6 +143,10 @@ export function EditTaskModal({
         await Promise.all(
           Array.from(markedForDeletion).map((id) => deleteDocumentAction({ documentId: id })),
         );
+      }
+
+      if (hasFailedUploads) {
+        return;
       }
 
       resetFiles();

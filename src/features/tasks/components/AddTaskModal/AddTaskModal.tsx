@@ -61,6 +61,7 @@ export function AddTaskModal({
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.Pending);
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
   const [isPending, setIsPending] = useState(false);
+  const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, setParent, uploadFiles } =
     useFileUpload({ caseId });
@@ -70,6 +71,7 @@ export function AddTaskModal({
     setDescription("");
     setStatus(TaskStatus.Pending);
     setAssigneeIds(new Set());
+    setCreatedTaskId(null);
     resetFiles();
   }
 
@@ -99,26 +101,32 @@ export function AddTaskModal({
     setIsPending(true);
 
     try {
-      const result = await createTaskAction(parsed.data);
+      if (!createdTaskId) {
+        const result = await createTaskAction(parsed.data);
 
-      if (!result.success || !result.data) {
-        queue.add({ title: "Failed to create task", description: result.error });
-        setIsPending(false);
-        return;
+        if (!result.success || !result.data) {
+          queue.add({ title: "Failed to create task", description: result.error });
+          setIsPending(false);
+          return;
+        }
+
+        setCreatedTaskId(result.data.id);
       }
 
-      const taskId = result.data.id;
+      const taskId = createdTaskId!;
 
       if (hasFiles) {
         setParent({ taskId });
         const { uploaded, failed } = await uploadFiles();
-        if (failed === 0 && uploaded > 0) {
+        if (failed > 0) {
+          queue.add({ title: "Task created, but some files failed to upload" }, { timeout: 5000 });
+          return;
+        }
+        if (uploaded > 0) {
           queue.add(
             { title: `Task created with ${uploaded} file${uploaded > 1 ? "s" : ""}` },
             { timeout: 5000 },
           );
-        } else if (failed > 0) {
-          queue.add({ title: "Task created, but some files failed to upload" }, { timeout: 5000 });
         }
       } else {
         queue.add({ title: "Task created" }, { timeout: 5000 });

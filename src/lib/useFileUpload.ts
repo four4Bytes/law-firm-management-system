@@ -77,6 +77,9 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
     setFileEntries([]);
   }
 
+  /** Timeout per file upload in milliseconds. */
+  const UPLOAD_TIMEOUT_MS = 60000;
+
   /** Presigns, uploads to S3, and confirms a single file. Throws on failure. */
   async function uploadSingleFile(entry: FileEntry): Promise<boolean> {
     const { caseId, consultationId, taskId } = parentRef.current;
@@ -90,27 +93,35 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
 
     const { key, uploadUrl } = await getDocumentUploadUrlAction(payload);
 
-    const response = await fetch(uploadUrl, {
-      method: "PUT",
-      body: entry.file,
-      headers: { "Content-Type": entry.file.type },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
 
-    if (!response.ok) {
-      throw new Error(`Upload failed (HTTP ${response.status})`);
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        body: entry.file,
+        headers: { "Content-Type": entry.file.type },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed (HTTP ${response.status})`);
+      }
+
+      const result = await confirmDocumentUploadAction({
+        ...payload,
+        file_size: entry.file.size,
+        file_path: key,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to confirm upload");
+      }
+
+      return true;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const result = await confirmDocumentUploadAction({
-      ...payload,
-      file_size: entry.file.size,
-      file_path: key,
-    });
-
-    if (!result.success) {
-      throw new Error(result.error ?? "Failed to confirm upload");
-    }
-
-    return true;
   }
 
   /** Uploads all pending and failed entries. Returns counts of successes and failures. */

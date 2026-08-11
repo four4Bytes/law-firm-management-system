@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
+import { getTaskAccessContext } from "@/features/tasks/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
@@ -38,15 +39,20 @@ interface DocumentParentPayload {
   userId: string;
   caseId?: string | null;
   consultationId?: string | null;
+  taskId?: string | null;
 }
 
 async function getDocumentParentAccessContext({
   userId,
   caseId,
   consultationId,
+  taskId,
 }: DocumentParentPayload): Promise<AccessContext> {
   if (caseId) {
     return getCaseAccessContext(userId, caseId);
+  }
+  if (taskId) {
+    return getTaskAccessContext(userId, taskId);
   }
   if (!consultationId) {
     throw new Error("Invalid query parameters");
@@ -67,12 +73,13 @@ export async function getDocumentsPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const { caseId, consultationId } = parsed.data;
+  const { caseId, consultationId, taskId } = parsed.data;
 
   const parentAccess = await getDocumentParentAccessContext({
     userId: session.id,
     caseId,
     consultationId,
+    taskId,
   });
   if (!can(session.role, "attachment.read", parentAccess)) {
     throw new ForbiddenError();
@@ -94,19 +101,20 @@ export async function getDocumentUploadUrlAction(
     throw new Error("Invalid upload payload");
   }
 
-  const { file_name, file_type, case_id, consultation_id } = parsed.data;
+  const { file_name, file_type, case_id, consultation_id, task_id } = parsed.data;
 
   const parentAccess = await getDocumentParentAccessContext({
     userId: session.id,
     caseId: case_id,
     consultationId: consultation_id,
+    taskId: task_id,
   });
   if (!can(session.role, "attachment.create", parentAccess)) {
     throw new ForbiddenError();
   }
 
-  const parentType = case_id ? "cases" : "consultations";
-  const parentId = case_id ?? consultation_id!;
+  const parentType = case_id ? "cases" : task_id ? "tasks" : "consultations";
+  const parentId = case_id ?? task_id ?? consultation_id!;
   const key = generateKey(parentType, parentId, file_name);
   const uploadUrl = await getPresignedUploadUrl(key, file_type);
 
@@ -123,13 +131,15 @@ export async function confirmDocumentUploadAction(
     return { success: false, error: "Invalid upload confirmation payload" };
   }
 
-  const { file_name, file_type, file_size, file_path, case_id, consultation_id } = parsed.data;
+  const { file_name, file_type, file_size, file_path, case_id, consultation_id, task_id } =
+    parsed.data;
 
   try {
     const parentAccess = await getDocumentParentAccessContext({
       userId: session.id,
       caseId: case_id,
       consultationId: consultation_id,
+      taskId: task_id,
     });
     if (!can(session.role, "attachment.create", parentAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
@@ -142,21 +152,28 @@ export async function confirmDocumentUploadAction(
       file_size,
       case_id,
       consultation_id,
+      task_id,
       uploaded_by_user_id: session.id,
     });
+
+    const resultCaseId = case_id ?? task_id ?? null;
 
     after(() =>
       createAuditLog({
         actorUserId: session.id,
         action: "document.uploaded",
-        entityType: case_id ? "Case" : "Consultation",
-        entityId: (case_id ?? consultation_id)!,
+        entityType: resultCaseId ? "Case" : "Consultation",
+        entityId: (case_id ?? task_id ?? consultation_id)!,
         details: `Uploaded document: "${file_name}"`,
       }).catch(console.error),
     );
 
     revalidatePath(
-      getParentPath({ case_id: case_id ?? null, consultation_id: consultation_id ?? null }),
+      getParentPath({
+        case_id: case_id ?? null,
+        consultation_id: consultation_id ?? null,
+        task_id: task_id ?? null,
+      }),
     );
 
     return { success: true, data: { id: doc.id } };

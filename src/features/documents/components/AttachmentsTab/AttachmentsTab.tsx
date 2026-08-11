@@ -26,11 +26,12 @@ import styles from "./AttachmentsTab.module.css";
 interface Props {
   caseId?: string;
   consultationId?: string;
+  taskId?: string;
   access: AccessContext;
   userRole: Role | null;
 }
 
-export function AttachmentsTab({ caseId, consultationId, access, userRole }: Props) {
+export function AttachmentsTab({ caseId, consultationId, taskId, access, userRole }: Props) {
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
@@ -157,7 +158,7 @@ export function AttachmentsTab({ caseId, consultationId, access, userRole }: Pro
     <>
       <ServerDataTable
         refreshTrigger={refreshKey}
-        fetchAction={(p) => getDocumentsPaginatedAction({ caseId, consultationId, ...p })}
+        fetchAction={(p) => getDocumentsPaginatedAction({ caseId, consultationId, taskId, ...p })}
         columns={columns}
         searchPlaceholder="Search attachments..."
         emptyContent="No attachments yet"
@@ -175,6 +176,7 @@ export function AttachmentsTab({ caseId, consultationId, access, userRole }: Pro
         onSuccess={handleRefresh}
         caseId={caseId}
         consultationId={consultationId}
+        taskId={taskId}
       />
       {previewDocument && (
         <ViewAttachmentModal

@@ -72,13 +72,19 @@ export function UploadDocumentModal({
   async function handleUploadAll() {
     const { uploaded, failed } = await uploadFiles();
 
-    if (failed === 0 && uploaded > 0) {
+    if (uploaded > 0) {
       queue.add(
         { title: `${uploaded} file${uploaded > 1 ? "s" : ""} uploaded` },
         { timeout: 5000 },
       );
+    }
+
+    if (failed === 0) {
       resetFiles();
       onOpenChange(false);
+    }
+
+    if (uploaded > 0) {
       onSuccess();
     }
   }

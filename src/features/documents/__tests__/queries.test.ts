@@ -21,6 +21,7 @@ const mockDocument = (overrides: Record<string, unknown> = {}) => ({
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
   uploadedBy: { name: "John Lawyer" },
+  task: null,
   ...overrides,
 });
 
@@ -46,6 +47,7 @@ describe("getDocumentsPaginated", () => {
       file_size: 2500000,
       uploadedBy: "John Lawyer",
       created_at: documents[0].created_at,
+      task: null,
     });
     expect(result.rows[1]).toEqual({
       id: "d2",
@@ -54,13 +56,17 @@ describe("getDocumentsPaginated", () => {
       file_size: 2500000,
       uploadedBy: "Alice Paralegal",
       created_at: documents[1].created_at,
+      task: null,
     });
     expect(prisma.document.findMany).toHaveBeenCalledWith({
       take: 11,
       skip: 0,
       where: {},
       orderBy: { created_at: "desc" },
-      include: { uploadedBy: { select: { name: true } } },
+      include: {
+        uploadedBy: { select: { name: true } },
+        task: { select: { id: true, title: true, case_id: true } },
+      },
     });
   });
 

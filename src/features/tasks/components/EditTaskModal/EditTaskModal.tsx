@@ -74,9 +74,14 @@ export function EditTaskModal({
     let cancelled = false;
 
     async function loadDocuments() {
-      const { rows } = await getDocumentsPaginatedAction({ taskId: task.id, pageSize: 100 });
-      if (cancelled) return;
-      setDocuments(rows);
+      try {
+        const { rows } = await getDocumentsPaginatedAction({ taskId: task.id, pageSize: 100 });
+        if (cancelled) return;
+        setDocuments(rows);
+      } catch {
+        if (cancelled) return;
+        queue.add({ title: "Failed to load attachments" }, { timeout: 5000 });
+      }
     }
 
     void loadDocuments();

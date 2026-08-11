@@ -7,7 +7,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
-import { getTaskAccessContext } from "@/features/tasks/queries";
+import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
@@ -156,23 +156,23 @@ export async function confirmDocumentUploadAction(
       uploaded_by_user_id: session.id,
     });
 
-    const resultCaseId = case_id ?? task_id ?? null;
+    const taskCaseId = task_id ? ((await getTaskById(task_id))?.case_id ?? null) : null;
+    const resultCaseId = case_id ?? taskCaseId;
 
     after(() =>
       createAuditLog({
         actorUserId: session.id,
         action: "document.uploaded",
         entityType: resultCaseId ? "Case" : "Consultation",
-        entityId: (case_id ?? task_id ?? consultation_id)!,
+        entityId: (case_id ?? taskCaseId ?? consultation_id)!,
         details: `Uploaded document: "${file_name}"`,
       }).catch(console.error),
     );
 
     revalidatePath(
       getParentPath({
-        case_id: case_id ?? null,
+        case_id: case_id ?? taskCaseId,
         consultation_id: consultation_id ?? null,
-        task_id: task_id ?? null,
       }),
     );
 
@@ -245,7 +245,12 @@ export async function deleteDocumentAction(
       }).catch(console.error),
     );
 
-    revalidatePath(getParentPath(doc));
+    revalidatePath(
+      getParentPath({
+        case_id: parentCaseId,
+        consultation_id: doc.consultation_id,
+      }),
+    );
 
     return { success: true };
   } catch {

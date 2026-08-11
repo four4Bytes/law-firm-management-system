@@ -1,5 +1,5 @@
 .fileList {
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -13,7 +13,6 @@
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
-    overflow: hidden;
 
     .fileIcon {
       flex-shrink: 0;

@@ -130,15 +130,15 @@
 - Idiomatic, modular code is the top priority in this project, not a collection of hacks and workarounds.
 - Named exports only — no default exports, except for Next.js special files (`page.tsx`, `layout.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`, `route.tsx` etc.) which require a default export. Use inline `export default function` for these files.
 - PascalCase components/types; camelCase variables/functions/files (component dirs are PascalCase).
-- No inline `//` comments unless explaining a non-obvious decision. JSDoc on `src/lib/` helpers is the explicit exception (see Documentation).
+- No inline `//` comments unless explaining a non-obvious decision. TSDoc on `src/lib/` helpers is the explicit exception (see Documentation).
 - Prisma schema: `snake_case` fields, `PascalCase` models/enums.
 - Husky: pre-commit runs `lint-staged` (Prettier + ESLint on staged files); pre-push runs `pnpm validate && pnpm test`.
 
-### Documentation (JSDoc)
+### Documentation (TSDoc)
 
-- JSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`, plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
+- TSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`, plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
 - Use `@param`, `@returns`, and `@typeParam` where applicable; keep descriptions terse and within the 100-char print width (Prettier reformats).
-- This convention is **scoped to `src/lib/` only**. Do not add JSDoc to feature or component code — it adds noise. Inline `//` comments remain banned (see General).
+- This convention is **scoped to `src/lib/` only**. Do not add TSDoc to feature or component code — it adds noise. Inline `//` comments remain banned (see General).
 
 ---
 

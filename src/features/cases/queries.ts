@@ -284,7 +284,10 @@ export const getCaseNotesPaginated = cache(
 
 // ----- Milestones -----
 
-export type CaseMilestoneListRow = Pick<CaseMilestone, "id" | "title" | "due_date" | "status">;
+export type CaseMilestoneListRow = Pick<
+  CaseMilestone,
+  "id" | "title" | "description" | "due_date" | "status"
+>;
 
 export const getCaseMilestonesPaginated = cache(
   async ({
@@ -327,6 +330,7 @@ export const getCaseMilestonesPaginated = cache(
     const rows: CaseMilestoneListRow[] = milestones.map((m) => ({
       id: m.id,
       title: m.title,
+      description: m.description,
       due_date: m.due_date,
       status: m.status,
     }));

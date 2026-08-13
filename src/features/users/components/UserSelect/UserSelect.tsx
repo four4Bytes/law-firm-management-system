@@ -14,19 +14,28 @@ export interface UserSelectProps {
   selectedIds: Set<string>;
   onChange: (ids: Set<string>) => void;
   isDisabled?: boolean;
+  label?: string;
+  placeholder?: string;
 }
 
-export function UserSelect({ users, selectedIds, onChange, isDisabled }: UserSelectProps) {
+export function UserSelect({
+  users,
+  selectedIds,
+  onChange,
+  isDisabled,
+  label = "Assignees",
+  placeholder = "Select assignees...",
+}: UserSelectProps) {
   const selected = users.filter((user) => selectedIds.has(user.id));
 
   return (
     <>
       <Select
-        label="Assignees"
+        label={label}
         selectionMode="multiple"
         value={Array.from(selectedIds)}
         onChange={(keys) => onChange(keysToSet(keys))}
-        placeholder="Select assignees..."
+        placeholder={placeholder}
         items={users}
         isDisabled={isDisabled}
         alwaysPlaceholder

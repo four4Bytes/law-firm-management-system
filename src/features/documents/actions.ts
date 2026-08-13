@@ -8,6 +8,7 @@ import { createAuditLog } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
+import { TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
@@ -40,6 +41,20 @@ interface DocumentParentPayload {
   caseId?: string | null;
   consultationId?: string | null;
   taskId?: string | null;
+}
+
+const LOCKED_MESSAGE = "Files are locked while the task is under review";
+
+/**
+ * Whether the parent task is under review (`Submitted`), locking file edits.
+ *
+ * @param taskId - The parent task ID, when the document is task-attached.
+ * @returns `true` when the task exists and is in `Submitted` status.
+ */
+async function taskLockedForReview(taskId: string | null | undefined): Promise<boolean> {
+  if (!taskId) return false;
+  const task = await getTaskById(taskId);
+  return task?.status === TaskStatus.Submitted;
 }
 
 async function getDocumentParentAccessContext({
@@ -113,6 +128,10 @@ export async function getDocumentUploadUrlAction(
     throw new ForbiddenError();
   }
 
+  if (await taskLockedForReview(task_id)) {
+    throw new Error(LOCKED_MESSAGE);
+  }
+
   const parentType = case_id ? "cases" : task_id ? "tasks" : "consultations";
   const parentId = case_id ?? task_id ?? consultation_id!;
   const key = generateKey(parentType, parentId, file_name);
@@ -143,6 +162,10 @@ export async function confirmDocumentUploadAction(
     });
     if (!can(session.role, "attachment.create", parentAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (await taskLockedForReview(task_id)) {
+      return { success: false, error: LOCKED_MESSAGE };
     }
 
     const doc = await createDocument({
@@ -230,6 +253,10 @@ export async function deleteDocumentAction(
     const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
     if (!can(session.role, permission, access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (doc.task?.status === TaskStatus.Submitted) {
+      return { success: false, error: LOCKED_MESSAGE };
     }
 
     await deleteDocumentRecord(documentId);

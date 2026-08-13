@@ -68,6 +68,7 @@ const documentRecord = {
   file_name: "file.pdf",
   case_id: uuid,
   consultation_id: null,
+  task_id: null,
   task: null,
 };
 

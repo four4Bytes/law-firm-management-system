@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
+import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
@@ -50,11 +51,16 @@ export async function createNoteAction(
     return { success: false, error: "Invalid note data" };
   }
 
-  const { content, case_id, consultation_id } = parsed.data;
+  const { content, case_id, consultation_id, task_id } = parsed.data;
 
   let note: { id: string };
   try {
-    if (case_id) {
+    if (task_id) {
+      const taskAccess = await getTaskAccessContext(session.id, task_id);
+      if (!can(session.role, "note.create", taskAccess)) {
+        return { success: false, error: FORBIDDEN_MESSAGE };
+      }
+    } else if (case_id) {
       const caseAccess = await getCaseAccessContext(session.id, case_id);
       if (!can(session.role, "note.create", caseAccess)) {
         return { success: false, error: FORBIDDEN_MESSAGE };
@@ -70,6 +76,7 @@ export async function createNoteAction(
       content,
       case_id,
       consultation_id,
+      task_id,
       created_by_user_id: session.id,
     });
 
@@ -77,8 +84,8 @@ export async function createNoteAction(
       createAuditLog({
         actorUserId: session.id,
         action: "note.created",
-        entityType: case_id ? "Case" : "Consultation",
-        entityId: (case_id ?? consultation_id)!,
+        entityType: task_id ? "Task" : case_id ? "Case" : "Consultation",
+        entityId: (task_id ?? case_id ?? consultation_id)!,
         details: `Created note with ID: ${note.id}`,
       }).catch(console.error),
     );
@@ -86,7 +93,17 @@ export async function createNoteAction(
     return { success: false, error: "Failed to create note" };
   }
 
-  revalidatePath(case_id ? `/case/${case_id}` : `/consultation/${consultation_id}`);
+  let parentPath = "/case";
+  if (task_id) {
+    const task = await getTaskById(task_id);
+    if (task) parentPath = `/case/${task.case_id}`;
+  } else if (case_id) {
+    parentPath = `/case/${case_id}`;
+  } else {
+    parentPath = `/consultation/${consultation_id}`;
+  }
+
+  revalidatePath(parentPath);
 
   return { success: true, data: { id: note.id } };
 }

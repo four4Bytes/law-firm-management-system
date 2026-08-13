@@ -4,6 +4,7 @@ export interface NoteCreateData {
   content: string;
   case_id?: string | null;
   consultation_id?: string | null;
+  task_id?: string | null;
   created_by_user_id: string;
 }
 

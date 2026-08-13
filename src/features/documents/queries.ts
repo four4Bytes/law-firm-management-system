@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
+import type { TaskStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
@@ -102,7 +103,8 @@ export const getDocumentById = cache(
     file_name: string;
     case_id: string | null;
     consultation_id: string | null;
-    task: { case_id: string | null } | null;
+    task_id: string | null;
+    task: { case_id: string | null; status: TaskStatus } | null;
   } | null> => {
     return prisma.document.findUnique({
       where: { id },
@@ -112,7 +114,8 @@ export const getDocumentById = cache(
         file_name: true,
         case_id: true,
         consultation_id: true,
-        task: { select: { case_id: true } },
+        task_id: true,
+        task: { select: { case_id: true, status: true } },
       },
     });
   },

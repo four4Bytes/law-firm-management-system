@@ -210,7 +210,8 @@ describe("getDocumentById", () => {
         file_name: true,
         case_id: true,
         consultation_id: true,
-        task: { select: { case_id: true } },
+        task_id: true,
+        task: { select: { case_id: true, status: true } },
       },
     });
   });

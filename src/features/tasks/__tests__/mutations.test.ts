@@ -1,11 +1,25 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { prisma } from "@/lib/prisma";
 
-import { createTask, deleteTask, updateTask } from "../mutations";
+import {
+  addTaskReviewer,
+  applyReviewDecision,
+  cancelTask,
+  createTask,
+  deleteTask,
+  deriveReviewStatus,
+  submitTask,
+  updateTask,
+} from "../mutations";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { task: { create: vi.fn(), update: vi.fn(), delete: vi.fn() } },
+  prisma: {
+    $transaction: vi.fn(),
+    task: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    taskReviewer: { updateMany: vi.fn(), findMany: vi.fn(), upsert: vi.fn() },
+    caseAssignment: { findMany: vi.fn(), createMany: vi.fn() },
+  },
 }));
 
 const mockTask = (overrides: Record<string, unknown> = {}) => ({
@@ -20,144 +34,336 @@ const mockTask = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+type Tx = {
+  task: typeof prisma.task;
+  taskReviewer: typeof prisma.taskReviewer;
+  caseAssignment: typeof prisma.caseAssignment;
+};
+
+const tx: Tx = {
+  task: prisma.task,
+  taskReviewer: prisma.taskReviewer,
+  caseAssignment: prisma.caseAssignment,
+};
+
+const transactionMock = vi.mocked(prisma.$transaction) as unknown as Mock<
+  (fn: (tx: Tx) => Promise<unknown>) => Promise<unknown>
+>;
+
+const mockTaskReviewer = (overrides: Record<string, unknown> = {}) => ({
+  id: "tr1",
+  task_id: "t1",
+  reviewer_user_id: "u4",
+  decision: "Pending" as const,
+  reviewed_at: null,
+  created_at: new Date("2024-06-01"),
+  updated_at: new Date("2024-06-01"),
+  ...overrides,
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.caseAssignment.findMany).mockResolvedValue([]);
+  transactionMock.mockImplementation((fn) => fn(tx));
 });
 
-it("creates a task", async () => {
-  vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
+describe("createTask", () => {
+  it("creates a task with the creator as default reviewer", async () => {
+    vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
 
-  const result = await createTask({
-    title: "Task title",
-    status: "Pending",
-    case_id: "c1",
-    created_by_user_id: "u1",
-  });
-
-  expect(result.id).toBe("t1");
-  expect(prisma.task.create).toHaveBeenCalledWith({
-    data: {
+    const result = await createTask({
       title: "Task title",
-      status: "Pending",
       case_id: "c1",
       created_by_user_id: "u1",
-    },
-    select: { id: true },
+    });
+
+    expect(result.id).toBe("t1");
+    expect(prisma.task.create).toHaveBeenCalledWith({
+      data: {
+        title: "Task title",
+        status: "Pending",
+        case_id: "c1",
+        created_by_user_id: "u1",
+        taskReviewers: { create: { reviewer_user_id: "u1" } },
+      },
+      select: { id: true },
+    });
   });
-});
 
-it("creates a task with assignees", async () => {
-  vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
+  it("grants case membership to the creator", async () => {
+    vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
 
-  const result = await createTask({
-    title: "Task with assignees",
-    status: "Ongoing",
-    case_id: "c1",
-    created_by_user_id: "u1",
-    assignee_ids: ["u2", "u3"],
+    await createTask({
+      title: "Task title",
+      case_id: "c1",
+      created_by_user_id: "u1",
+    });
+
+    expect(prisma.caseAssignment.findMany).toHaveBeenCalledWith({
+      where: { case_id: "c1", user_id: { in: ["u1"] } },
+      select: { user_id: true },
+    });
+    expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
+      data: [{ case_id: "c1", user_id: "u1" }],
+    });
   });
 
-  expect(result.id).toBe("t1");
-  expect(prisma.task.create).toHaveBeenCalledWith({
-    data: {
+  it("creates a task with assignees", async () => {
+    vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
+
+    const result = await createTask({
       title: "Task with assignees",
-      status: "Ongoing",
       case_id: "c1",
       created_by_user_id: "u1",
-      taskAssignments: {
-        create: [{ user_id: "u2" }, { user_id: "u3" }],
+      assignee_ids: ["u2", "u3"],
+    });
+
+    expect(result.id).toBe("t1");
+    expect(prisma.task.create).toHaveBeenCalledWith({
+      data: {
+        title: "Task with assignees",
+        status: "Pending",
+        case_id: "c1",
+        created_by_user_id: "u1",
+        taskAssignments: { create: [{ user_id: "u2" }, { user_id: "u3" }] },
+        taskReviewers: { create: { reviewer_user_id: "u1" } },
       },
-    },
-    select: { id: true },
+      select: { id: true },
+    });
+    expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
+      data: [
+        { case_id: "c1", user_id: "u2" },
+        { case_id: "c1", user_id: "u3" },
+        { case_id: "c1", user_id: "u1" },
+      ],
+    });
+  });
+
+  it("creates a task with optional description", async () => {
+    vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
+
+    await createTask({
+      title: "Task with description",
+      description: "A description",
+      case_id: "c1",
+      created_by_user_id: "u1",
+    });
+
+    expect(prisma.task.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ description: "A description" }),
+      select: { id: true },
+    });
+  });
+
+  it("propagates error when creating task fails", async () => {
+    const error = new Error("Database connection failed");
+    vi.mocked(prisma.task.create).mockRejectedValue(error);
+
+    await expect(
+      createTask({
+        title: "Task title",
+        case_id: "c1",
+        created_by_user_id: "u1",
+      }),
+    ).rejects.toThrow(error);
   });
 });
 
-it("creates a task with optional description", async () => {
-  vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
+describe("updateTask", () => {
+  it("updates a task", async () => {
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
-  await createTask({
-    title: "Task with description",
-    description: "A description",
-    status: "Pending",
-    case_id: "c1",
-    created_by_user_id: "u1",
+    const result = await updateTask("t1", { title: "Updated title" });
+
+    expect(result.id).toBe("t1");
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { title: "Updated title" },
+      select: { id: true, case_id: true },
+    });
+    expect(prisma.caseAssignment.createMany).not.toHaveBeenCalled();
   });
 
-  expect(prisma.task.create).toHaveBeenCalledWith({
-    data: expect.objectContaining({ description: "A description" }),
-    select: { id: true },
-  });
-});
+  it("updates a task with assignee sync", async () => {
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
-it("updates a task", async () => {
-  vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
-
-  const result = await updateTask("t1", { title: "Updated title" });
-
-  expect(result.id).toBe("t1");
-  expect(prisma.task.update).toHaveBeenCalledWith({
-    where: { id: "t1" },
-    data: { title: "Updated title" },
-    select: { id: true },
-  });
-});
-
-it("updates a task with assignee sync", async () => {
-  vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
-
-  await updateTask("t1", {
-    title: "Updated",
-    status: "Accepted",
-    assignee_ids: ["u2"],
-  });
-
-  expect(prisma.task.update).toHaveBeenCalledWith({
-    where: { id: "t1" },
-    data: {
+    await updateTask("t1", {
       title: "Updated",
-      status: "Accepted",
-      taskAssignments: {
-        deleteMany: {},
-        create: [{ user_id: "u2" }],
+      assignee_ids: ["u2"],
+    });
+
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: {
+        title: "Updated",
+        taskAssignments: {
+          deleteMany: {},
+          create: [{ user_id: "u2" }],
+        },
       },
-    },
-    select: { id: true },
+      select: { id: true, case_id: true },
+    });
+    expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
+      data: [{ case_id: "c1", user_id: "u2" }],
+    });
+  });
+
+  it("propagates error when updating nonexistent task", async () => {
+    const error = new Error("Record not found");
+    vi.mocked(prisma.task.update).mockRejectedValue(error);
+
+    await expect(updateTask("999", { title: "Updated title" })).rejects.toThrow(error);
   });
 });
 
-it("deletes a task", async () => {
-  vi.mocked(prisma.task.delete).mockResolvedValue(mockTask());
+describe("deleteTask", () => {
+  it("deletes a task", async () => {
+    vi.mocked(prisma.task.delete).mockResolvedValue(mockTask());
 
-  const result = await deleteTask("t1");
+    const result = await deleteTask("t1");
 
-  expect(result.id).toBe("t1");
-  expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: "t1" }, select: { id: true } });
+    expect(result.id).toBe("t1");
+    expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: "t1" }, select: { id: true } });
+  });
+
+  it("propagates error when deleting nonexistent task", async () => {
+    const error = new Error("Record not found");
+    vi.mocked(prisma.task.delete).mockRejectedValue(error);
+
+    await expect(deleteTask("999")).rejects.toThrow(error);
+  });
 });
 
-it("propagates error when deleting nonexistent task", async () => {
-  const error = new Error("Record not found");
-  vi.mocked(prisma.task.delete).mockRejectedValue(error);
+describe("submitTask", () => {
+  it("marks the task as submitted", async () => {
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
-  await expect(deleteTask("999")).rejects.toThrow(error);
+    const result = await submitTask("t1");
+
+    expect(result.id).toBe("t1");
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Submitted" },
+      select: { id: true },
+    });
+  });
 });
 
-it("propagates error when creating task fails", async () => {
-  const error = new Error("Database connection failed");
-  vi.mocked(prisma.task.create).mockRejectedValue(error);
+describe("addTaskReviewer", () => {
+  it("adds a reviewer and grants case membership", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskReviewer.upsert).mockResolvedValue(mockTaskReviewer());
 
-  await expect(
-    createTask({
-      title: "Task title",
-      status: "Pending",
-      case_id: "c1",
-      created_by_user_id: "u1",
-    }),
-  ).rejects.toThrow(error);
+    const result = await addTaskReviewer("t1", "u4");
+
+    expect(result.id).toBe("t1");
+    expect(prisma.taskReviewer.upsert).toHaveBeenCalledWith({
+      where: { task_id_reviewer_user_id: { task_id: "t1", reviewer_user_id: "u4" } },
+      create: { task_id: "t1", reviewer_user_id: "u4" },
+      update: { decision: "Pending", reviewed_at: null },
+    });
+    expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
+      data: [{ case_id: "c1", user_id: "u4" }],
+    });
+  });
+
+  it("throws when the task does not exist", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(null);
+
+    await expect(addTaskReviewer("999", "u4")).rejects.toThrow("Task not found");
+    expect(prisma.taskReviewer.upsert).not.toHaveBeenCalled();
+  });
 });
 
-it("propagates error when updating nonexistent task", async () => {
-  const error = new Error("Record not found");
-  vi.mocked(prisma.task.update).mockRejectedValue(error);
+describe("applyReviewDecision", () => {
+  it("completes the task when every reviewer accepts", async () => {
+    vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Accepted" }),
+      mockTaskReviewer({ reviewer_user_id: "u2", decision: "Accepted" }),
+    ]);
 
-  await expect(updateTask("999", { title: "Updated title" })).rejects.toThrow(error);
+    const result = await applyReviewDecision({
+      taskId: "t1",
+      reviewerUserId: "u1",
+      decision: "Accepted",
+    });
+
+    expect(result).toEqual({ taskStatus: "Completed" });
+    expect(prisma.taskReviewer.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Completed" },
+      select: { id: true },
+    });
+  });
+
+  it("reopens the task and resets reviewers on rejection", async () => {
+    vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Rejected" }),
+      mockTaskReviewer({ reviewer_user_id: "u2", decision: "Accepted" }),
+    ]);
+
+    const result = await applyReviewDecision({
+      taskId: "t1",
+      reviewerUserId: "u1",
+      decision: "Rejected",
+    });
+
+    expect(result).toEqual({ taskStatus: "Pending" });
+    expect(prisma.taskReviewer.updateMany).toHaveBeenCalledTimes(2);
+    expect(prisma.taskReviewer.updateMany).toHaveBeenLastCalledWith({
+      where: { task_id: "t1" },
+      data: { decision: "Pending", reviewed_at: null },
+    });
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Pending" },
+      select: { id: true },
+    });
+  });
+
+  it("leaves the task submitted when reviewers disagree", async () => {
+    vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Accepted" }),
+      mockTaskReviewer({ reviewer_user_id: "u2", decision: "Pending" }),
+    ]);
+
+    const result = await applyReviewDecision({
+      taskId: "t1",
+      reviewerUserId: "u2",
+      decision: "Accepted",
+    });
+
+    expect(result).toEqual({ taskStatus: "Submitted" });
+    expect(prisma.taskReviewer.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.task.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("cancelTask", () => {
+  it("cancels a task", async () => {
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+
+    const result = await cancelTask("t1");
+
+    expect(result.id).toBe("t1");
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Cancelled" },
+      select: { id: true },
+    });
+  });
+});
+
+describe("deriveReviewStatus", () => {
+  it("derives status from reviewer decisions", () => {
+    expect(deriveReviewStatus([])).toBe("Submitted");
+    expect(deriveReviewStatus(["Pending"])).toBe("Submitted");
+    expect(deriveReviewStatus(["Accepted", "Accepted"])).toBe("Completed");
+    expect(deriveReviewStatus(["Accepted", "Rejected"])).toBe("Pending");
+    expect(deriveReviewStatus(["Rejected", "Rejected"])).toBe("Pending");
+  });
 });

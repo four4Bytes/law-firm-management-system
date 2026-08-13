@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
-import { NotificationType, Role } from "@/generated/prisma/browser";
+import { NotificationType, ReviewDecision, Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
@@ -78,9 +78,16 @@ const taskRecord = {
   description: null,
   status: "Pending" as const,
   case_id: uuid,
+  created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
   taskAssignments: [] as { user_id: string; user: { name: string } }[],
+  taskReviewers: [] as {
+    id: string;
+    reviewer_user_id: string;
+    decision: ReviewDecision;
+    reviewed_at: Date | null;
+  }[],
 };
 
 const taskRow = {
@@ -90,6 +97,13 @@ const taskRow = {
   status: "Pending" as const,
   case_id: uuid,
   assignee_ids: [] as string[],
+  reviewers: [] as {
+    id: string;
+    reviewer_user_id: string;
+    name: string;
+    decision: ReviewDecision;
+    reviewed_at: Date | null;
+  }[],
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
   assignTo: "",
@@ -162,7 +176,6 @@ describe("createTaskAction", () => {
     const payload = {
       title: "Draft memo",
       description: undefined,
-      status: "Pending" as const,
       case_id: uuid,
       assignee_ids: undefined,
     };
@@ -180,7 +193,6 @@ describe("createTaskAction", () => {
     const result = await createTaskAction({
       title: "Draft memo",
       description: undefined,
-      status: "Pending" as const,
       case_id: uuid,
       assignee_ids: [uuid],
     });
@@ -197,7 +209,6 @@ describe("updateTaskAction", () => {
       taskId: uuid,
       title: "Renamed",
       description: undefined,
-      status: "Ongoing" as const,
       assignee_ids: undefined,
     };
 
@@ -230,7 +241,6 @@ describe("updateTaskAction notification split", () => {
       taskId: uuid,
       title: "Renamed",
       description: undefined,
-      status: "Ongoing" as const,
       assignee_ids: [assignee1, assignee2],
     });
     await flushAfterCallbacks();
@@ -247,7 +257,6 @@ describe("updateTaskAction notification split", () => {
       taskId: uuid,
       title: "Draft memo",
       description: undefined,
-      status: "Pending" as const,
       assignee_ids: [assignee1, assignee2],
     });
     await flushAfterCallbacks();

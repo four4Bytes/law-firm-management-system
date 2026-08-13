@@ -32,10 +32,8 @@ interface Props {
 
 const statusClassMap: Record<TaskStatus, StatusBadgeVariant> = {
   Pending: "pending",
-  Ongoing: "ongoing",
   Submitted: "info",
-  Accepted: "done",
-  Rejected: "cancelled",
+  Completed: "done",
   Cancelled: "cancelled",
 };
 

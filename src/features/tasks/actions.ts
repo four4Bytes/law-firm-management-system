@@ -6,24 +6,42 @@ import { z } from "zod";
 
 import { createAuditLog } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
+import { createNote } from "@/features/notes/mutations";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
-import { NotificationType } from "@/generated/prisma/browser";
+import { NotificationType, TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
-import { createTask, deleteTask, updateTask } from "./mutations";
+import {
+  addTaskReviewer,
+  applyReviewDecision,
+  cancelTask,
+  createTask,
+  deleteTask,
+  submitTask,
+  updateTask,
+} from "./mutations";
 import {
   getActiveUsers,
   getTaskAccessContext,
   getTaskById,
   getTaskDetailRowById,
+  getTaskReviewers,
   type ActiveUserSummary,
   type TaskDetailRow,
 } from "./queries";
-import { TaskCreatePayloadSchema, TaskIdSchema, TaskUpdatePayloadSchema } from "./schemas";
+import {
+  TaskAddReviewerSchema,
+  TaskCancelSchema,
+  TaskCreatePayloadSchema,
+  TaskIdSchema,
+  TaskReviewSchema,
+  TaskSubmitSchema,
+  TaskUpdatePayloadSchema,
+} from "./schemas";
 
 export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
   await requireAuth();
@@ -59,7 +77,7 @@ export async function createTaskAction(
   const parsed = TaskCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) return { success: false, error: "Invalid task data" };
 
-  const { title, description, status, case_id, assignee_ids } = parsed.data;
+  const { title, description, case_id, assignee_ids } = parsed.data;
 
   try {
     const caseAccess = await getCaseAccessContext(session.id, case_id);
@@ -70,7 +88,6 @@ export async function createTaskAction(
     const task = await createTask({
       title,
       description,
-      status,
       case_id,
       created_by_user_id: session.id,
       assignee_ids,
@@ -106,11 +123,15 @@ export async function updateTaskAction(
   const parsed = TaskUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) return { success: false, error: "Invalid task data" };
 
-  const { taskId, title, description, status, assignee_ids } = parsed.data;
+  const { taskId, title, description, assignee_ids } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
+
+    if (existing.status === TaskStatus.Submitted) {
+      return { success: false, error: "Task is under review and cannot be edited" };
+    }
 
     const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.update", access)) {
@@ -121,7 +142,6 @@ export async function updateTaskAction(
     if (
       existing.title === title &&
       existing.description === (description ?? null) &&
-      existing.status === status &&
       (!assignee_ids ||
         (existingAssigneeIds.length === assignee_ids.length &&
           existingAssigneeIds.every((id) => assignee_ids.includes(id))))
@@ -129,7 +149,7 @@ export async function updateTaskAction(
       return { success: true };
     }
 
-    await updateTask(taskId, { title, description, status, assignee_ids });
+    await updateTask(taskId, { title, description, assignee_ids });
 
     after(async () => {
       try {
@@ -213,5 +233,256 @@ export async function deleteTaskAction(
     return { success: true };
   } catch {
     return { success: false, error: "Failed to delete task" };
+  }
+}
+
+export async function submitTaskAction(
+  payload: z.input<typeof TaskSubmitSchema>,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = TaskSubmitSchema.safeParse(payload);
+  if (!parsed.success) return { success: false, error: "Invalid task ID" };
+
+  const { taskId } = parsed.data;
+
+  try {
+    const existing = await getTaskById(taskId);
+    if (!existing) return { success: false, error: "Task not found" };
+
+    if (existing.status !== TaskStatus.Pending) {
+      return { success: false, error: "Only pending tasks can be submitted for review" };
+    }
+
+    const isAssignee = existing.taskAssignments.some((a) => a.user_id === session.id);
+    if (!isAssignee) return { success: false, error: FORBIDDEN_MESSAGE };
+
+    await submitTask(taskId);
+
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "task.updated",
+          entityType: "Case",
+          entityId: existing.case_id,
+          details: `Submitted task for review: "${existing.title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log task submission audit for Case", existing.case_id, err);
+      }
+
+      try {
+        const reviewers = await getTaskReviewers(taskId);
+        const reviewerIds = reviewers.map((r) => r.reviewer_user_id);
+        if (reviewerIds.length > 0) {
+          await dispatchNotifications(
+            {
+              userIds: reviewerIds,
+              type: NotificationType.TaskStatusChanged,
+              title: `Task submitted for review: ${existing.title}`,
+              message: `Task "${existing.title}" is now under review`,
+              actionUrl: `/case/${existing.case_id}`,
+              caseId: existing.case_id,
+              taskId,
+            },
+            session.id,
+          );
+        }
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
+
+    revalidatePath(`/case/${existing.case_id}`);
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to submit task" };
+  }
+}
+
+export async function reviewTaskAction(
+  payload: z.input<typeof TaskReviewSchema>,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = TaskReviewSchema.safeParse(payload);
+  if (!parsed.success) return { success: false, error: "Invalid review data" };
+
+  const { taskId, decision, comment } = parsed.data;
+
+  try {
+    const existing = await getTaskById(taskId);
+    if (!existing) return { success: false, error: "Task not found" };
+
+    if (existing.status !== TaskStatus.Submitted) {
+      return { success: false, error: "Only submitted tasks can be reviewed" };
+    }
+
+    const review = existing.taskReviewers.find((r) => r.reviewer_user_id === session.id);
+    if (!review) return { success: false, error: FORBIDDEN_MESSAGE };
+    if (review.reviewed_at) {
+      return { success: false, error: "You have already reviewed this task" };
+    }
+
+    if (comment) {
+      await createNote({ content: comment, task_id: taskId, created_by_user_id: session.id });
+    }
+
+    const { taskStatus } = await applyReviewDecision({
+      taskId,
+      reviewerUserId: session.id,
+      decision,
+    });
+
+    const assigneeIds = existing.taskAssignments.map((a) => a.user_id);
+
+    after(async () => {
+      const transition = `Submitted to ${taskStatus}`;
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "task.updated",
+          entityType: "Case",
+          entityId: existing.case_id,
+          details: `Review ${decision} on task "${existing.title}"${comment ? `: ${comment}` : ""}`,
+        });
+      } catch (err) {
+        console.error("Failed to log review audit for Case", existing.case_id, err);
+      }
+
+      if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Completed) {
+        try {
+          await dispatchNotifications(
+            {
+              userIds: assigneeIds,
+              type: NotificationType.TaskStatusChanged,
+              title: `Task ${taskStatus === TaskStatus.Completed ? "completed" : "returned for rework"}: ${existing.title}`,
+              message: `Task "${existing.title}" transitioned from ${transition}`,
+              actionUrl: `/case/${existing.case_id}`,
+              caseId: existing.case_id,
+              taskId,
+            },
+            session.id,
+          );
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+    });
+
+    revalidatePath(`/case/${existing.case_id}`);
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to record review" };
+  }
+}
+
+export async function addTaskReviewerAction(
+  payload: z.input<typeof TaskAddReviewerSchema>,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = TaskAddReviewerSchema.safeParse(payload);
+  if (!parsed.success) return { success: false, error: "Invalid reviewer data" };
+
+  const { taskId, reviewerUserId } = parsed.data;
+
+  try {
+    const existing = await getTaskById(taskId);
+    if (!existing) return { success: false, error: "Task not found" };
+
+    if (existing.status !== TaskStatus.Submitted) {
+      return {
+        success: false,
+        error: "Reviewers can only be added while the task is under review",
+      };
+    }
+
+    const isReviewer = existing.taskReviewers.some((r) => r.reviewer_user_id === session.id);
+    if (!isReviewer) return { success: false, error: FORBIDDEN_MESSAGE };
+
+    await addTaskReviewer(taskId, reviewerUserId);
+
+    after(async () => {
+      try {
+        await createAuditLog({
+          actorUserId: session.id,
+          action: "task.updated",
+          entityType: "Case",
+          entityId: existing.case_id,
+          details: `Added reviewer to task: "${existing.title}"`,
+        });
+      } catch (err) {
+        console.error("Failed to log reviewer audit for Case", existing.case_id, err);
+      }
+
+      try {
+        await dispatchNotifications(
+          {
+            userIds: [reviewerUserId],
+            type: NotificationType.TaskAssigned,
+            title: `Review requested: ${existing.title}`,
+            message: `You have been added as a reviewer to task: "${existing.title}"`,
+            actionUrl: `/case/${existing.case_id}`,
+            caseId: existing.case_id,
+            taskId,
+          },
+          session.id,
+        );
+      } catch (err) {
+        console.error("Failed to dispatch notification:", err);
+      }
+    });
+
+    revalidatePath(`/case/${existing.case_id}`);
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to add reviewer" };
+  }
+}
+
+export async function cancelTaskAction(
+  payload: z.input<typeof TaskCancelSchema>,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = TaskCancelSchema.safeParse(payload);
+  if (!parsed.success) return { success: false, error: "Invalid task ID" };
+
+  const { taskId } = parsed.data;
+
+  try {
+    const existing = await getTaskById(taskId);
+    if (!existing) return { success: false, error: "Task not found" };
+
+    if (session.id !== existing.created_by_user_id) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (existing.status === TaskStatus.Completed || existing.status === TaskStatus.Cancelled) {
+      return { success: false, error: "This task has already been resolved" };
+    }
+
+    await cancelTask(taskId);
+
+    after(() =>
+      createAuditLog({
+        actorUserId: session.id,
+        action: "task.updated",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Cancelled task: "${existing.title}"`,
+      }).catch(console.error),
+    );
+
+    revalidatePath(`/case/${existing.case_id}`);
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to cancel task" };
   }
 }

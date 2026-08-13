@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
-import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
@@ -12,6 +11,7 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { createCaseWithClientAction } from "@/features/cases/actions";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
@@ -195,9 +195,9 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
                 </SelectItem>
               ))}
             </Select>
-            <AssigneeSelect
+            <UserSelect
               users={users}
-              assigneeIds={assigneeIds}
+              selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />

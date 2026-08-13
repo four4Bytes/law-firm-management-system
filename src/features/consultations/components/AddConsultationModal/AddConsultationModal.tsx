@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
-import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -15,6 +14,7 @@ import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createConsultationWithClientAction } from "@/features/consultations/actions";
 import { ConsultationWithClientCreatePayloadSchema } from "@/features/consultations/schemas";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime } from "@/lib/date";
 import {
@@ -212,9 +212,9 @@ export function AddConsultationModal({
                 </SelectItem>
               ))}
             </Select>
-            <AssigneeSelect
+            <UserSelect
               users={users}
-              assigneeIds={assigneeIds}
+              selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />

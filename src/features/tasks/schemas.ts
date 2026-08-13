@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { TaskStatus } from "@/generated/prisma/browser";
-import { optionalText, requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
+import { ReviewDecision } from "@/generated/prisma/browser";
+import { optionalText, requiredText, uniqueUuidArray } from "@/lib/form-utils";
 
 export const TaskIdSchema = z.object({
   taskId: z.uuid(),
@@ -10,7 +10,6 @@ export const TaskIdSchema = z.object({
 export const TaskCreatePayloadSchema = z.object({
   title: requiredText(500, "Title"),
   description: optionalText(10000, "Description"),
-  status: requiredEnum(TaskStatus, "Status").optional().default(TaskStatus.Pending),
   case_id: z.uuid(),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
@@ -19,6 +18,26 @@ export const TaskUpdatePayloadSchema = z.object({
   taskId: z.uuid(),
   title: requiredText(500, "Title"),
   description: optionalText(10000, "Description"),
-  status: requiredEnum(TaskStatus, "Status"),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
+});
+
+export const TaskSubmitSchema = z.object({
+  taskId: z.uuid(),
+});
+
+export const TaskReviewSchema = z.object({
+  taskId: z.uuid(),
+  decision: z.enum([ReviewDecision.Accepted, ReviewDecision.Rejected], {
+    error: "Select accept or reject",
+  }),
+  comment: optionalText(10000, "Comment"),
+});
+
+export const TaskAddReviewerSchema = z.object({
+  taskId: z.uuid(),
+  reviewerUserId: z.uuid(),
+});
+
+export const TaskCancelSchema = z.object({
+  taskId: z.uuid(),
 });

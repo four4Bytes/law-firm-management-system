@@ -7,25 +7,16 @@ import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { createTaskAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
-import { TaskStatus } from "@/generated/prisma/browser";
-import {
-  createFieldValidator,
-  optionalString,
-  requiredString,
-  selectEnumHandler,
-} from "@/lib/form-utils";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./AddTaskModal.module.css";
-
-const STATUS_OPTIONS = Object.values(TaskStatus);
 
 const ACCEPTED_TYPES = [
   ".pdf",
@@ -58,7 +49,6 @@ export function AddTaskModal({
 }: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>(TaskStatus.Pending);
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
   const [isPending, setIsPending] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
@@ -69,7 +59,6 @@ export function AddTaskModal({
   function resetForm() {
     setTitle("");
     setDescription("");
-    setStatus(TaskStatus.Pending);
     setAssigneeIds(new Set());
     setCreatedTaskId(null);
     resetFiles();
@@ -88,7 +77,6 @@ export function AddTaskModal({
     const parsed = TaskCreatePayloadSchema.safeParse({
       title: requiredString(title),
       description: optionalString(description),
-      status,
       case_id: caseId,
       assignee_ids: Array.from(assigneeIds),
     });
@@ -169,18 +157,6 @@ export function AddTaskModal({
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.description)}
               isDisabled={isPending}
             />
-            <Select
-              label="Status"
-              value={status}
-              onChange={selectEnumHandler(TaskStatus, setStatus)}
-              isDisabled={isPending}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
             <AssigneeSelect
               users={users}
               assigneeIds={assigneeIds}

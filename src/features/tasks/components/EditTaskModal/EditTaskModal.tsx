@@ -7,7 +7,6 @@ import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
@@ -16,18 +15,10 @@ import type { DocumentRow } from "@/features/documents/queries";
 import { updateTaskAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
-import { TaskStatus } from "@/generated/prisma/browser";
-import {
-  createFieldValidator,
-  optionalString,
-  requiredString,
-  selectEnumHandler,
-} from "@/lib/form-utils";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./EditTaskModal.module.css";
-
-const STATUS_OPTIONS = Object.values(TaskStatus);
 
 const ACCEPTED_TYPES = [
   ".pdf",
@@ -60,7 +51,6 @@ export function EditTaskModal({
 }: EditTaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
-  const [status, setStatus] = useState<TaskStatus>(task.status as TaskStatus);
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
   const [isPending, setIsPending] = useState(false);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
@@ -112,7 +102,6 @@ export function EditTaskModal({
       taskId: task.id,
       title: requiredString(title),
       description: optionalString(description),
-      status,
       assignee_ids: Array.from(assigneeIds),
     });
 
@@ -199,18 +188,6 @@ export function EditTaskModal({
               validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
               isDisabled={isPending}
             />
-            <Select
-              label="Status"
-              value={status}
-              onChange={selectEnumHandler(TaskStatus, setStatus)}
-              isDisabled={isPending}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
             <AssigneeSelect
               users={users}
               assigneeIds={assigneeIds}

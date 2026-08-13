@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Form } from "react-aria-components";
 
-import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
@@ -12,6 +11,7 @@ import { queue } from "@/components/ui/Toast/Toast";
 import { createCaseAction } from "@/features/cases/actions";
 import { CaseCreatePayloadSchema } from "@/features/cases/schemas";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
@@ -161,9 +161,9 @@ export function CreateCaseFromConsultationModal({
               </SelectItem>
             ))}
           </Select>
-          <AssigneeSelect
+          <UserSelect
             users={users}
-            assigneeIds={assigneeIds}
+            selectedIds={assigneeIds}
             onChange={setAssigneeIds}
             isDisabled={isPending}
           />

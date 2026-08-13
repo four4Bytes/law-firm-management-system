@@ -2,7 +2,9 @@
 
 This document describes the main entities in the system and their fields.
 
-> For the exact database schema, see [schema.prisma](../prisma/schema.prisma).
+This is not the spec to follow but a mirror of schema.primsa
+
+> For the authoritative source and exact database schema, see [schema.prisma](../prisma/schema.prisma).
 
 ---
 

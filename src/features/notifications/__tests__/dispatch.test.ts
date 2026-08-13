@@ -128,6 +128,7 @@ describe("dispatchNotifications", () => {
 
   it.each([
     NotificationType.MilestoneStatusChanged,
+    NotificationType.TaskStatusChanged,
     NotificationType.CaseStatusChanged,
     NotificationType.ConsultationStatusChanged,
   ])("resolves statusChangeTemplate for %s dispatches", async (type) => {

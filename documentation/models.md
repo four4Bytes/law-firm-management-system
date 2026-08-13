@@ -80,16 +80,17 @@ A legal case opened for a client.
 
 A work item within a case.
 
-| Field       | Type      | Required | Description                                      |
-| ----------- | --------- | -------- | ------------------------------------------------ |
-| Case        | Link      | Yes      | The parent case                                  |
-| Title       | Text      | Yes      | Task title                                       |
-| Description | Text      | No       | Task details                                     |
-| Status      | Enum      | Yes      | Current status (see [Task Status](#task-status)) |
-| Created By  | Link      | Yes      | The user who created the task                    |
-| Assignees   | Links     | No       | Users assigned to this task                      |
-| Created     | Timestamp | Yes      | When the record was created                      |
-| Updated     | Timestamp | Yes      | When the record was last modified                |
+| Field       | Type      | Required | Description                                                     |
+| ----------- | --------- | -------- | --------------------------------------------------------------- |
+| Case        | Link      | Yes      | The parent case                                                 |
+| Title       | Text      | Yes      | Task title                                                      |
+| Description | Text      | No       | Task details                                                    |
+| Status      | Enum      | Yes      | Current status (see [Task Status](#task-status))                |
+| Created By  | Link      | Yes      | The user who created the task (auto-reviewer)                   |
+| Assignees   | Links     | No       | Users assigned to this task                                     |
+| Reviewers   | Links     | No       | Users reviewing this task (see [Task Reviewer](#task-reviewer)) |
+| Created     | Timestamp | Yes      | When the record was created                                     |
+| Updated     | Timestamp | Yes      | When the record was last modified                               |
 
 ---
 
@@ -253,14 +254,16 @@ Links a user to a task.
 
 Links a reviewer to a task for approval workflows.
 
-| Field        | Type      | Required | Description                               |
-| ------------ | --------- | -------- | ----------------------------------------- |
-| Task         | Link      | Yes      | The task being reviewed                   |
-| Reviewer     | Link      | Yes      | The user assigned to review               |
-| Delegated By | Link      | Yes      | The user who assigned the reviewer        |
-| Active       | Boolean   | Yes      | Whether this reviewer is currently active |
-| Created      | Timestamp | Yes      | When assigned                             |
-| Updated      | Timestamp | Yes      | When last modified                        |
+| Field       | Type      | Required | Description                                                |
+| ----------- | --------- | -------- | ---------------------------------------------------------- |
+| Task        | Link      | Yes      | The task being reviewed                                    |
+| Reviewer    | Link      | Yes      | The user assigned to review                                |
+| Decision    | Enum      | Yes      | Current decision (see [Review Decision](#review-decision)) |
+| Reviewed At | Timestamp | No       | When the reviewer made their decision                      |
+| Created     | Timestamp | Yes      | When assigned                                              |
+| Updated     | Timestamp | Yes      | When last modified                                         |
+
+> A reviewer has exactly one decision per task. Re-adding the same reviewer resets their decision to `Pending` and clears `Reviewed At`.
 
 ---
 
@@ -305,14 +308,22 @@ Links a reviewer to a task for approval workflows.
 
 ### Task Status
 
-| Value     | Description                     |
-| --------- | ------------------------------- |
-| Pending   | Task created, waiting to start  |
-| Ongoing   | Task is in progress             |
-| Submitted | Task completed, awaiting review |
-| Accepted  | Task approved by reviewer       |
-| Rejected  | Task rejected, needs revision   |
-| Cancelled | Task cancelled                  |
+| Value     | Description                        |
+| --------- | ---------------------------------- |
+| Pending   | Created, in progress, or reworking |
+| Submitted | Work submitted, under review       |
+| Completed | All reviewers accepted the task    |
+| Cancelled | Task is no longer relevant         |
+
+---
+
+### Review Decision
+
+| Value    | Description                                 |
+| -------- | ------------------------------------------- |
+| Pending  | Awaiting the reviewer's decision            |
+| Accepted | Reviewer approves the work                  |
+| Rejected | Reviewer rejects the work, assignee reworks |
 
 ---
 

@@ -20,6 +20,7 @@ interface AddNoteModalProps {
   onSuccess: () => void;
   caseId?: string;
   consultationId?: string;
+  taskId?: string;
 }
 
 export function AddNoteModal({
@@ -28,6 +29,7 @@ export function AddNoteModal({
   onSuccess,
   caseId,
   consultationId,
+  taskId,
 }: AddNoteModalProps) {
   const [content, setContent] = useState("");
 
@@ -51,6 +53,7 @@ export function AddNoteModal({
       content: requiredString(content),
       case_id: caseId ?? null,
       consultation_id: consultationId ?? null,
+      task_id: taskId ?? null,
     });
   }
 

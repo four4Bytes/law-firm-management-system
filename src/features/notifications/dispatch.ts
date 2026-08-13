@@ -35,6 +35,7 @@ function pickTemplate(type: NotificationType) {
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
     case NotificationType.MilestoneStatusChanged:
+    case NotificationType.TaskStatusChanged:
     case NotificationType.CaseStatusChanged:
     case NotificationType.ConsultationStatusChanged:
       return statusChangeTemplate;

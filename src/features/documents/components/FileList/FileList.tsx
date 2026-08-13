@@ -1,6 +1,6 @@
 "use client";
 
-import { FaCheck, FaRegFileLines, FaXmark } from "react-icons/fa6";
+import { FaCheck, FaEye, FaRegFileLines, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
@@ -20,8 +20,9 @@ interface FileListProps {
   entries: FileEntry[];
   isBusy: boolean;
   onRemove: (id: number) => void;
-  existingDocuments?: Pick<DocumentRow, "id" | "file_name" | "file_size">[];
+  existingDocuments?: DocumentRow[];
   onDelete?: (documentId: string) => void;
+  onView?: (document: DocumentRow) => void;
   isLoading?: boolean;
 }
 
@@ -31,6 +32,7 @@ export function FileList({
   onRemove,
   existingDocuments,
   onDelete,
+  onView,
   isLoading,
 }: FileListProps) {
   if (isLoading) {
@@ -52,6 +54,18 @@ export function FileList({
             {truncateFilename(doc.file_name)}
           </span>
           <span className={styles.fileSize}>{formatFileSize(doc.file_size)}</span>
+
+          {onView && (
+            <Button
+              variant="ghost"
+              className={styles.removeButton}
+              aria-label={`View ${doc.file_name}`}
+              isDisabled={isBusy}
+              onPress={() => onView(doc)}
+            >
+              <FaEye />
+            </Button>
+          )}
 
           {onDelete && (
             <Button

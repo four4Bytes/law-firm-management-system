@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Form } from "react-aria-components";
 
-import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -15,6 +14,7 @@ import type { DocumentRow } from "@/features/documents/queries";
 import { updateTaskAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
+import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
@@ -188,9 +188,9 @@ export function EditTaskModal({
               validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
               isDisabled={isPending}
             />
-            <AssigneeSelect
+            <UserSelect
               users={users}
-              assigneeIds={assigneeIds}
+              selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />

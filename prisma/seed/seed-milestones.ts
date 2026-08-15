@@ -22,7 +22,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: 7,
     createdByEmail: "david.tan@aninolaw.com",
     notifyEmails: ["david.tan@aninolaw.com", "catherine.diaz@aninolaw.com"],
-    reminderDays: 7,
   },
   {
     caseTitle: "Dela Cruz Property Title Transfer",
@@ -32,7 +31,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: 14,
     createdByEmail: "david.tan@aninolaw.com",
     notifyEmails: ["david.tan@aninolaw.com", "catherine.diaz@aninolaw.com"],
-    reminderDays: 14,
   },
   {
     caseTitle: "Gonzales Legal Separation",
@@ -69,7 +67,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: 21,
     createdByEmail: "miguel.cruz@aninolaw.com",
     notifyEmails: ["miguel.cruz@aninolaw.com"],
-    reminderDays: 21,
   },
   {
     caseTitle: "Alcantara Annulment Proceedings",
@@ -143,7 +140,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: 7,
     createdByEmail: "marco.lopez@aninolaw.com",
     notifyEmails: ["marco.lopez@aninolaw.com"],
-    reminderDays: 7,
     lastRemindedDaysAgo: 0,
   },
   {
@@ -218,7 +214,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: 28,
     createdByEmail: "gina.reyes@aninolaw.com",
     notifyEmails: ["gina.reyes@aninolaw.com"],
-    reminderDays: 28,
   },
   {
     caseTitle: "Ramirez Corp — Series A Funding",
@@ -401,7 +396,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: -1,
     createdByEmail: "angela.mercado@aninolaw.com",
     notifyEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
-    reminderDays: 7,
   },
   {
     caseTitle: "Santos Foreclosure Defense",

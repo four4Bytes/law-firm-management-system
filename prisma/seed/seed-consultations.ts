@@ -37,7 +37,6 @@ const consultations: ConsultationData[] = [
     concern: "Land title verification and transfer for inherited agricultural lot in Batangas",
     status: "Scheduled",
     daysAgo: -14,
-    reminderDays: 14,
     assigneeEmails: ["david.tan@aninolaw.com", "jessica.lim@aninolaw.com"],
   },
   {
@@ -199,7 +198,6 @@ const consultations: ConsultationData[] = [
       "Child custody modification — ex-spouse seeking to relocate abroad with minor child, need urgent legal advice",
     status: "Scheduled",
     daysAgo: -10,
-    reminderDays: 10,
     assigneeEmails: ["sofia.villanueva@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
 ];

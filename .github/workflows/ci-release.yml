@@ -41,11 +41,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
-      - run: pnpm build
-
       - run: pnpm validate
 
       - run: pnpm test
+
+      - run: pnpm build
 
   release:
     needs: ci

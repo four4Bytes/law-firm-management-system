@@ -548,6 +548,7 @@ describe("getCaseMilestonesPaginated", () => {
     expect(result.rows[0]).toEqual({
       id: "m1",
       title: "File complaint",
+      description: null,
       due_date: milestones[0].due_date,
       status: "Pending",
     });

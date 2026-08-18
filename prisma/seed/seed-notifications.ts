@@ -25,49 +25,6 @@ const notificationSeeds: NotificationSeed[] = [
     daysAgo: 3,
     consultationClientEmail: "antonio.lopez@email.com",
   },
-  {
-    userEmail: "catherine.diaz@aninolaw.com",
-    type: NotificationType.ConsultationReminder,
-    title: "Upcoming consultation reminder: Land title transfer",
-    message: "Luisito Ramos's consultation about land title verification is scheduled in 14 days.",
-    is_read: false,
-    daysAgo: 1,
-    consultationClientEmail: "luisito.ramos@email.com",
-  },
-  // ── MilestoneDueSoon ──
-  {
-    userEmail: "david.tan@aninolaw.com",
-    type: NotificationType.MilestoneDueSoon,
-    title: "Milestone due soon: Title Verification Complete",
-    message:
-      'Milestone "Title Verification Complete" for Dela Cruz Property Title Transfer is due in 7 days.',
-    is_read: false,
-    daysAgo: 1,
-    caseTitle: "Dela Cruz Property Title Transfer",
-    milestoneTitle: "Title Verification Complete",
-  },
-  {
-    userEmail: "catherine.diaz@aninolaw.com",
-    type: NotificationType.MilestoneDueSoon,
-    title: "Milestone due soon: Title Verification Complete",
-    message:
-      'Milestone "Title Verification Complete" for Dela Cruz Property Title Transfer is due in 7 days.',
-    is_read: false,
-    daysAgo: 1,
-    caseTitle: "Dela Cruz Property Title Transfer",
-    milestoneTitle: "Title Verification Complete",
-  },
-  {
-    userEmail: "miguel.cruz@aninolaw.com",
-    type: NotificationType.MilestoneDueSoon,
-    title: "Milestone due soon: Pre-Trial Conference",
-    message:
-      'Milestone "Pre-Trial Conference" for Reyes vs. San Miguel Logistics is due in 21 days.',
-    is_read: false,
-    daysAgo: 2,
-    caseTitle: "Reyes vs. San Miguel Logistics",
-    milestoneTitle: "Pre-Trial Conference",
-  },
   // ── MilestoneStatusChanged ──
   {
     userEmail: "marco.lopez@aninolaw.com",
@@ -208,17 +165,6 @@ const notificationSeeds: NotificationSeed[] = [
     is_read: false,
     daysAgo: 12,
     caseTitle: "Fernandez Criminal Defense — Estafa Case",
-  },
-  // ── Extra ConsultationReminder for variety (daysAgo: 0 = today) ──
-  {
-    userEmail: "miguel.cruz@aninolaw.com",
-    type: NotificationType.ConsultationReminder,
-    title: "Consultation reminder: Trademark registration",
-    message:
-      "Reminder: Kristine Aguilar's trademark consultation is scheduled in 7 days. Prepare the trademark application checklist.",
-    is_read: false,
-    daysAgo: 0,
-    consultationClientEmail: "kristine.aguilar@email.com",
   },
 ];
 

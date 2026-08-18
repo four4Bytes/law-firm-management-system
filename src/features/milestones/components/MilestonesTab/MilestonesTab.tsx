@@ -36,6 +36,11 @@ const statusClassMap: Record<CaseMilestoneStatus, StatusBadgeVariant> = {
 const columns: ColumnDef<CaseMilestoneListRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
   {
+    id: "description",
+    name: "Description",
+    render: (value) => (value ? (value as string) : "—"),
+  },
+  {
     id: "due_date",
     name: "Due Date",
     allowsSorting: true,

@@ -9,9 +9,9 @@ import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import type { DocumentRow } from "@/features/documents/queries";
 import { getTaskNotesAction } from "@/features/notes/actions";
+import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import type { TaskDetailRow } from "@/features/tasks/queries";
-import { formatDateTime } from "@/lib/date";
 
 import styles from "./ViewTaskModal.module.css";
 
@@ -125,28 +125,11 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
           <>
             <div className={styles.divider} />
             <div className={styles.column}>
-              <div className={styles.field}>
-                <span className={styles.label}>Notes</span>
-                <ul className={styles.list}>
-                  {notes.map((note) => (
-                    <li key={note.id} className={styles.note}>
-                      <span>{note.content}</span>
-                      <span className={styles.noteMeta}>
-                        {note.author} · {formatDateTime(note.created_at)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <span className={styles.label}>Notes</span>
+              <NoteList notes={notes} />
             </div>
           </>
         )}
-      </div>
-
-      <div className={styles.actions}>
-        <Button variant="secondary" type="button" onPress={() => onOpenChange(false)}>
-          Close
-        </Button>
       </div>
     </Modal>
   );

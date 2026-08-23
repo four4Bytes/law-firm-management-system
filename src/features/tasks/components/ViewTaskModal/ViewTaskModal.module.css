@@ -1,5 +1,6 @@
 .modal {
   width: var(--modal-wide-width);
+  max-width: 95vw;
 
   .columns {
     display: flex;
@@ -49,13 +50,6 @@
   .noteMeta {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
-  }
-
-  .actions {
-    display: flex;
-    gap: var(--space-lg);
-    margin-top: var(--space-xl);
-    justify-content: flex-end;
   }
 }
 

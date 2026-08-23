@@ -1,5 +1,6 @@
 .modal {
   width: var(--modal-wide-width);
+  max-width: 95vw;
 
   .columns {
     display: flex;
@@ -38,6 +39,18 @@
   }
 
   .sectionLabel {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+  }
+
+  .columnHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .label {
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-muted);
   }

@@ -65,6 +65,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
   const [pendingEditId, setPendingEditId] = useState<string | null>(null);
+  const [pendingViewId, setPendingViewId] = useState<string | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const latestRequest = useRef(0);
@@ -96,7 +97,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
 
   async function handleView(task: TaskRow) {
     const requestId = ++latestRequest.current;
-    setPendingEditId(task.id);
+    setPendingViewId(task.id);
     try {
       const data = await getTaskDetailRowByIdAction(task.id);
       if (requestId !== latestRequest.current) return;
@@ -109,7 +110,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       if (requestId !== latestRequest.current) return;
       queue.add({ title: "Failed to load task" }, { timeout: 5000 });
     } finally {
-      if (requestId === latestRequest.current) setPendingEditId(null);
+      if (requestId === latestRequest.current) setPendingViewId(null);
     }
   }
 
@@ -161,7 +162,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
             variant="ghost"
             aria-label="View task"
             onPress={() => handleView(task)}
-            isPending={pendingEditId === task.id}
+            isPending={pendingViewId === task.id}
           >
             <FaEye className={styles.icon} />
           </Button>
@@ -179,6 +180,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
             onPress={() => {
               latestRequest.current++;
               setPendingEditId(null);
+              setPendingViewId(null);
               setDeleteTarget(task);
             }}
           >
@@ -199,7 +201,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         loadingMessage="Loading tasks..."
         searchLabel="Search tasks"
         selectionMode="none"
-        collectionDependencies={[pendingEditId]}
+        collectionDependencies={[pendingEditId, pendingViewId]}
         renderAddButton={canCreate}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}

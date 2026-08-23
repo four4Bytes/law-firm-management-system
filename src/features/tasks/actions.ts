@@ -9,7 +9,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { createNote } from "@/features/notes/mutations";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
-import { NotificationType, TaskStatus } from "@/generated/prisma/browser";
+import { NotificationType, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
@@ -22,7 +22,7 @@ import {
   createTask,
   deleteTask,
   removeTaskReviewer,
-  submitTask,
+  setAssignmentStatus,
   updateTask,
 } from "./mutations";
 import {
@@ -292,8 +292,8 @@ export async function submitTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
-    if (existing.status !== TaskStatus.Pending) {
-      return { success: false, error: "Only pending tasks can be submitted for review" };
+    if (existing.status !== TaskStatus.Pending && existing.status !== TaskStatus.Submitted) {
+      return { success: false, error: "Task is locked and cannot be submitted" };
     }
 
     const access = await getTaskAccessContext(session.id, taskId);
@@ -307,7 +307,7 @@ export async function submitTaskAction(
       return { success: false, error: "Add at least one reviewer before submitting" };
     }
 
-    await submitTask(taskId);
+    await setAssignmentStatus(taskId, session.id, TaskAssignmentStatus.Submitted);
 
     after(async () => {
       await logAudit({

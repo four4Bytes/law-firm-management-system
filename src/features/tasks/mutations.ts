@@ -1,4 +1,4 @@
-import { TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
+import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 
 export interface TaskCreateData {
@@ -22,20 +22,33 @@ export interface ReviewDecisionData {
 }
 
 /**
- * Derives the task status from its reviewers' decisions.
+ * Derives the task status from its assignees' submission states and reviewers' decisions.
  *
  * - Any `Rejected` → `Pending` (rework).
- * - All `Accepted` → `Completed`.
- * - Otherwise → `Submitted`.
+ * - All reviewers `Accepted` and (no assignees or all assignees `Submitted`) → `Completed`.
+ * - All assignees `Submitted` → `Submitted`.
+ * - Otherwise → `Pending`.
  *
- * @param decisions - The current decisions of every reviewer on the task.
+ * @param assignmentStatuses - The current submission state of every assignee.
+ * @param reviewerDecisions  - The current decision of every reviewer.
  * @returns The derived task status.
  */
-export function deriveReviewStatus(decisions: ReviewDecision[]): TaskStatus {
-  if (decisions.length === 0) return TaskStatus.Submitted;
-  if (decisions.some((d) => d === "Rejected")) return TaskStatus.Pending;
-  if (decisions.every((d) => d === "Accepted")) return TaskStatus.Completed;
-  return TaskStatus.Submitted;
+export function deriveTaskStatus(
+  assignmentStatuses: TaskAssignmentStatus[],
+  reviewerDecisions: ReviewDecision[],
+): TaskStatus {
+  if (reviewerDecisions.some((d) => d === "Rejected")) return TaskStatus.Pending;
+  if (
+    reviewerDecisions.length > 0 &&
+    reviewerDecisions.every((d) => d === "Accepted") &&
+    (assignmentStatuses.length === 0 || assignmentStatuses.every((s) => s === "Submitted"))
+  ) {
+    return TaskStatus.Completed;
+  }
+  if (assignmentStatuses.length > 0 && assignmentStatuses.every((s) => s === "Submitted")) {
+    return TaskStatus.Submitted;
+  }
+  return TaskStatus.Pending;
 }
 
 /**
@@ -113,8 +126,21 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       select: { id: true, case_id: true },
     });
 
-    if (assignee_ids?.length) {
-      await grantCaseMembership(tx, task.case_id, assignee_ids);
+    if (assignee_ids !== undefined) {
+      if (assignee_ids.length) {
+        await grantCaseMembership(tx, task.case_id, assignee_ids);
+      }
+
+      // Recreating assignments resets submissions to Pending, reopening the task.
+      const [assignments, reviewers] = await Promise.all([
+        tx.taskAssignment.findMany({ where: { task_id: id }, select: { status: true } }),
+        tx.taskReviewer.findMany({ where: { task_id: id }, select: { decision: true } }),
+      ]);
+      const status = deriveTaskStatus(
+        assignments.map((a) => a.status),
+        reviewers.map((r) => r.decision),
+      );
+      await tx.task.update({ where: { id }, data: { status }, select: { id: true } });
     }
 
     return { id: task.id };
@@ -125,11 +151,53 @@ export async function deleteTask(id: string): Promise<{ id: string }> {
   return prisma.task.delete({ where: { id }, select: { id: true } });
 }
 
-export async function submitTask(taskId: string): Promise<{ id: string }> {
-  return prisma.task.update({
-    where: { id: taskId },
-    data: { status: TaskStatus.Submitted },
-    select: { id: true },
+/**
+ * Sets a single assignee's submission state and re-derives the task status.
+ * Reversible (`Pending` ⇄ `Submitted`) while the task is `Pending` or `Submitted`;
+ * locked in `Completed` / `Cancelled`.
+ *
+ * @param taskId - The task whose assignment is being updated.
+ * @param userId - The assignee performing the submit/revert.
+ * @param status - The new submission state.
+ * @returns The re-derived task status.
+ */
+export async function setAssignmentStatus(
+  taskId: string,
+  userId: string,
+  status: TaskAssignmentStatus,
+): Promise<{ taskStatus: TaskStatus }> {
+  return prisma.$transaction(async (tx) => {
+    const task = await tx.task.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+    if (!task) throw new Error("Task not found");
+    if (task.status === TaskStatus.Completed || task.status === TaskStatus.Cancelled) {
+      throw new Error("Assignment submission is locked for this task");
+    }
+
+    await tx.taskAssignment.updateMany({
+      where: { task_id: taskId, user_id: userId },
+      data: { status },
+    });
+
+    const [assignments, reviewers] = await Promise.all([
+      tx.taskAssignment.findMany({ where: { task_id: taskId }, select: { status: true } }),
+      tx.taskReviewer.findMany({ where: { task_id: taskId }, select: { decision: true } }),
+    ]);
+
+    const taskStatus = deriveTaskStatus(
+      assignments.map((a) => a.status),
+      reviewers.map((r) => r.decision),
+    );
+
+    await tx.task.update({
+      where: { id: taskId },
+      data: { status: taskStatus },
+      select: { id: true },
+    });
+
+    return { taskStatus };
   });
 }
 
@@ -156,12 +224,31 @@ export async function addTaskReviewer(
     });
 
     if (task.status === TaskStatus.Completed) {
-      await tx.task.update({
-        where: { id: taskId },
-        data: { status: TaskStatus.Pending },
-        select: { id: true },
+      // Adding a reviewer reopens the task for rework: reset existing reviewer
+      // decisions and assignee submissions to Pending.
+      await tx.taskReviewer.updateMany({
+        where: { task_id: taskId },
+        data: { decision: "Pending", reviewed_at: null },
+      });
+      await tx.taskAssignment.updateMany({
+        where: { task_id: taskId },
+        data: { status: "Pending" },
       });
     }
+
+    const [assignments, reviewers] = await Promise.all([
+      tx.taskAssignment.findMany({ where: { task_id: taskId }, select: { status: true } }),
+      tx.taskReviewer.findMany({ where: { task_id: taskId }, select: { decision: true } }),
+    ]);
+    const status = deriveTaskStatus(
+      assignments.map((a) => a.status),
+      reviewers.map((r) => r.decision),
+    );
+    await tx.task.update({
+      where: { id: taskId },
+      data: { status },
+      select: { id: true },
+    });
 
     await grantCaseMembership(tx, task.case_id, [reviewerUserId]);
 
@@ -190,11 +277,14 @@ export async function removeTaskReviewer(
     });
 
     if (task.status === TaskStatus.Submitted) {
-      const reviewers = await tx.taskReviewer.findMany({
-        where: { task_id: taskId },
-        select: { decision: true },
-      });
-      const status = deriveReviewStatus(reviewers.map((r) => r.decision));
+      const [assignments, reviewers] = await Promise.all([
+        tx.taskAssignment.findMany({ where: { task_id: taskId }, select: { status: true } }),
+        tx.taskReviewer.findMany({ where: { task_id: taskId }, select: { decision: true } }),
+      ]);
+      const status = deriveTaskStatus(
+        assignments.map((a) => a.status),
+        reviewers.map((r) => r.decision),
+      );
 
       await tx.task.update({
         where: { id: taskId },
@@ -226,26 +316,35 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
       data: { decision, reviewed_at: new Date() },
     });
 
-    const reviewers = await tx.taskReviewer.findMany({
-      where: { task_id: taskId },
-      select: { decision: true },
-    });
+    const [assignments, reviewers] = await Promise.all([
+      tx.taskAssignment.findMany({ where: { task_id: taskId }, select: { status: true } }),
+      tx.taskReviewer.findMany({ where: { task_id: taskId }, select: { decision: true } }),
+    ]);
 
-    const taskStatus = deriveReviewStatus(reviewers.map((r) => r.decision));
+    const isRejection = reviewers.some((r) => r.decision === "Rejected");
+    const taskStatus = deriveTaskStatus(
+      assignments.map((a) => a.status),
+      reviewers.map((r) => r.decision),
+    );
 
-    if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Completed) {
-      if (taskStatus === TaskStatus.Pending) {
-        await tx.taskReviewer.updateMany({
-          where: { task_id: taskId },
-          data: { decision: "Pending", reviewed_at: null },
-        });
-      }
-      await tx.task.update({
-        where: { id: taskId },
-        data: { status: taskStatus },
-        select: { id: true },
+    // A rejection reopens the task for rework: reset every reviewer decision and
+    // every assignee submission to Pending.
+    if (isRejection) {
+      await tx.taskReviewer.updateMany({
+        where: { task_id: taskId },
+        data: { decision: "Pending", reviewed_at: null },
+      });
+      await tx.taskAssignment.updateMany({
+        where: { task_id: taskId },
+        data: { status: "Pending" },
       });
     }
+
+    await tx.task.update({
+      where: { id: taskId },
+      data: { status: taskStatus },
+      select: { id: true },
+    });
 
     return { taskStatus };
   });

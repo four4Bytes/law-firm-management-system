@@ -77,3 +77,18 @@ export const getNoteAccessContext = cache(
     };
   },
 );
+
+export const getTaskNotes = cache(async (taskId: string): Promise<NoteRow[]> => {
+  const notes = await prisma.note.findMany({
+    where: { task_id: taskId },
+    orderBy: { created_at: "desc" },
+    include: { createdBy: { select: { name: true } } },
+  });
+
+  return notes.map((n) => ({
+    id: n.id,
+    content: n.content,
+    author: n.createdBy.name,
+    created_at: n.created_at,
+  }));
+});

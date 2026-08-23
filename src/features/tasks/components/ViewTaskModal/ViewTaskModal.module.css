@@ -1,11 +1,24 @@
 .modal {
   width: var(--modal-wide-width);
 
+  .columns {
+    display: flex;
+    gap: var(--space-2xl);
+    text-align: left;
+  }
+
   .column {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
-    text-align: left;
+  }
+
+  .divider {
+    width: 1px;
+    flex: 0 0 auto;
+    background: var(--color-border-subtle);
   }
 
   .field {
@@ -27,10 +40,34 @@
     gap: var(--space-xs);
   }
 
+  .note {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .noteMeta {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
   .actions {
     display: flex;
     gap: var(--space-lg);
     margin-top: var(--space-xl);
     justify-content: flex-end;
+  }
+}
+
+/* Mobile overrides */
+@media (max-width: 48rem) {
+  .modal {
+    .columns {
+      flex-direction: column;
+    }
+
+    .divider {
+      display: none;
+    }
   }
 }

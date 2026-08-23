@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaBan, FaPaperPlane, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
+import { FaEye, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -11,16 +11,14 @@ import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadg
 import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import {
-  cancelTaskAction,
   deleteTaskAction,
   getActiveUsersAction,
   getTaskDetailRowByIdAction,
-  submitTaskAction,
   type TaskCapabilities,
 } from "@/features/tasks/actions";
 import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
 import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTaskModal";
-import { TaskViewModal } from "@/features/tasks/components/TaskViewModal/TaskViewModal";
+import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTaskModal";
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
@@ -66,7 +64,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   const [editCapabilities, setEditCapabilities] = useState<TaskCapabilities | null>(null);
   const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
-  const [cancelTarget, setCancelTarget] = useState<TaskRow | null>(null);
   const [pendingEditId, setPendingEditId] = useState<string | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -97,7 +94,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
     };
   }, []);
 
-  async function handleOpen(task: TaskRow) {
+  async function handleView(task: TaskRow) {
     const requestId = ++latestRequest.current;
     setPendingEditId(task.id);
     try {
@@ -107,11 +104,31 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         queue.add({ title: "Task not found" }, { timeout: 5000 });
         return;
       }
-      if (data.capabilities.canEdit || data.capabilities.canReview) {
+      setViewTask(data.row);
+    } catch {
+      if (requestId !== latestRequest.current) return;
+      queue.add({ title: "Failed to load task" }, { timeout: 5000 });
+    } finally {
+      if (requestId === latestRequest.current) setPendingEditId(null);
+    }
+  }
+
+  async function handleEdit(task: TaskRow) {
+    const requestId = ++latestRequest.current;
+    setPendingEditId(task.id);
+    try {
+      const data = await getTaskDetailRowByIdAction(task.id);
+      if (requestId !== latestRequest.current) return;
+      if (!data.row) {
+        queue.add({ title: "Task not found" }, { timeout: 5000 });
+        return;
+      }
+      const c = data.capabilities;
+      if (c.canEdit || c.canReview || c.canManageReviewers || c.canSubmit || c.canCancel) {
         setEditTask(data.row);
         setEditCapabilities(data.capabilities);
       } else {
-        setViewTask(data.row);
+        queue.add({ title: "You don't have permission to edit this task" });
       }
     } catch {
       if (requestId !== latestRequest.current) return;
@@ -133,28 +150,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
     }
   }
 
-  async function handleSubmit(task: TaskRow) {
-    const result = await submitTaskAction({ taskId: task.id });
-    if (result.success) {
-      handleRefresh();
-      queue.add({ title: "Task submitted for review" }, { timeout: 5000 });
-    } else {
-      queue.add({ title: result.error ?? "Failed to submit task" }, { timeout: 5000 });
-    }
-  }
-
-  async function handleCancelTask() {
-    if (!cancelTarget) return;
-    const result = await cancelTaskAction({ taskId: cancelTarget.id });
-    if (result.success) {
-      setCancelTarget(null);
-      handleRefresh();
-      queue.add({ title: "Task cancelled" }, { timeout: 5000 });
-    } else {
-      queue.add({ title: result.error ?? "Failed to cancel task" }, { timeout: 5000 });
-    }
-  }
-
   const actionColumn: ColumnDef<TaskRow> = {
     id: "id" as const,
     name: "Action" as const,
@@ -164,34 +159,20 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         <div className={styles.actions}>
           <Button
             variant="ghost"
-            aria-label="Open task"
-            onPress={() => handleOpen(task)}
+            aria-label="View task"
+            onPress={() => handleView(task)}
+            isPending={pendingEditId === task.id}
+          >
+            <FaEye className={styles.icon} />
+          </Button>
+          <Button
+            variant="ghost"
+            aria-label="Edit task"
+            onPress={() => handleEdit(task)}
             isPending={pendingEditId === task.id}
           >
             <FaPenToSquare className={styles.icon} />
           </Button>
-          {task.status === TaskStatus.Pending && (
-            <Button
-              variant="ghost"
-              aria-label="Submit task for review"
-              onPress={() => handleSubmit(task)}
-            >
-              <FaPaperPlane className={styles.icon} />
-            </Button>
-          )}
-          {task.status !== TaskStatus.Cancelled && (
-            <Button
-              variant="ghost"
-              aria-label="Cancel task"
-              onPress={() => {
-                latestRequest.current++;
-                setPendingEditId(null);
-                setCancelTarget(task);
-              }}
-            >
-              <FaBan className={styles.icon} />
-            </Button>
-          )}
           <Button
             variant="ghost"
             aria-label="Delete task"
@@ -246,7 +227,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       )}
 
       {viewTask && (
-        <TaskViewModal isOpen={!!viewTask} onOpenChange={() => setViewTask(null)} task={viewTask} />
+        <ViewTaskModal isOpen={!!viewTask} onOpenChange={() => setViewTask(null)} task={viewTask} />
       )}
 
       <ConfirmDialog
@@ -259,18 +240,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         onConfirm={handleDelete}
       >
         Are you sure you want to delete this task? This action cannot be undone.
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        isOpen={!!cancelTarget}
-        onOpenChange={(open) => {
-          if (!open) setCancelTarget(null);
-        }}
-        title="Cancel Task"
-        confirmLabel="Cancel Task"
-        onConfirm={handleCancelTask}
-      >
-        Are you sure you want to cancel this task? This cannot be undone.
       </ConfirmDialog>
     </>
   );

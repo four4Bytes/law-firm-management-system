@@ -15,7 +15,13 @@ import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createNote, deleteNote, updateNote } from "./mutations";
-import { getNoteAccessContext, getNoteById, getNoteRowById, type NoteRow } from "./queries";
+import {
+  getNoteAccessContext,
+  getNoteById,
+  getNoteRowById,
+  getTaskNotes,
+  type NoteRow,
+} from "./queries";
 import { NoteCreatePayloadSchema, NoteIdSchema, NoteUpdatePayloadSchema } from "./schemas";
 
 export async function getNoteRowByIdAction(
@@ -39,6 +45,18 @@ export async function getNoteRowByIdAction(
     row,
     canUpdate: row !== null && can(session.role, "note.update", access),
   };
+}
+
+export async function getTaskNotesAction(taskId: string): Promise<NoteRow[]> {
+  const session = await requireAuth();
+
+  const parsed = z.uuid().safeParse(taskId);
+  if (!parsed.success) return [];
+
+  const access = await getTaskAccessContext(session.id, parsed.data);
+  if (!can(session.role, "note.read", access)) return [];
+
+  return getTaskNotes(parsed.data);
 }
 
 export async function createNoteAction(

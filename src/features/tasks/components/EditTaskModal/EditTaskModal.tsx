@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Form } from "react-aria-components";
-import { FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
@@ -17,7 +15,6 @@ import type { DocumentRow } from "@/features/documents/queries";
 import {
   addTaskReviewerAction,
   cancelTaskAction,
-  getTaskDetailRowByIdAction,
   removeTaskReviewerAction,
   reviewTaskAction,
   submitTaskAction,
@@ -26,6 +23,7 @@ import {
 } from "@/features/tasks/actions";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { ReviewDecision, TaskStatus } from "@/generated/prisma/browser";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
@@ -64,27 +62,34 @@ export function EditTaskModal({
   capabilities,
   users,
 }: EditTaskModalProps) {
-  const [detail, setDetail] = useState<TaskDetailRow>(task);
-  const [caps, setCaps] = useState<TaskCapabilities>(capabilities);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
-  const [reviewerToAdd, setReviewerToAdd] = useState<Set<string>>(new Set());
+  const [reviewerIds, setReviewerIds] = useState<Set<string>>(
+    new Set(
+      task.reviewers
+        .filter((r) => r.reviewer_user_id !== task.created_by_user_id)
+        .map((r) => r.reviewer_user_id),
+    ),
+  );
+  const [nextStatus, setNextStatus] = useState<TaskStatus>(task.status);
   const [decision, setDecision] = useState<"Accepted" | "Rejected" | null>(null);
   const [comment, setComment] = useState("");
   const [isPending, setIsPending] = useState(false);
-  const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
 
-  const isLocked = detail.status === TaskStatus.Submitted;
-  const reviewerCandidates = users.filter(
-    (u) => !detail.reviewers.some((r) => r.reviewer_user_id === u.id),
-  );
+  const reviewerSelectUsers = users.filter((u) => u.id !== task.created_by_user_id);
+  const statusEditable = capabilities.canSubmit || capabilities.canCancel;
+  const statusOptions: TaskStatus[] = [task.status];
+  if (capabilities.canSubmit && task.status === TaskStatus.Pending)
+    statusOptions.push(TaskStatus.Submitted);
+  if (capabilities.canCancel && !statusOptions.includes(TaskStatus.Cancelled))
+    statusOptions.push(TaskStatus.Cancelled);
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload({
-    taskId: detail.id,
+    taskId: task.id,
   });
 
   useEffect(() => {
@@ -92,7 +97,7 @@ export function EditTaskModal({
 
     async function loadDocuments() {
       try {
-        const { rows } = await getDocumentsPaginatedAction({ taskId: detail.id, pageSize: 100 });
+        const { rows } = await getDocumentsPaginatedAction({ taskId: task.id, pageSize: 100 });
         if (cancelled) return;
         setDocuments(rows);
       } catch {
@@ -108,18 +113,7 @@ export function EditTaskModal({
     return () => {
       cancelled = true;
     };
-  }, [detail.id]);
-
-  async function refresh() {
-    const data = await getTaskDetailRowByIdAction(detail.id);
-    if (data.row) {
-      setDetail(data.row);
-      setCaps(data.capabilities);
-      setTitle(data.row.title);
-      setDescription(data.row.description ?? "");
-      setAssigneeIds(new Set(data.row.assignee_ids));
-    }
-  }
+  }, [task.id]);
 
   function handleRemoveDocument(documentId: string) {
     setMarkedForDeletion((prev) => new Set(prev).add(documentId));
@@ -135,27 +129,81 @@ export function EditTaskModal({
     event.preventDefault();
     if (isPending) return;
 
-    const parsed = TaskUpdatePayloadSchema.safeParse({
-      taskId: detail.id,
-      title: requiredString(title),
-      description: optionalString(description),
-      assignee_ids: Array.from(assigneeIds),
-    });
-
-    if (!parsed.success) {
-      queue.add({ title: "Failed to update task", description: "Please check the form fields" });
-      return;
-    }
+    const baseUpdate = async (): Promise<boolean> => {
+      if (!capabilities.canEdit) return true;
+      const parsed = TaskUpdatePayloadSchema.safeParse({
+        taskId: task.id,
+        title: requiredString(title),
+        description: optionalString(description),
+        assignee_ids: Array.from(assigneeIds),
+      });
+      if (!parsed.success) {
+        queue.add({ title: "Failed to update task", description: "Please check the form fields" });
+        return false;
+      }
+      const result = await updateTaskAction(parsed.data);
+      if (!result.success) {
+        queue.add({ title: "Failed to update task", description: result.error });
+        return false;
+      }
+      return true;
+    };
 
     setIsPending(true);
 
     try {
-      const result = await updateTaskAction(parsed.data);
-
-      if (!result.success) {
-        queue.add({ title: "Failed to update task", description: result.error });
+      if (!(await baseUpdate())) {
         setIsPending(false);
         return;
+      }
+
+      if (capabilities.canManageReviewers) {
+        const current = new Set(
+          task.reviewers
+            .filter((r) => r.reviewer_user_id !== task.created_by_user_id)
+            .map((r) => r.reviewer_user_id),
+        );
+        const added = [...reviewerIds].filter((id) => !current.has(id));
+        const removed = [...current].filter((id) => !reviewerIds.has(id));
+        for (const id of added) {
+          const result = await addTaskReviewerAction({ taskId: task.id, reviewerUserId: id });
+          if (!result.success) queue.add({ title: result.error ?? "Failed to add reviewer" });
+        }
+        for (const id of removed) {
+          const result = await removeTaskReviewerAction({ taskId: task.id, reviewerUserId: id });
+          if (!result.success) queue.add({ title: result.error ?? "Failed to remove reviewer" });
+        }
+      }
+
+      if (nextStatus !== task.status) {
+        if (nextStatus === TaskStatus.Submitted) {
+          const result = await submitTaskAction({ taskId: task.id });
+          if (!result.success) {
+            queue.add({ title: "Failed to submit task", description: result.error });
+            setIsPending(false);
+            return;
+          }
+        } else if (nextStatus === TaskStatus.Cancelled) {
+          const result = await cancelTaskAction({ taskId: task.id });
+          if (!result.success) {
+            queue.add({ title: "Failed to cancel task", description: result.error });
+            setIsPending(false);
+            return;
+          }
+        }
+      }
+
+      if (capabilities.canReview && decision) {
+        const result = await reviewTaskAction({
+          taskId: task.id,
+          decision,
+          comment: optionalString(comment),
+        });
+        if (!result.success) {
+          queue.add({ title: "Failed to record review", description: result.error });
+          setIsPending(false);
+          return;
+        }
       }
 
       let hasFailedUploads = false;
@@ -186,6 +234,7 @@ export function EditTaskModal({
       }
 
       if (hasFailedUploads) {
+        setIsPending(false);
         return;
       }
 
@@ -202,101 +251,6 @@ export function EditTaskModal({
     }
   }
 
-  async function handleAddReviewer() {
-    if (reviewerToAdd.size === 0 || isPending) return;
-    setIsPending(true);
-    try {
-      for (const uid of reviewerToAdd) {
-        const result = await addTaskReviewerAction({ taskId: detail.id, reviewerUserId: uid });
-        if (!result.success) {
-          queue.add({ title: result.error ?? "Failed to add reviewer" });
-        }
-      }
-      setReviewerToAdd(new Set());
-      await refresh();
-      queue.add({ title: "Reviewer added" }, { timeout: 5000 });
-    } catch {
-      queue.add({ title: "Failed to add reviewer" }, { timeout: 5000 });
-    } finally {
-      setIsPending(false);
-    }
-  }
-
-  async function handleRemoveReviewer(reviewerUserId: string) {
-    if (isPending) return;
-    const result = await removeTaskReviewerAction({ taskId: detail.id, reviewerUserId });
-    if (result.success) {
-      await refresh();
-      queue.add({ title: "Reviewer removed" }, { timeout: 5000 });
-    } else {
-      queue.add({ title: result.error ?? "Failed to remove reviewer" });
-    }
-  }
-
-  async function handleSubmitForReview() {
-    if (isPending) return;
-    setIsPending(true);
-    try {
-      const result = await submitTaskAction({ taskId: detail.id });
-      if (result.success) {
-        await refresh();
-        onSuccess();
-        queue.add({ title: "Task submitted for review" }, { timeout: 5000 });
-      } else {
-        queue.add({ title: result.error ?? "Failed to submit task" });
-      }
-    } catch {
-      queue.add({ title: "Failed to submit task" }, { timeout: 5000 });
-    } finally {
-      setIsPending(false);
-    }
-  }
-
-  async function handleReview() {
-    if (!decision || isPending) return;
-    setIsPending(true);
-    try {
-      const result = await reviewTaskAction({
-        taskId: detail.id,
-        decision,
-        comment: optionalString(comment),
-      });
-      if (result.success) {
-        setComment("");
-        setDecision(null);
-        await refresh();
-        onSuccess();
-        queue.add({ title: "Review recorded" }, { timeout: 5000 });
-      } else {
-        queue.add({ title: result.error ?? "Failed to record review" });
-      }
-    } catch {
-      queue.add({ title: "Failed to record review" }, { timeout: 5000 });
-    } finally {
-      setIsPending(false);
-    }
-  }
-
-  async function handleCancelTask() {
-    if (isPending) return;
-    setIsPending(true);
-    try {
-      const result = await cancelTaskAction({ taskId: detail.id });
-      if (result.success) {
-        await refresh();
-        onSuccess();
-        queue.add({ title: "Task cancelled" }, { timeout: 5000 });
-      } else {
-        queue.add({ title: result.error ?? "Failed to cancel task" });
-      }
-    } catch {
-      queue.add({ title: "Failed to cancel task" }, { timeout: 5000 });
-    } finally {
-      setIsPending(false);
-      setIsCancelOpen(false);
-    }
-  }
-
   return (
     <Modal title="Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
       <Form onSubmit={handleSave}>
@@ -308,7 +262,7 @@ export function EditTaskModal({
               onChange={setTitle}
               placeholder="Enter task title..."
               validate={createFieldValidator(TaskUpdatePayloadSchema.shape.title)}
-              isDisabled={isPending || !caps.canEdit}
+              isDisabled={isPending || !capabilities.canEdit}
             />
             <TextField
               label="Description"
@@ -318,61 +272,52 @@ export function EditTaskModal({
               onChange={setDescription}
               placeholder="Optional description..."
               validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
-              isDisabled={isPending || !caps.canEdit}
+              isDisabled={isPending || !capabilities.canEdit}
             />
             <UserSelect
               users={users}
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
-              isDisabled={isPending || !caps.isCreator}
+              isDisabled={isPending || !capabilities.isCreator}
               label="Assignees"
             />
 
             <div className={styles.section}>
-              <span className={styles.sectionLabel}>Reviewers</span>
-              <ul className={styles.reviewers}>
-                {detail.reviewers.map((r) => (
-                  <li key={r.id} className={styles.reviewerRow}>
-                    <span>
-                      {r.name}
-                      {r.decision !== "Pending" && ` — ${r.decision}`}
-                    </span>
-                    {caps.isCreator && r.reviewer_user_id !== detail.created_by_user_id && (
-                      <Button
-                        variant="ghost"
-                        aria-label={`Remove reviewer ${r.name}`}
-                        isDisabled={isPending}
-                        onPress={() => handleRemoveReviewer(r.reviewer_user_id)}
-                      >
-                        <FaXmark />
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              {caps.canManageReviewers && reviewerCandidates.length > 0 && (
-                <div className={styles.addReviewer}>
-                  <UserSelect
-                    users={reviewerCandidates}
-                    selectedIds={reviewerToAdd}
-                    onChange={setReviewerToAdd}
-                    isDisabled={isPending}
-                    label="Add reviewer"
-                    placeholder="Select a user to add..."
+              {capabilities.canManageReviewers ? (
+                <UserSelect
+                  users={reviewerSelectUsers}
+                  selectedIds={reviewerIds}
+                  onChange={setReviewerIds}
+                  isDisabled={isPending}
+                  label="Reviewers"
+                  placeholder="Select reviewers..."
+                />
+              ) : (
+                task.reviewers.length > 0 && (
+                  <UserChips
+                    users={task.reviewers.map((r) => ({ id: r.reviewer_user_id, name: r.name }))}
                   />
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    isDisabled={isPending || reviewerToAdd.size === 0}
-                    onPress={handleAddReviewer}
-                  >
-                    Add
-                  </Button>
-                </div>
+                )
               )}
             </div>
 
-            {caps.canReview && (
+            <Select
+              label="Status"
+              value={nextStatus}
+              onChange={(key) => {
+                if (key != null) setNextStatus(key as TaskStatus);
+              }}
+              isDisabled={isPending || !statusEditable}
+              placeholder="Select status"
+            >
+              {statusOptions.map((status) => (
+                <SelectItem key={status} id={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </Select>
+
+            {capabilities.canReview && (
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>Your review</span>
                 <Select
@@ -394,9 +339,6 @@ export function EditTaskModal({
                   onChange={setComment}
                   placeholder="Optional comment..."
                 />
-                <Button type="button" isDisabled={isPending || !decision} onPress={handleReview}>
-                  Submit Review
-                </Button>
               </div>
             )}
           </div>
@@ -408,7 +350,7 @@ export function EditTaskModal({
               allowsMultiple
               onFileSelect={addFiles}
               acceptedFileTypes={ACCEPTED_TYPES}
-              isDisabled={isPending || isLocked}
+              isDisabled={isPending || !capabilities.canEdit}
               label="Drop files or click to upload"
               description="Supported: PDF, DOC, XLS, images, TXT, CSV"
             />
@@ -417,7 +359,7 @@ export function EditTaskModal({
               isBusy={isPending}
               onRemove={removeFile}
               existingDocuments={documents}
-              onDelete={isLocked ? undefined : handleRemoveDocument}
+              onDelete={capabilities.canEdit ? handleRemoveDocument : undefined}
               isLoading={isLoadingDocuments}
             />
           </div>
@@ -425,40 +367,13 @@ export function EditTaskModal({
 
         <div className={styles.actions}>
           <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
-            Close
+            Cancel
           </Button>
-          {caps.canSubmit && (
-            <Button type="button" onPress={handleSubmitForReview} isDisabled={isPending}>
-              Submit for Review
-            </Button>
-          )}
-          {caps.canCancel && (
-            <Button
-              variant="ghost"
-              type="button"
-              onPress={() => setIsCancelOpen(true)}
-              isDisabled={isPending}
-            >
-              Cancel Task
-            </Button>
-          )}
-          {caps.canEdit && (
-            <Button type="submit" isDisabled={isPending} isPending={isPending}>
-              Save
-            </Button>
-          )}
+          <Button type="submit" isDisabled={isPending} isPending={isPending}>
+            Save
+          </Button>
         </div>
       </Form>
-
-      <ConfirmDialog
-        isOpen={isCancelOpen}
-        onOpenChange={setIsCancelOpen}
-        title="Cancel Task"
-        confirmLabel="Cancel Task"
-        onConfirm={handleCancelTask}
-      >
-        Are you sure you want to cancel this task? This cannot be undone.
-      </ConfirmDialog>
     </Modal>
   );
 }

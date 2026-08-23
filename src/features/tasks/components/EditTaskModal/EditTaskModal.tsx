@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Form } from "react-aria-components";
+import { FaPlus } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
@@ -12,6 +13,10 @@ import { queue } from "@/components/ui/Toast/Toast";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import type { DocumentRow } from "@/features/documents/queries";
+import { getTaskNotesAction } from "@/features/notes/actions";
+import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
+import { NoteList } from "@/features/notes/components/NoteList/NoteList";
+import type { NoteRow } from "@/features/notes/queries";
 import {
   addTaskReviewerAction,
   cancelTaskAction,
@@ -79,6 +84,8 @@ export function EditTaskModal({
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [addNoteOpen, setAddNoteOpen] = useState(false);
 
   const reviewerSelectUsers = users.filter((u) => u.id !== task.created_by_user_id);
   const statusEditable = capabilities.canSubmit || capabilities.canCancel;
@@ -108,12 +115,33 @@ export function EditTaskModal({
       }
     }
 
+    async function loadNotes() {
+      try {
+        const rows = await getTaskNotesAction(task.id);
+        if (cancelled) return;
+        setNotes(rows);
+      } catch {
+        if (cancelled) return;
+        queue.add({ title: "Failed to load notes" }, { timeout: 5000 });
+      }
+    }
+
     void loadDocuments();
+    void loadNotes();
 
     return () => {
       cancelled = true;
     };
   }, [task.id]);
+
+  async function reloadNotes() {
+    try {
+      const rows = await getTaskNotesAction(task.id);
+      setNotes(rows);
+    } catch {
+      queue.add({ title: "Failed to load notes" }, { timeout: 5000 });
+    }
+  }
 
   function handleRemoveDocument(documentId: string) {
     setMarkedForDeletion((prev) => new Set(prev).add(documentId));
@@ -363,6 +391,18 @@ export function EditTaskModal({
               isLoading={isLoadingDocuments}
             />
           </div>
+
+          <div className={styles.divider} />
+
+          <div className={styles.column}>
+            <div className={styles.columnHeader}>
+              <span className={styles.label}>Notes</span>
+              <Button variant="secondary" type="button" onPress={() => setAddNoteOpen(true)}>
+                <FaPlus /> Add Note
+              </Button>
+            </div>
+            <NoteList notes={notes} />
+          </div>
         </div>
 
         <div className={styles.actions}>
@@ -374,6 +414,12 @@ export function EditTaskModal({
           </Button>
         </div>
       </Form>
+      <AddNoteModal
+        isOpen={addNoteOpen}
+        onOpenChange={setAddNoteOpen}
+        onSuccess={reloadNotes}
+        taskId={task.id}
+      />
     </Modal>
   );
 }

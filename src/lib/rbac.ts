@@ -78,8 +78,9 @@ export type Permission =
  *   for the record's parent case or consultation.
  * - `own`      — the user created the record (`created_by_user_id`), or
  *   uploaded it in the case of documents.
- * - `taskOnly` — the user is an assignee on the specific task
- *   (`TaskAssignment`); parent-case assignment alone does not count.
+ * - `taskOnly` — the user is attached to the specific task as an assignee
+ *   (`TaskAssignment`) **or** a reviewer (`TaskReviewer`); parent-case
+ *   assignment alone does not count.
  *   Task-only rights also require parent case assignment (see EVALUATORS,
  *   mirroring RBAC.md's `ASSIGNED + TASK_ONLY` rule).
  */

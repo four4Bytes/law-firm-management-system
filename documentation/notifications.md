@@ -34,11 +34,13 @@ Payload: `userIds`, `type`, `title`, `message`, optional `actionUrl`, and relate
 
 Recipients come only from **assignment** — the users assigned to the record:
 
-| Entity       | Assignment source        |
-| ------------ | ------------------------ |
-| Case         | `CaseAssignment`         |
-| Task         | `TaskAssignment`         |
-| Consultation | `ConsultationAssignment` |
+| Entity       | Assignment source                         |
+| ------------ | ----------------------------------------- |
+| Case         | `CaseAssignment`                          |
+| Task         | `TaskAssignment` **union** `TaskReviewer` |
+| Consultation | `ConsultationAssignment`                  |
+
+> **Task recipients span both tables:** a task's reviewers live in `TaskReviewer` (not `TaskAssignment`), so events keyed to reviewers (e.g. _Task submitted → all reviewers_) resolve from `TaskReviewer`, while events keyed to workers (e.g. _Task completed/rejected → all assignees_) resolve from `TaskAssignment`. The dispatch site passes the resolved `userIds` explicitly per event (see [section 4](#4-event-driven-notifications-immediate)).
 
 Only **active** users are eligible; recipients are per-event, not role-based ([section 4](#4-event-driven-notifications-immediate)). By default the acting user (_actor_) is excluded from their own notification unless the dispatch site passes `notifyActor`.
 

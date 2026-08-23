@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { createNote } from "@/features/notes/mutations";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
@@ -21,6 +21,7 @@ import {
   cancelTask,
   createTask,
   deleteTask,
+  removeTaskReviewer,
   submitTask,
   updateTask,
 } from "./mutations";
@@ -38,10 +39,22 @@ import {
   TaskCancelSchema,
   TaskCreatePayloadSchema,
   TaskIdSchema,
+  TaskRemoveReviewerSchema,
   TaskReviewSchema,
   TaskSubmitSchema,
   TaskUpdatePayloadSchema,
 } from "./schemas";
+
+/** Per-user capabilities on a single task, computed server-side (never client RBAC). */
+export interface TaskCapabilities {
+  isCreator: boolean;
+  isReviewer: boolean;
+  canSubmit: boolean;
+  canReview: boolean;
+  canCancel: boolean;
+  canManageReviewers: boolean;
+  canEdit: boolean;
+}
 
 export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
   await requireAuth();
@@ -50,7 +63,7 @@ export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
 
 export async function getTaskDetailRowByIdAction(
   taskId: string,
-): Promise<{ row: TaskDetailRow | null; canUpdate: boolean }> {
+): Promise<{ row: TaskDetailRow | null; canUpdate: boolean; capabilities: TaskCapabilities }> {
   const session = await requireAuth();
 
   const parsed = TaskIdSchema.safeParse({ taskId });
@@ -63,10 +76,43 @@ export async function getTaskDetailRowByIdAction(
 
   const row = await getTaskDetailRowById(parsed.data.taskId);
 
-  return {
-    row,
-    canUpdate: row !== null && can(session.role, "task.update", access),
+  if (!row) {
+    return {
+      row: null,
+      canUpdate: false,
+      capabilities: {
+        isCreator: false,
+        isReviewer: false,
+        canSubmit: false,
+        canReview: false,
+        canCancel: false,
+        canManageReviewers: false,
+        canEdit: false,
+      },
+    };
+  }
+
+  const canUpdate = can(session.role, "task.update", access);
+  const isCreator = row.created_by_user_id === session.id;
+  const reviewer = row.reviewers.find((r) => r.reviewer_user_id === session.id);
+  const isReviewer = reviewer !== undefined;
+  const isAssignee = row.assignee_ids.includes(session.id);
+  const isActive =
+    row.status === TaskStatus.Pending ||
+    row.status === TaskStatus.Submitted ||
+    row.status === TaskStatus.Completed;
+
+  const capabilities: TaskCapabilities = {
+    isCreator,
+    isReviewer,
+    canSubmit: isAssignee && row.status === TaskStatus.Pending,
+    canReview: isReviewer && row.status === TaskStatus.Submitted && !reviewer?.reviewed_at,
+    canCancel: isCreator && isActive,
+    canManageReviewers: isCreator || isReviewer,
+    canEdit: canUpdate && row.status === TaskStatus.Pending,
   };
+
+  return { row, canUpdate, capabilities };
 }
 
 export async function createTaskAction(
@@ -93,19 +139,15 @@ export async function createTaskAction(
       assignee_ids,
     });
 
-    after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "task.created",
-          entityType: "Case",
-          entityId: case_id,
-          details: `Created task: "${title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log task.created audit for Case", case_id, err);
-      }
-    });
+    after(() =>
+      logAudit({
+        actorUserId: session.id,
+        action: "task.created",
+        entityType: "Case",
+        entityId: case_id,
+        details: `Created task: "${title}"`,
+      }),
+    );
 
     revalidatePath(`/case/${case_id}`);
 
@@ -129,8 +171,12 @@ export async function updateTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
-    if (existing.status === TaskStatus.Submitted) {
-      return { success: false, error: "Task is under review and cannot be edited" };
+    if (
+      existing.status === TaskStatus.Submitted ||
+      existing.status === TaskStatus.Completed ||
+      existing.status === TaskStatus.Cancelled
+    ) {
+      return { success: false, error: "Task is locked and cannot be edited" };
     }
 
     const access = await getTaskAccessContext(session.id, taskId);
@@ -152,17 +198,13 @@ export async function updateTaskAction(
     await updateTask(taskId, { title, description, assignee_ids });
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "task.updated",
-          entityType: "Case",
-          entityId: existing.case_id,
-          details: `Updated task: "${title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log task.updated audit for Case", existing.case_id, err);
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "task.updated",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Updated task: "${title}"`,
+      });
 
       const newAssigneeIds = diffNewAssigneeIds(
         parsed.data.assignee_ids ?? existingAssigneeIds,
@@ -219,13 +261,13 @@ export async function deleteTaskAction(
     await deleteTask(taskId);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "task.deleted",
         entityType: "Case",
         entityId: existing.case_id,
         details: `Deleted task: "${existing.title}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(`/case/${existing.case_id}`);
@@ -254,23 +296,27 @@ export async function submitTaskAction(
       return { success: false, error: "Only pending tasks can be submitted for review" };
     }
 
+    const access = await getTaskAccessContext(session.id, taskId);
+    if (!can(session.role, "task.update", access))
+      return { success: false, error: FORBIDDEN_MESSAGE };
+
     const isAssignee = existing.taskAssignments.some((a) => a.user_id === session.id);
     if (!isAssignee) return { success: false, error: FORBIDDEN_MESSAGE };
+
+    if (existing.taskReviewers.length === 0) {
+      return { success: false, error: "Add at least one reviewer before submitting" };
+    }
 
     await submitTask(taskId);
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "task.updated",
-          entityType: "Case",
-          entityId: existing.case_id,
-          details: `Submitted task for review: "${existing.title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log task submission audit for Case", existing.case_id, err);
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "task.submitted",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Submitted task for review: "${existing.title}"`,
+      });
 
       try {
         const reviewers = await getTaskReviewers(taskId);
@@ -320,8 +366,11 @@ export async function reviewTaskAction(
       return { success: false, error: "Only submitted tasks can be reviewed" };
     }
 
+    const access = await getTaskAccessContext(session.id, taskId);
     const review = existing.taskReviewers.find((r) => r.reviewer_user_id === session.id);
-    if (!review) return { success: false, error: FORBIDDEN_MESSAGE };
+    if (!can(session.role, "task.update", access) || !review) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
     if (review.reviewed_at) {
       return { success: false, error: "You have already reviewed this task" };
     }
@@ -340,17 +389,13 @@ export async function reviewTaskAction(
 
     after(async () => {
       const transition = `Submitted to ${taskStatus}`;
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "task.updated",
-          entityType: "Case",
-          entityId: existing.case_id,
-          details: `Review ${decision} on task "${existing.title}"${comment ? `: ${comment}` : ""}`,
-        });
-      } catch (err) {
-        console.error("Failed to log review audit for Case", existing.case_id, err);
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "task.reviewed",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Review ${decision} on task "${existing.title}"${comment ? `: ${comment}` : ""}`,
+      });
 
       if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Completed) {
         try {
@@ -394,30 +439,26 @@ export async function addTaskReviewerAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
-    if (existing.status !== TaskStatus.Submitted) {
-      return {
-        success: false,
-        error: "Reviewers can only be added while the task is under review",
-      };
+    if (existing.status === TaskStatus.Cancelled) {
+      return { success: false, error: "Cannot add a reviewer to a cancelled task" };
     }
 
+    const access = await getTaskAccessContext(session.id, taskId);
     const isReviewer = existing.taskReviewers.some((r) => r.reviewer_user_id === session.id);
-    if (!isReviewer) return { success: false, error: FORBIDDEN_MESSAGE };
+    if (!can(session.role, "task.update", access) || (!access.own && !isReviewer)) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
 
     await addTaskReviewer(taskId, reviewerUserId);
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "task.updated",
-          entityType: "Case",
-          entityId: existing.case_id,
-          details: `Added reviewer to task: "${existing.title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log reviewer audit for Case", existing.case_id, err);
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "task.updated",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Added reviewer to task: "${existing.title}"`,
+      });
 
       try {
         await dispatchNotifications(
@@ -445,6 +486,49 @@ export async function addTaskReviewerAction(
   }
 }
 
+export async function removeTaskReviewerAction(
+  payload: z.input<typeof TaskRemoveReviewerSchema>,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = TaskRemoveReviewerSchema.safeParse(payload);
+  if (!parsed.success) return { success: false, error: "Invalid reviewer data" };
+
+  const { taskId, reviewerUserId } = parsed.data;
+
+  try {
+    const existing = await getTaskById(taskId);
+    if (!existing) return { success: false, error: "Task not found" };
+
+    const access = await getTaskAccessContext(session.id, taskId);
+    if (!can(session.role, "task.update", access) || !access.own) {
+      return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (reviewerUserId === existing.created_by_user_id) {
+      return { success: false, error: "Cannot remove the task creator as a reviewer" };
+    }
+
+    await removeTaskReviewer(taskId, reviewerUserId, existing.created_by_user_id);
+
+    after(() =>
+      logAudit({
+        actorUserId: session.id,
+        action: "task.updated",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Removed reviewer from task: "${existing.title}"`,
+      }),
+    );
+
+    revalidatePath(`/case/${existing.case_id}`);
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to remove reviewer" };
+  }
+}
+
 export async function cancelTaskAction(
   payload: z.input<typeof TaskCancelSchema>,
 ): Promise<ActionStatusResponse> {
@@ -459,7 +543,8 @@ export async function cancelTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
-    if (session.id !== existing.created_by_user_id) {
+    const access = await getTaskAccessContext(session.id, taskId);
+    if (!can(session.role, "task.delete", access) || !access.own) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
@@ -470,13 +555,13 @@ export async function cancelTaskAction(
     await cancelTask(taskId);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "task.updated",
         entityType: "Case",
         entityId: existing.case_id,
         details: `Cancelled task: "${existing.title}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(`/case/${existing.case_id}`);

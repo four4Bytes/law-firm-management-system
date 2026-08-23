@@ -125,6 +125,7 @@ describe("getTaskDetailRowById", () => {
       ],
       updated_at: new Date("2024-06-02"),
       created_at: new Date("2024-06-01"),
+      created_by_user_id: "u1",
     };
     expect(result).toEqual(expected);
   });

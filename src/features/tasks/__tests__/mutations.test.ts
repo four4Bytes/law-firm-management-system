@@ -9,6 +9,7 @@ import {
   createTask,
   deleteTask,
   deriveReviewStatus,
+  removeTaskReviewer,
   submitTask,
   updateTask,
 } from "../mutations";
@@ -17,7 +18,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
     task: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
-    taskReviewer: { updateMany: vi.fn(), findMany: vi.fn(), upsert: vi.fn() },
+    taskReviewer: { updateMany: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
     caseAssignment: { findMany: vi.fn(), createMany: vi.fn() },
   },
 }));
@@ -272,6 +273,67 @@ describe("addTaskReviewer", () => {
 
     await expect(addTaskReviewer("999", "u4")).rejects.toThrow("Task not found");
     expect(prisma.taskReviewer.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("addTaskReviewer (status transitions)", () => {
+  it("reverts a Completed task to Pending without resetting existing decisions", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Completed" }));
+    vi.mocked(prisma.taskReviewer.upsert).mockResolvedValue(mockTaskReviewer());
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+
+    const result = await addTaskReviewer("t1", "u4");
+
+    expect(result.id).toBe("t1");
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Pending" },
+      select: { id: true },
+    });
+  });
+
+  it("throws when the task is Cancelled", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Cancelled" }));
+
+    await expect(addTaskReviewer("t1", "u4")).rejects.toThrow(
+      "Cannot add a reviewer to a cancelled task",
+    );
+  });
+});
+
+describe("removeTaskReviewer", () => {
+  it("throws when removing the task creator", async () => {
+    await expect(removeTaskReviewer("t1", "u1", "u1")).rejects.toThrow(
+      "Cannot remove the task creator as a reviewer",
+    );
+  });
+
+  it("deletes the reviewer row", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskReviewer.deleteMany).mockResolvedValue({ count: 1 });
+
+    const result = await removeTaskReviewer("t1", "u4", "u1");
+
+    expect(result.id).toBe("t1");
+    expect(prisma.taskReviewer.deleteMany).toHaveBeenCalledWith({
+      where: { task_id: "t1", reviewer_user_id: "u4" },
+    });
+  });
+
+  it("re-derives status when removing a reviewer from a Submitted task", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Submitted" }));
+    vi.mocked(prisma.taskReviewer.deleteMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u2", decision: "Accepted" }),
+    ]);
+
+    await removeTaskReviewer("t1", "u4", "u1");
+
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Completed" },
+      select: { id: true },
+    });
   });
 });
 

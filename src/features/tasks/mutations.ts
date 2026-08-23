@@ -140,9 +140,12 @@ export async function addTaskReviewer(
   return prisma.$transaction(async (tx) => {
     const task = await tx.task.findUnique({
       where: { id: taskId },
-      select: { case_id: true },
+      select: { case_id: true, status: true },
     });
     if (!task) throw new Error("Task not found");
+    if (task.status === TaskStatus.Cancelled) {
+      throw new Error("Cannot add a reviewer to a cancelled task");
+    }
 
     await tx.taskReviewer.upsert({
       where: {
@@ -152,7 +155,53 @@ export async function addTaskReviewer(
       update: { decision: "Pending", reviewed_at: null },
     });
 
+    if (task.status === TaskStatus.Completed) {
+      await tx.task.update({
+        where: { id: taskId },
+        data: { status: TaskStatus.Pending },
+        select: { id: true },
+      });
+    }
+
     await grantCaseMembership(tx, task.case_id, [reviewerUserId]);
+
+    return { id: taskId };
+  });
+}
+
+export async function removeTaskReviewer(
+  taskId: string,
+  reviewerUserId: string,
+  createdByUserId: string,
+): Promise<{ id: string }> {
+  if (reviewerUserId === createdByUserId) {
+    throw new Error("Cannot remove the task creator as a reviewer");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const task = await tx.task.findUnique({
+      where: { id: taskId },
+      select: { case_id: true, status: true, created_by_user_id: true },
+    });
+    if (!task) throw new Error("Task not found");
+
+    await tx.taskReviewer.deleteMany({
+      where: { task_id: taskId, reviewer_user_id: reviewerUserId },
+    });
+
+    if (task.status === TaskStatus.Submitted) {
+      const reviewers = await tx.taskReviewer.findMany({
+        where: { task_id: taskId },
+        select: { decision: true },
+      });
+      const status = deriveReviewStatus(reviewers.map((r) => r.decision));
+
+      await tx.task.update({
+        where: { id: taskId },
+        data: { status },
+        select: { id: true },
+      });
+    }
 
     return { id: taskId };
   });

@@ -74,6 +74,14 @@ export function AddTaskModal({
     event.preventDefault();
     if (isPending) return;
 
+    if (assigneeIds.size < 1) {
+      queue.add({
+        title: "Add at least one assignee",
+        description: "A task needs at least one assignee",
+      });
+      return;
+    }
+
     const parsed = TaskCreatePayloadSchema.safeParse({
       title: requiredString(title),
       description: optionalString(description),

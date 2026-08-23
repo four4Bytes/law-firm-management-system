@@ -18,15 +18,17 @@ Any database schema changes must be handled by prisma migration, even in develop
 
 A person who can sign in and use the system.
 
-| Field   | Type      | Required | Description                        |
-| ------- | --------- | -------- | ---------------------------------- |
-| Name    | Text      | Yes      | Display name                       |
-| Email   | Text      | Yes      | Email address (unique)             |
-| Role    | Enum      | Yes      | Access level (see [Roles](#roles)) |
-| Status  | Boolean   | Yes      | Whether the user can sign in       |
-| Avatar  | Text      | No       | Profile image URL                  |
-| Created | Timestamp | Yes      | When the account was created       |
-| Updated | Timestamp | Yes      | When the account was last modified |
+| Field          | Type      | Required | Description                        |
+| -------------- | --------- | -------- | ---------------------------------- |
+| Name           | Text      | Yes      | Display name                       |
+| Email          | Text      | Yes      | Email address (unique)             |
+| Google Sub     | Text      | No       | Google OAuth subject (unique)      |
+| Email Verified | Timestamp | No       | When the email was verified        |
+| Role           | Enum      | No       | Access level (see [Roles](#roles)) |
+| Status         | Boolean   | Yes      | Whether the user can sign in       |
+| Avatar         | Text      | No       | Profile image URL                  |
+| Created        | Timestamp | Yes      | When the account was created       |
+| Updated        | Timestamp | Yes      | When the account was last modified |
 
 ---
 
@@ -57,6 +59,7 @@ An initial meeting with a client to discuss their legal concern.
 | Concern       | Text      | Yes      | Description of the client's concern                              |
 | Status        | Enum      | Yes      | Current status (see [Consultation Status](#consultation-status)) |
 | Reminder Days | Number    | No       | Days before booking to send a reminder                           |
+| Last Reminded | Timestamp | No       | When the last reminder was sent                                  |
 | Created       | Timestamp | Yes      | When the record was created                                      |
 | Updated       | Timestamp | Yes      | When the record was last modified                                |
 
@@ -110,6 +113,7 @@ A key deadline or checkpoint within a case.
 | Due Date      | Date      | Yes      | When the milestone is due                                  |
 | Status        | Enum      | Yes      | Current status (see [Milestone Status](#milestone-status)) |
 | Reminder Days | Number    | No       | Days before due date to send a reminder                    |
+| Last Reminded | Timestamp | No       | When the last reminder was sent                            |
 | Created By    | Link      | Yes      | The user who created the milestone                         |
 | Created       | Timestamp | Yes      | When the record was created                                |
 | Updated       | Timestamp | Yes      | When the record was last modified                          |
@@ -193,6 +197,7 @@ A system notification sent to a user.
 | Milestone    | Link      | No       | Related milestone                 |
 | Task         | Link      | No       | Related task                      |
 | Created      | Timestamp | Yes      | When the notification was created |
+| Updated      | Timestamp | Yes      | When the record was last modified |
 
 ---
 

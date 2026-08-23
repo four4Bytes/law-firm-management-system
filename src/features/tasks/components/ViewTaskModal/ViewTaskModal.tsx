@@ -12,6 +12,7 @@ import { getTaskNotesAction } from "@/features/notes/actions";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import type { TaskDetailRow } from "@/features/tasks/queries";
+import { UserList } from "@/features/users/components/UserList/UserList";
 
 import styles from "./ViewTaskModal.module.css";
 
@@ -82,22 +83,13 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             )}
             <div className={styles.field}>
               <span className={styles.label}>Assignees</span>
-              <span>{task.assignTo}</span>
+              <UserList users={task.assignTo} />
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Reviewers</span>
-              {task.reviewers.length > 0 ? (
-                <ul className={styles.list}>
-                  {task.reviewers.map((r) => (
-                    <li key={r.id}>
-                      {r.name}
-                      {r.decision !== "Pending" && ` — ${r.decision}`}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span>—</span>
-              )}
+              <UserList
+                users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
+              />
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Status</span>

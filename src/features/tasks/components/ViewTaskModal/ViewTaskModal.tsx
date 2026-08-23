@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -68,7 +69,12 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
 
   return (
     <>
-      <Modal title="Task" isOpen={isOpen} onOpenChange={onOpenChange} className={styles.modal}>
+      <Modal
+        title="Task"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        className={clsx(styles.modal, (hasFiles || hasNotes) && styles.wide)}
+      >
         <div className={styles.columns}>
           <div className={styles.column}>
             <div className={styles.field}>

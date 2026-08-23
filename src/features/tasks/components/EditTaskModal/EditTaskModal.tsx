@@ -13,8 +13,9 @@ import { queue } from "@/components/ui/Toast/Toast";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import type { DocumentRow } from "@/features/documents/queries";
-import { getTaskNotesAction } from "@/features/notes/actions";
+import { deleteNoteAction, getTaskNotesAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
+import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import {
@@ -85,7 +86,9 @@ export function EditTaskModal({
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
   const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(new Set());
   const [addNoteOpen, setAddNoteOpen] = useState(false);
+  const [editNote, setEditNote] = useState<NoteRow | null>(null);
 
   const reviewerSelectUsers = users.filter((u) => u.id !== task.created_by_user_id);
   const statusEditable = capabilities.canSubmit || capabilities.canCancel;
@@ -146,6 +149,11 @@ export function EditTaskModal({
   function handleRemoveDocument(documentId: string) {
     setMarkedForDeletion((prev) => new Set(prev).add(documentId));
     setDocuments((prev) => prev.filter((d) => d.id !== documentId));
+  }
+
+  function handleRemoveNote(noteId: string) {
+    setDeletedNoteIds((prev) => new Set(prev).add(noteId));
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
   }
 
   function handleCancel() {
@@ -257,6 +265,18 @@ export function EditTaskModal({
         if (failedCount > 0) {
           queue.add({
             title: `Failed to delete ${failedCount} document${failedCount > 1 ? "s" : ""}`,
+          });
+        }
+      }
+
+      if (deletedNoteIds.size > 0) {
+        const results = await Promise.all(
+          Array.from(deletedNoteIds).map((id) => deleteNoteAction({ noteId: id })),
+        );
+        const failedCount = results.filter((r) => !r.success).length;
+        if (failedCount > 0) {
+          queue.add({
+            title: `Failed to delete ${failedCount} note${failedCount > 1 ? "s" : ""}`,
           });
         }
       }
@@ -401,7 +421,11 @@ export function EditTaskModal({
                 <FaPlus /> Add Note
               </Button>
             </div>
-            <NoteList notes={notes} />
+            <NoteList
+              notes={notes}
+              onEdit={capabilities.canEdit ? setEditNote : undefined}
+              onDelete={capabilities.canEdit ? handleRemoveNote : undefined}
+            />
           </div>
         </div>
 
@@ -420,6 +444,14 @@ export function EditTaskModal({
         onSuccess={reloadNotes}
         taskId={task.id}
       />
+      {editNote && (
+        <EditNoteModal
+          isOpen={!!editNote}
+          onOpenChange={() => setEditNote(null)}
+          onSuccess={reloadNotes}
+          note={editNote}
+        />
+      )}
     </Modal>
   );
 }

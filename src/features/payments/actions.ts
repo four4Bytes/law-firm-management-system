@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
@@ -94,13 +94,13 @@ export async function createPaymentAction(
     });
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "payment.created",
         entityType: case_id ? "Case" : "Consultation",
         entityId: (case_id ?? consultation_id)!,
         details: `Created payment: ₱${Number(amount).toFixed(2)}`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(case_id ? `/case/${case_id}` : `/consultation/${consultation_id}`);
@@ -154,13 +154,13 @@ export async function updatePaymentAction(
     });
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "payment.updated",
         entityType: existing.case_id ? "Case" : "Consultation",
         entityId: (existing.case_id ?? existing.consultation_id)!,
         details: `Updated payment: ₱${Number(amount).toFixed(2)}`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(getParentPath(existing));
@@ -198,13 +198,13 @@ export async function deletePaymentAction(
     await deletePayment(paymentId);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "payment.deleted",
         entityType: existing.case_id ? "Case" : "Consultation",
         entityId: (existing.case_id ?? existing.consultation_id)!,
         details: `Deleted payment: ₱${Number(existing.amount).toFixed(2)}`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(getParentPath(existing));

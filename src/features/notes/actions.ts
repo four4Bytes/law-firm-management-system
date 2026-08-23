@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
@@ -81,13 +81,13 @@ export async function createNoteAction(
     });
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "note.created",
         entityType: task_id ? "Task" : case_id ? "Case" : "Consultation",
         entityId: (task_id ?? case_id ?? consultation_id)!,
         details: `Created note with ID: ${note.id}`,
-      }).catch(console.error),
+      }),
     );
   } catch {
     return { success: false, error: "Failed to create note" };
@@ -136,13 +136,13 @@ export async function updateNoteAction(
     await updateNote(noteId, content);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "note.updated",
         entityType: existing.case_id ? "Case" : "Consultation",
         entityId: (existing.case_id ?? existing.consultation_id)!,
         details: `Updated note with ID: ${noteId}`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(getParentPath(existing));
@@ -177,13 +177,13 @@ export async function deleteNoteAction(
     await deleteNote(noteId);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "note.deleted",
         entityType: existing.case_id ? "Case" : "Consultation",
         entityId: (existing.case_id ?? existing.consultation_id)!,
         details: `Deleted note with ID: ${noteId}`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(getParentPath(existing));

@@ -1,0 +1,49 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding-left: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 7rem;
+  overflow-y: auto;
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+
+    &::before {
+      content: "•";
+      flex: 0 0 auto;
+      color: var(--color-text-muted);
+      line-height: 1;
+    }
+  }
+
+  .name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status {
+    flex: 0 0 auto;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+
+    &[data-status="Accepted"] {
+      color: var(--color-success);
+    }
+
+    &[data-status="Rejected"] {
+      color: var(--color-danger);
+    }
+  }
+
+  .empty {
+    color: var(--color-text-muted);
+  }
+}

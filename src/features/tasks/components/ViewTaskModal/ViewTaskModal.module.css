@@ -33,6 +33,10 @@
     color: var(--color-text-muted);
   }
 
+  .value {
+    font-size: var(--font-size-sm);
+  }
+
   .note {
     display: flex;
     flex-direction: column;

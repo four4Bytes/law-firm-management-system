@@ -16,6 +16,7 @@ export interface UserSelectProps {
   isDisabled?: boolean;
   label?: string;
   placeholder?: string;
+  hideSelected?: boolean;
 }
 
 export function UserSelect({
@@ -25,6 +26,7 @@ export function UserSelect({
   isDisabled,
   label = "Assignees",
   placeholder = "Select assignees...",
+  hideSelected = false,
 }: UserSelectProps) {
   const selected = users.filter((user) => selectedIds.has(user.id));
 
@@ -42,7 +44,7 @@ export function UserSelect({
       >
         {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
       </Select>
-      {selected.length > 0 && <UserChips users={selected} />}
+      {!hideSelected && selected.length > 0 && <UserChips users={selected} />}
     </>
   );
 }

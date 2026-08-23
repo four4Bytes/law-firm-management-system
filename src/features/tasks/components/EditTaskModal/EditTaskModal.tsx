@@ -30,7 +30,7 @@ import {
 } from "@/features/tasks/actions";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
-import { UserChips } from "@/features/users/components/UserChips/UserChips";
+import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { ReviewDecision, TaskStatus } from "@/generated/prisma/browser";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
@@ -60,11 +60,7 @@ export function EditTaskModal({
   const [description, setDescription] = useState(task.description ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(
-    new Set(
-      task.reviewers
-        .filter((r) => r.reviewer_user_id !== task.created_by_user_id)
-        .map((r) => r.reviewer_user_id),
-    ),
+    new Set(task.reviewers.map((r) => r.reviewer_user_id)),
   );
   const [nextStatus, setNextStatus] = useState<TaskStatus>(task.status);
   const [decision, setDecision] = useState<"Accepted" | "Rejected" | null>(null);
@@ -79,7 +75,6 @@ export function EditTaskModal({
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
 
-  const reviewerSelectUsers = users.filter((u) => u.id !== task.created_by_user_id);
   const statusEditable = capabilities.canSubmit || capabilities.canCancel;
   const statusOptions: TaskStatus[] = [task.status];
   if (capabilities.canSubmit && task.status === TaskStatus.Pending)
@@ -183,11 +178,7 @@ export function EditTaskModal({
       }
 
       if (capabilities.canManageReviewers) {
-        const current = new Set(
-          task.reviewers
-            .filter((r) => r.reviewer_user_id !== task.created_by_user_id)
-            .map((r) => r.reviewer_user_id),
-        );
+        const current = new Set(task.reviewers.map((r) => r.reviewer_user_id));
         const added = [...reviewerIds].filter((id) => !current.has(id));
         const removed = [...current].filter((id) => !reviewerIds.has(id));
         for (const id of added) {
@@ -317,26 +308,21 @@ export function EditTaskModal({
               onChange={setAssigneeIds}
               isDisabled={isPending || !capabilities.isCreator}
               label="Assignees"
+              hideSelected
             />
+            <UserList users={task.assignTo} />
 
-            <div className={styles.section}>
-              {capabilities.canManageReviewers ? (
-                <UserSelect
-                  users={reviewerSelectUsers}
-                  selectedIds={reviewerIds}
-                  onChange={setReviewerIds}
-                  isDisabled={isPending}
-                  label="Reviewers"
-                  placeholder="Select reviewers..."
-                />
-              ) : (
-                task.reviewers.length > 0 && (
-                  <UserChips
-                    users={task.reviewers.map((r) => ({ id: r.reviewer_user_id, name: r.name }))}
-                  />
-                )
-              )}
-            </div>
+            <UserSelect
+              users={users}
+              selectedIds={reviewerIds}
+              onChange={setReviewerIds}
+              isDisabled={isPending || !capabilities.canManageReviewers}
+              label="Reviewers"
+              hideSelected
+            />
+            <UserList
+              users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
+            />
 
             <Select
               label="Status"

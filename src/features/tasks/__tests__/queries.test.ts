@@ -112,7 +112,7 @@ describe("getTaskDetailRowById", () => {
       title: "Task title",
       description: "Task description",
       status: "Pending",
-      assignTo: "Jane Assignee",
+      assignTo: [{ id: "u2", name: "Jane Assignee" }],
       assignee_ids: ["u2"],
       reviewers: [
         {

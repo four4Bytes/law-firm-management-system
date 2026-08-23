@@ -18,8 +18,9 @@ export type TaskReviewerRow = {
   reviewed_at: Date | null;
 };
 
-export type TaskDetailRow = TaskRow &
+export type TaskDetailRow = Omit<TaskRow, "assignTo"> &
   Pick<Task, "description" | "created_at" | "created_by_user_id"> & {
+    assignTo: { id: string; name: string }[];
     assignee_ids: string[];
     reviewers: TaskReviewerRow[];
   };
@@ -115,7 +116,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
     title: task.title,
     description: task.description,
     status: task.status,
-    assignTo: task.taskAssignments.map((a) => a.user.name).join(", "),
+    assignTo: task.taskAssignments.map((a) => ({ id: a.user_id, name: a.user.name })),
     assignee_ids: task.taskAssignments.map((a) => a.user_id),
     reviewers: task.taskReviewers.map((r) => ({
       id: r.id,

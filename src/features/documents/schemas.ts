@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isAcceptedFileExtension } from "@/lib/file-types";
 import { requiredText } from "@/lib/form-utils";
 import { exactlyOneParentRefinement, SortQuerySchema } from "@/lib/schemas";
 
@@ -23,6 +24,10 @@ export const DocumentUploadPayloadSchema = z
   })
   .refine(exactlyOneParentRefinement, {
     message: "Provide exactly one of case_id, consultation_id, or task_id",
+  })
+  .refine((data) => isAcceptedFileExtension(data.file_name), {
+    message: "Unsupported file type",
+    path: ["file_name"],
   });
 
 export const DocumentConfirmPayloadSchema = z
@@ -37,6 +42,10 @@ export const DocumentConfirmPayloadSchema = z
   })
   .refine(exactlyOneParentRefinement, {
     message: "Provide exactly one of case_id, consultation_id, or task_id",
+  })
+  .refine((data) => isAcceptedFileExtension(data.file_name), {
+    message: "Unsupported file type",
+    path: ["file_name"],
   });
 
 export const DocumentIdSchema = z.object({

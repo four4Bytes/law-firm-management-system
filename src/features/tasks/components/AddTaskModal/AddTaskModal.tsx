@@ -13,24 +13,11 @@ import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/action
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./AddTaskModal.module.css";
-
-const ACCEPTED_TYPES = [
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".xls",
-  ".xlsx",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".txt",
-  ".csv",
-] as const;
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -196,7 +183,7 @@ export function AddTaskModal({
             <DropZone
               allowsMultiple
               onFileSelect={addFiles}
-              acceptedFileTypes={ACCEPTED_TYPES}
+              acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
               isDisabled={isPending}
               label="Drop files or click to upload"
               description="Supported: PDF, DOC, XLS, images, TXT, CSV"

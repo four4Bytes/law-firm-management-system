@@ -7,12 +7,25 @@ import { requireAuth } from "@/lib/auth-guards";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
+  addTaskReviewerAction,
+  cancelTaskAction,
   createTaskAction,
   deleteTaskAction,
   getTaskDetailRowByIdAction,
+  removeTaskReviewerAction,
+  reviewTaskAction,
+  submitTaskAction,
   updateTaskAction,
 } from "../actions";
-import { createTask, updateTask } from "../mutations";
+import {
+  addTaskReviewer,
+  applyReviewDecision,
+  cancelTask,
+  createTask,
+  removeTaskReviewer,
+  submitTask,
+  updateTask,
+} from "../mutations";
 import { getTaskAccessContext, getTaskById, getTaskDetailRowById } from "../queries";
 
 async function flushAfterCallbacks(): Promise<void> {
@@ -36,6 +49,7 @@ vi.mock("@/features/cases/queries", () => ({
 
 vi.mock("@/features/audit/mutations", () => ({
   createAuditLog: vi.fn().mockResolvedValue(undefined),
+  logAudit: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/notifications/dispatch", () => ({
@@ -68,9 +82,15 @@ vi.mock("../mutations", () => ({
   createTask: vi.fn(),
   updateTask: vi.fn(),
   deleteTask: vi.fn(),
+  submitTask: vi.fn(),
+  applyReviewDecision: vi.fn(),
+  addTaskReviewer: vi.fn(),
+  removeTaskReviewer: vi.fn(),
+  cancelTask: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
+const uuid2 = "550e8400-e29b-41d4-a716-446655440001";
 
 const taskRecord = {
   id: "t1",
@@ -107,6 +127,7 @@ const taskRow = {
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
   assignTo: "",
+  created_by_user_id: "u1",
 };
 
 beforeEach(() => {
@@ -149,7 +170,19 @@ describe("getTaskDetailRowByIdAction", () => {
 
     const result = await getTaskDetailRowByIdAction(uuid);
 
-    expect(result).toEqual({ row: taskRow, canUpdate: false });
+    expect(result).toEqual({
+      row: taskRow,
+      canUpdate: false,
+      capabilities: {
+        isCreator: false,
+        isReviewer: false,
+        canSubmit: false,
+        canReview: false,
+        canCancel: false,
+        canManageReviewers: false,
+        canEdit: false,
+      },
+    });
   });
 
   it("returns canUpdate=true for a Paralegal assigned to the specific task", async () => {
@@ -167,7 +200,19 @@ describe("getTaskDetailRowByIdAction", () => {
 
     const result = await getTaskDetailRowByIdAction(uuid);
 
-    expect(result).toEqual({ row: taskRow, canUpdate: true });
+    expect(result).toEqual({
+      row: taskRow,
+      canUpdate: true,
+      capabilities: {
+        isCreator: false,
+        isReviewer: false,
+        canSubmit: false,
+        canReview: false,
+        canCancel: false,
+        canManageReviewers: false,
+        canEdit: true,
+      },
+    });
   });
 });
 
@@ -177,7 +222,7 @@ describe("createTaskAction", () => {
       title: "Draft memo",
       description: undefined,
       case_id: uuid,
-      assignee_ids: undefined,
+      assignee_ids: [uuid],
     };
 
     expect(await createTaskAction(payload)).toEqual({
@@ -272,5 +317,198 @@ describe("deleteTaskAction", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+});
+
+const assigneeRecord = {
+  ...taskRecord,
+  taskAssignments: [{ user_id: "u2", user: { name: "n2" } }],
+};
+
+describe("submitTaskAction", () => {
+  it("returns FORBIDDEN_MESSAGE when the caller is not an assignee", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(taskRecord);
+    expect(await submitTaskAction({ taskId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("submits a pending task the caller is assigned to", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...assigneeRecord,
+      status: "Pending" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+      ],
+    });
+    vi.mocked(submitTask).mockResolvedValue({ id: uuid });
+
+    const result = await submitTaskAction({ taskId: uuid });
+    expect(result).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(submitTask).toHaveBeenCalledWith(uuid);
+  });
+});
+
+describe("reviewTaskAction", () => {
+  it("returns FORBIDDEN_MESSAGE when the caller is not a reviewer", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Submitted" as const,
+      taskReviewers: [],
+    });
+    expect(await reviewTaskAction({ taskId: uuid, decision: "Accepted" })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("records a reviewer's decision", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Submitted" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+      ],
+    });
+    vi.mocked(applyReviewDecision).mockResolvedValue({ taskStatus: "Completed" });
+
+    const result = await reviewTaskAction({ taskId: uuid, decision: "Accepted" });
+    expect(result).toEqual({ success: true });
+    expect(applyReviewDecision).toHaveBeenCalledWith({
+      taskId: uuid,
+      reviewerUserId: "u2",
+      decision: "Accepted",
+    });
+  });
+});
+
+describe("addTaskReviewerAction", () => {
+  it("returns FORBIDDEN_MESSAGE for a stranger", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      taskReviewers: [],
+    });
+    expect(await addTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("allows an existing reviewer to add another", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+      ],
+    });
+    vi.mocked(addTaskReviewer).mockResolvedValue({ id: uuid });
+
+    const result = await addTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid });
+    expect(result).toEqual({ success: true });
+    expect(addTaskReviewer).toHaveBeenCalledWith(uuid, uuid);
+  });
+});
+
+describe("removeTaskReviewerAction", () => {
+  it("returns FORBIDDEN_MESSAGE for a non-creator", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u1" });
+    expect(await removeTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid2 })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("rejects removing the task creator", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: uuid,
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: uuid });
+    expect(await removeTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid })).toEqual({
+      success: false,
+      error: "Cannot remove the task creator as a reviewer",
+    });
+  });
+
+  it("allows the creator to remove a reviewer", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
+    vi.mocked(removeTaskReviewer).mockResolvedValue({ id: uuid });
+
+    const result = await removeTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid2 });
+    expect(result).toEqual({ success: true });
+    expect(removeTaskReviewer).toHaveBeenCalledWith(uuid, uuid2, "u2");
+  });
+});
+
+describe("cancelTaskAction", () => {
+  it("returns FORBIDDEN_MESSAGE for a non-creator", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u1" });
+    expect(await cancelTaskAction({ taskId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("cancels a task for its creator", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
+    vi.mocked(cancelTask).mockResolvedValue({ id: uuid });
+
+    const result = await cancelTaskAction({ taskId: uuid });
+    expect(result).toEqual({ success: true });
+    expect(cancelTask).toHaveBeenCalledWith(uuid);
+  });
+});
+
+describe("updateTaskAction lifecycle lock", () => {
+  it("refuses to edit a Completed task even with update access", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+
+    expect(
+      await updateTaskAction({
+        taskId: uuid,
+        title: "Renamed",
+        description: undefined,
+        assignee_ids: [uuid],
+      }),
+    ).toEqual({ success: false, error: "Task is locked and cannot be edited" });
   });
 });

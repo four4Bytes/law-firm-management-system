@@ -19,3 +19,11 @@ export async function createAuditLog(payload: AuditLogPayload): Promise<void> {
     },
   });
 }
+
+export async function logAudit(payload: AuditLogPayload): Promise<void> {
+  try {
+    await createAuditLog(payload);
+  } catch (err) {
+    console.error("Failed to write audit log", payload.action, payload.entityId, err);
+  }
+}

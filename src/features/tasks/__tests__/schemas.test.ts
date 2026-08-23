@@ -29,6 +29,7 @@ describe("TaskCreatePayloadSchema", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "Task title",
       case_id: uuid,
+      assignee_ids: [uuid],
     });
     expect(result.success).toBe(true);
   });
@@ -44,12 +45,34 @@ describe("TaskCreatePayloadSchema", () => {
   });
 
   it("rejects empty title", () => {
-    const result = TaskCreatePayloadSchema.safeParse({ title: "", case_id: uuid });
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "",
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
     expect(result.success).toBe(false);
   });
 
   it("rejects whitespace-only title", () => {
-    const result = TaskCreatePayloadSchema.safeParse({ title: "   ", case_id: uuid });
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "   ",
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a payload without assignees", () => {
+    const result = TaskCreatePayloadSchema.safeParse({ title: "Task", case_id: uuid });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty assignee list", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      case_id: uuid,
+      assignee_ids: [],
+    });
     expect(result.success).toBe(false);
   });
 

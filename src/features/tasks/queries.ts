@@ -19,7 +19,7 @@ export type TaskReviewerRow = {
 };
 
 export type TaskDetailRow = TaskRow &
-  Pick<Task, "description" | "created_at"> & {
+  Pick<Task, "description" | "created_at" | "created_by_user_id"> & {
     assignee_ids: string[];
     reviewers: TaskReviewerRow[];
   };
@@ -91,6 +91,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
       status: true,
       updated_at: true,
       created_at: true,
+      created_by_user_id: true,
       taskAssignments: {
         select: { user_id: true, user: { select: { name: true } } },
       },
@@ -125,6 +126,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
     })),
     updated_at: task.updated_at,
     created_at: task.created_at,
+    created_by_user_id: task.created_by_user_id,
   };
 });
 

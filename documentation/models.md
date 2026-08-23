@@ -2,9 +2,13 @@
 
 This document describes the main entities in the system and their fields.
 
-This is not the spec to follow but a mirror of schema.primsa
+This is not the spec to follow but a mirror of the database schema
 
-> For the authoritative source and exact database schema, see [schema.prisma](../prisma/schema.prisma).
+> For the authoritative source and exact latest database schema, see [schema.prisma](../prisma/schema.prisma).
+
+NOTE:
+
+Any database schema changes must be handled by prisma migration, even in development stage.
 
 ---
 

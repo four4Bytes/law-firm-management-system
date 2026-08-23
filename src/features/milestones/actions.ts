@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType } from "@/generated/prisma/browser";
@@ -80,19 +80,15 @@ export async function createMilestoneAction(
       reminder_days,
     });
 
-    after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "milestone.created",
-          entityType: "Case",
-          entityId: case_id,
-          details: `Created milestone: "${title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log milestone.created audit for Case", case_id, err);
-      }
-    });
+    after(() =>
+      logAudit({
+        actorUserId: session.id,
+        action: "milestone.created",
+        entityType: "Case",
+        entityId: case_id,
+        details: `Created milestone: "${title}"`,
+      }),
+    );
 
     revalidatePath(`/case/${case_id}`);
 
@@ -147,17 +143,13 @@ export async function updateMilestoneAction(
     });
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "milestone.updated",
-          entityType: "Case",
-          entityId: existing.case_id,
-          details: `Updated milestone: "${title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log milestone.updated audit for Case", existing.case_id, err);
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "milestone.updated",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Updated milestone: "${title}"`,
+      });
 
       try {
         const assigneeIds = await getCaseAssigneeIds(existing.case_id);
@@ -213,13 +205,13 @@ export async function deleteMilestoneAction(
     await deleteMilestone(milestoneId);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "milestone.deleted",
         entityType: "Case",
         entityId: existing.case_id,
         details: `Deleted milestone: "${existing.title}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(`/case/${existing.case_id}`);

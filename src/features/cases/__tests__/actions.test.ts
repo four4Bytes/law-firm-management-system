@@ -60,7 +60,7 @@ vi.mock("next/server", () => {
 });
 
 vi.mock("@/features/audit/mutations", () => ({
-  createAuditLog: vi.fn().mockResolvedValue(undefined),
+  logAudit: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/notifications/dispatch", () => ({

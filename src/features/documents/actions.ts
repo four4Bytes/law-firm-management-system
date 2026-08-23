@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
@@ -183,13 +183,13 @@ export async function confirmDocumentUploadAction(
     const resultCaseId = case_id ?? taskCaseId;
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "document.uploaded",
         entityType: resultCaseId ? "Case" : "Consultation",
         entityId: (case_id ?? taskCaseId ?? consultation_id)!,
         details: `Uploaded document: "${file_name}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(
@@ -263,13 +263,13 @@ export async function deleteDocumentAction(
     await deleteFile(doc.file_path);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "document.deleted",
         entityType: parentCaseId ? "Case" : "Consultation",
         entityId: parentCaseId ?? doc.consultation_id!,
         details: `Deleted document: "${doc.file_name}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(

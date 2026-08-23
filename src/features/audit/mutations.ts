@@ -8,21 +8,17 @@ export interface AuditLogPayload {
   details?: string;
 }
 
-export async function createAuditLog(payload: AuditLogPayload): Promise<void> {
-  await prisma.auditLog.create({
-    data: {
-      actor_user_id: payload.actorUserId,
-      action: payload.action,
-      entity_type: payload.entityType,
-      entity_id: payload.entityId,
-      details: payload.details ?? null,
-    },
-  });
-}
-
 export async function logAudit(payload: AuditLogPayload): Promise<void> {
   try {
-    await createAuditLog(payload);
+    await prisma.auditLog.create({
+      data: {
+        actor_user_id: payload.actorUserId,
+        action: payload.action,
+        entity_type: payload.entityType,
+        entity_id: payload.entityId,
+        details: payload.details ?? null,
+      },
+    });
   } catch (err) {
     console.error("Failed to write audit log", payload.action, payload.entityId, err);
   }

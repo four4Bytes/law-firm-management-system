@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import {
   getCaseAccessContext,
   getCaseAssigneeIds,
@@ -214,19 +214,15 @@ export async function createCaseAction(
       created_by_user_id: session.id,
     });
 
-    after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "case.created",
-          entityType: "Case",
-          entityId: createdCase.id,
-          details: `Created case: "${case_title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log case.created audit for Case", createdCase.id, err);
-      }
-    });
+    after(() =>
+      logAudit({
+        actorUserId: session.id,
+        action: "case.created",
+        entityType: "Case",
+        entityId: createdCase.id,
+        details: `Created case: "${case_title}"`,
+      }),
+    );
 
     revalidatePath("/case");
 
@@ -262,19 +258,15 @@ export async function createCaseWithClientAction(
       created_by_user_id: session.id,
     });
 
-    after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "case.created",
-          entityType: "Case",
-          entityId: createdWithClient.id,
-          details: `Created case: "${caseData.case_title}" with client: "${client.name}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log case.created audit for Case", createdWithClient.id, err);
-      }
-    });
+    after(() =>
+      logAudit({
+        actorUserId: session.id,
+        action: "case.created",
+        entityType: "Case",
+        entityId: createdWithClient.id,
+        details: `Created case: "${caseData.case_title}" with client: "${client.name}"`,
+      }),
+    );
 
     revalidatePath("/case");
 
@@ -325,17 +317,13 @@ export async function updateCaseAction(
     });
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "case.updated",
-          entityType: "Case",
-          entityId: caseId,
-          details: `Updated case: "${case_title}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log case.updated audit for Case", caseId, err);
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "case.updated",
+        entityType: "Case",
+        entityId: caseId,
+        details: `Updated case: "${case_title}"`,
+      });
 
       try {
         const newAssigneeIds = diffNewAssigneeIds(
@@ -419,17 +407,13 @@ export async function updateCaseWithClientAction(
     });
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "case.updated",
-          entityType: "Case",
-          entityId: case_id,
-          details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
-        });
-      } catch (err) {
-        console.error("Failed to log case.updated audit for Case", case_id, err);
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "case.updated",
+        entityType: "Case",
+        entityId: case_id,
+        details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
+      });
 
       try {
         const newAssigneeIds = diffNewAssigneeIds(
@@ -506,13 +490,13 @@ export async function deleteCaseAction(
     await deleteCase(parsed.data.caseId);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "case.deleted",
         entityType: "Case",
         entityId: parsed.data.caseId,
         details: `Deleted case: "${existing.case_title}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath("/case");

@@ -3,7 +3,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import { CREATABLE_ROLES } from "@/features/users/constants";
 import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
 import {
@@ -84,13 +84,13 @@ export async function createUserAction(
       await updateUser(existing.id, { role: effectiveRole, is_active: true });
 
       after(() =>
-        createAuditLog({
+        logAudit({
           actorUserId: session.id,
           action: "user.reactivated",
           entityType: "User",
           entityId: existing.id,
           details: `Reactivated user: ${parsed.data.email}`,
-        }).catch(console.error),
+        }),
       );
     } catch {
       return { success: false, error: "Failed to reactivate user." };
@@ -103,13 +103,13 @@ export async function createUserAction(
     createdUser = await createUser(parsed.data.email, effectiveRole);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "user.created",
         entityType: "User",
         entityId: createdUser.id,
         details: `Created user: ${parsed.data.email}`,
-      }).catch(console.error),
+      }),
     );
   } catch {
     return { success: false, error: "Failed to create user." };
@@ -154,13 +154,13 @@ export async function updateUserAction(
     await updateUser(parsed.data.userId, { email: parsed.data.email, role: parsed.data.role });
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "user.updated",
         entityType: "User",
         entityId: parsed.data.userId,
         details: `Updated user: ${parsed.data.email}`,
-      }).catch(console.error),
+      }),
     );
   } catch {
     return { success: false, error: "Failed to update user." };
@@ -195,13 +195,13 @@ export async function deactivateUserAction(
     await setUserActiveStatus(parsed.data.userId, false);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "user.deactivated",
         entityType: "User",
         entityId: parsed.data.userId,
         details: "Deactivated user",
-      }).catch(console.error),
+      }),
     );
   } catch {
     return { success: false, error: "Failed to deactivate user." };

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import {
   getConsultationAccessContext,
   getConsultationAssigneeIds,
@@ -161,23 +161,15 @@ export async function createConsultationAction(
       assignee_ids,
     });
 
-    after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "consultation.created",
-          entityType: "Consultation",
-          entityId: createdConsultation.id,
-          details: `Created consultation: "${concern}"`,
-        });
-      } catch (err) {
-        console.error(
-          "Failed to log consultation.created audit for Consultation",
-          createdConsultation.id,
-          err,
-        );
-      }
-    });
+    after(() =>
+      logAudit({
+        actorUserId: session.id,
+        action: "consultation.created",
+        entityType: "Consultation",
+        entityId: createdConsultation.id,
+        details: `Created consultation: "${concern}"`,
+      }),
+    );
 
     revalidatePath("/consultation");
 
@@ -207,23 +199,15 @@ export async function createConsultationWithClientAction(
       created_by_user_id: session.id,
     });
 
-    after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "consultation.created",
-          entityType: "Consultation",
-          entityId: createdWithClient.id,
-          details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
-        });
-      } catch (err) {
-        console.error(
-          "Failed to log consultation.created audit for Consultation",
-          createdWithClient.id,
-          err,
-        );
-      }
-    });
+    after(() =>
+      logAudit({
+        actorUserId: session.id,
+        action: "consultation.created",
+        entityType: "Consultation",
+        entityId: createdWithClient.id,
+        details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
+      }),
+    );
 
     revalidatePath("/consultation");
 
@@ -277,21 +261,13 @@ export async function updateConsultationAction(
     });
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "consultation.updated",
-          entityType: "Consultation",
-          entityId: consultationId,
-          details: `Updated consultation: "${concern}"`,
-        });
-      } catch (err) {
-        console.error(
-          "Failed to log consultation.updated audit for Consultation",
-          consultationId,
-          err,
-        );
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "consultation.updated",
+        entityType: "Consultation",
+        entityId: consultationId,
+        details: `Updated consultation: "${concern}"`,
+      });
 
       try {
         const newAssigneeIds = diffNewAssigneeIds(
@@ -381,21 +357,13 @@ export async function updateConsultationWithClientAction(
     });
 
     after(async () => {
-      try {
-        await createAuditLog({
-          actorUserId: session.id,
-          action: "consultation.updated",
-          entityType: "Consultation",
-          entityId: consultation_id,
-          details: `Updated consultation: "${consultation.concern}" with client: "${client.name}"`,
-        });
-      } catch (err) {
-        console.error(
-          "Failed to log consultation.updated audit for Consultation",
-          consultation_id,
-          err,
-        );
-      }
+      await logAudit({
+        actorUserId: session.id,
+        action: "consultation.updated",
+        entityType: "Consultation",
+        entityId: consultation_id,
+        details: `Updated consultation: "${consultation.concern}" with client: "${client.name}"`,
+      });
 
       try {
         const newAssigneeIds = diffNewAssigneeIds(
@@ -474,13 +442,13 @@ export async function deleteConsultationAction(
     await deleteConsultation(parsed.data.consultationId);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "consultation.deleted",
         entityType: "Consultation",
         entityId: parsed.data.consultationId,
         details: `Deleted consultation: "${existing.concern}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath("/consultation");

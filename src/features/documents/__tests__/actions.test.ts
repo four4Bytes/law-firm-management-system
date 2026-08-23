@@ -26,7 +26,7 @@ vi.mock("@/features/consultations/queries", () => ({
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
-  createAuditLog: vi.fn(),
+  logAudit: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({

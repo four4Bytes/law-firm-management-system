@@ -48,7 +48,6 @@ vi.mock("@/features/cases/queries", () => ({
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
-  createAuditLog: vi.fn().mockResolvedValue(undefined),
   logAudit: vi.fn().mockResolvedValue(undefined),
 }));
 

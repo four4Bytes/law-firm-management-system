@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { FileList } from "@/features/documents/components/FileList/FileList";
-import { createTaskAction } from "@/features/tasks/actions";
+import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
@@ -50,6 +50,7 @@ export function AddTaskModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
+  const [reviewerIds, setReviewerIds] = useState<Set<string>>(new Set());
   const [isPending, setIsPending] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
 
@@ -60,6 +61,7 @@ export function AddTaskModal({
     setTitle("");
     setDescription("");
     setAssigneeIds(new Set());
+    setReviewerIds(new Set());
     setCreatedTaskId(null);
     resetFiles();
   }
@@ -110,6 +112,13 @@ export function AddTaskModal({
 
         setCreatedTaskId(result.data.id);
         taskId = result.data.id;
+      }
+
+      if (reviewerIds.size > 0) {
+        for (const id of reviewerIds) {
+          const result = await addTaskReviewerAction({ taskId, reviewerUserId: id });
+          if (!result.success) queue.add({ title: result.error ?? "Failed to add reviewer" });
+        }
       }
 
       if (hasFiles) {
@@ -170,6 +179,14 @@ export function AddTaskModal({
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
+            />
+            <UserSelect
+              users={users}
+              selectedIds={reviewerIds}
+              onChange={setReviewerIds}
+              isDisabled={isPending}
+              label="Reviewers"
+              placeholder="Select reviewers..."
             />
           </div>
 

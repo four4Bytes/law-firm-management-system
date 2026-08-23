@@ -65,7 +65,7 @@ Creator creates task
 - `Pending` → `Submitted`: Assignee submits their work for review.
 - `Submitted` → `Completed`: Every reviewer has accepted.
 - `Submitted` → `Pending`: Any reviewer rejects. All reviewer decisions reset to pending (rework).
-- Any active status → `Cancelled`: Task is abandoned.
+- Any active status → `Cancelled`: Task is abandoned. Only the task **creator** may cancel — the Server Action permits it solely when the caller is the task's `created_by_user_id`; assignees and reviewers cannot. Cancellation is a status change (the record is retained), not a deletion.
 
 ## 4. Review Model
 
@@ -83,17 +83,19 @@ Each reviewer has exactly one decision per task:
 
 - A user can only review a given task once. Re-adding the same reviewer resets their decision to `Pending` and clears `reviewed_at`.
 - The task creator is always a reviewer from task creation.
-- Reviewers can be added by the task creator at any time, including while the task is `Submitted` (mid-review).
-- When a reviewer is added, they receive a notification (status changed basically see [notifications.md](./notifications.md)).
+- **Any reviewer (including the creator) may add new reviewers at any time** — while the task is `Pending`, `Submitted`, or `Completed`. This drives the review-chain pattern: the creator adds a reviewer, that reviewer adds another, and so on.
+- When a reviewer is added, they receive a notification (see [notifications.md](./notifications.md)).
 - Each review decision may include an optional comment (a task Note) providing feedback.
 
 ### Status Derivation
 
-The task status is derived from reviewer decisions when the task is `Submitted`:
+The task status is **re-derived after every reviewer change** — a recorded decision _or_ an added reviewer — not only while `Submitted`:
 
 - If **any** reviewer has `Rejected` → task returns to `Pending` (all decisions reset to `Pending`, `reviewed_at` cleared).
 - If **all** reviewers have `Accepted` → task becomes `Completed`.
-- Otherwise → task remains `Submitted`.
+- Otherwise (at least one reviewer is still `Pending`):
+  - If a reviewer was just added to a `Completed` task → task returns to `Pending` (the new reviewer is `Pending` by default, reopening the review).
+  - Otherwise → task remains `Submitted`.
 
 ## 5. File Locking
 
@@ -167,7 +169,9 @@ There are exactly **three task modals**, and they look identical:
 | `View Task` | Read-only inspection of a task             | 3       | Close         |
 
 - The modals share the same column layout and field placement. `View Task` is `Edit Task` with every input rendered read-only (labels + values instead of inputs); it contains no workflow controls.
-- **Assignee / Reviewer selects are creator-only.** Only the task creator can change who is assigned or who reviews. Non-creator roles (assignee, reviewer) see both as read-only **name chips** — they cannot alter attachments. Everything else in the modal is identical across roles.
+- **Assignee / Reviewer selects:**
+  - **Assignee select is creator-only.** Only the task creator can change who is assigned.
+  - **Reviewer select is editable by the creator _and_ any existing reviewer** (supporting the review-chain: a reviewer can add the next reviewer). Non-reviewer roles (plain assignees) and users with no task attachment see both as read-only **name chips** — they cannot alter attachments. Everything else in the modal is identical across roles.
 - **All security is enforced in the Server Actions.** Row actions in the task table are always rendered (View / Edit / Delete). Clicking **Edit** when the caller lacks update permission shows a toast and does **not** open the modal. View is the single exception: it is hidden when the caller has no READ access (AGENTS.md:94).
 - Workflow state is expressed through **plain form fields — Selects** — never through dedicated workflow buttons ("Submit for Review", "Cancel Task", "No decision panel", "No status banner").
 

@@ -250,12 +250,15 @@ Links a user to a consultation.
 
 Links a user to a task.
 
-| Field   | Type      | Required | Description        |
-| ------- | --------- | -------- | ------------------ |
-| Task    | Link      | Yes      | The task           |
-| User    | Link      | Yes      | The assigned user  |
-| Created | Timestamp | Yes      | When assigned      |
-| Updated | Timestamp | Yes      | When last modified |
+| Field   | Type      | Required | Description                                                              |
+| ------- | --------- | -------- | ------------------------------------------------------------------------ |
+| Task    | Link      | Yes      | The task                                                                 |
+| User    | Link      | Yes      | The assigned user                                                        |
+| Status  | Enum      | Yes      | Submission state (see [Task Assignment Status](#task-assignment-status)) |
+| Created | Timestamp | Yes      | When assigned                                                            |
+| Updated | Timestamp | Yes      | When last modified                                                       |
+
+> Each assignee carries a submission state. An assignee may move their own row `Pending ⇄ Submitted` while the task is `Pending` or `Submitted`; the task status is derived from all assignee states and reviewer decisions (see [Task Review Workflow](./task-review-workflow.md)).
 
 ---
 
@@ -317,12 +320,14 @@ Links a reviewer to a task for approval workflows.
 
 ### Task Status
 
-| Value     | Description                        |
-| --------- | ---------------------------------- |
-| Pending   | Created, in progress, or reworking |
-| Submitted | Work submitted, under review       |
-| Completed | All reviewers accepted the task    |
-| Cancelled | Task is no longer relevant         |
+| Value     | Description                                                  |
+| --------- | ------------------------------------------------------------ |
+| Pending   | Not all assignees submitted, or a reviewer rejected (rework) |
+| Submitted | All assignees submitted their work; under review             |
+| Completed | All reviewers accepted the task                              |
+| Cancelled | Task is no longer relevant                                   |
+
+> `Task.status` is derived — assignees and reviewers never set it directly (only the creator may cancel). See [Task Review Workflow](./task-review-workflow.md).
 
 ---
 
@@ -333,6 +338,15 @@ Links a reviewer to a task for approval workflows.
 | Pending  | Awaiting the reviewer's decision            |
 | Accepted | Reviewer approves the work                  |
 | Rejected | Reviewer rejects the work, assignee reworks |
+
+---
+
+### Task Assignment Status
+
+| Value     | Description                                   |
+| --------- | --------------------------------------------- |
+| Pending   | Assignee still working / reworking            |
+| Submitted | Assignee has handed their work off for review |
 
 ---
 

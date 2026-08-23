@@ -28,7 +28,7 @@ const mockTaskData = (overrides: Record<string, unknown> = {}) => ({
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-02"),
-  taskAssignments: [{ user_id: "u2", user: { name: "Jane Assignee" } }],
+  taskAssignments: [{ user_id: "u2", user: { name: "Jane Assignee" }, status: "Pending" as const }],
   taskReviewers: [{ id: "r1", reviewer_user_id: "u3", decision: "Pending", reviewed_at: null }],
   ...overrides,
 });
@@ -44,7 +44,9 @@ describe("getTaskById", () => {
       title: "Task title",
       case_id: "c1",
       created_by_user_id: "u1",
-      taskAssignments: [{ user_id: "u2", user: { name: "Jane Assignee" } }],
+      taskAssignments: [
+        { user_id: "u2", user: { name: "Jane Assignee" }, status: "Pending" as const },
+      ],
       taskReviewers: [{ id: "r1", reviewer_user_id: "u3", decision: "Pending", reviewed_at: null }],
     });
     expect(prisma.task.findUnique).toHaveBeenCalledWith({
@@ -59,7 +61,7 @@ describe("getTaskById", () => {
         created_at: true,
         updated_at: true,
         taskAssignments: {
-          select: { user: { select: { name: true } }, user_id: true },
+          select: { user: { select: { name: true } }, user_id: true, status: true },
         },
         taskReviewers: {
           select: {
@@ -112,7 +114,7 @@ describe("getTaskDetailRowById", () => {
       title: "Task title",
       description: "Task description",
       status: "Pending",
-      assignTo: [{ id: "u2", name: "Jane Assignee" }],
+      assignTo: [{ id: "u2", name: "Jane Assignee", status: "Pending" }],
       assignee_ids: ["u2"],
       reviewers: [
         {

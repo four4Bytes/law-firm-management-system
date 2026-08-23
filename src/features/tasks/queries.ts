@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import type { ReviewDecision, Task, User } from "@/generated/prisma/browser";
+import type { ReviewDecision, Task, TaskAssignmentStatus, User } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 
@@ -20,7 +20,7 @@ export type TaskReviewerRow = {
 
 export type TaskDetailRow = Omit<TaskRow, "assignTo"> &
   Pick<Task, "description" | "created_at" | "created_by_user_id"> & {
-    assignTo: { id: string; name: string }[];
+    assignTo: { id: string; name: string; status: TaskAssignmentStatus }[];
     assignee_ids: string[];
     reviewers: TaskReviewerRow[];
   };
@@ -46,7 +46,7 @@ export const getTaskById = cache(async (id: string) => {
       created_at: true,
       updated_at: true,
       taskAssignments: {
-        select: { user: { select: { name: true } }, user_id: true },
+        select: { user: { select: { name: true } }, user_id: true, status: true },
       },
       taskReviewers: {
         select: {
@@ -94,7 +94,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
       created_at: true,
       created_by_user_id: true,
       taskAssignments: {
-        select: { user_id: true, user: { select: { name: true } } },
+        select: { user_id: true, user: { select: { name: true } }, status: true },
       },
       taskReviewers: {
         select: {
@@ -116,7 +116,11 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
     title: task.title,
     description: task.description,
     status: task.status,
-    assignTo: task.taskAssignments.map((a) => ({ id: a.user_id, name: a.user.name })),
+    assignTo: task.taskAssignments.map((a) => ({
+      id: a.user_id,
+      name: a.user.name,
+      status: a.status,
+    })),
     assignee_ids: task.taskAssignments.map((a) => a.user_id),
     reviewers: task.taskReviewers.map((r) => ({
       id: r.id,

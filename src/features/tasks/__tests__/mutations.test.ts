@@ -8,9 +8,9 @@ import {
   cancelTask,
   createTask,
   deleteTask,
-  deriveReviewStatus,
+  deriveTaskStatus,
   removeTaskReviewer,
-  submitTask,
+  setAssignmentStatus,
   updateTask,
 } from "../mutations";
 
@@ -19,6 +19,7 @@ vi.mock("@/lib/prisma", () => ({
     $transaction: vi.fn(),
     task: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
     taskReviewer: { updateMany: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    taskAssignment: { updateMany: vi.fn(), findMany: vi.fn() },
     caseAssignment: { findMany: vi.fn(), createMany: vi.fn() },
   },
 }));
@@ -38,12 +39,14 @@ const mockTask = (overrides: Record<string, unknown> = {}) => ({
 type Tx = {
   task: typeof prisma.task;
   taskReviewer: typeof prisma.taskReviewer;
+  taskAssignment: typeof prisma.taskAssignment;
   caseAssignment: typeof prisma.caseAssignment;
 };
 
 const tx: Tx = {
   task: prisma.task,
   taskReviewer: prisma.taskReviewer,
+  taskAssignment: prisma.taskAssignment,
   caseAssignment: prisma.caseAssignment,
 };
 
@@ -57,6 +60,16 @@ const mockTaskReviewer = (overrides: Record<string, unknown> = {}) => ({
   reviewer_user_id: "u4",
   decision: "Pending" as const,
   reviewed_at: null,
+  created_at: new Date("2024-06-01"),
+  updated_at: new Date("2024-06-01"),
+  ...overrides,
+});
+
+const mockTaskAssignment = (overrides: Record<string, unknown> = {}) => ({
+  id: "ta1",
+  task_id: "t1",
+  user_id: "u2",
+  status: "Pending" as const,
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
   ...overrides,
@@ -187,6 +200,12 @@ describe("updateTask", () => {
 
   it("updates a task with assignee sync", async () => {
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Pending" }),
+    ]);
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Pending" }),
+    ]);
 
     await updateTask("t1", {
       title: "Updated",
@@ -235,18 +254,61 @@ describe("deleteTask", () => {
   });
 });
 
-describe("submitTask", () => {
-  it("marks the task as submitted", async () => {
+describe("setAssignmentStatus", () => {
+  it("submits the assignee and derives Submitted when every assignee has submitted", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskAssignment.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Submitted" }),
+      mockTaskAssignment({ user_id: "u3", status: "Submitted" }),
+    ]);
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Pending" }),
+    ]);
 
-    const result = await submitTask("t1");
+    const result = await setAssignmentStatus("t1", "u2", "Submitted");
 
-    expect(result.id).toBe("t1");
+    expect(result).toEqual({ taskStatus: "Submitted" });
+    expect(prisma.taskAssignment.updateMany).toHaveBeenCalledWith({
+      where: { task_id: "t1", user_id: "u2" },
+      data: { status: "Submitted" },
+    });
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
       data: { status: "Submitted" },
       select: { id: true },
     });
+  });
+
+  it("reverts to Pending when an assignee un-submits", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Submitted" }));
+    vi.mocked(prisma.taskAssignment.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Submitted" }),
+      mockTaskAssignment({ user_id: "u3", status: "Pending" }),
+    ]);
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Pending" }),
+    ]);
+
+    const result = await setAssignmentStatus("t1", "u2", "Pending");
+
+    expect(result).toEqual({ taskStatus: "Pending" });
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Pending" },
+      select: { id: true },
+    });
+  });
+
+  it("throws when the task is Completed", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Completed" }));
+
+    await expect(setAssignmentStatus("t1", "u2", "Submitted")).rejects.toThrow(
+      "Assignment submission is locked for this task",
+    );
   });
 });
 
@@ -254,6 +316,13 @@ describe("addTaskReviewer", () => {
   it("adds a reviewer and grants case membership", async () => {
     vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
     vi.mocked(prisma.taskReviewer.upsert).mockResolvedValue(mockTaskReviewer());
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Pending" }),
+    ]);
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Pending" }),
+    ]);
 
     const result = await addTaskReviewer("t1", "u4");
 
@@ -277,14 +346,28 @@ describe("addTaskReviewer", () => {
 });
 
 describe("addTaskReviewer (status transitions)", () => {
-  it("reverts a Completed task to Pending without resetting existing decisions", async () => {
+  it("reopens a Completed task and resets reviewer decisions and assignee submissions to Pending", async () => {
     vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Completed" }));
     vi.mocked(prisma.taskReviewer.upsert).mockResolvedValue(mockTaskReviewer());
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Accepted" }),
+    ]);
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Pending" }),
+    ]);
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
     const result = await addTaskReviewer("t1", "u4");
 
     expect(result.id).toBe("t1");
+    expect(prisma.taskReviewer.updateMany).toHaveBeenCalledWith({
+      where: { task_id: "t1" },
+      data: { decision: "Pending", reviewed_at: null },
+    });
+    expect(prisma.taskAssignment.updateMany).toHaveBeenCalledWith({
+      where: { task_id: "t1" },
+      data: { status: "Pending" },
+    });
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
       data: { status: "Pending" },
@@ -326,6 +409,9 @@ describe("removeTaskReviewer", () => {
     vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
       mockTaskReviewer({ reviewer_user_id: "u2", decision: "Accepted" }),
     ]);
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Submitted" }),
+    ]);
 
     await removeTaskReviewer("t1", "u4", "u1");
 
@@ -338,11 +424,14 @@ describe("removeTaskReviewer", () => {
 });
 
 describe("applyReviewDecision", () => {
-  it("completes the task when every reviewer accepts", async () => {
+  it("completes the task when every reviewer accepts and every assignee has submitted", async () => {
     vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
       mockTaskReviewer({ reviewer_user_id: "u1", decision: "Accepted" }),
       mockTaskReviewer({ reviewer_user_id: "u2", decision: "Accepted" }),
+    ]);
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Submitted" }),
     ]);
 
     const result = await applyReviewDecision({
@@ -360,11 +449,14 @@ describe("applyReviewDecision", () => {
     });
   });
 
-  it("reopens the task and resets reviewers on rejection", async () => {
+  it("reopens the task and resets reviewers and assignees on rejection", async () => {
     vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
       mockTaskReviewer({ reviewer_user_id: "u1", decision: "Rejected" }),
       mockTaskReviewer({ reviewer_user_id: "u2", decision: "Accepted" }),
+    ]);
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Submitted" }),
     ]);
 
     const result = await applyReviewDecision({
@@ -379,6 +471,10 @@ describe("applyReviewDecision", () => {
       where: { task_id: "t1" },
       data: { decision: "Pending", reviewed_at: null },
     });
+    expect(prisma.taskAssignment.updateMany).toHaveBeenCalledWith({
+      where: { task_id: "t1" },
+      data: { status: "Pending" },
+    });
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
       data: { status: "Pending" },
@@ -392,6 +488,9 @@ describe("applyReviewDecision", () => {
       mockTaskReviewer({ reviewer_user_id: "u1", decision: "Accepted" }),
       mockTaskReviewer({ reviewer_user_id: "u2", decision: "Pending" }),
     ]);
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ status: "Submitted" }),
+    ]);
 
     const result = await applyReviewDecision({
       taskId: "t1",
@@ -401,7 +500,11 @@ describe("applyReviewDecision", () => {
 
     expect(result).toEqual({ taskStatus: "Submitted" });
     expect(prisma.taskReviewer.updateMany).toHaveBeenCalledTimes(1);
-    expect(prisma.task.update).not.toHaveBeenCalled();
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Submitted" },
+      select: { id: true },
+    });
   });
 });
 
@@ -420,12 +523,15 @@ describe("cancelTask", () => {
   });
 });
 
-describe("deriveReviewStatus", () => {
-  it("derives status from reviewer decisions", () => {
-    expect(deriveReviewStatus([])).toBe("Submitted");
-    expect(deriveReviewStatus(["Pending"])).toBe("Submitted");
-    expect(deriveReviewStatus(["Accepted", "Accepted"])).toBe("Completed");
-    expect(deriveReviewStatus(["Accepted", "Rejected"])).toBe("Pending");
-    expect(deriveReviewStatus(["Rejected", "Rejected"])).toBe("Pending");
+describe("deriveTaskStatus", () => {
+  it("derives status from assignee submissions and reviewer decisions", () => {
+    expect(deriveTaskStatus([], [])).toBe("Pending");
+    expect(deriveTaskStatus([], ["Pending"])).toBe("Pending");
+    expect(deriveTaskStatus(["Submitted", "Submitted"], ["Accepted", "Accepted"])).toBe(
+      "Completed",
+    );
+    expect(deriveTaskStatus(["Submitted", "Submitted"], ["Accepted", "Rejected"])).toBe("Pending");
+    expect(deriveTaskStatus(["Submitted", "Submitted"], ["Accepted", "Pending"])).toBe("Submitted");
+    expect(deriveTaskStatus(["Submitted", "Pending"], ["Accepted", "Accepted"])).toBe("Pending");
   });
 });

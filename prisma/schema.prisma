@@ -45,6 +45,11 @@ enum ReviewDecision {
   Rejected
 }
 
+enum TaskAssignmentStatus {
+  Pending
+  Submitted
+}
+
 enum CaseMilestoneStatus {
   Pending
   Done
@@ -216,16 +221,18 @@ model ConsultationAssignment {
 }
 
 model TaskAssignment {
-  id         String   @id @default(uuid()) @db.Uuid
-  task_id    String   @db.Uuid
-  user_id    String   @db.Uuid
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id         String               @id @default(uuid()) @db.Uuid
+  task_id    String               @db.Uuid
+  user_id    String               @db.Uuid
+  status     TaskAssignmentStatus @default(Pending)
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
 
   task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([task_id, user_id])
+  @@index([task_id, status])
 }
 
 model Task {

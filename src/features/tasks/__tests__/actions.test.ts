@@ -23,7 +23,7 @@ import {
   cancelTask,
   createTask,
   removeTaskReviewer,
-  submitTask,
+  setAssignmentStatus,
   updateTask,
 } from "../mutations";
 import { getTaskAccessContext, getTaskById, getTaskDetailRowById } from "../queries";
@@ -81,7 +81,7 @@ vi.mock("../mutations", () => ({
   createTask: vi.fn(),
   updateTask: vi.fn(),
   deleteTask: vi.fn(),
-  submitTask: vi.fn(),
+  setAssignmentStatus: vi.fn(),
   applyReviewDecision: vi.fn(),
   addTaskReviewer: vi.fn(),
   removeTaskReviewer: vi.fn(),
@@ -100,7 +100,7 @@ const taskRecord = {
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
-  taskAssignments: [] as { user_id: string; user: { name: string } }[],
+  taskAssignments: [] as { user_id: string; user: { name: string }; status: "Pending" }[],
   taskReviewers: [] as {
     id: string;
     reviewer_user_id: string;
@@ -275,7 +275,7 @@ describe("updateTaskAction notification split", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      taskAssignments: [{ user_id: assignee1, user: { name: "n2" } }],
+      taskAssignments: [{ user_id: assignee1, user: { name: "n2" }, status: "Pending" as const }],
     });
     vi.mocked(updateTask).mockResolvedValue({ id: uuid });
   });
@@ -321,7 +321,7 @@ describe("deleteTaskAction", () => {
 
 const assigneeRecord = {
   ...taskRecord,
-  taskAssignments: [{ user_id: "u2", user: { name: "n2" } }],
+  taskAssignments: [{ user_id: "u2", user: { name: "n2" }, status: "Pending" as const }],
 };
 
 describe("submitTaskAction", () => {
@@ -346,12 +346,12 @@ describe("submitTaskAction", () => {
         { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
       ],
     });
-    vi.mocked(submitTask).mockResolvedValue({ id: uuid });
+    vi.mocked(setAssignmentStatus).mockResolvedValue({ taskStatus: "Submitted" });
 
     const result = await submitTaskAction({ taskId: uuid });
     expect(result).toEqual({ success: true });
     await flushAfterCallbacks();
-    expect(submitTask).toHaveBeenCalledWith(uuid);
+    expect(setAssignmentStatus).toHaveBeenCalledWith(uuid, "u2", "Submitted");
   });
 });
 

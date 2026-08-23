@@ -73,12 +73,12 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
           <div className={styles.column}>
             <div className={styles.field}>
               <span className={styles.label}>Title</span>
-              <span>{task.title}</span>
+              <span className={styles.value}>{task.title}</span>
             </div>
             {task.description && (
               <div className={styles.field}>
                 <span className={styles.label}>Description</span>
-                <span>{task.description}</span>
+                <span className={styles.value}>{task.description}</span>
               </div>
             )}
             <div className={styles.field}>
@@ -93,7 +93,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Status</span>
-              <span>{task.status}</span>
+              <span className={styles.value}>{task.status}</span>
             </div>
           </div>
 

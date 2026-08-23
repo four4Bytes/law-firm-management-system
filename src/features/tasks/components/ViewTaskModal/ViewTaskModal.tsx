@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { queue } from "@/components/ui/Toast/Toast";
 import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
+import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
 import type { DocumentRow } from "@/features/documents/queries";
 import { getTaskNotesAction } from "@/features/notes/actions";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
@@ -25,6 +25,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
+  const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,72 +66,82 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
   const hasNotes = notes.length > 0;
 
   return (
-    <Modal title="Task" isOpen={isOpen} onOpenChange={onOpenChange} className={styles.modal}>
-      <div className={styles.columns}>
-        <div className={styles.column}>
-          <div className={styles.field}>
-            <span className={styles.label}>Title</span>
-            <span>{task.title}</span>
-          </div>
-          {task.description && (
+    <>
+      <Modal title="Task" isOpen={isOpen} onOpenChange={onOpenChange} className={styles.modal}>
+        <div className={styles.columns}>
+          <div className={styles.column}>
             <div className={styles.field}>
-              <span className={styles.label}>Description</span>
-              <span>{task.description}</span>
+              <span className={styles.label}>Title</span>
+              <span>{task.title}</span>
             </div>
-          )}
-          <div className={styles.field}>
-            <span className={styles.label}>Assignees</span>
-            <span>{task.assignTo}</span>
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Reviewers</span>
-            {task.reviewers.length > 0 ? (
-              <ul className={styles.list}>
-                {task.reviewers.map((r) => (
-                  <li key={r.id}>
-                    {r.name}
-                    {r.decision !== "Pending" && ` — ${r.decision}`}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span>—</span>
-            )}
-          </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Status</span>
-            <span>{task.status}</span>
-          </div>
-        </div>
-
-        {hasFiles && (
-          <>
-            <div className={styles.divider} />
-            <div className={styles.column}>
+            {task.description && (
               <div className={styles.field}>
-                <span className={styles.label}>Attachments</span>
-                <FileList
-                  entries={[]}
-                  isBusy={false}
-                  onRemove={() => {}}
-                  existingDocuments={documents}
-                  isLoading={isLoadingDocuments}
-                />
+                <span className={styles.label}>Description</span>
+                <span>{task.description}</span>
               </div>
+            )}
+            <div className={styles.field}>
+              <span className={styles.label}>Assignees</span>
+              <span>{task.assignTo}</span>
             </div>
-          </>
-        )}
+            <div className={styles.field}>
+              <span className={styles.label}>Reviewers</span>
+              {task.reviewers.length > 0 ? (
+                <ul className={styles.list}>
+                  {task.reviewers.map((r) => (
+                    <li key={r.id}>
+                      {r.name}
+                      {r.decision !== "Pending" && ` — ${r.decision}`}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span>—</span>
+              )}
+            </div>
+            <div className={styles.field}>
+              <span className={styles.label}>Status</span>
+              <span>{task.status}</span>
+            </div>
+          </div>
 
-        {hasNotes && (
-          <>
-            <div className={styles.divider} />
-            <div className={styles.column}>
-              <span className={styles.label}>Notes</span>
-              <NoteList notes={notes} />
-            </div>
-          </>
-        )}
-      </div>
-    </Modal>
+          {hasFiles && (
+            <>
+              <div className={styles.divider} />
+              <div className={styles.column}>
+                <div className={styles.field}>
+                  <span className={styles.label}>Attachments</span>
+                  <FileList
+                    entries={[]}
+                    isBusy={false}
+                    onRemove={() => {}}
+                    existingDocuments={documents}
+                    onView={setPreviewDocument}
+                    isLoading={isLoadingDocuments}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {hasNotes && (
+            <>
+              <div className={styles.divider} />
+              <div className={styles.column}>
+                <span className={styles.label}>Notes</span>
+                <NoteList notes={notes} />
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+      {previewDocument && (
+        <ViewAttachmentModal
+          isOpen={!!previewDocument}
+          onOpenChange={() => setPreviewDocument(null)}
+          document={previewDocument}
+        />
+      )}
+    </>
   );
 }

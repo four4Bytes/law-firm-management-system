@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+early_access: true
+
+reviews:
+  profile: assertive
+  review_details: true
+  labeling_instructions:
+    - label: feature
+      instructions: Apply when the pull request introduces new features, capabilities, or major enhancements (feat).
+    - label: bug
+      instructions: Apply when the pull request fixes bugs, errors, incorrect behavior, or regressions (fix).
+    - label: refactor
+      instructions: Apply for structural code changes, optimizations, or refactoring that do not add features or fix bugs.
+    - label: chore
+      instructions: Apply for routine maintenance tasks, tooling modifications, or CI/CD pipeline configuration updates.
+    - label: dependencies
+      instructions: Apply when the pull request updates, bumps, or adds project dependencies and lockfiles.
+  auto_apply_labels: true
+  poem: true
+  auto_review:
+    enabled: false
+    base_branches:
+      - dev
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: true
+
+issue_enrichment:
+  auto_enrich:
+    enabled: true
+  labeling:
+    auto_apply_labels: true

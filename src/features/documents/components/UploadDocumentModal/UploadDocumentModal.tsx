@@ -5,6 +5,7 @@ import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { queue } from "@/components/ui/Toast/Toast";
 import { FileList } from "@/features/documents/components/FileList/FileList";
+import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./UploadDocumentModal.module.css";
@@ -17,20 +18,6 @@ interface UploadDocumentModalProps {
   consultationId?: string;
   taskId?: string;
 }
-
-const ACCEPTED_TYPES = [
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".xls",
-  ".xlsx",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".txt",
-  ".csv",
-] as const;
 
 export function UploadDocumentModal({
   isOpen,
@@ -106,7 +93,7 @@ export function UploadDocumentModal({
         <DropZone
           allowsMultiple
           onFileSelect={addFiles}
-          acceptedFileTypes={ACCEPTED_TYPES}
+          acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
           isDisabled={isBusy}
           description="Supported: PDF, DOC, XLS, images, TXT, CSV"
         />

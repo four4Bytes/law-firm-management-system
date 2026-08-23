@@ -33,24 +33,11 @@ import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { ReviewDecision, TaskStatus } from "@/generated/prisma/browser";
+import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./EditTaskModal.module.css";
-
-const ACCEPTED_TYPES = [
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".xls",
-  ".xlsx",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".txt",
-  ".csv",
-] as const;
 
 interface EditTaskModalProps {
   isOpen: boolean;
@@ -399,7 +386,7 @@ export function EditTaskModal({
             <DropZone
               allowsMultiple
               onFileSelect={addFiles}
-              acceptedFileTypes={ACCEPTED_TYPES}
+              acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
               isDisabled={isPending || !capabilities.canEdit}
               label="Drop files or click to upload"
               description="Supported: PDF, DOC, XLS, images, TXT, CSV"

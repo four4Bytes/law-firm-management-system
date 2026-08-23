@@ -6,11 +6,11 @@ A review chain system for tasks. Assignees complete work and submit it for revie
 
 ## 2. Roles
 
-| Role         | Definition                                    | Responsibilities                                                            |
-| ------------ | --------------------------------------------- | --------------------------------------------------------------------------- |
-| **Creator**  | The user who created the task                 | Automatically a reviewer. Can add more reviewers via the reviewers Select.  |
-| **Assignee** | A user assigned to the task                   | Performs the work, uploads files, submits for review, reworks on rejection. |
-| **Reviewer** | The creator plus any user added by a reviewer | Reviews submitted work; records a decision via the Decision Select.         |
+| Role         | Definition                                     | Responsibilities                                                            |
+| ------------ | ---------------------------------------------- | --------------------------------------------------------------------------- |
+| **Creator**  | The user who created the task                  | Automatically a reviewer. Can add more reviewers via the reviewers Select.  |
+| **Assignee** | A user assigned to the task                    | Performs the work, uploads files, submits for review, reworks on rejection. |
+| **Reviewer** | The creator plus any user added by the creator | Reviews submitted work; records a decision via the Decision Select.         |
 
 ### Role Assignment Rules
 
@@ -83,7 +83,7 @@ Each reviewer has exactly one decision per task:
 
 - A user can only review a given task once. Re-adding the same reviewer resets their decision to `Pending` and clears `reviewed_at`.
 - The task creator is always a reviewer from task creation.
-- Reviewers can be added by any existing reviewer while the task is `Submitted`.
+- Reviewers can be added by the task creator at any time, including while the task is `Submitted` (mid-review).
 - When a reviewer is added, they receive a notification (status changed basically see [notifications.md](./notifications.md)).
 - Each review decision may include an optional comment (a task Note) providing feedback.
 
@@ -168,7 +168,7 @@ There are exactly **three task modals**, and they look identical:
 
 - The modals share the same column layout and field placement. `View Task` is `Edit Task` with every input rendered read-only (labels + values instead of inputs); it contains no workflow controls.
 - **Assignee / Reviewer selects are creator-only.** Only the task creator can change who is assigned or who reviews. Non-creator roles (assignee, reviewer) see both as read-only **name chips** — they cannot alter attachments. Everything else in the modal is identical across roles.
-- **All security is enforced in the Server Actions.** Row actions in the task table are always rendered (View / Edit / Delete). Clicking **Edit** when the caller lacks update permission shows a toast and does **not** open the modal (see [10.5](#105-rbac-and-ux)). View is the single exception: it is hidden when the caller has no READ access (AGENTS.md:94).
+- **All security is enforced in the Server Actions.** Row actions in the task table are always rendered (View / Edit / Delete). Clicking **Edit** when the caller lacks update permission shows a toast and does **not** open the modal. View is the single exception: it is hidden when the caller has no READ access (AGENTS.md:94).
 - Workflow state is expressed through **plain form fields — Selects** — never through dedicated workflow buttons ("Submit for Review", "Cancel Task", "No decision panel", "No status banner").
 
 ### 10.2 Layout — View / Edit Task (3 columns)
@@ -188,22 +188,22 @@ There are exactly **three task modals**, and they look identical:
 └──────────────────────────┴────────────────────────┴────────────────────────┘
 ```
 
-- **ONLY RENDER THE COLUMN IF THERE IS CONTENT IN IT.**
-- **Column 1 — Task Info:** Title, Description, then Assignees and Reviewers rendered **as multi-selects for the creator only** — non-creators see read-only name chips — plus Status (see [10.3](#103-status-select)).
-- **Column 2 — Files:** `FileList` (existing documents + entries for new uploads) and a `DropZone`. In `View Task` the upload controls are hidden and existing files are read-only (View file only, no delete).
-- **Column 3 — Notes:** the task's review comments, listed newest first, truncated. In `Edit Task` a **`+` button** opens the same `AddNoteModal` used by the Notes tab (scoped to the task via `task_id`), which refreshes the list on success. In `View Task` the list is shown read-only (opening a note uses the Notes tab's shared `ViewNoteModal`).
+- **Column visibility differs between the two modals:** in `Edit Task` all three columns are always rendered (Column 2 carries the `DropZone` and Column 3 carries the `[+] Add Note` button, so neither is ever empty). In `View Task` a column is rendered **only if it has content** — an empty Files column (no documents) or an empty Notes column (no review comments) is omitted.
+- **Column 1 — Task Info:** Title, Description, then Assignees and Reviewers rendered **as multi-selects for the creator only** — non-creators see read-only name chips — plus Status (see [10.3](#103-status-select)). The **Decision** select is rendered only for users who are reviewers on the task and only while the task is `Submitted` (see [10.4](#104-reviewer-decision-select)); otherwise it is omitted.
+- **Column 2 — Files:** `FileList` (existing documents + entries for new uploads) and a `DropZone`. In `View Task` the upload controls are hidden and existing files are read-only (View file only, no delete). In `Edit Task` the column is always rendered; in `View Task` it is omitted when there are no documents.
+- **Column 3 — Notes:** the task's review comments, listed newest first, truncated. In `Edit Task` a **`+` button** opens the same `AddNoteModal` used by the Notes tab (scoped to the task via `task_id`), which refreshes the list on success; the column is always rendered. In `View Task` the list is shown read-only (opening a note uses the Notes tab's shared `ViewNoteModal`) and the column is omitted when there are no review comments.
 - **Add Task uses 2 columns** (Task Info + Files). There is no notes column because a note requires a parent task, which does not exist until the task is created.
 
 ### 10.3 Status Select
 
-- Only render in the select the possible decision for both the reviewer and assignee.
+- Render in the Status select only the valid next-states for the caller's role: an assignee in `Pending` may pick `Submitted`; once `Submitted`, the assignee's Status field is locked to its current value (see [§5](#5-file-locking)). A reviewer never drives status via this select — they use the [Decision Select](#104-reviewer-decision-select).
 - Only the assignee is expected to move a task through its lifecycle: they pick `Submitted` to submit their work, and Save. A reviewer records `Accepted` / `Rejected` separately via the [Decision Select](#104-reviewer-decision-select) — the status re-derives automatically.
-- Saving with a changed status calls the same update action as any other field. The server validates the transition against the caller's role and the current state **and rejects invalid transitions with a toast** (see [AGENTS.md](../AGENTS.md)). The select itself is never restricted or role-filtered.
+- Saving with a changed status calls the same update action as any other field. The server validates the transition against the caller's role and the current state **and rejects invalid transitions with a toast** (see [AGENTS.md](../AGENTS.md)). The select is role-filtered to valid transitions for UX; the server remains authoritative.
 - The lock while `Submitted` is enforced in the actions layer.
 
 ### 10.4 Reviewer Decision Select
 
-- A reviewer drives the workflow the same way an assignee does — a single select and Save. For a reviewer that select is their **own Decision** (`Accepted` / `Rejected` / `Pending`), rendered in `Edit Task` only when they are a reviewer on the task and the task is `Submitted`.
+- A reviewer drives the workflow the same way an assignee does — a single select and Save. For a reviewer that select is their **own Decision** (`Accepted` / `Rejected`), rendered in `Edit Task` only when they are a reviewer on the task and the task is `Submitted`. `Pending` remains the pre-decision default state and is not a selectable value.
 - Saving records the reviewer's decision (`TaskReviewer.decision` + `reviewed_at`) and re-derives the task status: all accepted → `Completed`, any rejected → `Pending` with all decisions reset.
 - The decision may be accompanied by an optional review comment entered in the Notes column. The reviewer writes the comment via **[+] Add Note**.
 

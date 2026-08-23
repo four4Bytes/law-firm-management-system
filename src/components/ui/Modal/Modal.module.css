@@ -1,3 +1,7 @@
+.modal {
+  max-width: var(--modal-max-width);
+}
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -18,7 +22,6 @@
 
   .modal {
     outline: none;
-    max-width: var(--modal-max-width);
 
     &[data-entering] {
       animation: slide-up var(--transition-fast);

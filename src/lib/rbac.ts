@@ -248,15 +248,15 @@ export const PERMISSION_MATRIX: Record<Permission, Record<Role, AccessQualifier>
   "task.update": cells({
     admin: "yes",
     branchManager: "yes",
-    lawyer: "assigned-or-own",
+    lawyer: "assigned-task-only-or-own",
     paralegal: "assigned-task-only-or-own",
     processServer: "assigned-task-only",
   }),
   "task.delete": cells({
     admin: "yes",
     branchManager: "yes",
-    lawyer: "assigned-or-own",
-    paralegal: "assigned-and-own",
+    lawyer: "own",
+    paralegal: "own",
     processServer: "no",
   }),
 

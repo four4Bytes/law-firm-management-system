@@ -146,7 +146,11 @@ describe("task subdata lock", () => {
   } as unknown as Awaited<ReturnType<typeof getTaskById>>;
 
   beforeEach(() => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
   });
 
   it("refuses to issue an upload URL for a cancelled task", async () => {
@@ -191,5 +195,131 @@ describe("task subdata lock", () => {
 
     expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
     expect(deleteDocument).not.toHaveBeenCalled();
+  });
+});
+
+describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
+  const uploadArgs = {
+    file_name: "a.pdf",
+    file_type: "application/pdf",
+    case_id: null,
+    consultation_id: null,
+    task_id: uuid,
+  };
+
+  const taskDocRecord = {
+    ...documentRecord,
+    case_id: null,
+    task_id: uuid,
+    task: { case_id: uuid, status: "Pending" as const },
+  };
+
+  it("denies a non-task-attached Paralegal case member an upload URL", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    await expect(getDocumentUploadUrlAction(uploadArgs)).rejects.toThrow("Forbidden");
+  });
+
+  it("allows a task-attached Paralegal an upload URL", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: uuid,
+      status: "Pending" as const,
+      case_id: uuid,
+    } as Awaited<ReturnType<typeof getTaskById>>);
+
+    const result = await getDocumentUploadUrlAction(uploadArgs);
+
+    expect(result).toHaveProperty("uploadUrl");
+  });
+
+  it("denies a non-task-attached Paralegal from confirming an upload", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: uuid,
+      status: "Pending" as const,
+      case_id: uuid,
+    } as Awaited<ReturnType<typeof getTaskById>>);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await confirmDocumentUploadAction({
+      ...uploadArgs,
+      file_size: 10,
+      file_path: "tasks/t1/a.pdf",
+    });
+
+    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("denies a non-task-attached Paralegal uploader from deleting a task document", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getDocumentById).mockResolvedValue(taskDocRecord);
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await deleteDocumentAction({ documentId: uuid });
+
+    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(deleteDocument).not.toHaveBeenCalled();
+  });
+
+  it("allows a task-attached Paralegal uploader to delete a task document", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getDocumentById).mockResolvedValue(taskDocRecord);
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+
+    const result = await deleteDocumentAction({ documentId: uuid });
+
+    expect(result).toEqual({ success: true });
+    expect(deleteDocument).toHaveBeenCalledWith(uuid);
   });
 });

@@ -111,12 +111,12 @@ Combined codes in table cells follow these rules:
 
 #### [Task](./models.md#task)
 
-| Action | Admin | Branch Manager |     Lawyer      |          Paralegal          |    Process Server    |
-| :----- | :---: | :------------: | :-------------: | :-------------------------: | :------------------: |
-| CREATE |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |          NO          |
-| UPDATE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY |
-| READ   |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |       ASSIGNED       |
-| DELETE |  YES  |      YES       | ASSIGNED or OWN |      ASSIGNED and OWN       |          NO          |
+| Action | Admin | Branch Manager |           Lawyer            |          Paralegal          |    Process Server    |
+| :----- | :---: | :------------: | :-------------------------: | :-------------------------: | :------------------: |
+| CREATE |  YES  |      YES       |       ASSIGNED or OWN       |          ASSIGNED           |          NO          |
+| UPDATE |  YES  |      YES       | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY |
+| READ   |  YES  |      YES       |       ASSIGNED or OWN       |          ASSIGNED           |       ASSIGNED       |
+| DELETE |  YES  |      YES       |             OWN             |             OWN             |          NO          |
 
 > **Task attachment rule:** Anyone added to a Task — as an assignee **or** reviewer — who is not already a member of the parent Case is automatically granted read-only Case membership, so `ASSIGNED` is always satisfied for task-attached users. Task access beyond the case is scoped by `TASK_ONLY` (attachment to that specific Task) and the role's qualifier.
 >

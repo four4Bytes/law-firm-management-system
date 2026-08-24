@@ -210,7 +210,11 @@ describe("task subdata lock", () => {
   } as unknown as Awaited<ReturnType<typeof getTaskById>>;
 
   beforeEach(() => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
   });
 
   it("refuses to create a note on a cancelled task", async () => {
@@ -244,6 +248,141 @@ describe("task subdata lock", () => {
     const result = await deleteNoteAction({ noteId: uuid });
 
     expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(deleteNote).not.toHaveBeenCalled();
+  });
+});
+
+describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
+  const taskPayload = {
+    content: "New note",
+    case_id: null,
+    consultation_id: null,
+    task_id: uuid,
+  };
+
+  it("denies a non-task-attached Paralegal case member from creating a task note", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: uuid,
+      status: "Pending" as const,
+      case_id: uuid,
+    } as Awaited<ReturnType<typeof getTaskById>>);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await createNoteAction(taskPayload);
+
+    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(createNote).not.toHaveBeenCalled();
+  });
+
+  it("allows a task-attached Paralegal to create a task note", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: uuid,
+      status: "Pending" as const,
+      case_id: uuid,
+    } as Awaited<ReturnType<typeof getTaskById>>);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(createNote).mockResolvedValue(noteRecord);
+
+    const result = await createNoteAction(taskPayload);
+
+    expect(result).toEqual({ success: true, data: { id: "n1" } });
+  });
+
+  it("denies a non-task-attached Paralegal from updating a task note", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: uuid,
+      status: "Pending" as const,
+      case_id: uuid,
+    } as Awaited<ReturnType<typeof getTaskById>>);
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
+
+    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(updateNote).not.toHaveBeenCalled();
+  });
+
+  it("allows an attached Paralegal note owner to delete a task note", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: uuid,
+      status: "Pending" as const,
+      case_id: uuid,
+    } as Awaited<ReturnType<typeof getTaskById>>);
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(deleteNote).mockResolvedValue(noteRecord);
+
+    const result = await deleteNoteAction({ noteId: uuid });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("denies a task-attached Paralegal from deleting another user's task note", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: uuid,
+      status: "Pending" as const,
+      case_id: uuid,
+    } as Awaited<ReturnType<typeof getTaskById>>);
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+
+    const result = await deleteNoteAction({ noteId: uuid });
+
+    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
     expect(deleteNote).not.toHaveBeenCalled();
   });
 });

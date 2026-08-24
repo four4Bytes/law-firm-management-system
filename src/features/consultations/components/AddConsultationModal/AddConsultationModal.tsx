@@ -83,6 +83,7 @@ export function AddConsultationModal({
     onOpenChange,
     onSuccess,
     successMessage: "Consultation created",
+    successDescription: "The consultation has been created.",
     failureMessage: "Failed to create consultation. Please try again.",
     schema: ConsultationWithClientCreatePayloadSchema,
     reset: () => {

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { queue } from "@/components/ui/Toast/Toast";
 import {
   deleteDocumentAction,
   getDocumentDownloadUrlAction,
@@ -20,6 +19,7 @@ import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { formatFileSize, formatFileType } from "@/lib/file-format";
 import { can, type AccessContext } from "@/lib/rbac";
+import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./AttachmentsTab.module.css";
 
@@ -58,7 +58,7 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
       anchor.remove();
     } catch {
       if (requestRefs.current.get(doc.id) !== requestId) return;
-      queue.add({ title: "Failed to download file" }, { timeout: 5000 });
+      toastError("Failed to download file", "The file could not be downloaded. Please try again.");
     } finally {
       if (requestRefs.current.get(doc.id) === requestId) {
         requestRefs.current.delete(doc.id);
@@ -77,9 +77,9 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
     if (result.success) {
       setDeleteTarget(null);
       handleRefresh();
-      queue.add({ title: "Attachment deleted" }, { timeout: 5000 });
+      toastSuccess("Attachment deleted", "The attachment has been deleted.");
     } else {
-      queue.add({ title: result.error ?? "Failed to delete attachment" }, { timeout: 5000 });
+      toastActionError(result, "delete attachment");
     }
   }
 

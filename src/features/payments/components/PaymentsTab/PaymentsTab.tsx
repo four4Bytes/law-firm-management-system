@@ -8,7 +8,6 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
-import { queue } from "@/components/ui/Toast/Toast";
 import {
   deletePaymentAction,
   getPaymentRowByIdAction,
@@ -19,6 +18,7 @@ import { EditPaymentModal } from "@/features/payments/components/EditPaymentModa
 import type { PaymentRow } from "@/features/payments/queries";
 import { PaymentStatus } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
+import { toastActionError, toastError, toastNotFound, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./PaymentsTab.module.css";
 
@@ -81,11 +81,11 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
       if (data) {
         setEditPayment(data);
       } else {
-        queue.add({ title: "Payment not found" }, { timeout: 5000 });
+        toastNotFound("Payment");
       }
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: "Failed to load payment" }, { timeout: 5000 });
+      toastError("Failed to load payment", "Please try again in a moment.");
     } finally {
       if (requestId === latestRequest.current) setPendingEditId(null);
     }
@@ -97,9 +97,9 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
     if (result.success) {
       setDeleteTarget(null);
       handleRefresh();
-      queue.add({ title: "Payment deleted" }, { timeout: 5000 });
+      toastSuccess("Payment deleted", "The payment has been deleted.");
     } else {
-      queue.add({ title: result.error ?? "Failed to delete payment" }, { timeout: 5000 });
+      toastActionError(result, "delete payment");
     }
   }
 

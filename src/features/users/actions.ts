@@ -14,10 +14,17 @@ import {
   type UserRow,
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionConflict,
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { toActionResponse } from "@/lib/errors";
 
 import {
   CreateUserSchema,
@@ -60,25 +67,25 @@ export async function createUserAction(
 ): Promise<ActionStatusResponse> {
   const session = await requirePermissionOrNull("user.create");
   if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
+    return actionForbidden();
   }
 
   const parsed = CreateUserSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid email or role" };
+    return actionInvalid("user");
   }
 
   const isDevEmail = isDeveloperEmail(parsed.data.email);
   const effectiveRole = isDevEmail ? Role.Dev : parsed.data.role;
 
   if (!isDevEmail && !(CREATABLE_ROLES as readonly string[]).includes(effectiveRole)) {
-    return { success: false, error: "Invalid role." };
+    return actionConflict("Invalid role", "The selected role is not valid.");
   }
 
   const existing = await getUserByEmail(parsed.data.email);
   if (existing) {
     if (existing.is_active) {
-      return { success: false, error: "A user with this email already exists." };
+      return actionConflict("Email already in use", "A user with this email already exists.");
     }
     try {
       await updateUser(existing.id, { role: effectiveRole, is_active: true });
@@ -92,8 +99,8 @@ export async function createUserAction(
           details: `Reactivated user: ${parsed.data.email}`,
         }),
       );
-    } catch {
-      return { success: false, error: "Failed to reactivate user." };
+    } catch (error) {
+      return toActionResponse(error, "reactivate user");
     }
     return { success: true };
   }
@@ -111,8 +118,11 @@ export async function createUserAction(
         details: `Created user: ${parsed.data.email}`,
       }),
     );
-  } catch {
-    return { success: false, error: "Failed to create user." };
+  } catch (error) {
+    return toActionResponse(error, "create user", {
+      title: "Email already in use",
+      description: "A user with this email already exists.",
+    });
   }
   return { success: true };
 }
@@ -122,32 +132,32 @@ export async function updateUserAction(
 ): Promise<ActionStatusResponse> {
   const session = await requirePermissionOrNull("user.update");
   if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
+    return actionForbidden();
   }
 
   const parsed = UpdateUserSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid input" };
+    return actionInvalid("user");
   }
 
   if (!(CREATABLE_ROLES as readonly string[]).includes(parsed.data.role)) {
-    return { success: false, error: "Invalid role." };
+    return actionConflict("Invalid role", "The selected role is not valid.");
   }
 
   const target = await getUserById(parsed.data.userId);
   if (!target) {
-    return { success: false, error: "User not found." };
+    return actionNotFound("User");
   }
   if (target.role === Role.Dev) {
-    return { success: false, error: "Cannot edit developer accounts." };
+    return actionConflict("Developer account", "Developer accounts cannot be edited.");
   }
   if (session.role === Role.Dev && target.id === session.id) {
-    return { success: false, error: "Cannot edit your own account." };
+    return actionConflict("Own account", "You cannot edit your own account.");
   }
 
   const existing = await getUserByEmail(parsed.data.email);
   if (existing && existing.id !== parsed.data.userId) {
-    return { success: false, error: "A user with this email already exists." };
+    return actionConflict("Email already in use", "A user with this email already exists.");
   }
 
   try {
@@ -162,8 +172,11 @@ export async function updateUserAction(
         details: `Updated user: ${parsed.data.email}`,
       }),
     );
-  } catch {
-    return { success: false, error: "Failed to update user." };
+  } catch (error) {
+    return toActionResponse(error, "update user", {
+      title: "Email already in use",
+      description: "A user with this email already exists.",
+    });
   }
   return { success: true };
 }
@@ -173,22 +186,22 @@ export async function deactivateUserAction(
 ): Promise<ActionDataResponse<{ selfDeactivated: boolean }>> {
   const session = await requirePermissionOrNull("user.delete");
   if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
+    return actionForbidden();
   }
 
   const parsed = DeactivateUserSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid user ID" };
+    return actionInvalid("user");
   }
 
   const target = await getUserById(parsed.data.userId);
   if (!target) {
-    return { success: false, error: "User not found." };
+    return actionNotFound("User");
   }
   if (target.role === Role.Admin || target.role === Role.Dev) {
     const remaining = await countActiveAdminsAndDevs(parsed.data.userId);
     if (remaining === 0) {
-      return { success: false, error: "Cannot deactivate the last admin or developer." };
+      return actionConflict("Last admin", "Cannot deactivate the last admin or developer.");
     }
   }
   try {
@@ -203,8 +216,8 @@ export async function deactivateUserAction(
         details: "Deactivated user",
       }),
     );
-  } catch {
-    return { success: false, error: "Failed to deactivate user." };
+  } catch (error) {
+    return toActionResponse(error, "deactivate user");
   }
   return { success: true, data: { selfDeactivated: parsed.data.userId === session.id } };
 }

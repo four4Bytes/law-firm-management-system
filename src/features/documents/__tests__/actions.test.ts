@@ -119,7 +119,11 @@ describe("deleteDocumentAction", () => {
   it("returns FORBIDDEN_MESSAGE when attachment delete is denied", async () => {
     expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
     });
   });
 
@@ -187,7 +191,14 @@ describe("task subdata lock", () => {
       task_id: uuid,
     });
 
-    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Task locked",
+        description: TASK_LOCKED_MESSAGE,
+      },
+    });
     expect(createDocumentForTask).toHaveBeenCalledWith(expect.objectContaining({ taskId: uuid }));
   });
 
@@ -201,7 +212,14 @@ describe("task subdata lock", () => {
 
     const result = await deleteDocumentAction({ documentId: uuid });
 
-    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Task locked",
+        description: TASK_LOCKED_MESSAGE,
+      },
+    });
     expect(deleteDocumentForTask).toHaveBeenCalledWith(uuid, uuid);
   });
 });
@@ -285,7 +303,14 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
       file_path: "tasks/t1/a.pdf",
     });
 
-    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
     expect(createDocumentForTask).not.toHaveBeenCalled();
   });
 
@@ -306,7 +331,14 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
 
     const result = await deleteDocumentAction({ documentId: uuid });
 
-    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
     expect(deleteDocumentForTask).not.toHaveBeenCalled();
   });
 

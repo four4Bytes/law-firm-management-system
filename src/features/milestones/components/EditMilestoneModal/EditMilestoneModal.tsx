@@ -55,6 +55,7 @@ export function EditMilestoneModal({
     onOpenChange,
     onSuccess,
     successMessage: "Milestone updated",
+    successDescription: "The milestone has been updated.",
     failureMessage: "Failed to update milestone",
     schema: MilestoneUpdatePayloadSchema,
   });

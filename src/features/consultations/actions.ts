@@ -20,14 +20,20 @@ import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
-import type { ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import {
   assertRecordPermission,
   requireAuth,
   requirePermissionOrNull,
   type AuthenticatedUser,
 } from "@/lib/auth-guards";
-import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
+import { toActionResponse } from "@/lib/errors";
+import { can, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -139,12 +145,12 @@ export async function createConsultationAction(
 ): Promise<ActionStatusResponse> {
   const session = await requirePermissionOrNull("consultation.create");
   if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
+    return actionForbidden();
   }
 
   const parsed = ConsultationCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid consultation data" };
+    return actionInvalid("consultation");
   }
 
   const { client_id, concern, booking_datetime, status, reminder_days, assignee_ids } = parsed.data;
@@ -174,8 +180,8 @@ export async function createConsultationAction(
     revalidatePath("/consultation");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to create consultation" };
+  } catch (error) {
+    return toActionResponse(error, "create consultation");
   }
 }
 
@@ -184,12 +190,12 @@ export async function createConsultationWithClientAction(
 ): Promise<ActionStatusResponse> {
   const session = await requirePermissionOrNull("consultation.create");
   if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
+    return actionForbidden();
   }
 
   const parsed = ConsultationWithClientCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid consultation data" };
+    return actionInvalid("consultation");
   }
 
   let createdWithClient: { id: string };
@@ -212,8 +218,8 @@ export async function createConsultationWithClientAction(
     revalidatePath("/consultation");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to create consultation" };
+  } catch (error) {
+    return toActionResponse(error, "create consultation");
   }
 }
 
@@ -224,7 +230,7 @@ export async function updateConsultationAction(
 
   const parsed = ConsultationUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid consultation data" };
+    return actionInvalid("consultation");
   }
 
   const {
@@ -239,10 +245,10 @@ export async function updateConsultationAction(
 
   try {
     const existing = await getConsultationEditData(consultationId);
-    if (!existing) return { success: false, error: "Consultation not found" };
+    if (!existing) return actionNotFound("Consultation");
 
     if (!(await hasConsultationPermission(session, consultationId, "consultation.update"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     const resetReminderTiming =
@@ -318,8 +324,8 @@ export async function updateConsultationAction(
     revalidatePath("/consultation");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update consultation" };
+  } catch (error) {
+    return toActionResponse(error, "update consultation");
   }
 }
 
@@ -330,17 +336,17 @@ export async function updateConsultationWithClientAction(
 
   const parsed = ConsultationWithClientUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid consultation data" };
+    return actionInvalid("consultation");
   }
 
   const { consultation_id, client_id, client, consultation } = parsed.data;
 
   try {
     const existing = await getConsultationEditData(consultation_id);
-    if (!existing) return { success: false, error: "Consultation not found" };
+    if (!existing) return actionNotFound("Consultation");
 
     if (!(await hasConsultationPermission(session, consultation_id, "consultation.update"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     const resetReminderTiming =
@@ -414,8 +420,8 @@ export async function updateConsultationWithClientAction(
     revalidatePath("/consultation");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update consultation" };
+  } catch (error) {
+    return toActionResponse(error, "update consultation");
   }
 }
 
@@ -426,17 +432,17 @@ export async function deleteConsultationAction(
 
   const parsed = ConsultationDeletePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid consultation ID" };
+    return actionInvalid("consultation");
   }
 
   try {
     const existing = await getConsultationEditData(parsed.data.consultationId);
-    if (!existing) return { success: false, error: "Consultation not found" };
+    if (!existing) return actionNotFound("Consultation");
 
     if (
       !(await hasConsultationPermission(session, parsed.data.consultationId, "consultation.delete"))
     ) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await deleteConsultation(parsed.data.consultationId);
@@ -454,7 +460,7 @@ export async function deleteConsultationAction(
     revalidatePath("/consultation");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete consultation" };
+  } catch (error) {
+    return toActionResponse(error, "delete consultation");
   }
 }

@@ -6,8 +6,9 @@ import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
 import type { Client } from "@/generated/prisma/client";
-import type { ActionDataResponse } from "@/lib/action-response";
+import { actionInvalid, type ActionDataResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { toActionResponse } from "@/lib/errors";
 
 import { createClient, updateClient } from "./mutations";
 import { getClientForEdit, type ClientEditData } from "./queries";
@@ -22,7 +23,7 @@ export async function createClientAction(
 
   const parsed = ClientCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid client data" };
+    return actionInvalid("client");
   }
 
   const { name, email, phone_number, address } = parsed.data;
@@ -43,8 +44,8 @@ export async function createClientAction(
     revalidatePath("/client");
 
     return { success: true, data: client };
-  } catch {
-    return { success: false, error: "Failed to create client" };
+  } catch (error) {
+    return toActionResponse(error, "create client");
   }
 }
 
@@ -66,7 +67,7 @@ export async function updateClientAction(
 
   const parsed = ClientUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid client data" };
+    return actionInvalid("client");
   }
 
   const { clientId, name, email, phone_number, address } = parsed.data;
@@ -87,7 +88,7 @@ export async function updateClientAction(
     revalidatePath("/client");
 
     return { success: true, data: client };
-  } catch {
-    return { success: false, error: "Failed to update client" };
+  } catch (error) {
+    return toActionResponse(error, "update client");
   }
 }

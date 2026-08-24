@@ -12,7 +12,6 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
-import { queue } from "@/components/ui/Toast/Toast";
 import { CreateCaseFromConsultationModal } from "@/features/cases/components/CreateCaseFromConsultationModal/CreateCaseFromConsultationModal";
 import type { ClientEditData } from "@/features/clients/queries";
 import { updateConsultationWithClientAction } from "@/features/consultations/actions";
@@ -33,6 +32,7 @@ import {
   requiredString,
   selectEnumHandler,
 } from "@/lib/form-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditConsultationModal.module.css";
@@ -117,7 +117,10 @@ export function EditConsultationModal({
       try {
         setUsers(await getActiveUsersAction());
       } catch {
-        queue.add({ title: "Failed to load active users. Please try again." }, { timeout: 5000 });
+        toastError(
+          "Failed to load active users",
+          "The team member list could not be loaded. Please try again.",
+        );
       }
     })();
   }, [isOpen]);
@@ -129,6 +132,7 @@ export function EditConsultationModal({
     onOpenChange,
     onSuccess,
     successMessage: "Consultation updated",
+    successDescription: "The consultation has been updated.",
     failureMessage: "Failed to update consultation. Please try again.",
     schema: ConsultationWithClientUpdatePayloadSchema,
   });
@@ -172,21 +176,21 @@ export function EditConsultationModal({
     try {
       result = await updateConsultationWithClientAction(buildConsultationPayload());
     } catch {
-      queue.add({ title: "Failed to update consultation. Please try again." }, { timeout: 5000 });
-      setIsSaving(false);
-      return;
-    }
-
-    if (!result.success) {
-      queue.add(
-        { title: result.error ?? "Failed to update consultation. Please try again." },
-        { timeout: 5000 },
+      toastError(
+        "Failed to update consultation",
+        "Your changes could not be saved. Please try again.",
       );
       setIsSaving(false);
       return;
     }
 
-    queue.add({ title: "Consultation updated" }, { timeout: 5000 });
+    if (!result.success) {
+      toastActionError(result, "update consultation");
+      setIsSaving(false);
+      return;
+    }
+
+    toastSuccess("Consultation updated", "The consultation has been updated.");
     setIsSaving(false);
     setShowCaseModal(true);
   }

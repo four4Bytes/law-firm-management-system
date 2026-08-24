@@ -8,11 +8,17 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
+import { ForbiddenError, toActionResponse } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
-import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 
 import {
   createNote,
@@ -72,9 +78,7 @@ export async function createNoteAction(
   const session = await requireAuth();
 
   const parsed = NoteCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid note data" };
-  }
+  if (!parsed.success) return actionInvalid("note");
 
   const { content, case_id, consultation_id, task_id } = parsed.data;
 
@@ -86,34 +90,27 @@ export async function createNoteAction(
         !can(session.role, "task.update", taskAccess) ||
         !can(session.role, "note.create", taskAccess)
       ) {
-        return { success: false, error: FORBIDDEN_MESSAGE };
+        return actionForbidden();
       }
     } else if (case_id) {
       const caseAccess = await getCaseAccessContext(session.id, case_id);
       if (!can(session.role, "note.create", caseAccess)) {
-        return { success: false, error: FORBIDDEN_MESSAGE };
+        return actionForbidden();
       }
     } else {
       const consultationAccess = await getConsultationAccessContext(session.id, consultation_id!);
       if (!can(session.role, "note.create", consultationAccess)) {
-        return { success: false, error: FORBIDDEN_MESSAGE };
+        return actionForbidden();
       }
     }
 
     if (task_id) {
-      try {
-        note = await createNoteForTask(task_id, {
-          content,
-          case_id,
-          consultation_id,
-          created_by_user_id: session.id,
-        });
-      } catch (error) {
-        if (error instanceof TaskLockedError) {
-          return { success: false, error: TASK_LOCKED_MESSAGE };
-        }
-        throw error;
-      }
+      note = await createNoteForTask(task_id, {
+        content,
+        case_id,
+        consultation_id,
+        created_by_user_id: session.id,
+      });
     } else {
       note = await createNote({
         content,
@@ -133,8 +130,8 @@ export async function createNoteAction(
         details: `Created note with ID: ${note.id}`,
       }),
     );
-  } catch {
-    return { success: false, error: "Failed to create note" };
+  } catch (error) {
+    return toActionResponse(error, "create note");
   }
 
   let parentPath = "/case";
@@ -158,25 +155,23 @@ export async function updateNoteAction(
   const session = await requireAuth();
 
   const parsed = NoteUpdatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid note data" };
-  }
+  if (!parsed.success) return actionInvalid("note");
 
   const { noteId, content } = parsed.data;
 
   try {
     const existing = await getNoteById(noteId);
-    if (!existing) return { success: false, error: "Note not found" };
+    if (!existing) return actionNotFound("Note");
 
     const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.update", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     if (existing.task_id) {
       const taskAccess = await getTaskAccessContext(session.id, existing.task_id);
       if (!can(session.role, "task.update", taskAccess)) {
-        return { success: false, error: FORBIDDEN_MESSAGE };
+        return actionForbidden();
       }
     }
 
@@ -185,14 +180,7 @@ export async function updateNoteAction(
     }
 
     if (existing.task_id) {
-      try {
-        await updateNoteForTask(existing.task_id, noteId, content);
-      } catch (error) {
-        if (error instanceof TaskLockedError) {
-          return { success: false, error: TASK_LOCKED_MESSAGE };
-        }
-        throw error;
-      }
+      await updateNoteForTask(existing.task_id, noteId, content);
     } else {
       await updateNote(noteId, content);
     }
@@ -210,8 +198,8 @@ export async function updateNoteAction(
     revalidatePath(existing.task_id ? `/case/${existing.task?.case_id}` : getParentPath(existing));
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update note" };
+  } catch (error) {
+    return toActionResponse(error, "update note");
   }
 }
 
@@ -221,37 +209,28 @@ export async function deleteNoteAction(
   const session = await requireAuth();
 
   const parsed = NoteIdSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid note ID" };
-  }
+  if (!parsed.success) return actionInvalid("note");
 
   const { noteId } = parsed.data;
 
   try {
     const existing = await getNoteById(noteId);
-    if (!existing) return { success: false, error: "Note not found" };
+    if (!existing) return actionNotFound("Note");
 
     const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.delete", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     if (existing.task_id) {
       const taskAccess = await getTaskAccessContext(session.id, existing.task_id);
       if (!can(session.role, "task.update", taskAccess)) {
-        return { success: false, error: FORBIDDEN_MESSAGE };
+        return actionForbidden();
       }
     }
 
     if (existing.task_id) {
-      try {
-        await deleteNoteForTask(existing.task_id, noteId);
-      } catch (error) {
-        if (error instanceof TaskLockedError) {
-          return { success: false, error: TASK_LOCKED_MESSAGE };
-        }
-        throw error;
-      }
+      await deleteNoteForTask(existing.task_id, noteId);
     } else {
       await deleteNote(noteId);
     }
@@ -269,7 +248,7 @@ export async function deleteNoteAction(
     revalidatePath(existing.task_id ? `/case/${existing.task?.case_id}` : getParentPath(existing));
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete note" };
+  } catch (error) {
+    return toActionResponse(error, "delete note");
   }
 }

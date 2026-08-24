@@ -5,6 +5,7 @@ import { Form } from "react-aria-components";
 import { FaPlus } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
+import { Checkbox } from "@/components/ui/Checkbox/Checkbox";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
@@ -347,14 +348,9 @@ export function EditTaskModal({
             </StatusBadge>
 
             {capabilities.canCancel && (
-              <Select
-                label="Cancel task"
-                value={cancelChosen ? TaskStatus.Cancelled : null}
-                onChange={(key) => setCancelChosen(key === TaskStatus.Cancelled)}
-                placeholder="Active"
-              >
-                <SelectItem id={TaskStatus.Cancelled}>Cancel task</SelectItem>
-              </Select>
+              <Checkbox isSelected={cancelChosen} onChange={setCancelChosen}>
+                Cancel task
+              </Checkbox>
             )}
 
             {isCurrentUserAssignee && (

@@ -342,7 +342,9 @@ export function EditTaskModal({
               users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
             />
 
-            <StatusBadge variant={statusVariant[task.status]}>{task.status}</StatusBadge>
+            <StatusBadge className={styles.statusBadge} variant={statusVariant[task.status]}>
+              {task.status}
+            </StatusBadge>
 
             {capabilities.canCancel && (
               <Select
@@ -422,7 +424,12 @@ export function EditTaskModal({
           <div className={styles.column}>
             <div className={styles.columnHeader}>
               <span className={styles.label}>Notes</span>
-              <Button variant="secondary" type="button" onPress={() => setAddNoteOpen(true)}>
+              <Button
+                className={styles.addNoteButton}
+                variant="secondary"
+                type="button"
+                onPress={() => setAddNoteOpen(true)}
+              >
                 <FaPlus /> Add Note
               </Button>
             </div>

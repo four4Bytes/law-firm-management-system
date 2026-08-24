@@ -21,7 +21,6 @@ import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTas
 import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTaskModal";
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
 import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 import styles from "./TasksTab.module.css";
@@ -50,12 +49,7 @@ const columns: ColumnDef<TaskRow>[] = [
     ),
   },
   { id: "assignTo", name: "Assigned To" },
-  {
-    id: "updated_at",
-    name: "Updated At",
-    allowsSorting: true,
-    render: (value) => formatDateTime(value as Date),
-  },
+  { id: "reviewers", name: "Reviewers" },
 ];
 
 export function TasksTab({ caseId, access, userRole }: Props) {

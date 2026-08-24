@@ -8,6 +8,7 @@ export type ActiveUserSummary = Pick<User, "id" | "name">;
 
 export type TaskRow = Pick<Task, "id" | "title" | "status" | "updated_at"> & {
   assignTo: string;
+  reviewers: string;
 };
 
 export type TaskReviewerRow = {
@@ -18,7 +19,7 @@ export type TaskReviewerRow = {
   reviewed_at: Date | null;
 };
 
-export type TaskDetailRow = Omit<TaskRow, "assignTo"> &
+export type TaskDetailRow = Omit<TaskRow, "assignTo" | "reviewers"> &
   Pick<Task, "description" | "created_at" | "created_by_user_id"> & {
     assignTo: { id: string; name: string; status: TaskAssignmentStatus }[];
     assignee_ids: string[];

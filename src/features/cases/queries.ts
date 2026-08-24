@@ -220,6 +220,9 @@ export const getCaseTasksPaginated = cache(
         taskAssignments: {
           include: { user: { select: { name: true } } },
         },
+        taskReviewers: {
+          include: { reviewer: { select: { name: true } } },
+        },
       },
     });
 
@@ -231,6 +234,7 @@ export const getCaseTasksPaginated = cache(
       title: t.title,
       status: t.status,
       assignTo: t.taskAssignments.map((a) => a.user.name).join(", "),
+      reviewers: t.taskReviewers.map((r) => r.reviewer.name).join(", "),
       updated_at: t.updated_at,
     }));
 

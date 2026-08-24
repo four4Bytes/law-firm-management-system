@@ -352,6 +352,7 @@ describe("getCaseTasksPaginated", () => {
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-02"),
     taskAssignments: [{ user: { name: "Bob Lawyer" } }],
+    taskReviewers: [],
     ...overrides,
   });
 
@@ -362,6 +363,10 @@ describe("getCaseTasksPaginated", () => {
         id: "t2",
         title: "Review evidence",
         taskAssignments: [{ user: { name: "Carol Paralegal" } }],
+        taskReviewers: [
+          { reviewer: { name: "Alice Reviewer" } },
+          { reviewer: { name: "Bob Reviewer" } },
+        ],
       }),
     ];
     vi.mocked(prisma.task.findMany).mockResolvedValue(tasks);
@@ -374,6 +379,7 @@ describe("getCaseTasksPaginated", () => {
       title: "Draft complaint",
       status: "Pending",
       assignTo: "Bob Lawyer",
+      reviewers: "",
       updated_at: tasks[0].updated_at,
     });
     expect(result.rows[1]).toEqual({
@@ -381,6 +387,7 @@ describe("getCaseTasksPaginated", () => {
       title: "Review evidence",
       status: "Pending",
       assignTo: "Carol Paralegal",
+      reviewers: "Alice Reviewer, Bob Reviewer",
       updated_at: tasks[1].updated_at,
     });
     expect(prisma.task.findMany).toHaveBeenCalledWith({
@@ -388,7 +395,10 @@ describe("getCaseTasksPaginated", () => {
       skip: 0,
       where: { case_id: "1" },
       orderBy: { updated_at: "desc" },
-      include: { taskAssignments: { include: { user: { select: { name: true } } } } },
+      include: {
+        taskAssignments: { include: { user: { select: { name: true } } } },
+        taskReviewers: { include: { reviewer: { select: { name: true } } } },
+      },
     });
   });
 

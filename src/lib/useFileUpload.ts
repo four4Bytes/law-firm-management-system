@@ -2,12 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { queue } from "@/components/ui/Toast/Toast";
 import {
   confirmDocumentUploadAction,
   getDocumentUploadUrlAction,
 } from "@/features/documents/actions";
 import type { FileEntry } from "@/features/documents/components/FileList/FileList";
+import { toastError } from "@/lib/toast-utils";
 
 /** Parent resource reference for document upload. */
 export interface UseFileUploadParams {
@@ -115,7 +115,7 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
       });
 
       if (!result.success) {
-        throw new Error(result.error ?? "Failed to confirm upload");
+        throw new Error(result.error?.description ?? "Failed to confirm upload");
       }
 
       return true;
@@ -144,10 +144,7 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
         failed++;
         const message = err instanceof Error ? err.message : "Upload failed";
         updateEntry(entry.id, { status: "failed", error: message });
-        queue.add({
-          title: `Failed to upload "${entry.file.name}"`,
-          description: message,
-        });
+        toastError(`Failed to upload "${entry.file.name}"`, `${message}. Please retry the file.`);
       }
     }
 

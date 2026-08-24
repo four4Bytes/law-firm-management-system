@@ -515,7 +515,7 @@ export async function removeTaskReviewerAction(
       return { success: false, error: "Cannot remove the task creator as a reviewer" };
     }
 
-    await removeTaskReviewer(taskId, reviewerUserId, existing.created_by_user_id);
+    await removeTaskReviewer(taskId, reviewerUserId);
 
     after(() =>
       logAudit({

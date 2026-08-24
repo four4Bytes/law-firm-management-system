@@ -292,5 +292,5 @@ Add a systemd timer or cron entry that calls the endpoint with the bearer token:
 
 ```bash
 # Example: weekly at 03:00 UTC on Sunday
-0 3 * * 0 curl -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/api/cron/storage-gc
+0 3 * * 0 curl --fail --silent --show-error -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/api/cron/storage-gc
 ```

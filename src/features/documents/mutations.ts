@@ -27,10 +27,12 @@ export async function deleteDocument(id: string): Promise<{ id: string }> {
  * Creates a document attached to a task atomically: locks the task, verifies it is not
  * cancelled, then creates the document. Throws TaskLockedError if the task is cancelled.
  */
-export async function createDocumentForTask(
-  taskId: string,
-  data: Omit<DocumentCreatePayload, "task_id">,
-): Promise<{ id: string }> {
+export interface TaskDocumentPayload extends Omit<DocumentCreatePayload, "task_id"> {
+  taskId: string;
+}
+
+export async function createDocumentForTask(payload: TaskDocumentPayload): Promise<{ id: string }> {
+  const { taskId, ...data } = payload;
   return prisma.$transaction(async (tx) => {
     await lockTask(tx, taskId);
     const task = await tx.task.findUnique({
@@ -73,11 +75,17 @@ export async function deleteDocumentForTask(
   });
 }
 
+const GC_GRACE_PERIOD_MS = 60 * 60 * 1000;
+
 /**
  * Reconciles S3 storage against the database by deleting orphaned objects that
  * no longer reference a `Document` row. Invoked by the storage GC cron job; the
  * database is the source of truth, so any bucket key without a matching
- * `file_path` is safe to remove.
+ * `file_path` is safe to remove. Objects uploaded more recently than
+ * `GC_GRACE_PERIOD_MS` are skipped so blobs whose presigned upload has landed
+ * but whose `Document` row is not yet confirmed survive the sweep, and the
+ * database is rechecked immediately before each delete to close the race with
+ * a concurrent confirmation.
  *
  * @returns The number of orphaned objects deleted.
  */
@@ -86,11 +94,17 @@ export async function runStorageGc(): Promise<number> {
   const knownPaths = new Set(documents.map((document) => document.file_path));
 
   let removed = 0;
-  for await (const key of listObjects()) {
-    if (!knownPaths.has(key)) {
-      await deleteFile(key);
-      removed++;
-    }
+  const now = Date.now();
+  for await (const { key, lastModified } of listObjects()) {
+    if (knownPaths.has(key)) continue;
+    if (lastModified && now - lastModified.getTime() < GC_GRACE_PERIOD_MS) continue;
+    const confirmed = await prisma.document.findFirst({
+      where: { file_path: key },
+      select: { id: true },
+    });
+    if (confirmed) continue;
+    await deleteFile(key);
+    removed++;
   }
   return removed;
 }

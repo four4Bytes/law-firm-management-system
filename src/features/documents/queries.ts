@@ -3,7 +3,7 @@ import { cache } from "react";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { TaskStatus } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
 
@@ -126,10 +126,15 @@ export const getDocumentById = cache(
  * can be purged before the DB cascade removes the `Document` rows.
  *
  * @param taskId - The task whose document files should be collected.
+ * @param tx - Optional transaction client; when omitted, the shared Prisma
+ *   singleton is used.
  * @returns The `file_path` values of the task's documents.
  */
-export async function getDocumentFilePathsByTaskId(taskId: string): Promise<string[]> {
-  const documents = await prisma.document.findMany({
+export async function getDocumentFilePathsByTaskId(
+  taskId: string,
+  tx?: TransactionClient,
+): Promise<string[]> {
+  const documents = await (tx ?? prisma).document.findMany({
     where: { task_id: taskId },
     select: { file_path: true },
   });

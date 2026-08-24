@@ -87,12 +87,21 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
   const { assignee_ids, ...taskData } = data;
 
   return prisma.$transaction(async (tx) => {
+    await lockTask(tx, id);
+
+    const currentTask = await tx.task.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!currentTask) throw new Error("Task not found");
+    if (currentTask.status === TaskStatus.Cancelled) {
+      throw new Error("Task is locked and cannot be edited");
+    }
+
     let removed: string[] = [];
     let added: string[] = [];
 
     if (assignee_ids !== undefined) {
-      await lockTask(tx, id);
-
       const current = (
         await tx.taskAssignment.findMany({
           where: { task_id: id },
@@ -145,9 +154,18 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
 }
 
 export async function deleteTask(id: string): Promise<{ id: string }> {
-  const filePaths = await getDocumentFilePathsByTaskId(id);
-  const deleted = await prisma.task.delete({ where: { id }, select: { id: true } });
+  const { filePaths, deleted } = await prisma.$transaction(async (tx) => {
+    await lockTask(tx, id);
+
+    const filePaths = await getDocumentFilePathsByTaskId(id, tx);
+
+    const deleted = await tx.task.delete({ where: { id }, select: { id: true } });
+
+    return { filePaths, deleted };
+  });
+
   await deleteDocumentFiles(filePaths);
+
   return deleted;
 }
 
@@ -299,6 +317,15 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
 
   return prisma.$transaction(async (tx) => {
     await lockTask(tx, taskId);
+
+    const task = await tx.task.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+    if (!task) throw new Error("Task not found");
+    if (task.status !== TaskStatus.Submitted) {
+      throw new Error("Only submitted tasks can be reviewed");
+    }
 
     await tx.taskReviewer.updateMany({
       where: { task_id: taskId, reviewer_user_id: reviewerUserId },

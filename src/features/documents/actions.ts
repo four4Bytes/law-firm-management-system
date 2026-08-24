@@ -162,7 +162,8 @@ export async function confirmDocumentUploadAction(
 
     if (task_id) {
       try {
-        doc = await createDocumentForTask(task_id, {
+        doc = await createDocumentForTask({
+          taskId: task_id,
           file_name,
           file_path,
           file_type,

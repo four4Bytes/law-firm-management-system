@@ -188,7 +188,7 @@ describe("task subdata lock", () => {
     });
 
     expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
-    expect(createDocumentForTask).toHaveBeenCalledWith(uuid, expect.any(Object));
+    expect(createDocumentForTask).toHaveBeenCalledWith(expect.objectContaining({ taskId: uuid }));
   });
 
   it("refuses to delete a document on a cancelled task", async () => {

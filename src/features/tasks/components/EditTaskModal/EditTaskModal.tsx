@@ -380,7 +380,6 @@ export function EditTaskModal({
 
             {capabilities.canReview && (
               <div className={styles.section}>
-                <span className={styles.sectionLabel}>Your review</span>
                 <Select
                   label="Decision"
                   value={decision ?? null}

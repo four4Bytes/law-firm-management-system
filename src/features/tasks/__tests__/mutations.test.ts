@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
+import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { prisma } from "@/lib/prisma";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import {
   addTaskReviewer,
@@ -22,6 +24,14 @@ vi.mock("@/lib/prisma", () => ({
     taskAssignment: { updateMany: vi.fn(), findMany: vi.fn() },
     caseAssignment: { findMany: vi.fn(), createMany: vi.fn() },
   },
+}));
+
+vi.mock("@/features/documents/queries", () => ({
+  getDocumentFilePathsByTaskId: vi.fn(),
+}));
+
+vi.mock("@/lib/storage-cleanup", () => ({
+  deleteDocumentFiles: vi.fn(),
 }));
 
 const mockTask = (overrides: Record<string, unknown> = {}) => ({
@@ -237,20 +247,45 @@ describe("updateTask", () => {
 });
 
 describe("deleteTask", () => {
-  it("deletes a task", async () => {
+  it("deletes the task's S3 documents then the task", async () => {
     vi.mocked(prisma.task.delete).mockResolvedValue(mockTask());
+    vi.mocked(getDocumentFilePathsByTaskId).mockResolvedValue(["tasks/t1/a.pdf", "tasks/t1/b.pdf"]);
+    vi.mocked(deleteDocumentFiles).mockResolvedValue(undefined);
 
     const result = await deleteTask("t1");
 
     expect(result.id).toBe("t1");
+    expect(getDocumentFilePathsByTaskId).toHaveBeenCalledWith("t1");
+    expect(deleteDocumentFiles).toHaveBeenCalledWith(["tasks/t1/a.pdf", "tasks/t1/b.pdf"]);
+    expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: "t1" }, select: { id: true } });
+  });
+
+  it("skips S3 deletion when the task has no documents", async () => {
+    vi.mocked(prisma.task.delete).mockResolvedValue(mockTask());
+    vi.mocked(getDocumentFilePathsByTaskId).mockResolvedValue([]);
+    vi.mocked(deleteDocumentFiles).mockResolvedValue(undefined);
+
+    await deleteTask("t1");
+
+    expect(deleteDocumentFiles).toHaveBeenCalledWith([]);
     expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: "t1" }, select: { id: true } });
   });
 
   it("propagates error when deleting nonexistent task", async () => {
     const error = new Error("Record not found");
+    vi.mocked(getDocumentFilePathsByTaskId).mockResolvedValue([]);
     vi.mocked(prisma.task.delete).mockRejectedValue(error);
 
     await expect(deleteTask("999")).rejects.toThrow(error);
+  });
+
+  it("aborts the task delete when an S3 document cannot be removed", async () => {
+    const error = new Error("S3 unavailable");
+    vi.mocked(getDocumentFilePathsByTaskId).mockResolvedValue(["tasks/t1/a.pdf"]);
+    vi.mocked(deleteDocumentFiles).mockRejectedValue(error);
+
+    await expect(deleteTask("t1")).rejects.toThrow(error);
+    expect(prisma.task.delete).not.toHaveBeenCalled();
   });
 });
 

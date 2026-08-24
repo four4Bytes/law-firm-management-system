@@ -5,7 +5,7 @@ import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
 import { TASK_LOCKED_MESSAGE } from "@/lib/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
-import { deleteFile } from "@/lib/s3";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import {
   confirmDocumentUploadAction,
@@ -51,11 +51,14 @@ vi.mock("@/lib/path", () => ({
 }));
 
 vi.mock("@/lib/s3", () => ({
-  deleteFile: vi.fn(),
   generateKey: vi.fn(),
   getPresignedDownloadUrl: vi.fn(),
   getPresignedUploadUrl: vi.fn(),
   objectExists: vi.fn(),
+}));
+
+vi.mock("@/lib/storage-cleanup", () => ({
+  deleteDocumentFiles: vi.fn(),
 }));
 
 vi.mock("../queries", () => ({
@@ -131,7 +134,7 @@ describe("deleteDocumentAction", () => {
 
     expect(result).toEqual({ success: true });
     expect(deleteDocument).toHaveBeenCalledWith(uuid);
-    expect(deleteFile).toHaveBeenCalledWith(documentRecord.file_path);
+    expect(deleteDocumentFiles).toHaveBeenCalledWith([documentRecord.file_path]);
   });
 });
 

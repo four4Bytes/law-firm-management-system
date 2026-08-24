@@ -15,12 +15,12 @@ import { ForbiddenError, TASK_LOCKED_MESSAGE } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 import {
-  deleteFile,
   generateKey,
   getPresignedDownloadUrl,
   getPresignedUploadUrl,
   objectExists,
 } from "@/lib/s3";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import { createDocument, deleteDocument as deleteDocumentRecord } from "./mutations";
 import {
@@ -252,7 +252,7 @@ export async function deleteDocumentAction(
     }
 
     await deleteDocumentRecord(documentId);
-    await deleteFile(doc.file_path);
+    await deleteDocumentFiles([doc.file_path]);
 
     after(() =>
       logAudit({

@@ -121,6 +121,60 @@ export const getDocumentById = cache(
   },
 );
 
+/**
+ * Collects the S3 object keys for every document attached to a task, so they
+ * can be purged before the DB cascade removes the `Document` rows.
+ *
+ * @param taskId - The task whose document files should be collected.
+ * @returns The `file_path` values of the task's documents.
+ */
+export async function getDocumentFilePathsByTaskId(taskId: string): Promise<string[]> {
+  const documents = await prisma.document.findMany({
+    where: { task_id: taskId },
+    select: { file_path: true },
+  });
+  return documents.map((d) => d.file_path);
+}
+
+/**
+ * Collects the S3 object keys for every document attached to a consultation,
+ * so they can be purged before the DB cascade removes the `Document` rows.
+ *
+ * @param consultationId - The consultation whose document files should be collected.
+ * @returns The `file_path` values of the consultation's documents.
+ */
+export async function getDocumentFilePathsByConsultationId(
+  consultationId: string,
+): Promise<string[]> {
+  const documents = await prisma.document.findMany({
+    where: { consultation_id: consultationId },
+    select: { file_path: true },
+  });
+  return documents.map((d) => d.file_path);
+}
+
+/**
+ * Collects the S3 object keys for every document that a case deletion will
+ * cascade-remove: documents attached directly to the case, to its tasks, and
+ * to its consultations.
+ *
+ * @param caseId - The case whose document files should be collected.
+ * @returns The `file_path` values of all documents removed by the delete.
+ */
+export async function getDocumentFilePathsForCaseDeletion(caseId: string): Promise<string[]> {
+  const documents = await prisma.document.findMany({
+    where: {
+      OR: [
+        { case_id: caseId },
+        { task: { case_id: caseId } },
+        { consultation: { case_id: caseId } },
+      ],
+    },
+    select: { file_path: true },
+  });
+  return documents.map((d) => d.file_path);
+}
+
 // ----- Access context -----
 
 export const getDocumentAccessContext = cache(

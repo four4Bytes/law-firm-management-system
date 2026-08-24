@@ -1,5 +1,7 @@
+import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
 import { prisma, type TransactionClient } from "@/lib/prisma";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 export interface TaskCreateData {
   title: string;
@@ -148,6 +150,8 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
 }
 
 export async function deleteTask(id: string): Promise<{ id: string }> {
+  const filePaths = await getDocumentFilePathsByTaskId(id);
+  await deleteDocumentFiles(filePaths);
   return prisma.task.delete({ where: { id }, select: { id: true } });
 }
 

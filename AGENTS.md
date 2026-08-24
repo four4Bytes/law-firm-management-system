@@ -122,6 +122,36 @@
 - Typed Payloads over Raw FormData: Client components must pass clean, typed objects to actions instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client side before triggering the transition boundary. Shared normalization/validation helpers live in `src/lib/form-utils.ts` (`optionalString`, `requiredString`, `toDateValue`, `selectEnumHandler`, `keysToSet`, `createFieldValidator`) and the `useModalForm` hook — reuse these instead of ad-hoc trimming or `as` casts.
 - Modal form validation: Use React Aria's default `validationBehavior="native"`. Wrap a modal's fields + actions in a RAC `<Form onSubmit={handleSubmit}>` and make the submit button `type="submit"` (Cancel must be `type="button"`). On submit RAC runs each field's `validate`, blocks `onSubmit`, and shows inline errors only when invalid — errors never appear on open. **Never use `validationBehavior="aria"`**: it renders a required field's error on mount (before any interaction), which is the premature-error regression. Keep the submit button enabled so RAC surfaces inline errors on submit; rely on `useModalForm`'s `schema` guard + toast for the server-side failure path. Define user-facing validation messages in the Zod schemas via the shared builders in `form-utils` (`requiredText`, `optionalText`, `positiveNumber`, `requiredEnum`, `emailText`) — never surface raw Zod messages like "Invalid input: expected string, received undefined".
 
+### Error Handling & Logging
+
+- Structured envelope: write actions never return raw string errors. Failures
+  use `ActionStatusResponse.error = { code, title, description }` from
+  `src/lib/action-response.ts`. `description` is mandatory — every user-facing
+  failure explains what happened and what to do next.
+- Factory presets only: build failures with `actionForbidden()`,
+  `actionNotFound(entity)`, `actionInvalid(entity)`, `actionConflict(title, description)`,
+  `actionLocked()`, `actionUnauthorized()` from `src/lib/action-response.ts`.
+  Hand-rolled `{ success: false, error: ... }` literals in actions are banned.
+- Single catch path: route caught exceptions through
+  `toActionResponse(error, operation, conflict?)` from `src/lib/errors.ts`. It
+  classifies known errors (`ForbiddenError`, `UnauthorizedError`,
+  `TaskLockedError`, Prisma `P2002`) into presets, logs unclassified causes via
+  `src/lib/logger.ts` (`logError(context, error)`), and returns a sanitized
+  unknown envelope. Bare `catch {}` that discards the error is banned.
+- Log/client split: full error details stay in server logs; the client only
+  ever receives the sanitized envelope copy. Never send stack traces or Prisma
+  internals through responses.
+- Toast helpers: client components enqueue toasts exclusively via
+  `src/lib/toast-utils.ts` (`toastSuccess`, `toastInfo`, `toastError`,
+  `toastActionError(response, operation)`, `toastDenied`, `toastNotFound`).
+  Ad-hoc `queue.add(...)` calls in feature code are banned. Every toast carries
+  both a title and a description; timeouts are standardized by the helpers.
+- Copy style: titles are short sentence-case labels without a trailing period
+  ("Failed to update case"); descriptions are complete sentences ending with a
+  period ("The case may have been deleted by another user.").
+- Reads remain throwing: read actions throw (`ForbiddenError` digests drive the
+  access-denied boundary); only write actions return envelopes.
+
 ### Async & Error Handling
 
 - Default to `async/await` with `try...catch` for asynchronous code. Preserve or use `.then()/.catch()` only when it is the idiomatic, clearer, or required approach for the specific code pattern.

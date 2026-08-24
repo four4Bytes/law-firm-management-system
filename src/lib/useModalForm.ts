@@ -3,8 +3,8 @@
 import { useState } from "react";
 import type { ZodType } from "zod";
 
-import { queue } from "@/components/ui/Toast/Toast";
 import type { ActionStatusResponse } from "@/lib/action-response";
+import { toastError, toastSuccess } from "@/lib/toast-utils";
 
 /** Configuration for {@link useModalForm}. */
 interface UseModalFormOptions<TArgs> {
@@ -14,6 +14,8 @@ interface UseModalFormOptions<TArgs> {
   onOpenChange: (open: boolean) => void;
   /** Toast shown when the action succeeds. */
   successMessage: string;
+  /** Full-sentence confirmation shown beneath `successMessage` on success. */
+  successDescription?: string;
   /** Toast shown when the action fails or is rejected by `schema`. */
   failureMessage: string;
   /** Optional callback run after a successful submission. */
@@ -52,6 +54,7 @@ export function useModalForm<TArgs>({
   submit,
   onOpenChange,
   successMessage,
+  successDescription,
   failureMessage,
   onSuccess,
   reset,
@@ -69,9 +72,13 @@ export function useModalForm<TArgs>({
   async function submitForm(args: TArgs) {
     if (!submit) return;
 
-    if (schema && !schema.safeParse(args).success) {
-      queue.add({ title: failureMessage }, { timeout: 5000 });
-      return;
+    if (schema) {
+      const parsed = schema.safeParse(args);
+      if (!parsed.success) {
+        const issueMessage = parsed.error.issues[0]?.message;
+        toastError(failureMessage, issueMessage ?? "Please review your input and try again.");
+        return;
+      }
     }
 
     setIsPending(true);
@@ -80,16 +87,19 @@ export function useModalForm<TArgs>({
       const result = await submit(args);
 
       if (result.success) {
-        queue.add({ title: successMessage }, { timeout: 5000 });
+        toastSuccess(successMessage, successDescription ?? "Your changes have been saved.");
         reset?.();
         onOpenChange(false);
         onSuccess?.();
       } else {
-        queue.add({ title: result.error ?? failureMessage }, { timeout: 5000 });
+        toastError(
+          failureMessage,
+          result.error?.description ?? "Something went wrong on our end. Please try again.",
+        );
       }
     } catch (error) {
       console.error("useModalForm: submit failed", error);
-      queue.add({ title: failureMessage }, { timeout: 5000 });
+      toastError(failureMessage, "Something went wrong. Please try again.");
     } finally {
       setIsPending(false);
     }

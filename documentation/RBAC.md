@@ -27,13 +27,13 @@ ADMIN
 
 **Access Qualifiers:**
 
-| Code          | Access Level        | Meaning                                                                                                 |
-| ------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| **YES**       | Full Access         | Can perform this action anywhere in the organization.                                                   |
-| **NO**        | No Access           | Cannot perform this action under any circumstances.                                                     |
-| **ASSIGNED**  | Directly Assigned   | Only if assigned to this specific record (Case, Task, or Consultation) or its parent Case/Consultation. |
-| **OWN**       | Creator Only        | Only on records created by the user.                                                                    |
-| **TASK_ONLY** | Task-Level Modifier | With `ASSIGNED`: requires assignment to that specific Task; parent Case assignment alone is not enough. |
+| Code          | Access Level        | Meaning                                                                                                                                |
+| ------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **YES**       | Full Access         | Can perform this action anywhere in the organization.                                                                                  |
+| **NO**        | No Access           | Cannot perform this action under any circumstances.                                                                                    |
+| **ASSIGNED**  | Directly Assigned   | Only if assigned to this specific record (Case, Task, or Consultation) or its parent Case/Consultation.                                |
+| **OWN**       | Creator Only        | Only on records created by the user.                                                                                                   |
+| **TASK_ONLY** | Task-Level Modifier | With `ASSIGNED`: requires attachment to that specific Task as an assignee **or** reviewer; parent Case assignment alone is not enough. |
 
 **CRUD:**
 
@@ -51,15 +51,13 @@ ADMIN
 Combined codes in table cells follow these rules:
 
 1. **`ASSIGNED or OWN`** - Act on the item if you are assigned to it **or** if you created it.
-2. **`ASSIGNED + TASK_ONLY`** - Act on a task only if it is assigned directly to you; you cannot act on other tasks in the same parent Case.
+2. **`ASSIGNED + TASK_ONLY`** - Act on a task only if it is assigned directly to you (as assignee or reviewer); you cannot act on other tasks in the same parent Case.
 3. **`ASSIGNED and OWN`** - Act on an item only if you created it **and** you are currently assigned to the parent Case/Consultation.
 4. **`ASSIGNED + TASK_ONLY or OWN`** - The assigned path requires parent Case access and assignment to that specific Task. The OWN path requires no assignment: creating a task grants the creator update rights on it, even if task or parent assignment is later removed.
 
 ---
 
 ## Note
-
-> again this rules are not final yet.
 
 1. Admins and Branch Managers have unrestricted access across their scope. Lawyers, Paralegals, and Process Servers must be assigned to a Case or Consultation to access its sub-data (Tasks, Notes, Milestones, Attachments).
 2. `YES` on Case READ (e.g., Lawyers) means the Case is visible in the case list or table, but its private sub-data (Notes, Financials) is only accessible when assigned.
@@ -113,12 +111,18 @@ Combined codes in table cells follow these rules:
 
 #### [Task](./models.md#task)
 
-| Action | Admin | Branch Manager |     Lawyer      |          Paralegal          |    Process Server    |
-| :----- | :---: | :------------: | :-------------: | :-------------------------: | :------------------: |
-| CREATE |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |          NO          |
-| UPDATE |  YES  |      YES       | ASSIGNED or OWN | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY |
-| READ   |  YES  |      YES       | ASSIGNED or OWN |          ASSIGNED           |       ASSIGNED       |
-| DELETE |  YES  |      YES       | ASSIGNED or OWN |      ASSIGNED and OWN       |          NO          |
+| Action | Admin | Branch Manager |           Lawyer            |          Paralegal          |    Process Server    |
+| :----- | :---: | :------------: | :-------------------------: | :-------------------------: | :------------------: |
+| CREATE |  YES  |      YES       |       ASSIGNED or OWN       |          ASSIGNED           |          NO          |
+| UPDATE |  YES  |      YES       | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY or OWN | ASSIGNED + TASK_ONLY |
+| READ   |  YES  |      YES       |       ASSIGNED or OWN       |          ASSIGNED           |       ASSIGNED       |
+| DELETE |  YES  |      YES       |             OWN             |             OWN             |          NO          |
+
+> **Task attachment rule:** Anyone added to a Task — as an assignee **or** reviewer — who is not already a member of the parent Case is automatically granted read-only Case membership, so `ASSIGNED` is always satisfied for task-attached users. Task access beyond the case is scoped by `TASK_ONLY` (attachment to that specific Task) and the role's qualifier.
+>
+> **Attachment access delegation:** A Note or Document resolves its access context from its parent. When `task_id` is set, the **Task** matrix governs (with the task-attachment auto-grant above); otherwise the owning Case or Consultation matrix applies. A `Cancelled` task is terminal — its Notes and Documents are write-locked (create/update/delete refused).
+>
+> **Review workflow:** The task creator is always auto-added as the first reviewer; their task READ/UPDATE/DELETE comes from `OWN`, their review actions (accept/reject) are expressed through task `UPDATE`. Added reviewers are task-attached users; their READ comes from `ASSIGNED` (auto-granted case membership) and their UPDATE is further scoped by `TASK_ONLY`. Review decisions and comments are normal task updates.
 
 #### [Payment](./models.md#payment)
 

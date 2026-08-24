@@ -1,6 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { getDocumentFilePathsForCaseDeletion } from "@/features/documents/queries";
 import { prisma } from "@/lib/prisma";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import { createCase, deleteCase, updateCase } from "../mutations";
 
@@ -8,6 +10,14 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     case: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   },
+}));
+
+vi.mock("@/features/documents/queries", () => ({
+  getDocumentFilePathsForCaseDeletion: vi.fn(),
+}));
+
+vi.mock("@/lib/storage-cleanup", () => ({
+  deleteDocumentFiles: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -132,8 +142,22 @@ it("updateCase passes through source_consultation_id", async () => {
   });
 });
 
-it("deleteCase calls delete with the id", async () => {
+it("deletes the case then purges its S3 documents", async () => {
+  vi.mocked(getDocumentFilePathsForCaseDeletion).mockResolvedValue(["cases/c1/a.pdf"]);
+  vi.mocked(deleteDocumentFiles).mockResolvedValue(undefined);
+
   await deleteCase(uuid);
 
+  expect(getDocumentFilePathsForCaseDeletion).toHaveBeenCalledWith(uuid);
   expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
+  expect(deleteDocumentFiles).toHaveBeenCalledWith(["cases/c1/a.pdf"]);
+  expect(deleteDocumentFiles).toHaveBeenCalledAfter(vi.mocked(prisma.case.delete));
+});
+
+it("propagates error when deleting the case record fails", async () => {
+  const error = new Error("DB down");
+  vi.mocked(getDocumentFilePathsForCaseDeletion).mockResolvedValue(["cases/c1/a.pdf"]);
+  vi.mocked(prisma.case.delete).mockRejectedValue(error);
+
+  await expect(deleteCase(uuid)).rejects.toThrow(error);
 });

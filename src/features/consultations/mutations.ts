@@ -1,4 +1,6 @@
+import { getDocumentFilePathsByConsultationId } from "@/features/documents/queries";
 import { prisma, type TransactionClient } from "@/lib/prisma";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import type {
   ConsultationCreatePayload,
@@ -54,7 +56,10 @@ export async function updateConsultation(
 }
 
 export async function deleteConsultation(id: string): Promise<{ id: string }> {
-  return prisma.consultation.delete({ where: { id }, select: { id: true } });
+  const filePaths = await getDocumentFilePathsByConsultationId(id);
+  const deleted = await prisma.consultation.delete({ where: { id }, select: { id: true } });
+  await deleteDocumentFiles(filePaths);
+  return deleted;
 }
 
 export async function createConsultationWithClient(

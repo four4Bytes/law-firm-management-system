@@ -2,7 +2,8 @@ import { cache } from "react";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
-import { prisma } from "@/lib/prisma";
+import type { TaskStatus } from "@/generated/prisma/browser";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
 
@@ -102,7 +103,8 @@ export const getDocumentById = cache(
     file_name: string;
     case_id: string | null;
     consultation_id: string | null;
-    task: { case_id: string | null } | null;
+    task_id: string | null;
+    task: { case_id: string | null; status: TaskStatus } | null;
   } | null> => {
     return prisma.document.findUnique({
       where: { id },
@@ -112,11 +114,71 @@ export const getDocumentById = cache(
         file_name: true,
         case_id: true,
         consultation_id: true,
-        task: { select: { case_id: true } },
+        task_id: true,
+        task: { select: { case_id: true, status: true } },
       },
     });
   },
 );
+
+/**
+ * Collects the S3 object keys for every document attached to a task, so they
+ * can be purged before the DB cascade removes the `Document` rows.
+ *
+ * @param taskId - The task whose document files should be collected.
+ * @param tx - Optional transaction client; when omitted, the shared Prisma
+ *   singleton is used.
+ * @returns The `file_path` values of the task's documents.
+ */
+export async function getDocumentFilePathsByTaskId(
+  taskId: string,
+  tx?: TransactionClient,
+): Promise<string[]> {
+  const documents = await (tx ?? prisma).document.findMany({
+    where: { task_id: taskId },
+    select: { file_path: true },
+  });
+  return documents.map((d) => d.file_path);
+}
+
+/**
+ * Collects the S3 object keys for every document attached to a consultation,
+ * so they can be purged before the DB cascade removes the `Document` rows.
+ *
+ * @param consultationId - The consultation whose document files should be collected.
+ * @returns The `file_path` values of the consultation's documents.
+ */
+export async function getDocumentFilePathsByConsultationId(
+  consultationId: string,
+): Promise<string[]> {
+  const documents = await prisma.document.findMany({
+    where: { consultation_id: consultationId },
+    select: { file_path: true },
+  });
+  return documents.map((d) => d.file_path);
+}
+
+/**
+ * Collects the S3 object keys for every document that a case deletion will
+ * cascade-remove: documents attached directly to the case, to its tasks, and
+ * to its consultations.
+ *
+ * @param caseId - The case whose document files should be collected.
+ * @returns The `file_path` values of all documents removed by the delete.
+ */
+export async function getDocumentFilePathsForCaseDeletion(caseId: string): Promise<string[]> {
+  const documents = await prisma.document.findMany({
+    where: {
+      OR: [
+        { case_id: caseId },
+        { task: { case_id: caseId } },
+        { consultation: { case_id: caseId } },
+      ],
+    },
+    select: { file_path: true },
+  });
+  return documents.map((d) => d.file_path);
+}
 
 // ----- Access context -----
 

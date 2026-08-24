@@ -60,7 +60,7 @@ vi.mock("next/server", () => {
 });
 
 vi.mock("@/features/audit/mutations", () => ({
-  createAuditLog: vi.fn().mockResolvedValue(undefined),
+  logAudit: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/notifications/dispatch", () => ({
@@ -300,6 +300,25 @@ describe("deleteCaseAction", () => {
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({ success: true });
     expect(deleteCase).toHaveBeenCalledWith(uuid);
     expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
+
+  it("returns a failure status when the underlying delete throws", async () => {
+    vi.mocked(getCaseEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      source_consultation_id: null,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      parties_involved: null,
+      status: "Open",
+      assignee_ids: [],
+    });
+    vi.mocked(deleteCase).mockRejectedValue(new Error("S3 unavailable"));
+
+    expect(await deleteCaseAction({ caseId: uuid })).toEqual({
+      success: false,
+      error: "Failed to delete case",
+    });
   });
 });
 

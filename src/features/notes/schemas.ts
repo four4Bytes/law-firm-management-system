@@ -12,9 +12,10 @@ export const NoteCreatePayloadSchema = z
     content: requiredText(10000, "Content"),
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
+    task_id: z.uuid().nullable().optional(),
   })
   .refine(exactlyOneParentRefinement, {
-    message: "Provide exactly one of case_id or consultation_id",
+    message: "Provide exactly one of case_id, consultation_id, or task_id",
   });
 
 export const NoteUpdatePayloadSchema = z.object({

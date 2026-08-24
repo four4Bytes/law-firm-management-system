@@ -1,5 +1,6 @@
 .modal {
   width: var(--modal-wide-width);
+  max-width: 95vw;
 
   .columns {
     display: flex;
@@ -29,6 +30,56 @@
     > * {
       flex: 1;
     }
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .statusBadge {
+    display: inline-flex;
+    width: max-content;
+  }
+
+  .columnHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+  }
+
+  .addNoteButton {
+    font-size: var(--font-size-xs);
+  }
+
+  .reviewers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .reviewerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .addReviewer {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-end;
   }
 }
 

@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
-import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -24,6 +23,7 @@ import {
 } from "@/features/consultations/schemas";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
@@ -286,9 +286,9 @@ export function EditConsultationModal({
                   </SelectItem>
                 ))}
               </Select>
-              <AssigneeSelect
+              <UserSelect
                 users={users}
-                assigneeIds={assigneeIds}
+                selectedIds={assigneeIds}
                 onChange={setAssigneeIds}
                 isDisabled={isPending || isSaving}
               />

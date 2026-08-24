@@ -34,11 +34,20 @@ enum CaseStatus {
 
 enum TaskStatus {
   Pending
-  Ongoing
   Submitted
+  Completed
+  Cancelled
+}
+
+enum ReviewDecision {
+  Pending
   Accepted
   Rejected
-  Cancelled
+}
+
+enum TaskAssignmentStatus {
+  Pending
+  Submitted
 }
 
 enum CaseMilestoneStatus {
@@ -54,6 +63,7 @@ enum NotificationType {
   MilestoneStatusChanged
   MilestoneOverdue
   TaskAssigned
+  TaskStatusChanged
   CaseAssigned
   CaseStatusChanged
   ConsultationAssigned
@@ -114,7 +124,6 @@ model User {
   caseMilestones          CaseMilestone[]
   auditLogs               AuditLog[]
   taskReviewsAssigned     TaskReviewer[]           @relation("ReviewerUser")
-  taskReviewsDelegated    TaskReviewer[]           @relation("DelegatorUser")
 
   @@index([is_active])
   @@index([created_at])
@@ -212,16 +221,18 @@ model ConsultationAssignment {
 }
 
 model TaskAssignment {
-  id         String   @id @default(uuid()) @db.Uuid
-  task_id    String   @db.Uuid
-  user_id    String   @db.Uuid
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id         String               @id @default(uuid()) @db.Uuid
+  task_id    String               @db.Uuid
+  user_id    String               @db.Uuid
+  status     TaskAssignmentStatus @default(Pending)
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
 
   task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([task_id, user_id])
+  @@index([task_id, status])
 }
 
 model Task {
@@ -246,19 +257,19 @@ model Task {
 }
 
 model TaskReviewer {
-  id                  String   @id @default(uuid()) @db.Uuid
-  task_id             String   @db.Uuid
-  reviewer_user_id    String   @db.Uuid
-  delegated_by_userid String   @db.Uuid
-  is_active           Boolean  @default(true)
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
+  id               String         @id @default(uuid()) @db.Uuid
+  task_id          String         @db.Uuid
+  reviewer_user_id String         @db.Uuid
+  decision         ReviewDecision @default(Pending)
+  reviewed_at      DateTime?
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
 
-  task        Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
-  reviewer    User @relation("ReviewerUser", fields: [reviewer_user_id], references: [id])
-  delegatedBy User @relation("DelegatorUser", fields: [delegated_by_userid], references: [id])
+  task     Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  reviewer User @relation("ReviewerUser", fields: [reviewer_user_id], references: [id])
 
-  @@index([task_id, is_active])
+  @@unique([task_id, reviewer_user_id])
+  @@index([reviewer_user_id, decision])
 }
 
 model CaseMilestone {

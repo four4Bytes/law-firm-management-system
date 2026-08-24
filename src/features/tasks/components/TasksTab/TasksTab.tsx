@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaPenToSquare, FaTrashCan } from "react-icons/fa6";
+import { FaEye, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -14,13 +14,14 @@ import {
   deleteTaskAction,
   getActiveUsersAction,
   getTaskDetailRowByIdAction,
+  type TaskCapabilities,
 } from "@/features/tasks/actions";
 import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
 import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTaskModal";
+import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTaskModal";
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
-import { can, type AccessContext } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 import styles from "./TasksTab.module.css";
 
@@ -32,10 +33,8 @@ interface Props {
 
 const statusClassMap: Record<TaskStatus, StatusBadgeVariant> = {
   Pending: "pending",
-  Ongoing: "ongoing",
   Submitted: "info",
-  Accepted: "done",
-  Rejected: "cancelled",
+  Completed: "done",
   Cancelled: "cancelled",
 };
 
@@ -50,19 +49,18 @@ const columns: ColumnDef<TaskRow>[] = [
     ),
   },
   { id: "assignTo", name: "Assigned To" },
-  {
-    id: "updated_at",
-    name: "Updated At",
-    allowsSorting: true,
-    render: (value) => formatDateTime(value as Date),
-  },
+  { id: "reviewers", name: "Reviewers" },
 ];
 
 export function TasksTab({ caseId, access, userRole }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editTask, setEditTask] = useState<TaskDetailRow | null>(null);
+  const [editCapabilities, setEditCapabilities] = useState<TaskCapabilities | null>(null);
+  const [editCurrentUserId, setEditCurrentUserId] = useState<string | null>(null);
+  const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
   const [pendingEditId, setPendingEditId] = useState<string | null>(null);
+  const [pendingViewId, setPendingViewId] = useState<string | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const latestRequest = useRef(0);
@@ -92,6 +90,25 @@ export function TasksTab({ caseId, access, userRole }: Props) {
     };
   }, []);
 
+  async function handleView(task: TaskRow) {
+    const requestId = ++latestRequest.current;
+    setPendingViewId(task.id);
+    try {
+      const data = await getTaskDetailRowByIdAction(task.id);
+      if (requestId !== latestRequest.current) return;
+      if (!data.row) {
+        queue.add({ title: "Task not found" }, { timeout: 5000 });
+        return;
+      }
+      setViewTask(data.row);
+    } catch {
+      if (requestId !== latestRequest.current) return;
+      queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+    } finally {
+      if (requestId === latestRequest.current) setPendingViewId(null);
+    }
+  }
+
   async function handleEdit(task: TaskRow) {
     const requestId = ++latestRequest.current;
     setPendingEditId(task.id);
@@ -102,14 +119,17 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         queue.add({ title: "Task not found" }, { timeout: 5000 });
         return;
       }
-      if (!data.canUpdate) {
-        queue.add({ title: "You don't have permission to edit this task." }, { timeout: 5000 });
-        return;
+      const c = data.capabilities;
+      if (c.canEdit || c.canReview || c.canManageReviewers || c.canSubmit || c.canCancel) {
+        setEditTask(data.row);
+        setEditCapabilities(data.capabilities);
+        setEditCurrentUserId(data.currentUserId);
+      } else {
+        queue.add({ title: "You don't have permission to edit this task" });
       }
-      setEditTask(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: "Failed to load task" }, { timeout: 5000 });
+      queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
     } finally {
       if (requestId === latestRequest.current) setPendingEditId(null);
     }
@@ -136,6 +156,14 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         <div className={styles.actions}>
           <Button
             variant="ghost"
+            aria-label="View task"
+            onPress={() => handleView(task)}
+            isPending={pendingViewId === task.id}
+          >
+            <FaEye className={styles.icon} />
+          </Button>
+          <Button
+            variant="ghost"
             aria-label="Edit task"
             onPress={() => handleEdit(task)}
             isPending={pendingEditId === task.id}
@@ -148,6 +176,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
             onPress={() => {
               latestRequest.current++;
               setPendingEditId(null);
+              setPendingViewId(null);
               setDeleteTarget(task);
             }}
           >
@@ -168,7 +197,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         loadingMessage="Loading tasks..."
         searchLabel="Search tasks"
         selectionMode="none"
-        collectionDependencies={[pendingEditId]}
+        collectionDependencies={[pendingEditId, pendingViewId]}
         renderAddButton={canCreate}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}
@@ -183,15 +212,21 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         users={users}
       />
 
-      {editTask && (
+      {editTask && editCapabilities && (
         <EditTaskModal
           key={editTask.id}
           isOpen={!!editTask}
           onOpenChange={() => setEditTask(null)}
           onSuccess={handleRefresh}
           task={editTask}
+          capabilities={editCapabilities}
           users={users}
+          currentUserId={editCurrentUserId ?? ""}
         />
+      )}
+
+      {viewTask && (
+        <ViewTaskModal isOpen={!!viewTask} onOpenChange={() => setViewTask(null)} task={viewTask} />
       )}
 
       <ConfirmDialog

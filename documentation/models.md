@@ -2,7 +2,13 @@
 
 This document describes the main entities in the system and their fields.
 
-> For the exact database schema, see [schema.prisma](../prisma/schema.prisma).
+This is not the spec to follow but a mirror of the database schema
+
+> For the authoritative source and exact latest database schema, see [schema.prisma](../prisma/schema.prisma).
+
+NOTE:
+
+Any database schema changes must be handled by prisma migration, even in development stage.
 
 ---
 
@@ -12,15 +18,17 @@ This document describes the main entities in the system and their fields.
 
 A person who can sign in and use the system.
 
-| Field   | Type      | Required | Description                        |
-| ------- | --------- | -------- | ---------------------------------- |
-| Name    | Text      | Yes      | Display name                       |
-| Email   | Text      | Yes      | Email address (unique)             |
-| Role    | Enum      | Yes      | Access level (see [Roles](#roles)) |
-| Status  | Boolean   | Yes      | Whether the user can sign in       |
-| Avatar  | Text      | No       | Profile image URL                  |
-| Created | Timestamp | Yes      | When the account was created       |
-| Updated | Timestamp | Yes      | When the account was last modified |
+| Field          | Type      | Required | Description                        |
+| -------------- | --------- | -------- | ---------------------------------- |
+| Name           | Text      | Yes      | Display name                       |
+| Email          | Text      | Yes      | Email address (unique)             |
+| Google Sub     | Text      | No       | Google OAuth subject (unique)      |
+| Email Verified | Timestamp | No       | When the email was verified        |
+| Role           | Enum      | No       | Access level (see [Roles](#roles)) |
+| Status         | Boolean   | Yes      | Whether the user can sign in       |
+| Avatar         | Text      | No       | Profile image URL                  |
+| Created        | Timestamp | Yes      | When the account was created       |
+| Updated        | Timestamp | Yes      | When the account was last modified |
 
 ---
 
@@ -51,6 +59,7 @@ An initial meeting with a client to discuss their legal concern.
 | Concern       | Text      | Yes      | Description of the client's concern                              |
 | Status        | Enum      | Yes      | Current status (see [Consultation Status](#consultation-status)) |
 | Reminder Days | Number    | No       | Days before booking to send a reminder                           |
+| Last Reminded | Timestamp | No       | When the last reminder was sent                                  |
 | Created       | Timestamp | Yes      | When the record was created                                      |
 | Updated       | Timestamp | Yes      | When the record was last modified                                |
 
@@ -78,16 +87,17 @@ A legal case opened for a client.
 
 A work item within a case.
 
-| Field       | Type      | Required | Description                                      |
-| ----------- | --------- | -------- | ------------------------------------------------ |
-| Case        | Link      | Yes      | The parent case                                  |
-| Title       | Text      | Yes      | Task title                                       |
-| Description | Text      | No       | Task details                                     |
-| Status      | Enum      | Yes      | Current status (see [Task Status](#task-status)) |
-| Created By  | Link      | Yes      | The user who created the task                    |
-| Assignees   | Links     | No       | Users assigned to this task                      |
-| Created     | Timestamp | Yes      | When the record was created                      |
-| Updated     | Timestamp | Yes      | When the record was last modified                |
+| Field       | Type       | Required | Description                                                           |
+| ----------- | ---------- | -------- | --------------------------------------------------------------------- |
+| Case        | Link       | Yes      | The parent case                                                       |
+| Title       | Text       | Yes      | Task title                                                            |
+| Description | Text       | No       | Task details                                                          |
+| Status      | Enum       | Yes      | Current status (see [Task Status](#task-status))                      |
+| Created By  | Link       | Yes      | The user who created the task (auto-reviewer)                         |
+| Assignees   | Join table | No       | Users assigned to this task — see [Task Assignment](#task-assignment) |
+| Reviewers   | Join table | No       | Users reviewing this task — see [Task Reviewer](#task-reviewer)       |
+| Created     | Timestamp  | Yes      | When the record was created                                           |
+| Updated     | Timestamp  | Yes      | When the record was last modified                                     |
 
 ---
 
@@ -103,6 +113,7 @@ A key deadline or checkpoint within a case.
 | Due Date      | Date      | Yes      | When the milestone is due                                  |
 | Status        | Enum      | Yes      | Current status (see [Milestone Status](#milestone-status)) |
 | Reminder Days | Number    | No       | Days before due date to send a reminder                    |
+| Last Reminded | Timestamp | No       | When the last reminder was sent                            |
 | Created By    | Link      | Yes      | The user who created the milestone                         |
 | Created       | Timestamp | Yes      | When the record was created                                |
 | Updated       | Timestamp | Yes      | When the record was last modified                          |
@@ -144,7 +155,7 @@ An internal note attached to a case, consultation, or task.
 | Created      | Timestamp | Yes      | When the note was created             |
 | Updated      | Timestamp | Yes      | When the note was last modified       |
 
-> Note must be linked to a Case, Consultation, or Task (one is required).
+> Note is optionally linked to a Case, Consultation, or Task. All three foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
 
 ---
 
@@ -165,7 +176,7 @@ A file attachment linked to a case, consultation, or task.
 | Created      | Timestamp | Yes      | When the file was uploaded                |
 | Updated      | Timestamp | Yes      | When the record was last modified         |
 
-> Document must be linked to a Case, Consultation, or Task (one is required).
+> Document is optionally linked to a Case, Consultation, or Task. All three foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
 
 ---
 
@@ -186,6 +197,7 @@ A system notification sent to a user.
 | Milestone    | Link      | No       | Related milestone                 |
 | Task         | Link      | No       | Related task                      |
 | Created      | Timestamp | Yes      | When the notification was created |
+| Updated      | Timestamp | Yes      | When the record was last modified |
 
 ---
 
@@ -238,12 +250,15 @@ Links a user to a consultation.
 
 Links a user to a task.
 
-| Field   | Type      | Required | Description        |
-| ------- | --------- | -------- | ------------------ |
-| Task    | Link      | Yes      | The task           |
-| User    | Link      | Yes      | The assigned user  |
-| Created | Timestamp | Yes      | When assigned      |
-| Updated | Timestamp | Yes      | When last modified |
+| Field   | Type      | Required | Description                                                              |
+| ------- | --------- | -------- | ------------------------------------------------------------------------ |
+| Task    | Link      | Yes      | The task                                                                 |
+| User    | Link      | Yes      | The assigned user                                                        |
+| Status  | Enum      | Yes      | Submission state (see [Task Assignment Status](#task-assignment-status)) |
+| Created | Timestamp | Yes      | When assigned                                                            |
+| Updated | Timestamp | Yes      | When last modified                                                       |
+
+> Each assignee carries a submission state. An assignee may move their own row `Pending ⇄ Submitted` while the task is `Pending` or `Submitted`; the task status is derived from all assignee states and reviewer decisions (see [Task Review Workflow](./task-review-workflow.md)).
 
 ---
 
@@ -251,14 +266,16 @@ Links a user to a task.
 
 Links a reviewer to a task for approval workflows.
 
-| Field        | Type      | Required | Description                               |
-| ------------ | --------- | -------- | ----------------------------------------- |
-| Task         | Link      | Yes      | The task being reviewed                   |
-| Reviewer     | Link      | Yes      | The user assigned to review               |
-| Delegated By | Link      | Yes      | The user who assigned the reviewer        |
-| Active       | Boolean   | Yes      | Whether this reviewer is currently active |
-| Created      | Timestamp | Yes      | When assigned                             |
-| Updated      | Timestamp | Yes      | When last modified                        |
+| Field       | Type      | Required | Description                                                |
+| ----------- | --------- | -------- | ---------------------------------------------------------- |
+| Task        | Link      | Yes      | The task being reviewed                                    |
+| Reviewer    | Link      | Yes      | The user assigned to review                                |
+| Decision    | Enum      | Yes      | Current decision (see [Review Decision](#review-decision)) |
+| Reviewed At | Timestamp | No       | When the reviewer made their decision                      |
+| Created     | Timestamp | Yes      | When assigned                                              |
+| Updated     | Timestamp | Yes      | When last modified                                         |
+
+> A reviewer has exactly one decision per task. Re-adding the same reviewer resets their decision to `Pending` and clears `Reviewed At`.
 
 ---
 
@@ -303,14 +320,33 @@ Links a reviewer to a task for approval workflows.
 
 ### Task Status
 
-| Value     | Description                     |
-| --------- | ------------------------------- |
-| Pending   | Task created, waiting to start  |
-| Ongoing   | Task is in progress             |
-| Submitted | Task completed, awaiting review |
-| Accepted  | Task approved by reviewer       |
-| Rejected  | Task rejected, needs revision   |
-| Cancelled | Task cancelled                  |
+| Value     | Description                                                  |
+| --------- | ------------------------------------------------------------ |
+| Pending   | Not all assignees submitted, or a reviewer rejected (rework) |
+| Submitted | All assignees submitted their work; under review             |
+| Completed | All reviewers accepted the task                              |
+| Cancelled | Task is no longer relevant                                   |
+
+> `Task.status` is derived — assignees and reviewers never set it directly (only the creator may cancel). See [Task Review Workflow](./task-review-workflow.md).
+
+---
+
+### Review Decision
+
+| Value    | Description                                 |
+| -------- | ------------------------------------------- |
+| Pending  | Awaiting the reviewer's decision            |
+| Accepted | Reviewer approves the work                  |
+| Rejected | Reviewer rejects the work, assignee reworks |
+
+---
+
+### Task Assignment Status
+
+| Value     | Description                                   |
+| --------- | --------------------------------------------- |
+| Pending   | Assignee still working / reworking            |
+| Submitted | Assignee has handed their work off for review |
 
 ---
 
@@ -334,6 +370,7 @@ Links a reviewer to a task for approval workflows.
 | MilestoneStatusChanged    | Any milestone status change                        |
 | MilestoneOverdue          | Milestone due date has passed                      |
 | TaskAssigned              | User assigned to a task                            |
+| TaskStatusChanged         | Any task status change (review workflow)           |
 | CaseAssigned              | User assigned to a case (assignee added)           |
 | CaseStatusChanged         | Any case status change                             |
 | ConsultationAssigned      | Consultation assignee added                        |

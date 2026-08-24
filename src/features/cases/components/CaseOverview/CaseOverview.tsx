@@ -2,11 +2,11 @@
 
 import { FaCalendarCheck, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
-import { AssigneeChips } from "@/components/ui/AssigneeChips/AssigneeChips";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import type { CaseOverviewData } from "@/features/cases/queries";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 
@@ -89,7 +89,7 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>
-              <AssigneeChips assignees={data.assignTo} />
+              <UserChips users={data.assignTo} />
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Parties Involved</span>

@@ -37,7 +37,9 @@ src/
 │   │   └── audit/                       # Audit log viewer
 │   ├── api/
 │   │   ├── auth/[...nextauth]/route.ts  # NextAuth handler
-│   │   └── cron/reminders/route.ts      # Scheduled reminder webhook
+│   │   └── cron/
+│   │       ├── reminders/route.ts      # Scheduled reminder webhook
+│   │       └── storage-gc/route.ts     # Storage garbage collection sweep
 │   ├── layout.tsx                       # Root layout
 │   ├── error.tsx                        # Error boundary
 │   ├── global-error.tsx                 # Global error boundary
@@ -93,7 +95,7 @@ src/
 
 ### API Routes vs Server Actions
 
-- **API Routes** — Restricted to NextAuth (`app/api/auth/[...nextauth]/`) and cron webhooks (`app/api/cron/reminders`). Do not create custom REST endpoints for application data.
+- **API Routes** — Restricted to NextAuth (`app/api/auth/[...nextauth]/`) and cron webhooks (`app/api/cron/reminders/`, `app/api/cron/storage-gc/`). Do not create custom REST endpoints for application data.
 - **Server Actions** (`actions.ts`) — The primary mechanism for all data mutation, form submission, and infrastructure execution (including generating S3 presigned URLs). Every structural modification to application state routes through a Server Action.
 
 ### Feature Domain Pattern

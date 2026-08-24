@@ -80,7 +80,7 @@
 
   &[data-focused] {
     color: var(--color-text-inverse);
-    background: var(--color-brand-primary);
+    background: var(--color-brand-accent--active);
     border-radius: var(--radius-sm);
     caret-color: transparent;
   }

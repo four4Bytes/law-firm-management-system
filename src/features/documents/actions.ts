@@ -4,24 +4,30 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { createAuditLog } from "@/features/audit/mutations";
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
+import { TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError } from "@/lib/errors";
+import { ForbiddenError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 import {
-  deleteFile,
   generateKey,
   getPresignedDownloadUrl,
   getPresignedUploadUrl,
   objectExists,
 } from "@/lib/s3";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
-import { createDocument, deleteDocument as deleteDocumentRecord } from "./mutations";
+import {
+  createDocument,
+  createDocumentForTask,
+  deleteDocumentForTask,
+  deleteDocument as deleteDocumentRecord,
+} from "./mutations";
 import {
   getDocumentAccessContext,
   getDocumentById,
@@ -81,7 +87,7 @@ export async function getDocumentsPaginatedAction(
     consultationId,
     taskId,
   });
-  if (!can(session.role, "attachment.read", parentAccess)) {
+  if (!can(session.role, taskId ? "task.read" : "attachment.read", parentAccess)) {
     throw new ForbiddenError();
   }
 
@@ -109,8 +115,15 @@ export async function getDocumentUploadUrlAction(
     consultationId: consultation_id,
     taskId: task_id,
   });
-  if (!can(session.role, "attachment.create", parentAccess)) {
+  if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
     throw new ForbiddenError();
+  }
+
+  if (task_id) {
+    const task = await getTaskById(task_id);
+    if (task?.status === TaskStatus.Cancelled) {
+      throw new Error(TASK_LOCKED_MESSAGE);
+    }
   }
 
   const parentType = case_id ? "cases" : task_id ? "tasks" : "consultations";
@@ -141,32 +154,54 @@ export async function confirmDocumentUploadAction(
       consultationId: consultation_id,
       taskId: task_id,
     });
-    if (!can(session.role, "attachment.create", parentAccess)) {
+    if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    const doc = await createDocument({
-      file_name,
-      file_path,
-      file_type,
-      file_size,
-      case_id,
-      consultation_id,
-      task_id,
-      uploaded_by_user_id: session.id,
-    });
+    let doc: { id: string };
+
+    if (task_id) {
+      try {
+        doc = await createDocumentForTask({
+          taskId: task_id,
+          file_name,
+          file_path,
+          file_type,
+          file_size,
+          case_id,
+          consultation_id,
+          uploaded_by_user_id: session.id,
+        });
+      } catch (error) {
+        if (error instanceof TaskLockedError) {
+          return { success: false, error: TASK_LOCKED_MESSAGE };
+        }
+        throw error;
+      }
+    } else {
+      doc = await createDocument({
+        file_name,
+        file_path,
+        file_type,
+        file_size,
+        case_id,
+        consultation_id,
+        task_id,
+        uploaded_by_user_id: session.id,
+      });
+    }
 
     const taskCaseId = task_id ? ((await getTaskById(task_id))?.case_id ?? null) : null;
     const resultCaseId = case_id ?? taskCaseId;
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "document.uploaded",
         entityType: resultCaseId ? "Case" : "Consultation",
         entityId: (case_id ?? taskCaseId ?? consultation_id)!,
         details: `Uploaded document: "${file_name}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(
@@ -195,6 +230,13 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
 
   const doc = await getDocumentById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
+
+  if (doc.task_id) {
+    const taskAccess = await getTaskAccessContext(session.id, doc.task_id);
+    if (!can(session.role, "task.read", taskAccess)) {
+      throw new ForbiddenError();
+    }
+  }
 
   const access = await getDocumentAccessContext(session.id, doc.id);
   if (!can(session.role, "attachment.read", access)) {
@@ -232,17 +274,34 @@ export async function deleteDocumentAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    await deleteDocumentRecord(documentId);
-    await deleteFile(doc.file_path);
+    if (doc.task_id) {
+      const taskAccess = await getTaskAccessContext(session.id, doc.task_id);
+      if (!can(session.role, "task.update", taskAccess)) {
+        return { success: false, error: FORBIDDEN_MESSAGE };
+      }
+
+      try {
+        await deleteDocumentForTask(doc.task_id, documentId);
+      } catch (error) {
+        if (error instanceof TaskLockedError) {
+          return { success: false, error: TASK_LOCKED_MESSAGE };
+        }
+        throw error;
+      }
+    } else {
+      await deleteDocumentRecord(documentId);
+    }
+
+    await deleteDocumentFiles([doc.file_path]);
 
     after(() =>
-      createAuditLog({
+      logAudit({
         actorUserId: session.id,
         action: "document.deleted",
         entityType: parentCaseId ? "Case" : "Consultation",
         entityId: parentCaseId ?? doc.consultation_id!,
         details: `Deleted document: "${doc.file_name}"`,
-      }).catch(console.error),
+      }),
     );
 
     revalidatePath(

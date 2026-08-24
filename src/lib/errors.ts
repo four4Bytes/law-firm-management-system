@@ -35,3 +35,25 @@ export class UnauthorizedError extends Error {
     this.name = "UnauthorizedError";
   }
 }
+
+/**
+ * Error thrown when a mutation targets a Note or Document whose parent
+ * task is `Cancelled`. A cancelled task is terminal, so its attachments are
+ * write-locked (create/update/delete refused).
+ */
+export class TaskLockedError extends Error {
+  /** Stable identifier for error boundary detection. */
+  readonly digest = "TASK_LOCKED";
+
+  constructor() {
+    super("This task is cancelled and its attachments are locked");
+    this.name = "TaskLockedError";
+  }
+}
+
+/**
+ * Message returned when a mutation targets a Note or Document whose parent
+ * task is `Cancelled`. A cancelled task is terminal, so its attachments are
+ * write-locked (create/update/delete refused).
+ */
+export const TASK_LOCKED_MESSAGE = "This task is cancelled and its attachments are locked";

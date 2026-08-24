@@ -36,7 +36,7 @@
 
 ## Architecture
 
-- `src/app/page.tsx` — unauthenticated login page.
+- `src/app/(auth)/page.tsx` — unauthenticated login page.
 - `src/app/(dashboard)/` — authenticated section (Sidebar + Header shared layout). Dashboard routes: `dashboard/`, `case/`, `consultation/`, `user/`.
 - API Routes — Restricted strictly to framework orchestration (`src/app/api/auth/[...nextauth]/route.ts`) and scheduled job webhooks (e.g. `src/app/api/cron/*/route.ts`). Do not create custom REST endpoints for application data under any circumstances.
 - Server Actions (`actions.ts`) — The primary mechanism for all data mutation, form submission, and infrastructure execution (including generating storage presigned URLs). Every structural modification to application state must route through a Server Action.
@@ -87,10 +87,13 @@
   1. The client invokes a secure Server Action requesting a upload target.
   2. The Server Action validates permissions and generates an S3 presigned URL via `@aws-sdk/client-s3`.
   3. The client receives the URL and executes a native client-side `fetch` browser payload directly to the storage bucket.
+- Cascade document cleanup: Deleting a Case, Consultation, or Task must also purge its attached S3 document blobs, not just the cascaded `Document` rows. The database is the source of truth, so each delete mutation deletes the `Document` rows (via `onDelete: Cascade`) **before** calling `deleteDocumentFiles` (in `src/lib/storage-cleanup.ts`). `deleteDocumentFiles` is best-effort and idempotent: it deletes each S3 object and logs but does not propagate individual failures, because the records are already gone. This guarantees no dangling `Document` rows pointing at missing files. Any S3 objects left behind by a cleanup failure are harmless orphans reclaimed by the storage GC sweep (`src/app/api/cron/storage-gc`). Never reverse the order — deleting storage first would leave `Document` rows referencing missing blobs.
 - Never import `prisma` directly outside of `queries.ts` or `mutations.ts`.
 - Prisma client vs browser entry: Any module reachable by client components (UI components, and Zod schemas referenced at runtime in the browser) MUST import enums/models from `@/generated/prisma/browser`, never `@/generated/prisma/client`. The `client` entry imports `node:` builtins and breaks `next build` (Turbopack `node:module` error) if pulled into the client bundle.
 - Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly shared/reusable components in `src/components/ui/`.
 - Client-side role checks: Use `can(userRole, permission, access?)` from `@/lib/rbac` for UI presentation (show/hide tabs, buttons, columns). This is a pure boolean check — never use it for enforcement. All security boundaries must remain server-side in Server Actions via `requirePermission(...)` (context-free cells) or `requireAuth()` + `can(...)` (record-scoped cells).
+- RBAC actions: Do **not** hide per-record action buttons (Edit, Delete, View, etc.) with client-side RBAC checks. Always render the action and let the Server Action return an `ActionStatusResponse`; surface the result via `queue.add(...)`. The server owns access-context decisions, and users should see why an action failed rather than having buttons silently disappear. Reserve client-side `can()` gating for coarse, context-free UI (e.g. tabs or Add buttons), not row actions. If hiding an action is clearly better UX in a specific case, flag it.
+- Read permission gating: For button/row actions (View/Open), follow the same rule: always render them and surface denials via the toast queue. For navigation links to inaccessible pages, also render the link; the destination should show an empty body with an “Access denied” message using the `DashboardError` / access-denied pattern.
 - Scan `src/lib/` for existing utilities before creating new types/functions to avoid duplication.
 
 ### Testing
@@ -130,15 +133,15 @@
 - Idiomatic, modular code is the top priority in this project, not a collection of hacks and workarounds.
 - Named exports only — no default exports, except for Next.js special files (`page.tsx`, `layout.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`, `route.tsx` etc.) which require a default export. Use inline `export default function` for these files.
 - PascalCase components/types; camelCase variables/functions/files (component dirs are PascalCase).
-- No inline `//` comments unless explaining a non-obvious decision. JSDoc on `src/lib/` helpers is the explicit exception (see Documentation).
+- No inline `//` comments unless explaining a non-obvious decision. TSDoc on `src/lib/` helpers is the explicit exception (see Documentation).
 - Prisma schema: `snake_case` fields, `PascalCase` models/enums.
 - Husky: pre-commit runs `lint-staged` (Prettier + ESLint on staged files); pre-push runs `pnpm validate && pnpm test`.
 
-### Documentation (JSDoc)
+### Documentation (TSDoc)
 
-- JSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`, plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
+- TSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`, plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
 - Use `@param`, `@returns`, and `@typeParam` where applicable; keep descriptions terse and within the 100-char print width (Prettier reformats).
-- This convention is **scoped to `src/lib/` only**. Do not add JSDoc to feature or component code — it adds noise. Inline `//` comments remain banned (see General).
+- This convention is **scoped to `src/lib/` only**. Do not add TSDoc to feature or component code — it adds noise. Inline `//` comments remain banned (see General).
 
 ---
 

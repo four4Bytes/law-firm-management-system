@@ -1,4 +1,6 @@
+import { getDocumentFilePathsForCaseDeletion } from "@/features/documents/queries";
 import { prisma, type TransactionClient } from "@/lib/prisma";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import type {
   CaseCreatePayload,
@@ -50,7 +52,10 @@ export async function updateCase(
 }
 
 export async function deleteCase(id: string): Promise<{ id: string }> {
-  return prisma.case.delete({ where: { id }, select: { id: true } });
+  const filePaths = await getDocumentFilePathsForCaseDeletion(id);
+  const deleted = await prisma.case.delete({ where: { id }, select: { id: true } });
+  await deleteDocumentFiles(filePaths);
+  return deleted;
 }
 
 export async function createCaseWithClient(

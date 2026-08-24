@@ -10,6 +10,7 @@ import { NotificationType, Role, type Consultation } from "@/generated/prisma/br
 import { requireAuth, requirePermissionOrNull } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import {
   createConsultationAction,
@@ -58,7 +59,15 @@ vi.mock("next/server", () => {
 });
 
 vi.mock("@/features/audit/mutations", () => ({
-  createAuditLog: vi.fn().mockResolvedValue(undefined),
+  logAudit: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/features/documents/queries", () => ({
+  getDocumentFilePathsByConsultationId: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/lib/storage-cleanup", () => ({
+  deleteDocumentFiles: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/notifications/dispatch", () => ({
@@ -313,6 +322,24 @@ describe("deleteConsultationAction", () => {
       select: { id: true },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/consultation");
+  });
+
+  it("returns a failure status when the underlying delete throws", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: [],
+    });
+    vi.mocked(deleteDocumentFiles).mockRejectedValue(new Error("S3 unavailable"));
+
+    expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({
+      success: false,
+      error: "Failed to delete consultation",
+    });
   });
 });
 

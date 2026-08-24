@@ -1,3 +1,4 @@
+import { REMINDER_SUPPRESSED_AT } from "@/features/reminders/mutations";
 import { CaseMilestoneStatus, NotificationType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -11,6 +12,7 @@ interface MilestoneData {
   notifyEmails: string[];
   reminderDays?: number;
   lastRemindedDaysAgo?: number;
+  suppressOverdue?: boolean;
 }
 
 const milestones: MilestoneData[] = [
@@ -386,6 +388,7 @@ const milestones: MilestoneData[] = [
     createdByEmail: "david.tan@aninolaw.com",
     notifyEmails: ["david.tan@aninolaw.com", "catherine.diaz@aninolaw.com"],
     reminderDays: 3,
+    suppressOverdue: true,
   },
   {
     caseTitle: "Ramirez Corp — Series A Funding",
@@ -396,6 +399,7 @@ const milestones: MilestoneData[] = [
     daysFromNow: -1,
     createdByEmail: "angela.mercado@aninolaw.com",
     notifyEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
+    suppressOverdue: true,
   },
   {
     caseTitle: "Santos Foreclosure Defense",
@@ -420,10 +424,12 @@ export async function seedMilestones(
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + m.daysFromNow);
 
-    const remindedAt =
-      m.lastRemindedDaysAgo !== undefined
-        ? new Date(Date.now() - m.lastRemindedDaysAgo * 86_400_000)
-        : undefined;
+    let lastRemindedAt: Date | null = null;
+    if (m.suppressOverdue) {
+      lastRemindedAt = REMINDER_SUPPRESSED_AT;
+    } else if (m.lastRemindedDaysAgo !== undefined) {
+      lastRemindedAt = new Date(Date.now() - m.lastRemindedDaysAgo * 86_400_000);
+    }
 
     const milestone = await prisma.caseMilestone.create({
       data: {
@@ -434,7 +440,7 @@ export async function seedMilestones(
         status: m.status,
         created_by_user_id: userByEmail[m.createdByEmail],
         reminder_days: m.reminderDays ?? null,
-        last_reminded_at: remindedAt ?? null,
+        last_reminded_at: lastRemindedAt,
       },
     });
 

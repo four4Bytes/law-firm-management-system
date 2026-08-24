@@ -3,43 +3,21 @@
 import { useState } from "react";
 import { Form } from "react-aria-components";
 
-import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { FileList } from "@/features/documents/components/FileList/FileList";
-import { createTaskAction } from "@/features/tasks/actions";
+import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
-import { TaskStatus } from "@/generated/prisma/browser";
-import {
-  createFieldValidator,
-  optionalString,
-  requiredString,
-  selectEnumHandler,
-} from "@/lib/form-utils";
+import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./AddTaskModal.module.css";
-
-const STATUS_OPTIONS = Object.values(TaskStatus);
-
-const ACCEPTED_TYPES = [
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".xls",
-  ".xlsx",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".txt",
-  ".csv",
-] as const;
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -58,10 +36,11 @@ export function AddTaskModal({
 }: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>(TaskStatus.Pending);
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
+  const [reviewerIds, setReviewerIds] = useState<Set<string>>(new Set());
   const [isPending, setIsPending] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
+  const [addedReviewerIds, setAddedReviewerIds] = useState<Set<string>>(new Set());
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, setParent, uploadFiles } =
     useFileUpload({ caseId });
@@ -69,9 +48,10 @@ export function AddTaskModal({
   function resetForm() {
     setTitle("");
     setDescription("");
-    setStatus(TaskStatus.Pending);
     setAssigneeIds(new Set());
+    setReviewerIds(new Set());
     setCreatedTaskId(null);
+    setAddedReviewerIds(new Set());
     resetFiles();
   }
 
@@ -85,10 +65,17 @@ export function AddTaskModal({
     event.preventDefault();
     if (isPending) return;
 
+    if (assigneeIds.size < 1) {
+      queue.add({
+        title: "Add at least one assignee",
+        description: "A task needs at least one assignee",
+      });
+      return;
+    }
+
     const parsed = TaskCreatePayloadSchema.safeParse({
       title: requiredString(title),
       description: optionalString(description),
-      status,
       case_id: caseId,
       assignee_ids: Array.from(assigneeIds),
     });
@@ -114,6 +101,24 @@ export function AddTaskModal({
 
         setCreatedTaskId(result.data.id);
         taskId = result.data.id;
+      }
+
+      if (reviewerIds.size > 0) {
+        let reviewerFailed = false;
+        for (const id of reviewerIds) {
+          if (addedReviewerIds.has(id)) continue;
+          const result = await addTaskReviewerAction({ taskId, reviewerUserId: id });
+          if (!result.success) {
+            reviewerFailed = true;
+            queue.add({ title: result.error ?? "Failed to add reviewer" });
+            continue;
+          }
+          setAddedReviewerIds((prev) => new Set(prev).add(id));
+        }
+        if (reviewerFailed) {
+          setIsPending(false);
+          return;
+        }
       }
 
       if (hasFiles) {
@@ -169,23 +174,19 @@ export function AddTaskModal({
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.description)}
               isDisabled={isPending}
             />
-            <Select
-              label="Status"
-              value={status}
-              onChange={selectEnumHandler(TaskStatus, setStatus)}
-              isDisabled={isPending}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
-            <AssigneeSelect
+            <UserSelect
               users={users}
-              assigneeIds={assigneeIds}
+              selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
+            />
+            <UserSelect
+              users={users}
+              selectedIds={reviewerIds}
+              onChange={setReviewerIds}
+              isDisabled={isPending}
+              label="Reviewers"
+              placeholder="Select reviewers..."
             />
           </div>
 
@@ -195,7 +196,7 @@ export function AddTaskModal({
             <DropZone
               allowsMultiple
               onFileSelect={addFiles}
-              acceptedFileTypes={ACCEPTED_TYPES}
+              acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
               isDisabled={isPending}
               label="Drop files or click to upload"
               description="Supported: PDF, DOC, XLS, images, TXT, CSV"

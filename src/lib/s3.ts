@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   NotFound,
   PutObjectCommand,
   S3Client,
@@ -107,6 +108,40 @@ export async function objectExists(key: string): Promise<boolean> {
     if (e instanceof NotFound) return false;
     throw e;
   }
+}
+
+/**
+ * Metadata for a single object in the bucket.
+ */
+export interface ObjectSummary {
+  /** The S3 object key. */
+  key: string;
+  /** When the object was uploaded, if reported by storage. */
+  lastModified?: Date;
+}
+
+/**
+ * Yields every object in the bucket with its last-modified timestamp,
+ * transparently following S3 pagination, so callers can reconcile storage
+ * against the database.
+ *
+ * @returns An async iterable of {@link ObjectSummary} entries.
+ */
+export async function* listObjects(): AsyncIterable<ObjectSummary> {
+  let continuationToken: string | undefined;
+  do {
+    const response = await s3().send(
+      new ListObjectsV2Command({ Bucket: bucket(), ContinuationToken: continuationToken }),
+    );
+    for (const object of response.Contents ?? []) {
+      if (object.Key)
+        yield {
+          key: object.Key,
+          ...(object.LastModified ? { lastModified: object.LastModified } : {}),
+        };
+    }
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
 }
 
 const UPLOAD_URL_EXPIRY_S = 300;

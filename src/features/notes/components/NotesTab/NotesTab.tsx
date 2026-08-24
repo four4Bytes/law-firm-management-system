@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { FaPenToSquare, FaTrashCan } from "react-icons/fa6";
+import { FaEye, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -13,6 +13,7 @@ import { getConsultationNotesPaginatedAction } from "@/features/consultations/ac
 import { deleteNoteAction, getNoteRowByIdAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
 import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
+import { ViewNoteModal } from "@/features/notes/components/ViewNoteModal/ViewNoteModal";
 import type { NoteRow } from "@/features/notes/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
@@ -33,6 +34,7 @@ const columns: ColumnDef<NoteRow>[] = [
 
 export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
   const [isAddOpen, setAddOpen] = useState(false);
+  const [viewNote, setViewNote] = useState<NoteRow | null>(null);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<NoteRow | null>(null);
   const [pendingEditId, setPendingEditId] = useState<string | null>(null);
@@ -85,6 +87,9 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
       const note = row as NoteRow;
       return (
         <div className={styles.actions}>
+          <Button variant="ghost" aria-label="View note" onPress={() => setViewNote(note)}>
+            <FaEye className={styles.icon} />
+          </Button>
           <Button
             variant="ghost"
             aria-label="Edit note"
@@ -140,6 +145,9 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
         caseId={caseId}
         consultationId={consultationId}
       />
+      {viewNote && (
+        <ViewNoteModal isOpen={!!viewNote} onOpenChange={() => setViewNote(null)} note={viewNote} />
+      )}
       {editNote && (
         <EditNoteModal
           key={editNote.id}

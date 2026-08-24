@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
-import { AssigneeSelect } from "@/components/ui/AssigneeSelect/AssigneeSelect";
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
@@ -14,6 +13,7 @@ import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
@@ -176,9 +176,9 @@ export function EditCaseModal({
                 </SelectItem>
               ))}
             </Select>
-            <AssigneeSelect
+            <UserSelect
               users={users}
-              assigneeIds={assigneeIds}
+              selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />

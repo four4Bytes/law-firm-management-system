@@ -22,7 +22,7 @@ import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTas
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
-import { can, type AccessContext } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 import styles from "./TasksTab.module.css";
 
@@ -109,7 +109,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       setViewTask(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: "Failed to load task" }, { timeout: 5000 });
+      queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
     } finally {
       if (requestId === latestRequest.current) setPendingViewId(null);
     }
@@ -135,7 +135,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       }
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: "Failed to load task" }, { timeout: 5000 });
+      queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
     } finally {
       if (requestId === latestRequest.current) setPendingEditId(null);
     }

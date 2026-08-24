@@ -157,13 +157,13 @@ export async function updateNoteAction(
       logAudit({
         actorUserId: session.id,
         action: "note.updated",
-        entityType: existing.case_id ? "Case" : "Consultation",
-        entityId: (existing.case_id ?? existing.consultation_id)!,
+        entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
+        entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
         details: `Updated note with ID: ${noteId}`,
       }),
     );
 
-    revalidatePath(getParentPath(existing));
+    revalidatePath(existing.task_id ? `/case/${existing.task?.case_id}` : getParentPath(existing));
 
     return { success: true };
   } catch {
@@ -198,13 +198,13 @@ export async function deleteNoteAction(
       logAudit({
         actorUserId: session.id,
         action: "note.deleted",
-        entityType: existing.case_id ? "Case" : "Consultation",
-        entityId: (existing.case_id ?? existing.consultation_id)!,
+        entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
+        entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
         details: `Deleted note with ID: ${noteId}`,
       }),
     );
 
-    revalidatePath(getParentPath(existing));
+    revalidatePath(existing.task_id ? `/case/${existing.task?.case_id}` : getParentPath(existing));
 
     return { success: true };
   } catch {

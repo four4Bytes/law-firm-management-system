@@ -78,7 +78,7 @@ The task status is **fully derived** — assignees and reviewers never set it di
 - `Pending` → `Submitted`: derived when **every** assignee is `Submitted`.
 - `Submitted` → `Completed`: derived when **every** reviewer is `Accepted`.
 - `Submitted` → `Pending` (rework): derived when any reviewer `Rejected` (all reviewer decisions **and** all assignee submissions reset to `Pending`), **or** when any assignee reverts their own row to `Pending`.
-- `Completed` → `Pending` (reopen): derived when a reviewer is added (defaults `Pending`) or an assignee reverts; all reviewer decisions and assignee submissions reset to `Pending`.
+- `Completed` → `Pending` (reopen): derived when a reviewer is added (defaults `Pending`); all reviewer decisions and assignee submissions reset to `Pending`.
 - Any active status → `Cancelled`: only the task **creator** may cancel — the Server Action permits it solely when the caller is the task's `created_by_user_id`; assignees and reviewers cannot. Cancellation is a status change (the record is retained), not a deletion.
 - Editing the assignee list (creator only) recreates the assignments and resets **every** assignee's submission state to `Pending`, reopening the task if it was `Submitted` / `Completed`.
 
@@ -216,7 +216,7 @@ There are exactly **three task modals**, and they look identical:
 
 ### 10.3 Status and Submission
 
-- **Task Status is derived and read-only.** It is shown as a `StatusBadge` (not a Select) for every role — assignees and reviewers never set it directly. It reflects the combined derivation in [§4](#4-status-derivation).
+- **Task Status is derived and read-only.** It is shown as a `StatusBadge` (not a Select) for every role — assignees and reviewers never set it directly. It reflects the combined derivation in [§4](#status-derivation).
 - **Assignee submission is per-row.** Each assignee sees their own row in the Assignees list with a `Submit` Select (`Pending` / `Submitted`), editable **only by that assignee**. Submitting flips their row; when the last assignee submits, the task derives to `Submitted`. An assignee may revert `Submitted → Pending` while the task is `Pending` or `Submitted` (to fix an accidental submit); the row is locked in `Completed` / `Cancelled`.
 - **Reviewer decision** (`Accepted` / `Rejected`) is unchanged (see [10.4](#104-reviewer-decision-select)); the status re-derives automatically.
 - **Cancellation** is the only manual status control: the **creator** gets a separate `Cancel` Select (single `Cancelled` option). Non-creators see no cancel control. The Server Action permits cancellation solely when the caller is the task's `created_by_user_id`.

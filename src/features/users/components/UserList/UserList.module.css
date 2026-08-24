@@ -43,8 +43,8 @@
       color: var(--color-danger);
     }
   }
+}
 
-  .empty {
-    color: var(--color-text-muted);
-  }
+.empty {
+  color: var(--color-text-muted);
 }

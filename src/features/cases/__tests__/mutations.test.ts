@@ -150,6 +150,7 @@ it("purges the case's S3 documents before deleting the case", async () => {
 
   expect(getDocumentFilePathsForCaseDeletion).toHaveBeenCalledWith(uuid);
   expect(deleteDocumentFiles).toHaveBeenCalledWith(["cases/c1/a.pdf"]);
+  expect(deleteDocumentFiles).toHaveBeenCalledBefore(vi.mocked(prisma.case.delete));
   expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
 });
 

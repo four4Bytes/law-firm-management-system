@@ -33,10 +33,23 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
     let cancelled = false;
 
     async function loadDocuments() {
+      setDocuments([]);
+      setPreviewDocument(null);
+      setIsLoadingDocuments(true);
       try {
-        const { rows } = await getDocumentsPaginatedAction({ taskId: task.id, pageSize: 100 });
+        const all: DocumentRow[] = [];
+        let cursor: string | undefined;
+        do {
+          const res = await getDocumentsPaginatedAction({
+            taskId: task.id,
+            pageSize: 100,
+            cursor,
+          });
+          all.push(...res.rows);
+          cursor = res.nextCursor ?? undefined;
+        } while (cursor);
         if (cancelled) return;
-        setDocuments(rows);
+        setDocuments(all);
       } catch {
         if (cancelled) return;
         queue.add({ title: "Failed to load attachments" }, { timeout: 5000 });
@@ -46,6 +59,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
     }
 
     async function loadNotes() {
+      setNotes([]);
       try {
         const rows = await getTaskNotesAction(task.id);
         if (cancelled) return;

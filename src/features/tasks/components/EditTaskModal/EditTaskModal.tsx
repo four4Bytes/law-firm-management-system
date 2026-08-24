@@ -193,13 +193,24 @@ export function EditTaskModal({
         const current = new Set(task.reviewers.map((r) => r.reviewer_user_id));
         const added = [...reviewerIds].filter((id) => !current.has(id));
         const removed = [...current].filter((id) => !reviewerIds.has(id));
+        let reviewerFailed = false;
         for (const id of added) {
           const result = await addTaskReviewerAction({ taskId: task.id, reviewerUserId: id });
-          if (!result.success) queue.add({ title: result.error ?? "Failed to add reviewer" });
+          if (!result.success) {
+            reviewerFailed = true;
+            queue.add({ title: result.error ?? "Failed to add reviewer" });
+          }
         }
         for (const id of removed) {
           const result = await removeTaskReviewerAction({ taskId: task.id, reviewerUserId: id });
-          if (!result.success) queue.add({ title: result.error ?? "Failed to remove reviewer" });
+          if (!result.success) {
+            reviewerFailed = true;
+            queue.add({ title: result.error ?? "Failed to remove reviewer" });
+          }
+        }
+        if (reviewerFailed) {
+          setIsPending(false);
+          return;
         }
       }
 

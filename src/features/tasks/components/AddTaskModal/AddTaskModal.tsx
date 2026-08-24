@@ -102,9 +102,17 @@ export function AddTaskModal({
       }
 
       if (reviewerIds.size > 0) {
+        let reviewerFailed = false;
         for (const id of reviewerIds) {
           const result = await addTaskReviewerAction({ taskId, reviewerUserId: id });
-          if (!result.success) queue.add({ title: result.error ?? "Failed to add reviewer" });
+          if (!result.success) {
+            reviewerFailed = true;
+            queue.add({ title: result.error ?? "Failed to add reviewer" });
+          }
+        }
+        if (reviewerFailed) {
+          setIsPending(false);
+          return;
         }
       }
 

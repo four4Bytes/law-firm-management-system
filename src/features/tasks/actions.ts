@@ -555,7 +555,7 @@ export async function cancelTaskAction(
     }
 
     if (existing.status === TaskStatus.Cancelled) {
-      return { success: false, error: "This task has already been resolved" };
+      return { success: false, error: "This task has already been cancelled" };
     }
 
     await cancelTask(taskId);

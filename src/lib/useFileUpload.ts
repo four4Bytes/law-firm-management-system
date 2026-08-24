@@ -142,7 +142,8 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
         uploaded++;
       } catch (err) {
         failed++;
-        const message = err instanceof Error ? err.message : "Upload failed";
+        const rawMessage = err instanceof Error ? err.message : "Upload failed";
+        const message = rawMessage.replace(/\.+$/, "");
         updateEntry(entry.id, { status: "failed", error: message });
         toastError(`Failed to upload "${entry.file.name}"`, `${message}. Please retry the file.`);
       }

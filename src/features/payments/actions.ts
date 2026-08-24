@@ -14,7 +14,7 @@ import {
   type ActionDataResponse,
   type ActionStatusResponse,
 } from "@/lib/action-response";
-import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
+import { requirePermission } from "@/lib/auth-guards";
 import { toActionResponse } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can } from "@/lib/rbac";
@@ -64,16 +64,22 @@ export async function getPaymentsPaginatedAction(
 export async function createPaymentAction(
   payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
-  const session = await requirePermissionOrNull("payment.create");
-  if (!session) return actionForbidden();
-
-  const parsed = PaymentCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) return actionInvalid("payment");
-
-  const { amount, payment_date, status, payment_method, receipt_number, case_id, consultation_id } =
-    parsed.data;
-
   try {
+    const session = await requirePermission("payment.create");
+
+    const parsed = PaymentCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) return actionInvalid("payment");
+
+    const {
+      amount,
+      payment_date,
+      status,
+      payment_method,
+      receipt_number,
+      case_id,
+      consultation_id,
+    } = parsed.data;
+
     // Check access to parent case or consultation
     const parentAccess = case_id
       ? await getCaseAccessContext(session.id, case_id)
@@ -117,15 +123,14 @@ export async function createPaymentAction(
 export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requirePermissionOrNull("payment.update");
-  if (!session) return actionForbidden();
-
-  const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
-  if (!parsed.success) return actionInvalid("payment");
-
-  const { paymentId, amount, payment_date, status, payment_method, receipt_number } = parsed.data;
-
   try {
+    const session = await requirePermission("payment.update");
+
+    const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
+    if (!parsed.success) return actionInvalid("payment");
+
+    const { paymentId, amount, payment_date, status, payment_method, receipt_number } = parsed.data;
+
     const existing = await getPaymentById(paymentId);
     if (!existing) return actionNotFound("Payment");
 
@@ -173,15 +178,14 @@ export async function updatePaymentAction(
 export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requirePermissionOrNull("payment.delete");
-  if (!session) return actionForbidden();
-
-  const parsed = PaymentIdSchema.safeParse(payload);
-  if (!parsed.success) return actionInvalid("payment");
-
-  const { paymentId } = parsed.data;
-
   try {
+    const session = await requirePermission("payment.delete");
+
+    const parsed = PaymentIdSchema.safeParse(payload);
+    if (!parsed.success) return actionInvalid("payment");
+
+    const { paymentId } = parsed.data;
+
     const existing = await getPaymentById(paymentId);
     if (!existing) return actionNotFound("Payment");
 

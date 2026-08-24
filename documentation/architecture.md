@@ -76,7 +76,6 @@ src/
 │   ├── action-response.ts               # ActionStatusResponse types + error factories
 │   ├── errors.ts                        # Custom error classes + toActionResponse catch-mapper
 │   ├── logger.ts                        # Server-side structured logging (logError/logWarn)
-│   ├── errors.ts                        # Custom error classes
 │   ├── env.ts                           # Environment variable accessors
 │   ├── date.ts                          # Date formatting helpers
 │   ├── file-format.ts                   # File size/type formatting
@@ -138,7 +137,7 @@ File uploads never stream through the Next.js runtime:
 | **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                                                                                                                                                                           |
 | **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                                                                                                                                                                                    |
 | **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                                                                                                                                                                                   |
-| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` with a structured `{ code, title, description }` error built via `src/lib/action-response.ts` factories and the `toActionResponse` catch-mapper (unknown causes logged server-side, never leaked) |     |
+| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` with a structured `{ code, title, description }` error built via `src/lib/action-response.ts` factories and the `toActionResponse` catch-mapper (unknown causes logged server-side, never leaked) |
 | **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                                                                                                                                                                                        |
 
 ## Conventions

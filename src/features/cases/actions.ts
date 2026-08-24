@@ -37,7 +37,7 @@ import {
 import {
   assertRecordPermission,
   requireAuth,
-  requirePermissionOrNull,
+  requirePermission,
   type AuthenticatedUser,
 } from "@/lib/auth-guards";
 import { toActionResponse } from "@/lib/errors";
@@ -183,36 +183,35 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ caseId: string }>> {
-  const session = await requirePermissionOrNull("case.create");
-  if (!session) {
-    return actionForbidden();
-  }
-
-  const parsed = CaseCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return actionInvalid("case");
-  }
-
-  const {
-    client_id,
-    case_title,
-    case_type,
-    status,
-    parties_involved,
-    source_consultation_id,
-    assignee_ids,
-  } = parsed.data;
-
-  if (source_consultation_id) {
-    const existing = await getCaseBySourceConsultationId(source_consultation_id);
-    if (existing) {
-      return actionConflict("Case already exists", "A case already exists for this consultation.");
-    }
-  }
-
-  let createdCase: { id: string };
   try {
-    createdCase = await createCase({
+    const session = await requirePermission("case.create");
+
+    const parsed = CaseCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      return actionInvalid("case");
+    }
+
+    const {
+      client_id,
+      case_title,
+      case_type,
+      status,
+      parties_involved,
+      source_consultation_id,
+      assignee_ids,
+    } = parsed.data;
+
+    if (source_consultation_id) {
+      const existing = await getCaseBySourceConsultationId(source_consultation_id);
+      if (existing) {
+        return actionConflict(
+          "Case already exists",
+          "A case already exists for this consultation.",
+        );
+      }
+    }
+
+    const createdCase = await createCase({
       client_id,
       case_title,
       case_type,
@@ -247,21 +246,17 @@ export async function createCaseAction(
 export async function createCaseWithClientAction(
   payload: z.input<typeof CaseWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requirePermissionOrNull("case.create");
-  if (!session) {
-    return actionForbidden();
-  }
-
-  const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return actionInvalid("case");
-  }
-
-  const { client, case: caseData } = parsed.data;
-
-  let createdWithClient: { id: string };
   try {
-    createdWithClient = await createCaseWithClient({
+    const session = await requirePermission("case.create");
+
+    const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      return actionInvalid("case");
+    }
+
+    const { client, case: caseData } = parsed.data;
+
+    const createdWithClient = await createCaseWithClient({
       client,
       case: caseData,
       created_by_user_id: session.id,

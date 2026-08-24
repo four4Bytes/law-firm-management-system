@@ -59,28 +59,6 @@ export async function requirePermission(...permissions: Permission[]): Promise<A
 }
 
 /**
- * Same as {@link requirePermission}, but returns `null` instead of throwing.
- * Use in write actions that must convert a denial into a structured
- * `ActionStatusResponse` rather than an exception.
- *
- * @param permissions - One or more granular permissions; the caller must be
- *                      granted at least one.
- * @returns The authenticated user, or `null` when unauthenticated or denied.
- */
-export async function requirePermissionOrNull(
-  ...permissions: Permission[]
-): Promise<AuthenticatedUser | null> {
-  try {
-    return await requirePermission(...permissions);
-  } catch (error) {
-    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
-      return null;
-    }
-    throw error;
-  }
-}
-
-/**
  * Evaluates a record-scoped permission against an {@link AccessContext} and
  * throws `"Forbidden"` when denied. Call after loading the context for the
  * specific record (e.g. via `getCaseAccessContext`).

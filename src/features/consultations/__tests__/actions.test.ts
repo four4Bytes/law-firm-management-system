@@ -7,7 +7,9 @@ import {
 } from "@/features/consultations/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Consultation } from "@/generated/prisma/browser";
-import { requireAuth, requirePermissionOrNull } from "@/lib/auth-guards";
+import { Prisma } from "@/generated/prisma/client";
+import { requireAuth, requirePermission } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
@@ -34,7 +36,7 @@ afterEach(async () => {
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
-  requirePermissionOrNull: vi
+  requirePermission: vi
     .fn()
     .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
   assertRecordPermission: vi.fn((session, permission, context) => {
@@ -373,6 +375,33 @@ describe("deleteConsultationAction", () => {
       },
     });
   });
+
+  it("returns not_found when the consultation is deleted concurrently", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: "1",
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Scheduled",
+      reminder_days: null,
+      assignee_ids: [],
+    });
+    vi.mocked(prisma.consultation.delete).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Record not found", {
+        code: "P2025",
+        clientVersion: "test",
+      }),
+    );
+
+    expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({
+      success: false,
+      error: {
+        code: "not_found",
+        title: "Consultation not found",
+        description: "The consultation may have been deleted by another user.",
+      },
+    });
+  });
 });
 
 describe("authorization guards for non-Admin users", () => {
@@ -454,7 +483,7 @@ describe("authorization guards for non-Admin users", () => {
   });
 
   it("returns forbidden envelope from createConsultationWithClientAction when the role lacks consultation.create", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(null);
+    vi.mocked(requirePermission).mockRejectedValue(new ForbiddenError());
 
     expect(await createConsultationWithClientAction(createWithClientPayload)).toEqual({
       success: false,

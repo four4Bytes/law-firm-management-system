@@ -172,6 +172,7 @@ describe("getTaskDetailRowByIdAction", () => {
     expect(result).toEqual({
       row: taskRow,
       canUpdate: false,
+      currentUserId: "u2",
       capabilities: {
         isCreator: false,
         isReviewer: false,
@@ -202,6 +203,7 @@ describe("getTaskDetailRowByIdAction", () => {
     expect(result).toEqual({
       row: taskRow,
       canUpdate: true,
+      currentUserId: "u2",
       capabilities: {
         isCreator: false,
         isReviewer: false,
@@ -327,7 +329,7 @@ const assigneeRecord = {
 describe("submitTaskAction", () => {
   it("returns FORBIDDEN_MESSAGE when the caller is not an assignee", async () => {
     vi.mocked(getTaskById).mockResolvedValue(taskRecord);
-    expect(await submitTaskAction({ taskId: uuid })).toEqual({
+    expect(await submitTaskAction({ taskId: uuid, status: "Submitted" })).toEqual({
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
@@ -348,7 +350,7 @@ describe("submitTaskAction", () => {
     });
     vi.mocked(setAssignmentStatus).mockResolvedValue({ taskStatus: "Submitted" });
 
-    const result = await submitTaskAction({ taskId: uuid });
+    const result = await submitTaskAction({ taskId: uuid, status: "Submitted" });
     expect(result).toEqual({ success: true });
     await flushAfterCallbacks();
     expect(setAssignmentStatus).toHaveBeenCalledWith(uuid, "u2", "Submitted");
@@ -490,6 +492,24 @@ describe("cancelTaskAction", () => {
     expect(result).toEqual({ success: true });
     expect(cancelTask).toHaveBeenCalledWith(uuid);
   });
+
+  it("allows the creator to cancel a Completed task", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Completed" as const,
+      created_by_user_id: "u2",
+    });
+    vi.mocked(cancelTask).mockResolvedValue({ id: uuid });
+
+    const result = await cancelTaskAction({ taskId: uuid });
+    expect(result).toEqual({ success: true });
+    expect(cancelTask).toHaveBeenCalledWith(uuid);
+  });
 });
 
 describe("updateTaskAction lifecycle lock", () => {
@@ -509,5 +529,25 @@ describe("updateTaskAction lifecycle lock", () => {
         assignee_ids: [uuid],
       }),
     ).toEqual({ success: false, error: "Task is locked and cannot be edited" });
+  });
+
+  it("allows the creator to edit and reopen a Completed task", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
+
+    const result = await updateTaskAction({
+      taskId: uuid,
+      title: "Renamed",
+      description: undefined,
+      assignee_ids: [uuid],
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateTask).toHaveBeenCalled();
   });
 });

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { queue } from "@/components/ui/Toast/Toast";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
@@ -32,12 +33,19 @@ import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries"
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
-import { ReviewDecision, TaskStatus } from "@/generated/prisma/browser";
+import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./EditTaskModal.module.css";
+
+const statusVariant: Record<TaskStatus, StatusBadgeVariant> = {
+  [TaskStatus.Pending]: "pending",
+  [TaskStatus.Submitted]: "info",
+  [TaskStatus.Completed]: "done",
+  [TaskStatus.Cancelled]: "cancelled",
+};
 
 interface EditTaskModalProps {
   isOpen: boolean;
@@ -46,6 +54,7 @@ interface EditTaskModalProps {
   task: TaskDetailRow;
   capabilities: TaskCapabilities;
   users: ActiveUserSummary[];
+  currentUserId: string;
 }
 
 export function EditTaskModal({
@@ -55,6 +64,7 @@ export function EditTaskModal({
   task,
   capabilities,
   users,
+  currentUserId,
 }: EditTaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
@@ -62,9 +72,11 @@ export function EditTaskModal({
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(
     new Set(task.reviewers.map((r) => r.reviewer_user_id)),
   );
-  const [nextStatus, setNextStatus] = useState<TaskStatus>(task.status);
+  const [assignmentStatuses, setAssignmentStatuses] = useState<
+    Record<string, TaskAssignmentStatus>
+  >(Object.fromEntries(task.assignTo.map((a) => [a.id, a.status])));
   const [decision, setDecision] = useState<"Accepted" | "Rejected" | null>(null);
-  const [comment, setComment] = useState("");
+  const [cancelChosen, setCancelChosen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
@@ -75,12 +87,11 @@ export function EditTaskModal({
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
 
-  const statusEditable = capabilities.canSubmit || capabilities.canCancel;
-  const statusOptions: TaskStatus[] = [task.status];
-  if (capabilities.canSubmit && task.status === TaskStatus.Pending)
-    statusOptions.push(TaskStatus.Submitted);
-  if (capabilities.canCancel && !statusOptions.includes(TaskStatus.Cancelled))
-    statusOptions.push(TaskStatus.Cancelled);
+  const isCurrentUserAssignee = task.assignee_ids.includes(currentUserId);
+  const canToggleOwnSubmission =
+    isCurrentUserAssignee &&
+    task.status !== TaskStatus.Completed &&
+    task.status !== TaskStatus.Cancelled;
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload({
     taskId: task.id,
@@ -191,18 +202,26 @@ export function EditTaskModal({
         }
       }
 
-      if (nextStatus !== task.status) {
-        if (nextStatus === TaskStatus.Submitted) {
-          const result = await submitTaskAction({ taskId: task.id });
+      if (capabilities.canCancel && cancelChosen) {
+        const result = await cancelTaskAction({ taskId: task.id });
+        if (!result.success) {
+          queue.add({ title: "Failed to cancel task", description: result.error });
+          setIsPending(false);
+          return;
+        }
+        resetFiles();
+        onOpenChange(false);
+        onSuccess();
+        return;
+      }
+
+      if (isCurrentUserAssignee) {
+        const chosen = assignmentStatuses[currentUserId];
+        const current = task.assignTo.find((a) => a.id === currentUserId)?.status;
+        if (chosen !== current) {
+          const result = await submitTaskAction({ taskId: task.id, status: chosen });
           if (!result.success) {
-            queue.add({ title: "Failed to submit task", description: result.error });
-            setIsPending(false);
-            return;
-          }
-        } else if (nextStatus === TaskStatus.Cancelled) {
-          const result = await cancelTaskAction({ taskId: task.id });
-          if (!result.success) {
-            queue.add({ title: "Failed to cancel task", description: result.error });
+            queue.add({ title: "Failed to update submission", description: result.error });
             setIsPending(false);
             return;
           }
@@ -213,7 +232,6 @@ export function EditTaskModal({
         const result = await reviewTaskAction({
           taskId: task.id,
           decision,
-          comment: optionalString(comment),
         });
         if (!result.success) {
           queue.add({ title: "Failed to record review", description: result.error });
@@ -324,21 +342,40 @@ export function EditTaskModal({
               users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
             />
 
-            <Select
-              label="Status"
-              value={nextStatus}
-              onChange={(key) => {
-                if (key != null) setNextStatus(key as TaskStatus);
-              }}
-              isDisabled={isPending || !statusEditable}
-              placeholder="Select status"
-            >
-              {statusOptions.map((status) => (
-                <SelectItem key={status} id={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </Select>
+            <StatusBadge variant={statusVariant[task.status]}>{task.status}</StatusBadge>
+
+            {capabilities.canCancel && (
+              <Select
+                label="Cancel task"
+                value={cancelChosen ? TaskStatus.Cancelled : null}
+                onChange={(key) => setCancelChosen(key === TaskStatus.Cancelled)}
+                placeholder="Active"
+              >
+                <SelectItem id={TaskStatus.Cancelled}>Cancel task</SelectItem>
+              </Select>
+            )}
+
+            {isCurrentUserAssignee && (
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>Your submission</span>
+                <Select
+                  label="Submission status"
+                  aria-label="Your submission status"
+                  value={assignmentStatuses[currentUserId]}
+                  onChange={(key) =>
+                    key != null &&
+                    setAssignmentStatuses((prev) => ({
+                      ...prev,
+                      [currentUserId]: key as TaskAssignmentStatus,
+                    }))
+                  }
+                  isDisabled={isPending || !canToggleOwnSubmission}
+                >
+                  <SelectItem id={TaskAssignmentStatus.Pending}>Pending</SelectItem>
+                  <SelectItem id={TaskAssignmentStatus.Submitted}>Submitted</SelectItem>
+                </Select>
+              </div>
+            )}
 
             {capabilities.canReview && (
               <div className={styles.section}>
@@ -354,14 +391,6 @@ export function EditTaskModal({
                   <SelectItem id={ReviewDecision.Accepted}>Accept</SelectItem>
                   <SelectItem id={ReviewDecision.Rejected}>Reject</SelectItem>
                 </Select>
-                <TextField
-                  label="Comment"
-                  isTextArea
-                  rows={2}
-                  value={comment}
-                  onChange={setComment}
-                  placeholder="Optional comment..."
-                />
               </div>
             )}
           </div>

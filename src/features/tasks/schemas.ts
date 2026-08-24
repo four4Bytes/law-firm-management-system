@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ReviewDecision } from "@/generated/prisma/browser";
+import { ReviewDecision, TaskAssignmentStatus } from "@/generated/prisma/browser";
 import { optionalText, requiredText, uniqueUuidArray } from "@/lib/form-utils";
 
 export const TaskIdSchema = z.object({
@@ -23,6 +23,7 @@ export const TaskUpdatePayloadSchema = z.object({
 
 export const TaskSubmitSchema = z.object({
   taskId: z.uuid(),
+  status: z.enum([TaskAssignmentStatus.Pending, TaskAssignmentStatus.Submitted]),
 });
 
 export const TaskReviewSchema = z.object({
@@ -30,7 +31,6 @@ export const TaskReviewSchema = z.object({
   decision: z.enum([ReviewDecision.Accepted, ReviewDecision.Rejected], {
     error: "Select accept or reject",
   }),
-  comment: optionalText(10000, "Comment"),
 });
 
 export const TaskAddReviewerSchema = z.object({

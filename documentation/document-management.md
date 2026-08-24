@@ -38,8 +38,7 @@ original file name. The browser then downloads directly from the bucket.
 
 `deleteDocumentAction` enforces `attachment.delete` (or `consultation.attachment.delete` for
 consultation-scoped docs), removes the `Document` row, and deletes the underlying object from
-storage. Deletion is blocked while a parent task is `Submitted` (the task is under review and
-its evidence is locked).
+storage.
 
 ## File type validation
 
@@ -71,9 +70,3 @@ the picker and the server validation automatically.
 All checks run server-side in the relevant Server Action; the UI hides controls via `can(...)`
 only for presentation. Reviewers/assignees never receive a presigned URL they are not authorized
 for because the action authorizes before issuing it.
-
-## Locking
-
-When a task transitions to `Submitted`, its attachments are locked for editing: both
-`getDocumentUploadUrlAction` and `deleteDocumentAction` reject with
-`"Files are locked while the task is under review"`. Download/view remain available.

@@ -113,9 +113,7 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
     canReview: isReviewer && row.status === TaskStatus.Submitted && !reviewer?.reviewed_at,
     canCancel: isCreator && isActive,
     canManageReviewers: isCreator || isReviewer,
-    canEdit:
-      canUpdate &&
-      (row.status === TaskStatus.Pending || (isCreator && row.status !== TaskStatus.Cancelled)),
+    canEdit: canUpdate && row.status !== TaskStatus.Cancelled,
   };
 
   return { row, canUpdate, capabilities, currentUserId: session.id };
@@ -179,15 +177,16 @@ export async function updateTaskAction(
 
     const access = await getTaskAccessContext(session.id, taskId);
 
-    if (
-      existing.status === TaskStatus.Cancelled ||
-      (existing.status !== TaskStatus.Pending && !access.own)
-    ) {
+    if (existing.status === TaskStatus.Cancelled) {
       return { success: false, error: "Task is locked and cannot be edited" };
     }
 
     if (!can(session.role, "task.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (parsed.data.assignee_ids !== undefined && !access.own) {
+      return { success: false, error: "Only the task creator can change assignees" };
     }
 
     const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);

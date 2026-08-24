@@ -87,6 +87,7 @@
   1. The client invokes a secure Server Action requesting a upload target.
   2. The Server Action validates permissions and generates an S3 presigned URL via `@aws-sdk/client-s3`.
   3. The client receives the URL and executes a native client-side `fetch` browser payload directly to the storage bucket.
+- Cascade document cleanup: Deleting a Case, Consultation, or Task must also purge its attached S3 document blobs, not just the cascaded `Document` rows. The DB `onDelete: Cascade` removes the rows but leaves orphaned S3 objects. The delete mutations gather file paths via `getDocumentFilePathsBy*Id` (in `src/features/documents/queries.ts`) and call `deleteDocumentFiles` (in `src/lib/storage-cleanup.ts`) **before** the `prisma.X.delete`. `deleteDocumentFiles` hard-fails (propagates on first S3 error) so a failed purge aborts the whole delete — no dangling rows and no leaked files. `DeleteObject` is idempotent, so a retry after a partial failure is safe.
 - Never import `prisma` directly outside of `queries.ts` or `mutations.ts`.
 - Prisma client vs browser entry: Any module reachable by client components (UI components, and Zod schemas referenced at runtime in the browser) MUST import enums/models from `@/generated/prisma/browser`, never `@/generated/prisma/client`. The `client` entry imports `node:` builtins and breaks `next build` (Turbopack `node:module` error) if pulled into the client bundle.
 - Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly shared/reusable components in `src/components/ui/`.

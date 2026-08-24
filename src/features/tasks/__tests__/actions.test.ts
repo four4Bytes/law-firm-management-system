@@ -22,6 +22,7 @@ import {
   applyReviewDecision,
   cancelTask,
   createTask,
+  deleteTask,
   removeTaskReviewer,
   setAssignmentStatus,
   updateTask,
@@ -317,6 +318,21 @@ describe("deleteTaskAction", () => {
     expect(await deleteTaskAction({ taskId: uuid })).toEqual({
       success: false,
       error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("returns a failure status when the underlying delete throws", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(taskRecord);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(deleteTask).mockRejectedValue(new Error("S3 unavailable"));
+
+    expect(await deleteTaskAction({ taskId: uuid })).toEqual({
+      success: false,
+      error: "Failed to delete task",
     });
   });
 });

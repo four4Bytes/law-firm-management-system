@@ -280,13 +280,19 @@ export function EditTaskModal({
       }
 
       if (deletedNoteIds.size > 0) {
-        const results = await Promise.all(
-          Array.from(deletedNoteIds).map((id) => deleteNoteAction({ noteId: id })),
-        );
+        const ids = Array.from(deletedNoteIds);
+        const results = await Promise.all(ids.map((id) => deleteNoteAction({ noteId: id })));
         const failedCount = results.filter((r) => !r.success).length;
         if (failedCount > 0) {
           queue.add({
             title: `Failed to delete ${failedCount} note${failedCount > 1 ? "s" : ""}`,
+          });
+          setDeletedNoteIds((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id, i) => {
+              if (results[i].success) next.delete(id);
+            });
+            return next;
           });
         }
       }

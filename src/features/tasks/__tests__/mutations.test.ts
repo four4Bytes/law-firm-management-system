@@ -195,6 +195,7 @@ describe("createTask", () => {
 
 describe("updateTask", () => {
   it("updates a task", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
     const result = await updateTask("t1", { title: "Updated title" });
@@ -209,6 +210,7 @@ describe("updateTask", () => {
   });
 
   it("updates a task with assignee sync", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
     vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
       mockTaskAssignment({ user_id: "u1", status: "Submitted" }),
@@ -240,6 +242,7 @@ describe("updateTask", () => {
   });
 
   it("preserves unaffected assignees when syncing the assignee list", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
     vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
       mockTaskAssignment({ user_id: "u1", status: "Submitted" }),
@@ -267,9 +270,19 @@ describe("updateTask", () => {
 
   it("propagates error when updating nonexistent task", async () => {
     const error = new Error("Record not found");
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
     vi.mocked(prisma.task.update).mockRejectedValue(error);
 
     await expect(updateTask("999", { title: "Updated title" })).rejects.toThrow(error);
+  });
+
+  it("rejects a title-only update on a cancelled task", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Cancelled" }));
+
+    await expect(updateTask("t1", { title: "Updated title" })).rejects.toThrow(
+      "Task is locked and cannot be edited",
+    );
+    expect(prisma.task.update).not.toHaveBeenCalled();
   });
 });
 
@@ -282,7 +295,7 @@ describe("deleteTask", () => {
     const result = await deleteTask("t1");
 
     expect(result.id).toBe("t1");
-    expect(getDocumentFilePathsByTaskId).toHaveBeenCalledWith("t1");
+    expect(getDocumentFilePathsByTaskId).toHaveBeenCalledWith("t1", tx);
     expect(deleteDocumentFiles).toHaveBeenCalledWith(["tasks/t1/a.pdf", "tasks/t1/b.pdf"]);
     expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: "t1" }, select: { id: true } });
   });
@@ -489,6 +502,7 @@ describe("removeTaskReviewer", () => {
 
 describe("applyReviewDecision", () => {
   it("completes the task when every reviewer accepts and every assignee has submitted", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Submitted" }));
     vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
       mockTaskReviewer({ reviewer_user_id: "u1", decision: "Accepted" }),
@@ -514,6 +528,7 @@ describe("applyReviewDecision", () => {
   });
 
   it("reopens the task and resets reviewers and assignees on rejection", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Submitted" }));
     vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
       mockTaskReviewer({ reviewer_user_id: "u1", decision: "Rejected" }),
@@ -547,6 +562,7 @@ describe("applyReviewDecision", () => {
   });
 
   it("leaves the task submitted when reviewers disagree", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Submitted" }));
     vi.mocked(prisma.taskReviewer.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
       mockTaskReviewer({ reviewer_user_id: "u1", decision: "Accepted" }),
@@ -569,6 +585,15 @@ describe("applyReviewDecision", () => {
       data: { status: "Submitted" },
       select: { id: true },
     });
+  });
+
+  it("rejects a decision on a task that is not Submitted", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Cancelled" }));
+
+    await expect(
+      applyReviewDecision({ taskId: "t1", reviewerUserId: "u1", decision: "Accepted" }),
+    ).rejects.toThrow("Only submitted tasks can be reviewed");
+    expect(prisma.taskReviewer.updateMany).not.toHaveBeenCalled();
   });
 });
 

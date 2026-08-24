@@ -37,8 +37,18 @@ original file name. The browser then downloads directly from the bucket.
 ## Delete flow
 
 `deleteDocumentAction` enforces `attachment.delete` (or `consultation.attachment.delete` for
-consultation-scoped docs), removes the `Document` row, and deletes the underlying object from
-storage.
+consultation-scoped docs), removes the `Document` row, then deletes the underlying object from
+storage as a best-effort cleanup.
+
+**Cascade delete flow** (case, consultation, or task): the database is the source of truth.
+The parent delete mutation cascades the `Document` rows first, then invokes
+`deleteDocumentFiles` (in `src/lib/storage-cleanup.ts`) to reclaim the S3 blobs. This cleanup
+is best-effort and idempotent — failures are logged but never abort the delete. Any orphaned
+S3 objects left behind are harmless and reclaimed by the storage GC sweep
+(`src/app/api/cron/storage-gc/route.ts`).
+
+The database delete never fails because storage cleanup failed; the only failure path is a
+genuine database error (record not found, constraint violation, etc.).
 
 ## File type validation
 

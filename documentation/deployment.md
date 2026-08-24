@@ -249,3 +249,48 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
 4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
 The cron runs daily at `0 0 * * *`. Vercel interprets the schedule in UTC; the self-hosted `node-cron` in `src/instrumentation.ts` fires at app-timezone midnight (`APP_TIMEZONE`, falling back to server-local), so the two only align when server-local is UTC. To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.
+
+## Storage Garbage Collection Sweep
+
+The storage GC job deletes orphaned S3 objects that no longer reference a `Document` row in the database. It is invoked via `GET /api/cron/storage-gc` and uses the same `CRON_SECRET` bearer authentication as the reminders cron.
+
+### Trigger mechanism
+
+| Deployment                    | Trigger                                  | Details                                                                     |
+| ----------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| Docker (local or self-hosted) | External scheduler (cron, systemd, etc.) | Call `GET /api/cron/storage-gc` on your desired schedule (e.g., weekly).    |
+| Vercel (serverless)           | Vercel Cron Jobs                         | Scheduled via `vercel.json` crons config. Sends `GET /api/cron/storage-gc`. |
+
+### Environment variables
+
+Uses the same `CRON_SECRET` as the reminders cron.
+
+### Setting up with Vercel Cron Jobs
+
+Add the storage-gc path to your `vercel.json`:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/storage-gc",
+      "schedule": "0 3 * * 0"
+    }
+  ]
+}
+```
+
+The example above runs the GC sweep weekly on Sunday at 03:00 UTC (after the daily reminders job). Adjust the schedule to suit your retention needs.
+
+### Setting up with self-hosted cron
+
+Add a systemd timer or cron entry that calls the endpoint with the bearer token:
+
+```bash
+# Example: weekly at 03:00 UTC on Sunday
+0 3 * * 0 curl -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/api/cron/storage-gc
+```

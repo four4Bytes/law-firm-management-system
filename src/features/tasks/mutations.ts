@@ -146,8 +146,9 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
 
 export async function deleteTask(id: string): Promise<{ id: string }> {
   const filePaths = await getDocumentFilePathsByTaskId(id);
+  const deleted = await prisma.task.delete({ where: { id }, select: { id: true } });
   await deleteDocumentFiles(filePaths);
-  return prisma.task.delete({ where: { id }, select: { id: true } });
+  return deleted;
 }
 
 export async function setAssignmentStatus(

@@ -69,27 +69,27 @@ it("updateConsultation strips id from the update data", async () => {
   });
 });
 
-it("purges the consultation's S3 documents before deleting the consultation", async () => {
+it("deletes the consultation then purges its S3 documents", async () => {
   vi.mocked(getDocumentFilePathsByConsultationId).mockResolvedValue(["consultations/con1/a.pdf"]);
   vi.mocked(deleteDocumentFiles).mockResolvedValue(undefined);
 
   await deleteConsultation(uuid);
 
   expect(getDocumentFilePathsByConsultationId).toHaveBeenCalledWith(uuid);
-  expect(deleteDocumentFiles).toHaveBeenCalledWith(["consultations/con1/a.pdf"]);
   expect(prisma.consultation.delete).toHaveBeenCalledWith({
     where: { id: uuid },
     select: { id: true },
   });
+  expect(deleteDocumentFiles).toHaveBeenCalledWith(["consultations/con1/a.pdf"]);
+  expect(deleteDocumentFiles).toHaveBeenCalledAfter(vi.mocked(prisma.consultation.delete));
 });
 
-it("aborts the consultation delete when an S3 document cannot be removed", async () => {
-  const error = new Error("S3 unavailable");
+it("propagates error when deleting the consultation record fails", async () => {
+  const error = new Error("DB down");
   vi.mocked(getDocumentFilePathsByConsultationId).mockResolvedValue(["consultations/con1/a.pdf"]);
-  vi.mocked(deleteDocumentFiles).mockRejectedValue(error);
+  vi.mocked(prisma.consultation.delete).mockRejectedValue(error);
 
   await expect(deleteConsultation(uuid)).rejects.toThrow(error);
-  expect(prisma.consultation.delete).not.toHaveBeenCalled();
 });
 
 it("createConsultation nests consultationAssignments when assignee_ids are provided", async () => {

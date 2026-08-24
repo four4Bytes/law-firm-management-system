@@ -57,8 +57,9 @@ export async function updateConsultation(
 
 export async function deleteConsultation(id: string): Promise<{ id: string }> {
   const filePaths = await getDocumentFilePathsByConsultationId(id);
+  const deleted = await prisma.consultation.delete({ where: { id }, select: { id: true } });
   await deleteDocumentFiles(filePaths);
-  return prisma.consultation.delete({ where: { id }, select: { id: true } });
+  return deleted;
 }
 
 export async function createConsultationWithClient(

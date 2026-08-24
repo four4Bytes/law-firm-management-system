@@ -23,18 +23,6 @@ export interface ReviewDecisionData {
   decision: ReviewDecision;
 }
 
-/**
- * Derives the task status from its assignees' submission states and reviewers' decisions.
- *
- * - Any `Rejected` → `Pending` (rework).
- * - All reviewers `Accepted` and (no assignees or all assignees `Submitted`) → `Completed`.
- * - All assignees `Submitted` → `Submitted`.
- * - Otherwise → `Pending`.
- *
- * @param assignmentStatuses - The current submission state of every assignee.
- * @param reviewerDecisions  - The current decision of every reviewer.
- * @returns The derived task status.
- */
 export function deriveTaskStatus(
   assignmentStatuses: TaskAssignmentStatus[],
   reviewerDecisions: ReviewDecision[],
@@ -53,15 +41,6 @@ export function deriveTaskStatus(
   return TaskStatus.Pending;
 }
 
-/**
- * Grant read-only case membership to users attached to a task. Case assignment
- * is the prerequisite (`ASSIGNED`) for task-level access, so auto-grant
- * satisfies the spec's task attachment rule.
- *
- * @param tx       - The transaction client.
- * @param caseId   - The parent case of the task.
- * @param userIds  - The users to ensure are case members.
- */
 async function grantCaseMembership(
   tx: TransactionClient,
   caseId: string,
@@ -69,18 +48,10 @@ async function grantCaseMembership(
 ): Promise<void> {
   if (userIds.length === 0) return;
 
-  const existing = await tx.caseAssignment.findMany({
-    where: { case_id: caseId, user_id: { in: userIds } },
-    select: { user_id: true },
+  await tx.caseAssignment.createMany({
+    data: userIds.map((user_id) => ({ case_id: caseId, user_id })),
+    skipDuplicates: true,
   });
-  const existingIds = new Set(existing.map((a) => a.user_id));
-  const missing = userIds.filter((id) => !existingIds.has(id));
-
-  if (missing.length > 0) {
-    await tx.caseAssignment.createMany({
-      data: missing.map((user_id) => ({ case_id: caseId, user_id })),
-    });
-  }
 }
 
 export async function createTask(data: TaskCreateData): Promise<{ id: string }> {
@@ -155,16 +126,6 @@ export async function deleteTask(id: string): Promise<{ id: string }> {
   return prisma.task.delete({ where: { id }, select: { id: true } });
 }
 
-/**
- * Sets a single assignee's submission state and re-derives the task status.
- * Reversible (`Pending` ⇄ `Submitted`) while the task is `Pending` or `Submitted`;
- * locked in `Completed` / `Cancelled`.
- *
- * @param taskId - The task whose assignment is being updated.
- * @param userId - The assignee performing the submit/revert.
- * @param status - The new submission state.
- * @returns The re-derived task status.
- */
 export async function setAssignmentStatus(
   taskId: string,
   userId: string,
@@ -301,14 +262,6 @@ export async function removeTaskReviewer(
   });
 }
 
-/**
- * Records a reviewer's decision and derives the resulting task status
- * atomically. A rejection reopens the task (`Pending`) and resets every
- * reviewer's decision; all-accept completes the task.
- *
- * @param data - The task, reviewer, and decision being applied.
- * @returns The derived task status after the write.
- */
 export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
   taskStatus: TaskStatus;
 }> {

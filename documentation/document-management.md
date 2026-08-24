@@ -9,7 +9,7 @@ the [Data Models](./models.md) reference.
 - **Object storage (S3-compatible)**: Binary bytes live in an external object store accessed
   via the `@aws-sdk/client-s3` client in `src/lib/s3.ts`. Files never stream through or are
   parsed by the Next.js runtime.
-- **Metadata in Postgres**: The `Document` model (`prisma/schema.prisma:343`) keeps only
+- **Metadata in Postgres**: The `Document` model keeps only
   pointers and metadata — `file_name`, `file_type`, `file_size`, `file_path` (the object key),
   the parent linkage (`case_id` / `consultation_id` / `task_id`), and `uploaded_by_user_id`.
 - **Presigned URLs**: All reads and writes go through short-lived, server-generated presigned

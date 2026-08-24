@@ -123,12 +123,9 @@ describe("createTask", () => {
       created_by_user_id: "u1",
     });
 
-    expect(prisma.caseAssignment.findMany).toHaveBeenCalledWith({
-      where: { case_id: "c1", user_id: { in: ["u1"] } },
-      select: { user_id: true },
-    });
     expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
       data: [{ case_id: "c1", user_id: "u1" }],
+      skipDuplicates: true,
     });
   });
 
@@ -160,6 +157,7 @@ describe("createTask", () => {
         { case_id: "c1", user_id: "u3" },
         { case_id: "c1", user_id: "u1" },
       ],
+      skipDuplicates: true,
     });
   });
 
@@ -235,6 +233,7 @@ describe("updateTask", () => {
     });
     expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
       data: [{ case_id: "c1", user_id: "u2" }],
+      skipDuplicates: true,
     });
   });
 
@@ -369,6 +368,7 @@ describe("addTaskReviewer", () => {
     });
     expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
       data: [{ case_id: "c1", user_id: "u4" }],
+      skipDuplicates: true,
     });
   });
 

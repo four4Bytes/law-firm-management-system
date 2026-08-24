@@ -211,6 +211,13 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   const doc = await getDocumentById(parsed.data.documentId);
   if (!doc) throw new Error("Document not found");
 
+  if (doc.task_id) {
+    const taskAccess = await getTaskAccessContext(session.id, doc.task_id);
+    if (!can(session.role, "task.read", taskAccess)) {
+      throw new ForbiddenError();
+    }
+  }
+
   const access = await getDocumentAccessContext(session.id, doc.id);
   if (!can(session.role, "attachment.read", access)) {
     throw new ForbiddenError();
@@ -258,8 +265,8 @@ export async function deleteDocumentAction(
       }
     }
 
-    await deleteDocumentRecord(documentId);
     await deleteDocumentFiles([doc.file_path]);
+    await deleteDocumentRecord(documentId);
 
     after(() =>
       logAudit({

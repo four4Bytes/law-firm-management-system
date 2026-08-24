@@ -40,6 +40,7 @@ export function AddNoteModal({
     onOpenChange,
     onSuccess,
     successMessage: "Note added",
+    successDescription: "The note has been added.",
     failureMessage: "Failed to add note",
     schema: NoteCreatePayloadSchema,
     reset: () => setContent(""),

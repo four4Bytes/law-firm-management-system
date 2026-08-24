@@ -9,11 +9,17 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
+import { ForbiddenError, TaskLockedError, toActionResponse } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
-import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
+import { can, type AccessContext } from "@/lib/rbac";
 import {
   generateKey,
   getPresignedDownloadUrl,
@@ -122,7 +128,7 @@ export async function getDocumentUploadUrlAction(
   if (task_id) {
     const task = await getTaskById(task_id);
     if (task?.status === TaskStatus.Cancelled) {
-      throw new Error(TASK_LOCKED_MESSAGE);
+      throw new TaskLockedError();
     }
   }
 
@@ -140,9 +146,7 @@ export async function confirmDocumentUploadAction(
   const session = await requireAuth();
 
   const parsed = DocumentConfirmPayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid upload confirmation payload" };
-  }
+  if (!parsed.success) return actionInvalid("upload confirmation");
 
   const { file_name, file_type, file_size, file_path, case_id, consultation_id, task_id } =
     parsed.data;
@@ -155,29 +159,22 @@ export async function confirmDocumentUploadAction(
       taskId: task_id,
     });
     if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     let doc: { id: string };
 
     if (task_id) {
-      try {
-        doc = await createDocumentForTask({
-          taskId: task_id,
-          file_name,
-          file_path,
-          file_type,
-          file_size,
-          case_id,
-          consultation_id,
-          uploaded_by_user_id: session.id,
-        });
-      } catch (error) {
-        if (error instanceof TaskLockedError) {
-          return { success: false, error: TASK_LOCKED_MESSAGE };
-        }
-        throw error;
-      }
+      doc = await createDocumentForTask({
+        taskId: task_id,
+        file_name,
+        file_path,
+        file_type,
+        file_size,
+        case_id,
+        consultation_id,
+        uploaded_by_user_id: session.id,
+      });
     } else {
       doc = await createDocument({
         file_name,
@@ -212,8 +209,8 @@ export async function confirmDocumentUploadAction(
     );
 
     return { success: true, data: { id: doc.id } };
-  } catch {
-    return { success: false, error: "Failed to save document record" };
+  } catch (error) {
+    return toActionResponse(error, "save document");
   }
 }
 
@@ -257,37 +254,28 @@ export async function deleteDocumentAction(
   const session = await requireAuth();
 
   const parsed = DocumentIdSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid document ID" };
-  }
+  if (!parsed.success) return actionInvalid("document");
 
   const { documentId } = parsed.data;
 
   try {
     const doc = await getDocumentById(documentId);
-    if (!doc) return { success: false, error: "Document not found" };
+    if (!doc) return actionNotFound("Document");
 
     const parentCaseId = doc.case_id ?? doc.task?.case_id ?? null;
     const access = await getDocumentAccessContext(session.id, doc.id);
     const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
     if (!can(session.role, permission, access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     if (doc.task_id) {
       const taskAccess = await getTaskAccessContext(session.id, doc.task_id);
       if (!can(session.role, "task.update", taskAccess)) {
-        return { success: false, error: FORBIDDEN_MESSAGE };
+        return actionForbidden();
       }
 
-      try {
-        await deleteDocumentForTask(doc.task_id, documentId);
-      } catch (error) {
-        if (error instanceof TaskLockedError) {
-          return { success: false, error: TASK_LOCKED_MESSAGE };
-        }
-        throw error;
-      }
+      await deleteDocumentForTask(doc.task_id, documentId);
     } else {
       await deleteDocumentRecord(documentId);
     }
@@ -312,7 +300,7 @@ export async function deleteDocumentAction(
     );
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete document" };
+  } catch (error) {
+    return toActionResponse(error, "delete document");
   }
 }

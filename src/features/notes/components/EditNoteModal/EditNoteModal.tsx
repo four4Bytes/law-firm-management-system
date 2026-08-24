@@ -32,6 +32,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
     onOpenChange,
     onSuccess,
     successMessage: "Note updated",
+    successDescription: "The note has been updated.",
     failureMessage: "Failed to update note",
     schema: NoteUpdatePayloadSchema,
   });

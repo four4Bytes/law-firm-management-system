@@ -144,7 +144,11 @@ describe("createNoteAction", () => {
   it("returns FORBIDDEN_MESSAGE when note create is denied on the parent case", async () => {
     expect(await createNoteAction({ content: "New note", case_id: uuid })).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
     });
   });
 
@@ -168,7 +172,11 @@ describe("updateNoteAction", () => {
   it("returns FORBIDDEN_MESSAGE when note update is denied", async () => {
     expect(await updateNoteAction({ noteId: uuid, content: "Updated note" })).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
     });
   });
 
@@ -192,7 +200,11 @@ describe("deleteNoteAction", () => {
   it("returns FORBIDDEN_MESSAGE when note delete is denied", async () => {
     expect(await deleteNoteAction({ noteId: uuid })).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
     });
   });
 
@@ -242,7 +254,14 @@ describe("task subdata lock", () => {
       task_id: uuid,
     });
 
-    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Task locked",
+        description: TASK_LOCKED_MESSAGE,
+      },
+    });
     expect(createNoteForTask).toHaveBeenCalledWith(uuid, expect.any(Object));
   });
 
@@ -253,7 +272,14 @@ describe("task subdata lock", () => {
 
     const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
 
-    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Task locked",
+        description: TASK_LOCKED_MESSAGE,
+      },
+    });
     expect(updateNoteForTask).toHaveBeenCalledWith(uuid, uuid, "Updated note");
   });
 
@@ -264,7 +290,14 @@ describe("task subdata lock", () => {
 
     const result = await deleteNoteAction({ noteId: uuid });
 
-    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Task locked",
+        description: TASK_LOCKED_MESSAGE,
+      },
+    });
     expect(deleteNoteForTask).toHaveBeenCalledWith(uuid, uuid);
   });
 });
@@ -297,7 +330,14 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
 
     const result = await createNoteAction(taskPayload);
 
-    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
     expect(createNoteForTask).not.toHaveBeenCalled();
   });
 
@@ -348,7 +388,14 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
 
     const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
 
-    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
     expect(updateNoteForTask).not.toHaveBeenCalled();
   });
 
@@ -401,7 +448,14 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
 
     const result = await deleteNoteAction({ noteId: uuid });
 
-    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
     expect(deleteNoteForTask).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { queue } from "@/components/ui/Toast/Toast";
 import { logoutUser } from "@/features/auth/actions";
 import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
 import { UserFormModal } from "@/features/users/components/UserFormModal/UserFormModal";
@@ -16,6 +15,7 @@ import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
 import { can } from "@/lib/rbac";
+import { toastActionError, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./UserTable.module.css";
 
@@ -139,8 +139,8 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         onConfirm={async () => {
           if (!deletingUser) return;
           const result = await deactivateUserAction({ userId: deletingUser.id });
-          if (result.error) {
-            queue.add({ title: result.error });
+          if (!result.success) {
+            toastActionError(result, "deactivate user");
             return;
           }
           if (result.data?.selfDeactivated) {
@@ -149,9 +149,9 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
           }
           setDeletingUser(null);
           setRefreshTrigger((t) => t + 1);
-          queue.add(
-            { title: "User deactivated", description: deletingUser.email },
-            { timeout: 5000 },
+          toastSuccess(
+            "User deactivated",
+            `The account for ${deletingUser.email} has been deactivated.`,
           );
         }}
       >

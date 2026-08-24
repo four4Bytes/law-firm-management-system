@@ -8,10 +8,16 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType } from "@/generated/prisma/browser";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError } from "@/lib/errors";
-import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { ForbiddenError, toActionResponse } from "@/lib/errors";
+import { can } from "@/lib/rbac";
 
 import { createMilestone, deleteMilestone, updateMilestone } from "./mutations";
 import {
@@ -58,16 +64,14 @@ export async function createMilestoneAction(
   const session = await requireAuth();
 
   const parsed = MilestoneCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid milestone data" };
-  }
+  if (!parsed.success) return actionInvalid("milestone");
 
   const { title, description, due_date, status, case_id, reminder_days } = parsed.data;
 
   try {
     const caseAccess = await getCaseAccessContext(session.id, case_id);
     if (!can(session.role, "milestone.create", caseAccess)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     const milestone = await createMilestone({
@@ -93,8 +97,8 @@ export async function createMilestoneAction(
     revalidatePath(`/case/${case_id}`);
 
     return { success: true, data: { id: milestone.id } };
-  } catch {
-    return { success: false, error: "Failed to create milestone" };
+  } catch (error) {
+    return toActionResponse(error, "create milestone");
   }
 }
 
@@ -104,19 +108,17 @@ export async function updateMilestoneAction(
   const session = await requireAuth();
 
   const parsed = MilestoneUpdatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid milestone data" };
-  }
+  if (!parsed.success) return actionInvalid("milestone");
 
   const { milestoneId, title, description, due_date, status, reminder_days } = parsed.data;
 
   try {
     const existing = await getMilestoneById(milestoneId);
-    if (!existing) return { success: false, error: "Milestone not found" };
+    if (!existing) return actionNotFound("Milestone");
 
     const access = await getMilestoneAccessContext({ userId: session.id, milestoneId });
     if (!can(session.role, "milestone.update", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     if (
@@ -176,8 +178,8 @@ export async function updateMilestoneAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update milestone" };
+  } catch (error) {
+    return toActionResponse(error, "update milestone");
   }
 }
 
@@ -187,19 +189,17 @@ export async function deleteMilestoneAction(
   const session = await requireAuth();
 
   const parsed = MilestoneIdSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid milestone ID" };
-  }
+  if (!parsed.success) return actionInvalid("milestone");
 
   const { milestoneId } = parsed.data;
 
   try {
     const existing = await getMilestoneById(milestoneId);
-    if (!existing) return { success: false, error: "Milestone not found" };
+    if (!existing) return actionNotFound("Milestone");
 
     const access = await getMilestoneAccessContext({ userId: session.id, milestoneId });
     if (!can(session.role, "milestone.delete", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await deleteMilestone(milestoneId);
@@ -217,7 +217,7 @@ export async function deleteMilestoneAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete milestone" };
+  } catch (error) {
+    return toActionResponse(error, "delete milestone");
   }
 }

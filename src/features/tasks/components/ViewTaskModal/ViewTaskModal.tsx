@@ -4,7 +4,6 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 
 import { Modal } from "@/components/ui/Modal/Modal";
-import { queue } from "@/components/ui/Toast/Toast";
 import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
@@ -14,6 +13,7 @@ import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
+import { toastError } from "@/lib/toast-utils";
 
 import styles from "./ViewTaskModal.module.css";
 
@@ -52,7 +52,10 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
         setDocuments(all);
       } catch {
         if (cancelled) return;
-        queue.add({ title: "Failed to load attachments" }, { timeout: 5000 });
+        toastError(
+          "Failed to load attachments",
+          "We couldn't load the attachments for this task. Please try again.",
+        );
       } finally {
         if (!cancelled) setIsLoadingDocuments(false);
       }
@@ -66,7 +69,10 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
         setNotes(rows);
       } catch {
         if (cancelled) return;
-        queue.add({ title: "Failed to load notes" }, { timeout: 5000 });
+        toastError(
+          "Failed to load notes",
+          "We couldn't load the notes for this task. Please try again.",
+        );
       }
     }
 

@@ -8,13 +8,13 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { queue } from "@/components/ui/Toast/Toast";
 import { checkDeveloperEmail, createUserAction, updateUserAction } from "@/features/users/actions";
 import { CREATABLE_ROLES, roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { CreateUserSchema, UpdateUserSchema } from "@/features/users/schemas";
 import type { Role } from "@/generated/prisma/browser";
 import { createFieldValidator, requiredString, selectEnumHandler } from "@/lib/form-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./UserFormModal.module.css";
@@ -48,6 +48,7 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
     onOpenChange,
     onSuccess,
     successMessage: isEdit ? "User updated" : "User created",
+    successDescription: isEdit ? "The user has been updated." : "The user has been created.",
     failureMessage: "Failed to save user",
     schema: isEdit ? UpdateUserSchema : CreateUserSchema,
   });
@@ -68,7 +69,10 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
             return;
           }
         } catch {
-          queue.add({ title: "Failed to verify email. Please try again." }, { timeout: 5000 });
+          toastError(
+            "Failed to verify email",
+            "We couldn't verify this email address. Please try again.",
+          );
           return;
         }
       }
@@ -84,18 +88,15 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
 
     try {
       const result = await createUserAction({ email: pendingDevEmail, role: role ?? "Dev" });
-      if (result.error) {
-        queue.add({ title: result.error });
+      if (!result.success) {
+        toastActionError(result, "create user");
       } else {
-        queue.add(
-          { title: "Developer account activated", description: pendingDevEmail },
-          { timeout: 5000 },
-        );
+        toastSuccess("Developer account activated", `${pendingDevEmail} can now sign in.`);
         onSuccess?.();
         onOpenChange(false);
       }
     } catch {
-      queue.add({ title: "An unexpected error occurred." }, { timeout: 5000 });
+      toastError("An unexpected error occurred", "Something went wrong. Please try again.");
     } finally {
       setPendingDevEmail(null);
     }

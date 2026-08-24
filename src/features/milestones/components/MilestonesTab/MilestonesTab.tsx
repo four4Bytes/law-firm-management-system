@@ -8,7 +8,6 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
-import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
 import type { CaseMilestoneListRow } from "@/features/cases/queries";
 import { deleteMilestoneAction, getMilestoneRowByIdAction } from "@/features/milestones/actions";
@@ -18,6 +17,13 @@ import type { MilestoneRow } from "@/features/milestones/queries";
 import { CaseMilestoneStatus, type Role } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
 import { can, type AccessContext } from "@/lib/rbac";
+import {
+  toastActionError,
+  toastDenied,
+  toastError,
+  toastNotFound,
+  toastSuccess,
+} from "@/lib/toast-utils";
 
 import styles from "./MilestonesTab.module.css";
 
@@ -79,20 +85,17 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
       const data = await getMilestoneRowByIdAction(milestone.id);
       if (requestId !== latestRequest.current) return;
       if (!data.row) {
-        queue.add({ title: "Milestone not found" }, { timeout: 5000 });
+        toastNotFound("Milestone");
         return;
       }
       if (!data.canUpdate) {
-        queue.add(
-          { title: "You don't have permission to edit this milestone." },
-          { timeout: 5000 },
-        );
+        toastDenied();
         return;
       }
       setEditMilestone(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: "Failed to load milestone" }, { timeout: 5000 });
+      toastError("Failed to load milestone", "Please try again in a moment.");
     } finally {
       if (requestId === latestRequest.current) setPendingEditId(null);
     }
@@ -104,9 +107,9 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
     if (result.success) {
       setDeleteTarget(null);
       handleRefresh();
-      queue.add({ title: "Milestone deleted" }, { timeout: 5000 });
+      toastSuccess("Milestone deleted", "The milestone has been deleted.");
     } else {
-      queue.add({ title: result.error ?? "Failed to delete milestone" }, { timeout: 5000 });
+      toastActionError(result, "delete milestone");
     }
   }
 

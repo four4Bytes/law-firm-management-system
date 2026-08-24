@@ -2,8 +2,9 @@
 
 import { z } from "zod";
 
-import type { ActionStatusResponse } from "@/lib/action-response";
+import { actionInvalid, type ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { toActionResponse } from "@/lib/errors";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import { markAllNotificationsRead, markNotificationRead } from "./mutations";
@@ -56,14 +57,14 @@ export async function markNotificationReadAction(
 
   const parsed = NotificationMarkReadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid notification ID" };
+    return actionInvalid("notification");
   }
 
   try {
     await markNotificationRead(parsed.data.notificationId, session.id);
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to mark notification as read" };
+  } catch (error) {
+    return toActionResponse(error, "mark notification as read");
   }
 }
 
@@ -73,7 +74,7 @@ export async function markAllNotificationsReadAction(): Promise<ActionStatusResp
   try {
     await markAllNotificationsRead(session.id);
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to mark notifications as read" };
+  } catch (error) {
+    return toActionResponse(error, "mark notifications as read");
   }
 }

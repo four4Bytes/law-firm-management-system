@@ -26,14 +26,22 @@ import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionConflict,
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import {
   assertRecordPermission,
   requireAuth,
   requirePermissionOrNull,
   type AuthenticatedUser,
 } from "@/lib/auth-guards";
-import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
+import { toActionResponse } from "@/lib/errors";
+import { can, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -177,12 +185,12 @@ export async function createCaseAction(
 ): Promise<ActionDataResponse<{ caseId: string }>> {
   const session = await requirePermissionOrNull("case.create");
   if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
+    return actionForbidden();
   }
 
   const parsed = CaseCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
+    return actionInvalid("case");
   }
 
   const {
@@ -198,7 +206,7 @@ export async function createCaseAction(
   if (source_consultation_id) {
     const existing = await getCaseBySourceConsultationId(source_consultation_id);
     if (existing) {
-      return { success: false, error: "A case already exists for this consultation" };
+      return actionConflict("Case already exists", "A case already exists for this consultation.");
     }
   }
 
@@ -229,10 +237,10 @@ export async function createCaseAction(
 
     return { success: true, data: { caseId: createdCase.id } };
   } catch (error) {
-    if ((error as { code?: string })?.code === "P2002") {
-      return { success: false, error: "A case already exists for this consultation" };
-    }
-    return { success: false, error: "Failed to create case" };
+    return toActionResponse(error, "create case", {
+      title: "Case already exists",
+      description: "A case already exists for this consultation.",
+    });
   }
 }
 
@@ -241,12 +249,12 @@ export async function createCaseWithClientAction(
 ): Promise<ActionStatusResponse> {
   const session = await requirePermissionOrNull("case.create");
   if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
+    return actionForbidden();
   }
 
   const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
+    return actionInvalid("case");
   }
 
   const { client, case: caseData } = parsed.data;
@@ -272,8 +280,8 @@ export async function createCaseWithClientAction(
     revalidatePath("/case");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to create case" };
+  } catch (error) {
+    return toActionResponse(error, "create case");
   }
 }
 
@@ -284,7 +292,7 @@ export async function updateCaseAction(
 
   const parsed = CaseUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
+    return actionInvalid("case");
   }
 
   const {
@@ -300,10 +308,10 @@ export async function updateCaseAction(
 
   try {
     const existing = await getCaseEditData(caseId);
-    if (!existing) return { success: false, error: "Case not found" };
+    if (!existing) return actionNotFound("Case");
 
     if (!(await hasCasePermission(session, caseId, "case.update"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await updateCase({
@@ -375,8 +383,8 @@ export async function updateCaseAction(
     revalidatePath("/case");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update case" };
+  } catch (error) {
+    return toActionResponse(error, "update case");
   }
 }
 
@@ -387,17 +395,17 @@ export async function updateCaseWithClientAction(
 
   const parsed = CaseWithClientUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
+    return actionInvalid("case");
   }
 
   const { case_id, client_id, client, case: caseData } = parsed.data;
 
   try {
     const existing = await getCaseEditData(case_id);
-    if (!existing) return { success: false, error: "Case not found" };
+    if (!existing) return actionNotFound("Case");
 
     if (!(await hasCasePermission(session, case_id, "case.update"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await updateCaseWithClient({
@@ -465,8 +473,8 @@ export async function updateCaseWithClientAction(
     revalidatePath("/case");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update case" };
+  } catch (error) {
+    return toActionResponse(error, "update case");
   }
 }
 
@@ -477,15 +485,15 @@ export async function deleteCaseAction(
 
   const parsed = CaseDeletePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case ID" };
+    return actionInvalid("case");
   }
 
   try {
     const existing = await getCaseEditData(parsed.data.caseId);
-    if (!existing) return { success: false, error: "Case not found" };
+    if (!existing) return actionNotFound("Case");
 
     if (!(await hasCasePermission(session, parsed.data.caseId, "case.delete"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await deleteCase(parsed.data.caseId);
@@ -505,9 +513,8 @@ export async function deleteCaseAction(
     return { success: true };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return { success: false, error: "Case not found" };
+      return actionNotFound("Case");
     }
-    console.error("deleteCaseAction failed:", error);
-    return { success: false, error: "Failed to delete case" };
+    return toActionResponse(error, "delete case");
   }
 }

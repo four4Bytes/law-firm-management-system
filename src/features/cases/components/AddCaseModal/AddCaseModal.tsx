@@ -74,6 +74,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
     onOpenChange,
     onSuccess,
     successMessage: "Case created",
+    successDescription: "The case has been created.",
     failureMessage: "Failed to create case. Please try again.",
     schema: CaseWithClientCreatePayloadSchema,
     reset: () => {

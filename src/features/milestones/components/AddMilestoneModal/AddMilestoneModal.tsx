@@ -51,6 +51,7 @@ export function AddMilestoneModal({
     onOpenChange,
     onSuccess,
     successMessage: "Milestone added",
+    successDescription: "The milestone has been added.",
     failureMessage: "Failed to add milestone",
     schema: MilestoneCreatePayloadSchema,
     reset: () => {

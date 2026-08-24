@@ -7,10 +7,17 @@ import { z } from "zod";
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import { requirePermission, requirePermissionOrNull } from "@/lib/auth-guards";
+import { toActionResponse } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
-import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
 import {
@@ -58,14 +65,10 @@ export async function createPaymentAction(
   payload: z.input<typeof PaymentCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
   const session = await requirePermissionOrNull("payment.create");
-  if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
-  }
+  if (!session) return actionForbidden();
 
   const parsed = PaymentCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid payment data" };
-  }
+  if (!parsed.success) return actionInvalid("payment");
 
   const { amount, payment_date, status, payment_method, receipt_number, case_id, consultation_id } =
     parsed.data;
@@ -79,7 +82,7 @@ export async function createPaymentAction(
         : null;
 
     if (!parentAccess || !can(session.role, "payment.create", parentAccess)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     const payment = await createPayment({
@@ -106,8 +109,8 @@ export async function createPaymentAction(
     revalidatePath(case_id ? `/case/${case_id}` : `/consultation/${consultation_id}`);
 
     return { success: true, data: { id: payment.id } };
-  } catch {
-    return { success: false, error: "Failed to create payment" };
+  } catch (error) {
+    return toActionResponse(error, "create payment");
   }
 }
 
@@ -115,24 +118,20 @@ export async function updatePaymentAction(
   payload: z.input<typeof PaymentUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
   const session = await requirePermissionOrNull("payment.update");
-  if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
-  }
+  if (!session) return actionForbidden();
 
   const parsed = PaymentUpdatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid payment data" };
-  }
+  if (!parsed.success) return actionInvalid("payment");
 
   const { paymentId, amount, payment_date, status, payment_method, receipt_number } = parsed.data;
 
   try {
     const existing = await getPaymentById(paymentId);
-    if (!existing) return { success: false, error: "Payment not found" };
+    if (!existing) return actionNotFound("Payment");
 
     const access = await getPaymentAccessContext(session.id, paymentId);
     if (!can(session.role, "payment.update", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     if (
@@ -166,8 +165,8 @@ export async function updatePaymentAction(
     revalidatePath(getParentPath(existing));
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update payment" };
+  } catch (error) {
+    return toActionResponse(error, "update payment");
   }
 }
 
@@ -175,24 +174,20 @@ export async function deletePaymentAction(
   payload: z.input<typeof PaymentIdSchema>,
 ): Promise<ActionStatusResponse> {
   const session = await requirePermissionOrNull("payment.delete");
-  if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
-  }
+  if (!session) return actionForbidden();
 
   const parsed = PaymentIdSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid payment ID" };
-  }
+  if (!parsed.success) return actionInvalid("payment");
 
   const { paymentId } = parsed.data;
 
   try {
     const existing = await getPaymentById(paymentId);
-    if (!existing) return { success: false, error: "Payment not found" };
+    if (!existing) return actionNotFound("Payment");
 
     const access = await getPaymentAccessContext(session.id, paymentId);
     if (!can(session.role, "payment.delete", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await deletePayment(paymentId);
@@ -210,7 +205,7 @@ export async function deletePaymentAction(
     revalidatePath(getParentPath(existing));
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete payment" };
+  } catch (error) {
+    return toActionResponse(error, "delete payment");
   }
 }

@@ -5,7 +5,6 @@ import { countActiveAdminsAndDevs, getUserByEmail, getUserById } from "@/feature
 import { Role } from "@/generated/prisma/browser";
 import { requirePermissionOrNull } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import { createUserAction, deactivateUserAction, updateUserAction } from "../actions";
 
@@ -51,7 +50,11 @@ describe("createUserAction", () => {
 
     expect(await createUserAction(validPayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: "You don't have permission to perform this action.",
+      },
     });
   });
 
@@ -61,7 +64,11 @@ describe("createUserAction", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(await createUserAction({ role: "Lawyer" } as any)).toEqual({
       success: false,
-      error: "Invalid email or role",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -71,7 +78,11 @@ describe("createUserAction", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(await createUserAction({ email: "lawyer@law.com", role: "SuperAdmin" } as any)).toEqual({
       success: false,
-      error: "Invalid email or role",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -110,7 +121,11 @@ describe("createUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "A user with this email already exists.",
+      error: {
+        code: "conflict",
+        title: "Email already in use",
+        description: "A user with this email already exists.",
+      },
     });
     expect(createUser).not.toHaveBeenCalled();
   });
@@ -144,7 +159,11 @@ describe("createUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to reactivate user.",
+      error: {
+        code: "unknown",
+        title: "Failed to reactivate user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 
@@ -157,7 +176,11 @@ describe("createUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to create user.",
+      error: {
+        code: "unknown",
+        title: "Failed to create user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });
@@ -170,7 +193,11 @@ describe("updateUserAction", () => {
 
     expect(await updateUserAction(validPayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: "You don't have permission to perform this action.",
+      },
     });
   });
 
@@ -181,7 +208,11 @@ describe("updateUserAction", () => {
       await updateUserAction({ userId: "bad-id", email: "test@law.com", role: "Lawyer" }),
     ).toEqual({
       success: false,
-      error: "Invalid input",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -193,7 +224,11 @@ describe("updateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "User not found.",
+      error: {
+        code: "not_found",
+        title: "User not found",
+        description: "The user may have been deleted by another user.",
+      },
     });
   });
 
@@ -205,7 +240,11 @@ describe("updateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Cannot edit developer accounts.",
+      error: {
+        code: "conflict",
+        title: "Developer account",
+        description: "Developer accounts cannot be edited.",
+      },
     });
   });
 
@@ -222,7 +261,11 @@ describe("updateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "A user with this email already exists.",
+      error: {
+        code: "conflict",
+        title: "Email already in use",
+        description: "A user with this email already exists.",
+      },
     });
   });
 
@@ -248,7 +291,11 @@ describe("updateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to update user.",
+      error: {
+        code: "unknown",
+        title: "Failed to update user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });
@@ -261,7 +308,11 @@ describe("deactivateUserAction", () => {
 
     expect(await deactivateUserAction(validPayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: "You don't have permission to perform this action.",
+      },
     });
   });
 
@@ -270,7 +321,11 @@ describe("deactivateUserAction", () => {
 
     expect(await deactivateUserAction({ userId: "bad-id" })).toEqual({
       success: false,
-      error: "Invalid user ID",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -282,7 +337,11 @@ describe("deactivateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "User not found.",
+      error: {
+        code: "not_found",
+        title: "User not found",
+        description: "The user may have been deleted by another user.",
+      },
     });
   });
 
@@ -295,7 +354,11 @@ describe("deactivateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Cannot deactivate the last admin or developer.",
+      error: {
+        code: "conflict",
+        title: "Last admin",
+        description: "Cannot deactivate the last admin or developer.",
+      },
     });
   });
 
@@ -331,7 +394,11 @@ describe("deactivateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to deactivate user.",
+      error: {
+        code: "unknown",
+        title: "Failed to deactivate user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 

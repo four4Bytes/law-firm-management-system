@@ -8,7 +8,6 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
-import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import {
   deleteTaskAction,
@@ -21,7 +20,14 @@ import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTas
 import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTaskModal";
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
-import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
+import { can, type AccessContext } from "@/lib/rbac";
+import {
+  toastActionError,
+  toastDenied,
+  toastError,
+  toastNotFound,
+  toastSuccess,
+} from "@/lib/toast-utils";
 
 import styles from "./TasksTab.module.css";
 
@@ -79,7 +85,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         setUsers(data);
       } catch {
         if (cancelled) return;
-        queue.add({ title: "Failed to load assignees" }, { timeout: 5000 });
+        toastError("Failed to load assignees", "We couldn't load the user list. Please try again.");
       }
     }
 
@@ -97,13 +103,13 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       const data = await getTaskDetailRowByIdAction(task.id);
       if (requestId !== latestRequest.current) return;
       if (!data.row) {
-        queue.add({ title: "Task not found" }, { timeout: 5000 });
+        toastNotFound("Task");
         return;
       }
       setViewTask(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+      toastDenied();
     } finally {
       if (requestId === latestRequest.current) setPendingViewId(null);
     }
@@ -116,7 +122,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       const data = await getTaskDetailRowByIdAction(task.id);
       if (requestId !== latestRequest.current) return;
       if (!data.row) {
-        queue.add({ title: "Task not found" }, { timeout: 5000 });
+        toastNotFound("Task");
         return;
       }
       const c = data.capabilities;
@@ -125,11 +131,11 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         setEditCapabilities(data.capabilities);
         setEditCurrentUserId(data.currentUserId);
       } else {
-        queue.add({ title: "You don't have permission to edit this task" });
+        toastDenied();
       }
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: FORBIDDEN_MESSAGE }, { timeout: 5000 });
+      toastDenied();
     } finally {
       if (requestId === latestRequest.current) setPendingEditId(null);
     }
@@ -141,9 +147,9 @@ export function TasksTab({ caseId, access, userRole }: Props) {
     if (result.success) {
       setDeleteTarget(null);
       handleRefresh();
-      queue.add({ title: "Task deleted" }, { timeout: 5000 });
+      toastSuccess("Task deleted", "The task has been permanently removed.");
     } else {
-      queue.add({ title: result.error ?? "Failed to delete task" }, { timeout: 5000 });
+      toastActionError(result, "delete task");
     }
   }
 

@@ -61,6 +61,8 @@ const noteRecord = {
   content: "Initial note",
   case_id: uuid,
   consultation_id: null,
+  task_id: null,
+  task: null,
   createdBy: { name: "Alice" },
 };
 

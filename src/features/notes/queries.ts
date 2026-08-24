@@ -20,6 +20,8 @@ export const getNoteById = cache(async (id: string) => {
       content: true,
       case_id: true,
       consultation_id: true,
+      task_id: true,
+      task: { select: { case_id: true } },
       createdBy: { select: { name: true } },
     },
   });

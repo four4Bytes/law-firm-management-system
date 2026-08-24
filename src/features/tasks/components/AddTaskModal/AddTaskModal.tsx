@@ -40,6 +40,7 @@ export function AddTaskModal({
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(new Set());
   const [isPending, setIsPending] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
+  const [addedReviewerIds, setAddedReviewerIds] = useState<Set<string>>(new Set());
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, setParent, uploadFiles } =
     useFileUpload({ caseId });
@@ -50,6 +51,7 @@ export function AddTaskModal({
     setAssigneeIds(new Set());
     setReviewerIds(new Set());
     setCreatedTaskId(null);
+    setAddedReviewerIds(new Set());
     resetFiles();
   }
 
@@ -104,11 +106,14 @@ export function AddTaskModal({
       if (reviewerIds.size > 0) {
         let reviewerFailed = false;
         for (const id of reviewerIds) {
+          if (addedReviewerIds.has(id)) continue;
           const result = await addTaskReviewerAction({ taskId, reviewerUserId: id });
           if (!result.success) {
             reviewerFailed = true;
             queue.add({ title: result.error ?? "Failed to add reviewer" });
+            continue;
           }
+          setAddedReviewerIds((prev) => new Set(prev).add(id));
         }
         if (reviewerFailed) {
           setIsPending(false);

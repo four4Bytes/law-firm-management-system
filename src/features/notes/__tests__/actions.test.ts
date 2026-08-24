@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
+import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
+import { TASK_LOCKED_MESSAGE } from "@/lib/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
@@ -24,6 +26,11 @@ vi.mock("@/features/cases/queries", () => ({
 
 vi.mock("@/features/consultations/queries", () => ({
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+}));
+
+vi.mock("@/features/tasks/queries", () => ({
+  getTaskAccessContext: vi.fn(),
+  getTaskById: vi.fn(),
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
@@ -192,5 +199,51 @@ describe("deleteNoteAction", () => {
     const result = await deleteNoteAction({ noteId: uuid });
 
     expect(result).toEqual({ success: true });
+  });
+});
+
+describe("task subdata lock", () => {
+  const cancelledTask = {
+    id: uuid,
+    status: "Cancelled" as const,
+    case_id: uuid,
+  } as unknown as Awaited<ReturnType<typeof getTaskById>>;
+
+  beforeEach(() => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({ assigned: true, own: false });
+  });
+
+  it("refuses to create a note on a cancelled task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+
+    const result = await createNoteAction({
+      content: "New note",
+      case_id: null,
+      consultation_id: null,
+      task_id: uuid,
+    });
+
+    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(createNote).not.toHaveBeenCalled();
+  });
+
+  it("refuses to update a note on a cancelled task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
+
+    const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
+
+    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(updateNote).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete a note on a cancelled task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
+
+    const result = await deleteNoteAction({ noteId: uuid });
+
+    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(deleteNote).not.toHaveBeenCalled();
   });
 });

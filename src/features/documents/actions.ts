@@ -8,9 +8,10 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
+import { TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError } from "@/lib/errors";
+import { ForbiddenError, TASK_LOCKED_MESSAGE } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 import {
@@ -113,6 +114,13 @@ export async function getDocumentUploadUrlAction(
     throw new ForbiddenError();
   }
 
+  if (task_id) {
+    const task = await getTaskById(task_id);
+    if (task?.status === TaskStatus.Cancelled) {
+      throw new Error(TASK_LOCKED_MESSAGE);
+    }
+  }
+
   const parentType = case_id ? "cases" : task_id ? "tasks" : "consultations";
   const parentId = case_id ?? task_id ?? consultation_id!;
   const key = generateKey(parentType, parentId, file_name);
@@ -143,6 +151,13 @@ export async function confirmDocumentUploadAction(
     });
     if (!can(session.role, "attachment.create", parentAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (task_id) {
+      const parentTask = await getTaskById(task_id);
+      if (parentTask?.status === TaskStatus.Cancelled) {
+        return { success: false, error: TASK_LOCKED_MESSAGE };
+      }
     }
 
     const doc = await createDocument({
@@ -224,6 +239,10 @@ export async function deleteDocumentAction(
   try {
     const doc = await getDocumentById(documentId);
     if (!doc) return { success: false, error: "Document not found" };
+
+    if (doc.task?.status === TaskStatus.Cancelled) {
+      return { success: false, error: TASK_LOCKED_MESSAGE };
+    }
 
     const parentCaseId = doc.case_id ?? doc.task?.case_id ?? null;
     const access = await getDocumentAccessContext(session.id, doc.id);

@@ -8,9 +8,10 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
+import { TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError } from "@/lib/errors";
+import { ForbiddenError, TASK_LOCKED_MESSAGE } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
@@ -90,6 +91,13 @@ export async function createNoteAction(
       }
     }
 
+    if (task_id) {
+      const task = await getTaskById(task_id);
+      if (task?.status === TaskStatus.Cancelled) {
+        return { success: false, error: TASK_LOCKED_MESSAGE };
+      }
+    }
+
     note = await createNote({
       content,
       case_id,
@@ -142,6 +150,13 @@ export async function updateNoteAction(
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
 
+    if (existing.task_id) {
+      const task = await getTaskById(existing.task_id);
+      if (task?.status === TaskStatus.Cancelled) {
+        return { success: false, error: TASK_LOCKED_MESSAGE };
+      }
+    }
+
     const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
@@ -186,6 +201,13 @@ export async function deleteNoteAction(
   try {
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
+
+    if (existing.task_id) {
+      const task = await getTaskById(existing.task_id);
+      if (task?.status === TaskStatus.Cancelled) {
+        return { success: false, error: TASK_LOCKED_MESSAGE };
+      }
+    }
 
     const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.delete", access)) {

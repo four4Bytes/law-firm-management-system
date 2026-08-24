@@ -188,7 +188,7 @@ There are exactly **three task modals**, and they look identical:
 - **Assignee / Reviewer selects:**
   - **Assignee select is creator-only.** Only the task creator can change who is assigned.
   - **Reviewer select is editable by the creator _and_ any existing reviewer** (supporting the review-chain: a reviewer can add the next reviewer). Non-reviewer roles (plain assignees) and users with no task attachment see both as read-only **name chips** — they cannot alter attachments. Everything else in the modal is identical across roles.
-- **All security is enforced in the Server Actions.** Row actions in the task table are always rendered (View / Edit / Delete). Clicking **Edit** when the caller lacks update permission shows a toast and does **not** open the modal. View is the single exception: it is hidden when the caller has no READ access (AGENTS.md:94).
+- **All security is enforced in the Server Actions.** Row actions in the task table are always rendered (View / Edit / Delete). Clicking **Edit** when the caller lacks update permission shows a toast and does **not** open the modal. **View is rendered for every row**; if the caller lacks READ access, `getTaskDetailRowByIdAction` denies and the client shows a toast without opening the modal — the same rule as Edit/Delete.
 - Workflow state is expressed through **plain form fields — Selects** — never through dedicated workflow buttons ("Submit for Review", "Cancel Task", "No decision panel", "No status banner").
 
 ### 10.2 Layout — View / Edit Task (3 columns)

@@ -122,6 +122,8 @@ Combined codes in table cells follow these rules:
 
 > **Task attachment rule:** Anyone added to a Task — as an assignee **or** reviewer — who is not already a member of the parent Case is automatically granted read-only Case membership, so `ASSIGNED` is always satisfied for task-attached users. Task access beyond the case is scoped by `TASK_ONLY` (attachment to that specific Task) and the role's qualifier.
 >
+> **Attachment access delegation:** A Note or Document resolves its access context from its parent. When `task_id` is set, the **Task** matrix governs (with the task-attachment auto-grant above); otherwise the owning Case or Consultation matrix applies. A `Cancelled` task is terminal — its Notes and Documents are write-locked (create/update/delete refused).
+>
 > **Review workflow:** The task creator is always auto-added as the first reviewer; their task READ/UPDATE/DELETE comes from `OWN`, their review actions (accept/reject) are expressed through task `UPDATE`. Added reviewers are task-attached users; their READ comes from `ASSIGNED` (auto-granted case membership) and their UPDATE is further scoped by `TASK_ONLY`. Review decisions and comments are normal task updates.
 
 #### [Payment](./models.md#payment)

@@ -1,16 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
+import { TASK_LOCKED_MESSAGE } from "@/lib/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteFile } from "@/lib/s3";
 
 import {
+  confirmDocumentUploadAction,
   deleteDocumentAction,
   getDocumentDownloadUrlAction,
   getDocumentsPaginatedAction,
+  getDocumentUploadUrlAction,
 } from "../actions";
-import { deleteDocument } from "../mutations";
+import { createDocument, deleteDocument } from "../mutations";
 import { getDocumentAccessContext, getDocumentById } from "../queries";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -23,6 +27,11 @@ vi.mock("@/features/cases/queries", () => ({
 
 vi.mock("@/features/consultations/queries", () => ({
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+}));
+
+vi.mock("@/features/tasks/queries", () => ({
+  getTaskAccessContext: vi.fn(),
+  getTaskById: vi.fn(),
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
@@ -123,5 +132,61 @@ describe("deleteDocumentAction", () => {
     expect(result).toEqual({ success: true });
     expect(deleteDocument).toHaveBeenCalledWith(uuid);
     expect(deleteFile).toHaveBeenCalledWith(documentRecord.file_path);
+  });
+});
+
+describe("task subdata lock", () => {
+  const cancelledTask = {
+    id: uuid,
+    status: "Cancelled" as const,
+    case_id: uuid,
+  } as unknown as Awaited<ReturnType<typeof getTaskById>>;
+
+  beforeEach(() => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({ assigned: true, own: false });
+  });
+
+  it("refuses to issue an upload URL for a cancelled task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+
+    await expect(
+      getDocumentUploadUrlAction({
+        file_name: "a.pdf",
+        file_type: "application/pdf",
+        case_id: null,
+        consultation_id: null,
+        task_id: uuid,
+      }),
+    ).rejects.toThrow(TASK_LOCKED_MESSAGE);
+  });
+
+  it("refuses to confirm a document upload on a cancelled task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+
+    const result = await confirmDocumentUploadAction({
+      file_name: "a.pdf",
+      file_type: "application/pdf",
+      file_size: 10,
+      file_path: "tasks/t1/a.pdf",
+      case_id: null,
+      consultation_id: null,
+      task_id: uuid,
+    });
+
+    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete a document on a cancelled task", async () => {
+    vi.mocked(getDocumentById).mockResolvedValue({
+      ...documentRecord,
+      task_id: uuid,
+      task: cancelledTask,
+    });
+
+    const result = await deleteDocumentAction({ documentId: uuid });
+
+    expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
+    expect(deleteDocument).not.toHaveBeenCalled();
   });
 });

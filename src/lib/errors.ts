@@ -35,3 +35,10 @@ export class UnauthorizedError extends Error {
     this.name = "UnauthorizedError";
   }
 }
+
+/**
+ * Message returned when a mutation targets a Note or Document whose parent
+ * task is `Cancelled`. A cancelled task is terminal, so its attachments are
+ * write-locked (create/update/delete refused).
+ */
+export const TASK_LOCKED_MESSAGE = "This task is cancelled and its attachments are locked";

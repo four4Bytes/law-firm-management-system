@@ -76,7 +76,10 @@ export async function createNoteAction(
   try {
     if (task_id) {
       const taskAccess = await getTaskAccessContext(session.id, task_id);
-      if (!can(session.role, "task.update", taskAccess)) {
+      if (
+        !can(session.role, "task.update", taskAccess) ||
+        !can(session.role, "note.create", taskAccess)
+      ) {
         return { success: false, error: FORBIDDEN_MESSAGE };
       }
     } else if (case_id) {

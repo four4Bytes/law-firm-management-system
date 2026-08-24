@@ -549,6 +549,27 @@ describe("updateTaskAction lifecycle lock", () => {
     ).toEqual({ success: false, error: "Only the task creator can change assignees" });
   });
 
+  it("lets a non-creator edit details when assignee_ids are unchanged (modal always sends them)", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
+
+    const result = await updateTaskAction({
+      taskId: uuid,
+      title: "Renamed",
+      description: undefined,
+      assignee_ids: [],
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateTask).toHaveBeenCalledWith(uuid, { title: "Renamed", description: undefined });
+    expect(vi.mocked(updateTask).mock.calls[0][1]).not.toHaveProperty("assignee_ids");
+  });
+
   it("allows the creator to edit and reopen a Completed task", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,

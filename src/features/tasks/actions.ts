@@ -185,22 +185,28 @@ export async function updateTaskAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    if (parsed.data.assignee_ids !== undefined && !access.own) {
+    const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
+    const assigneesChanged =
+      assignee_ids !== undefined &&
+      (existingAssigneeIds.length !== assignee_ids.length ||
+        !existingAssigneeIds.every((id) => assignee_ids.includes(id)));
+
+    if (assigneesChanged && !access.own) {
       return { success: false, error: "Only the task creator can change assignees" };
     }
 
-    const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
     if (
       existing.title === title &&
       existing.description === (description ?? null) &&
-      (!assignee_ids ||
-        (existingAssigneeIds.length === assignee_ids.length &&
-          existingAssigneeIds.every((id) => assignee_ids.includes(id))))
+      !assigneesChanged
     ) {
       return { success: true };
     }
 
-    await updateTask(taskId, { title, description, assignee_ids });
+    await updateTask(
+      taskId,
+      assigneesChanged ? { title, description, assignee_ids } : { title, description },
+    );
 
     after(async () => {
       await logAudit({

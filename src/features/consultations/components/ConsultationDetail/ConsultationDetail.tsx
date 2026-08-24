@@ -25,7 +25,7 @@ import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/A
 import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
 import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
 import type { Role } from "@/generated/prisma/browser";
-import { can, type AccessContext } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 import { ConsultationOverview } from "../ConsultationOverview/ConsultationOverview";
 import styles from "./ConsultationDetail.module.css";
@@ -49,8 +49,6 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
 
-  const canEdit = can(userRole, "consultation.update", access);
-  const canDelete = can(userRole, "consultation.delete", access);
   const canViewPayments = can(userRole, "payment.read");
 
   const allTabs = ["attachments", "notes", "payments", "activity"] as const;
@@ -96,8 +94,14 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
       const clientData = await getClientForEditAction(consultation.client_id);
       if (!clientData) throw new Error("Client not found");
       setEditData({ consultation, clientData });
-    } catch {
-      queue.add({ title: "Failed to load consultation data" }, { timeout: 5000 });
+    } catch (error) {
+      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
+      queue.add(
+        {
+          title: isForbidden ? FORBIDDEN_MESSAGE : "Failed to load consultation data",
+        },
+        { timeout: 5000 },
+      );
     } finally {
       setIsEditPending(false);
     }
@@ -128,8 +132,8 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
 
       <ConsultationOverview
         data={overview}
-        onEdit={canEdit ? handleEdit : undefined}
-        onDelete={canDelete ? () => setShowDeleteConfirm(true) : undefined}
+        onEdit={handleEdit}
+        onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
       />
 

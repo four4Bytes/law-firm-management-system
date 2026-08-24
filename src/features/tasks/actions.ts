@@ -6,10 +6,9 @@ import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
-import { createNote } from "@/features/notes/mutations";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
-import { NotificationType, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
+import { NotificationType, TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
@@ -61,9 +60,12 @@ export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
   return getActiveUsers();
 }
 
-export async function getTaskDetailRowByIdAction(
-  taskId: string,
-): Promise<{ row: TaskDetailRow | null; canUpdate: boolean; capabilities: TaskCapabilities }> {
+export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
+  row: TaskDetailRow | null;
+  canUpdate: boolean;
+  capabilities: TaskCapabilities;
+  currentUserId: string;
+}> {
   const session = await requireAuth();
 
   const parsed = TaskIdSchema.safeParse({ taskId });
@@ -80,6 +82,7 @@ export async function getTaskDetailRowByIdAction(
     return {
       row: null,
       canUpdate: false,
+      currentUserId: session.id,
       capabilities: {
         isCreator: false,
         isReviewer: false,
@@ -105,14 +108,17 @@ export async function getTaskDetailRowByIdAction(
   const capabilities: TaskCapabilities = {
     isCreator,
     isReviewer,
-    canSubmit: isAssignee && row.status === TaskStatus.Pending,
+    canSubmit:
+      isAssignee && (row.status === TaskStatus.Pending || row.status === TaskStatus.Submitted),
     canReview: isReviewer && row.status === TaskStatus.Submitted && !reviewer?.reviewed_at,
     canCancel: isCreator && isActive,
     canManageReviewers: isCreator || isReviewer,
-    canEdit: canUpdate && row.status === TaskStatus.Pending,
+    canEdit:
+      canUpdate &&
+      (row.status === TaskStatus.Pending || (isCreator && row.status !== TaskStatus.Cancelled)),
   };
 
-  return { row, canUpdate, capabilities };
+  return { row, canUpdate, capabilities, currentUserId: session.id };
 }
 
 export async function createTaskAction(
@@ -171,15 +177,15 @@ export async function updateTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return { success: false, error: "Task not found" };
 
+    const access = await getTaskAccessContext(session.id, taskId);
+
     if (
-      existing.status === TaskStatus.Submitted ||
-      existing.status === TaskStatus.Completed ||
-      existing.status === TaskStatus.Cancelled
+      existing.status === TaskStatus.Cancelled ||
+      (existing.status !== TaskStatus.Pending && !access.own)
     ) {
       return { success: false, error: "Task is locked and cannot be edited" };
     }
 
-    const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
@@ -286,7 +292,7 @@ export async function submitTaskAction(
   const parsed = TaskSubmitSchema.safeParse(payload);
   if (!parsed.success) return { success: false, error: "Invalid task ID" };
 
-  const { taskId } = parsed.data;
+  const { taskId, status } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
@@ -303,11 +309,8 @@ export async function submitTaskAction(
     const isAssignee = existing.taskAssignments.some((a) => a.user_id === session.id);
     if (!isAssignee) return { success: false, error: FORBIDDEN_MESSAGE };
 
-    if (existing.taskReviewers.length === 0) {
-      return { success: false, error: "Add at least one reviewer before submitting" };
-    }
-
-    await setAssignmentStatus(taskId, session.id, TaskAssignmentStatus.Submitted);
+    const before = existing.status;
+    const { taskStatus } = await setAssignmentStatus(taskId, session.id, status);
 
     after(async () => {
       await logAudit({
@@ -318,25 +321,27 @@ export async function submitTaskAction(
         details: `Submitted task for review: "${existing.title}"`,
       });
 
-      try {
-        const reviewers = await getTaskReviewers(taskId);
-        const reviewerIds = reviewers.map((r) => r.reviewer_user_id);
-        if (reviewerIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: reviewerIds,
-              type: NotificationType.TaskStatusChanged,
-              title: `Task submitted for review: ${existing.title}`,
-              message: `Task "${existing.title}" is now under review`,
-              actionUrl: `/case/${existing.case_id}`,
-              caseId: existing.case_id,
-              taskId,
-            },
-            session.id,
-          );
+      if (taskStatus === TaskStatus.Submitted && before !== TaskStatus.Submitted) {
+        try {
+          const reviewers = await getTaskReviewers(taskId);
+          const reviewerIds = reviewers.map((r) => r.reviewer_user_id);
+          if (reviewerIds.length > 0) {
+            await dispatchNotifications(
+              {
+                userIds: reviewerIds,
+                type: NotificationType.TaskStatusChanged,
+                title: `Task submitted for review: ${existing.title}`,
+                message: `Task "${existing.title}" is now under review`,
+                actionUrl: `/case/${existing.case_id}`,
+                caseId: existing.case_id,
+                taskId,
+              },
+              session.id,
+            );
+          }
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
         }
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
       }
     });
 
@@ -356,7 +361,7 @@ export async function reviewTaskAction(
   const parsed = TaskReviewSchema.safeParse(payload);
   if (!parsed.success) return { success: false, error: "Invalid review data" };
 
-  const { taskId, decision, comment } = parsed.data;
+  const { taskId, decision } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
@@ -375,10 +380,6 @@ export async function reviewTaskAction(
       return { success: false, error: "You have already reviewed this task" };
     }
 
-    if (comment) {
-      await createNote({ content: comment, task_id: taskId, created_by_user_id: session.id });
-    }
-
     const { taskStatus } = await applyReviewDecision({
       taskId,
       reviewerUserId: session.id,
@@ -394,7 +395,7 @@ export async function reviewTaskAction(
         action: "task.reviewed",
         entityType: "Case",
         entityId: existing.case_id,
-        details: `Review ${decision} on task "${existing.title}"${comment ? `: ${comment}` : ""}`,
+        details: `Review ${decision} on task "${existing.title}"`,
       });
 
       if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Completed) {
@@ -548,7 +549,7 @@ export async function cancelTaskAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    if (existing.status === TaskStatus.Completed || existing.status === TaskStatus.Cancelled) {
+    if (existing.status === TaskStatus.Cancelled) {
       return { success: false, error: "This task has already been resolved" };
     }
 

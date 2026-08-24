@@ -124,25 +124,26 @@ describe("TaskUpdatePayloadSchema", () => {
 });
 
 describe("TaskSubmitSchema", () => {
-  it("accepts a valid task id", () => {
-    const result = TaskSubmitSchema.safeParse({ taskId: uuid });
+  it("accepts a valid task id and submission status", () => {
+    const result = TaskSubmitSchema.safeParse({ taskId: uuid, status: "Submitted" });
     expect(result.success).toBe(true);
   });
 
+  it("rejects a missing status", () => {
+    const result = TaskSubmitSchema.safeParse({ taskId: uuid });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects a non-uuid task id", () => {
-    const result = TaskSubmitSchema.safeParse({ taskId: "abc" });
+    const result = TaskSubmitSchema.safeParse({ taskId: "abc", status: "Submitted" });
     expect(result.success).toBe(false);
   });
 });
 
 describe("TaskReviewSchema", () => {
-  it("accepts accepted/rejected decisions with an optional comment", () => {
+  it("accepts accepted/rejected decisions", () => {
     const accepted = TaskReviewSchema.safeParse({ taskId: uuid, decision: "Accepted" });
-    const rejected = TaskReviewSchema.safeParse({
-      taskId: uuid,
-      decision: "Rejected",
-      comment: "Needs more work",
-    });
+    const rejected = TaskReviewSchema.safeParse({ taskId: uuid, decision: "Rejected" });
     expect(accepted.success).toBe(true);
     expect(rejected.success).toBe(true);
   });

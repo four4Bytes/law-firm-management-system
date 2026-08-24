@@ -80,7 +80,7 @@ The task status is **fully derived** — assignees and reviewers never set it di
 - `Submitted` → `Pending` (rework): derived when any reviewer `Rejected` (all reviewer decisions **and** all assignee submissions reset to `Pending`), **or** when any assignee reverts their own row to `Pending`.
 - `Completed` → `Pending` (reopen): derived when a reviewer is added (defaults `Pending`); all reviewer decisions and assignee submissions reset to `Pending`.
 - Any active status → `Cancelled`: only the task **creator** may cancel — the Server Action permits it solely when the caller is the task's `created_by_user_id`; assignees and reviewers cannot. Cancellation is a status change (the record is retained), not a deletion.
-- Editing the assignee list (creator only) recreates the assignments and resets **every** assignee's submission state to `Pending`, reopening the task if it was `Submitted` / `Completed`.
+- Editing the assignee list (creator only) applies a delta sync: added assignees start `Pending`, removed ones are dropped, and existing assignees retain their submission state.
 
 ## 4. Review Model
 

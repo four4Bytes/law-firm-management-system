@@ -87,15 +87,34 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
   const { assignee_ids, ...taskData } = data;
 
   return prisma.$transaction(async (tx) => {
+    let removed: string[] = [];
+    let added: string[] = [];
+
+    if (assignee_ids !== undefined) {
+      await lockTask(tx, id);
+
+      const current = (
+        await tx.taskAssignment.findMany({
+          where: { task_id: id },
+          select: { user_id: true },
+        })
+      ).map((a) => a.user_id);
+      const currentSet = new Set(current);
+      const newSet = new Set(assignee_ids);
+
+      removed = current.filter((u) => !newSet.has(u));
+      added = assignee_ids.filter((u) => !currentSet.has(u));
+    }
+
     const task = await tx.task.update({
       where: { id },
       data: {
         ...taskData,
-        ...(assignee_ids !== undefined
+        ...(assignee_ids !== undefined && (removed.length || added.length)
           ? {
               taskAssignments: {
-                deleteMany: {},
-                create: assignee_ids.map((user_id) => ({ user_id })),
+                ...(removed.length ? { deleteMany: { user_id: { in: removed } } } : {}),
+                ...(added.length ? { create: added.map((user_id) => ({ user_id })) } : {}),
               },
             }
           : {}),
@@ -104,13 +123,12 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
     });
 
     if (assignee_ids !== undefined) {
-      await lockTask(tx, id);
-
       if (assignee_ids.length) {
         await grantCaseMembership(tx, task.case_id, assignee_ids);
       }
 
-      // Recreating assignments resets submissions to Pending, reopening the task.
+      // Unchanged assignees keep their submission state; only added assignees
+      // start Pending, so the task re-derives from the preserved states.
       const [assignments, reviewers] = await Promise.all([
         tx.taskAssignment.findMany({ where: { task_id: id }, select: { status: true } }),
         tx.taskReviewer.findMany({ where: { task_id: id }, select: { decision: true } }),

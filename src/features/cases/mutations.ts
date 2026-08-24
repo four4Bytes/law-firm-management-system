@@ -53,8 +53,9 @@ export async function updateCase(
 
 export async function deleteCase(id: string): Promise<{ id: string }> {
   const filePaths = await getDocumentFilePathsForCaseDeletion(id);
+  const deleted = await prisma.case.delete({ where: { id }, select: { id: true } });
   await deleteDocumentFiles(filePaths);
-  return prisma.case.delete({ where: { id }, select: { id: true } });
+  return deleted;
 }
 
 export async function createCaseWithClient(

@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   NotFound,
   PutObjectCommand,
   S3Client,
@@ -107,6 +108,25 @@ export async function objectExists(key: string): Promise<boolean> {
     if (e instanceof NotFound) return false;
     throw e;
   }
+}
+
+/**
+ * Yields every object key in the bucket, transparently following S3
+ * pagination, so callers can reconcile storage against the database.
+ *
+ * @returns An async iterable of S3 object keys.
+ */
+export async function* listObjects(): AsyncIterable<string> {
+  let continuationToken: string | undefined;
+  do {
+    const response = await s3().send(
+      new ListObjectsV2Command({ Bucket: bucket(), ContinuationToken: continuationToken }),
+    );
+    for (const object of response.Contents ?? []) {
+      if (object.Key) yield object.Key;
+    }
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
 }
 
 const UPLOAD_URL_EXPIRY_S = 300;

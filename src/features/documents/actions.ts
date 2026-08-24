@@ -265,8 +265,8 @@ export async function deleteDocumentAction(
       }
     }
 
-    await deleteDocumentFiles([doc.file_path]);
     await deleteDocumentRecord(documentId);
+    await deleteDocumentFiles([doc.file_path]);
 
     after(() =>
       logAudit({

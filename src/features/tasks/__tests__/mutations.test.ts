@@ -306,13 +306,12 @@ describe("deleteTask", () => {
     await expect(deleteTask("999")).rejects.toThrow(error);
   });
 
-  it("aborts the task delete when an S3 document cannot be removed", async () => {
-    const error = new Error("S3 unavailable");
+  it("propagates error when deleting the task record fails", async () => {
+    const error = new Error("DB down");
     vi.mocked(getDocumentFilePathsByTaskId).mockResolvedValue(["tasks/t1/a.pdf"]);
-    vi.mocked(deleteDocumentFiles).mockRejectedValue(error);
+    vi.mocked(prisma.task.delete).mockRejectedValue(error);
 
     await expect(deleteTask("t1")).rejects.toThrow(error);
-    expect(prisma.task.delete).not.toHaveBeenCalled();
   });
 });
 

@@ -142,23 +142,22 @@ it("updateCase passes through source_consultation_id", async () => {
   });
 });
 
-it("purges the case's S3 documents before deleting the case", async () => {
+it("deletes the case then purges its S3 documents", async () => {
   vi.mocked(getDocumentFilePathsForCaseDeletion).mockResolvedValue(["cases/c1/a.pdf"]);
   vi.mocked(deleteDocumentFiles).mockResolvedValue(undefined);
 
   await deleteCase(uuid);
 
   expect(getDocumentFilePathsForCaseDeletion).toHaveBeenCalledWith(uuid);
-  expect(deleteDocumentFiles).toHaveBeenCalledWith(["cases/c1/a.pdf"]);
-  expect(deleteDocumentFiles).toHaveBeenCalledBefore(vi.mocked(prisma.case.delete));
   expect(prisma.case.delete).toHaveBeenCalledWith({ where: { id: uuid }, select: { id: true } });
+  expect(deleteDocumentFiles).toHaveBeenCalledWith(["cases/c1/a.pdf"]);
+  expect(deleteDocumentFiles).toHaveBeenCalledAfter(vi.mocked(prisma.case.delete));
 });
 
-it("aborts the case delete when an S3 document cannot be removed", async () => {
-  const error = new Error("S3 unavailable");
+it("propagates error when deleting the case record fails", async () => {
+  const error = new Error("DB down");
   vi.mocked(getDocumentFilePathsForCaseDeletion).mockResolvedValue(["cases/c1/a.pdf"]);
-  vi.mocked(deleteDocumentFiles).mockRejectedValue(error);
+  vi.mocked(prisma.case.delete).mockRejectedValue(error);
 
   await expect(deleteCase(uuid)).rejects.toThrow(error);
-  expect(prisma.case.delete).not.toHaveBeenCalled();
 });

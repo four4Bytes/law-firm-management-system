@@ -8,14 +8,20 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
-import { TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, TASK_LOCKED_MESSAGE } from "@/lib/errors";
+import { ForbiddenError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
-import { createNote, deleteNote, updateNote } from "./mutations";
+import {
+  createNote,
+  createNoteForTask,
+  deleteNote,
+  deleteNoteForTask,
+  updateNote,
+  updateNoteForTask,
+} from "./mutations";
 import {
   getNoteAccessContext,
   getNoteById,
@@ -95,19 +101,28 @@ export async function createNoteAction(
     }
 
     if (task_id) {
-      const task = await getTaskById(task_id);
-      if (task?.status === TaskStatus.Cancelled) {
-        return { success: false, error: TASK_LOCKED_MESSAGE };
+      try {
+        note = await createNoteForTask(task_id, {
+          content,
+          case_id,
+          consultation_id,
+          created_by_user_id: session.id,
+        });
+      } catch (error) {
+        if (error instanceof TaskLockedError) {
+          return { success: false, error: TASK_LOCKED_MESSAGE };
+        }
+        throw error;
       }
+    } else {
+      note = await createNote({
+        content,
+        case_id,
+        consultation_id,
+        task_id,
+        created_by_user_id: session.id,
+      });
     }
-
-    note = await createNote({
-      content,
-      case_id,
-      consultation_id,
-      task_id,
-      created_by_user_id: session.id,
-    });
 
     after(() =>
       logAudit({
@@ -153,13 +168,6 @@ export async function updateNoteAction(
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
 
-    if (existing.task_id) {
-      const task = await getTaskById(existing.task_id);
-      if (task?.status === TaskStatus.Cancelled) {
-        return { success: false, error: TASK_LOCKED_MESSAGE };
-      }
-    }
-
     const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.update", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
@@ -176,7 +184,18 @@ export async function updateNoteAction(
       return { success: true };
     }
 
-    await updateNote(noteId, content);
+    if (existing.task_id) {
+      try {
+        await updateNoteForTask(existing.task_id, noteId, content);
+      } catch (error) {
+        if (error instanceof TaskLockedError) {
+          return { success: false, error: TASK_LOCKED_MESSAGE };
+        }
+        throw error;
+      }
+    } else {
+      await updateNote(noteId, content);
+    }
 
     after(() =>
       logAudit({
@@ -212,13 +231,6 @@ export async function deleteNoteAction(
     const existing = await getNoteById(noteId);
     if (!existing) return { success: false, error: "Note not found" };
 
-    if (existing.task_id) {
-      const task = await getTaskById(existing.task_id);
-      if (task?.status === TaskStatus.Cancelled) {
-        return { success: false, error: TASK_LOCKED_MESSAGE };
-      }
-    }
-
     const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.delete", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
@@ -231,7 +243,18 @@ export async function deleteNoteAction(
       }
     }
 
-    await deleteNote(noteId);
+    if (existing.task_id) {
+      try {
+        await deleteNoteForTask(existing.task_id, noteId);
+      } catch (error) {
+        if (error instanceof TaskLockedError) {
+          return { success: false, error: TASK_LOCKED_MESSAGE };
+        }
+        throw error;
+      }
+    } else {
+      await deleteNote(noteId);
+    }
 
     after(() =>
       logAudit({

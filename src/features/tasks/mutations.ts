@@ -54,7 +54,7 @@ async function grantCaseMembership(
   });
 }
 
-async function lockTask(tx: TransactionClient, taskId: string): Promise<void> {
+export async function lockTask(tx: TransactionClient, taskId: string): Promise<void> {
   await tx.$queryRaw`SELECT 1 FROM "Task" WHERE id = ${taskId} FOR UPDATE`;
 }
 

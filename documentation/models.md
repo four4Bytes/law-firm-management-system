@@ -87,17 +87,17 @@ A legal case opened for a client.
 
 A work item within a case.
 
-| Field       | Type      | Required | Description                                                     |
-| ----------- | --------- | -------- | --------------------------------------------------------------- |
-| Case        | Link      | Yes      | The parent case                                                 |
-| Title       | Text      | Yes      | Task title                                                      |
-| Description | Text      | No       | Task details                                                    |
-| Status      | Enum      | Yes      | Current status (see [Task Status](#task-status))                |
-| Created By  | Link      | Yes      | The user who created the task (auto-reviewer)                   |
-| Assignees   | Links     | No       | Users assigned to this task                                     |
-| Reviewers   | Links     | No       | Users reviewing this task (see [Task Reviewer](#task-reviewer)) |
-| Created     | Timestamp | Yes      | When the record was created                                     |
-| Updated     | Timestamp | Yes      | When the record was last modified                               |
+| Field       | Type       | Required | Description                                                           |
+| ----------- | ---------- | -------- | --------------------------------------------------------------------- |
+| Case        | Link       | Yes      | The parent case                                                       |
+| Title       | Text       | Yes      | Task title                                                            |
+| Description | Text       | No       | Task details                                                          |
+| Status      | Enum       | Yes      | Current status (see [Task Status](#task-status))                      |
+| Created By  | Link       | Yes      | The user who created the task (auto-reviewer)                         |
+| Assignees   | Join table | No       | Users assigned to this task — see [Task Assignment](#task-assignment) |
+| Reviewers   | Join table | No       | Users reviewing this task — see [Task Reviewer](#task-reviewer)       |
+| Created     | Timestamp  | Yes      | When the record was created                                           |
+| Updated     | Timestamp  | Yes      | When the record was last modified                                     |
 
 ---
 
@@ -155,7 +155,7 @@ An internal note attached to a case, consultation, or task.
 | Created      | Timestamp | Yes      | When the note was created             |
 | Updated      | Timestamp | Yes      | When the note was last modified       |
 
-> Note must be linked to a Case, Consultation, or Task (one is required).
+> Note is optionally linked to a Case, Consultation, or Task. All three foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
 
 ---
 
@@ -176,7 +176,7 @@ A file attachment linked to a case, consultation, or task.
 | Created      | Timestamp | Yes      | When the file was uploaded                |
 | Updated      | Timestamp | Yes      | When the record was last modified         |
 
-> Document must be linked to a Case, Consultation, or Task (one is required).
+> Document is optionally linked to a Case, Consultation, or Task. All three foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
 
 ---
 

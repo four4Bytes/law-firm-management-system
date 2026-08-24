@@ -166,7 +166,7 @@ This ensures misconfigured environments fail early with clear messages.
 
 ## Audit Logging
 
-All structural mutations are logged via `createAuditLog` in `src/features/audit/mutations.ts`.
+All structural mutations are logged via `logAudit` in `src/features/audit/mutations.ts`.
 
 | Field                       | Content                                                                  |
 | --------------------------- | ------------------------------------------------------------------------ |

@@ -231,4 +231,4 @@ There are exactly **three task modals**, and they look identical:
 
 ## 11. Audit Trail
 
-All review actions are task `UPDATE` mutations, audited automatically via `createAuditLog` (immutable, read-only access — see [Audit Logging](./security.md#audit-logging)). Review comments are captured in the audit `details`.
+All review actions are task `UPDATE` mutations, audited automatically via `logAudit` (immutable, read-only access — see [Audit Logging](./security.md#audit-logging)). Review comments are captured in the audit `details`.

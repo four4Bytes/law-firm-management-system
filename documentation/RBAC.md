@@ -122,7 +122,7 @@ Combined codes in table cells follow these rules:
 
 > **Task attachment rule:** Anyone added to a Task — as an assignee **or** reviewer — who is not already a member of the parent Case is automatically granted read-only Case membership, so `ASSIGNED` is always satisfied for task-attached users. Task access beyond the case is scoped by `TASK_ONLY` (attachment to that specific Task) and the role's qualifier.
 >
-> **Review workflow:** The task creator is always auto-added as the first reviewer; their task READ/UPDATE/DELETE comes from `OWN`, their review actions (accept/reject) are expressed through task `UPDATE`. Added reviewers are task-attached users (`ASSIGNED + TASK_ONLY`) with READ/UPDATE only. Review decisions and comments are normal task updates; status-based locking (e.g. files locked while `Submitted`) is enforced in the actions layer, not the RBAC matrix.
+> **Review workflow:** The task creator is always auto-added as the first reviewer; their task READ/UPDATE/DELETE comes from `OWN`, their review actions (accept/reject) are expressed through task `UPDATE`. Added reviewers are task-attached users; their READ comes from `ASSIGNED` (auto-granted case membership) and their UPDATE is further scoped by `TASK_ONLY`. Review decisions and comments are normal task updates.
 
 #### [Payment](./models.md#payment)
 

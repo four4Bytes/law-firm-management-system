@@ -113,17 +113,16 @@ The task status is **re-derived after every change** — a recorded reviewer dec
 
 This is a single pure derivation over the two arrays `(assignee submission states, reviewer decisions)`; priority is rejection, then acceptance, then submission, then pending.
 
-## 5. File Locking
+## 5. File & Detail Editing
 
-When a task is in `Submitted` status:
+Task files and details (title, description, files) are editable through the normal RBAC
+`task.update` permission at any status except `Cancelled` (terminal — all edits forbidden).
+The review workflow is driven solely by assignee submission states and reviewer decisions
+(§3/§4); `Task.status` is fully derived and never directly edited by assignees or reviewers.
 
-- Assignees cannot upload new files.
-- Assignees cannot delete existing files.
-- Assignees cannot edit task details (title, description, assignees, reviewers).
-- The one exception: an assignee may still change **their own** submission state (`Submitted` ⇄ `Pending`) via the Assignee row Select while the task is `Submitted`, to correct an accidental submit. This does not grant file or detail edits.
-- Reviewers can view all files and task details (read-only) and record their decision via the Decision Select.
-
-When the task returns to `Pending` (after rejection), file editing is restored.
+The only manual status control is cancellation, which the creator may perform at any active
+status (§10.3). Editing the assignee list remains creator-only (§10.1) and recreates
+assignments, reopening the task (§3).
 
 ## 6. Comments and Feedback
 
@@ -147,7 +146,7 @@ The review workflow introduces **no new RBAC permissions or access dimensions**.
 
 - `taskOnly` (`TASK_ONLY`) means attached to the specific Task — as an assignee **or** a reviewer. Parent Case assignment alone is not enough.
 - Accept / reject are expressed as task `UPDATE` (a decision write); the optional review comment is a task `Note` (`note.create`). Viewing submitted work is task `READ`.
-- Status-based restrictions (assignees cannot edit while `Submitted`, files locked during review) are enforced in the actions layer, not the RBAC matrix — consistent with existing task status rules.
+- The only status-based restriction is the terminal `Cancelled` lock (all edits forbidden). Assignee-list editing is creator-only (see §10.1); all other task edits follow the normal RBAC `task.update` permission.
 
 ### Task Attachment Case Access
 

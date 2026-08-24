@@ -272,7 +272,7 @@ describe("updateTaskAction notification split", () => {
   beforeEach(() => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
-      own: false,
+      own: true,
       taskOnly: true,
     });
     vi.mocked(getTaskById).mockResolvedValue({
@@ -513,7 +513,25 @@ describe("cancelTaskAction", () => {
 });
 
 describe("updateTaskAction lifecycle lock", () => {
-  it("refuses to edit a Completed task even with update access", async () => {
+  it("allows a non-creator with update access to edit a Completed task's details", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
+
+    expect(
+      await updateTaskAction({
+        taskId: uuid,
+        title: "Renamed",
+        description: undefined,
+      }),
+    ).toEqual({ success: true });
+  });
+
+  it("refuses assignee changes by a non-creator even with update access", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
@@ -528,7 +546,7 @@ describe("updateTaskAction lifecycle lock", () => {
         description: undefined,
         assignee_ids: [uuid],
       }),
-    ).toEqual({ success: false, error: "Task is locked and cannot be edited" });
+    ).toEqual({ success: false, error: "Only the task creator can change assignees" });
   });
 
   it("allows the creator to edit and reopen a Completed task", async () => {

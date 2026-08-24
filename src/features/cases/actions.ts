@@ -25,6 +25,7 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import {
   assertRecordPermission,
@@ -502,7 +503,11 @@ export async function deleteCaseAction(
     revalidatePath("/case");
 
     return { success: true };
-  } catch {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return { success: false, error: "Case not found" };
+    }
+    console.error("deleteCaseAction failed:", error);
     return { success: false, error: "Failed to delete case" };
   }
 }

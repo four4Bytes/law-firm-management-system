@@ -54,6 +54,10 @@ async function grantCaseMembership(
   });
 }
 
+async function lockTask(tx: TransactionClient, taskId: string): Promise<void> {
+  await tx.$queryRaw`SELECT 1 FROM "Task" WHERE id = ${taskId} FOR UPDATE`;
+}
+
 export async function createTask(data: TaskCreateData): Promise<{ id: string }> {
   const { assignee_ids, created_by_user_id, case_id, ...taskData } = data;
   const attached = [...new Set([...(assignee_ids ?? []), created_by_user_id])];
@@ -100,6 +104,8 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
     });
 
     if (assignee_ids !== undefined) {
+      await lockTask(tx, id);
+
       if (assignee_ids.length) {
         await grantCaseMembership(tx, task.case_id, assignee_ids);
       }
@@ -132,6 +138,8 @@ export async function setAssignmentStatus(
   status: TaskAssignmentStatus,
 ): Promise<{ taskStatus: TaskStatus }> {
   return prisma.$transaction(async (tx) => {
+    await lockTask(tx, taskId);
+
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { status: true },
@@ -171,6 +179,8 @@ export async function addTaskReviewer(
   reviewerUserId: string,
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
+    await lockTask(tx, taskId);
+
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { case_id: true, status: true },
@@ -231,6 +241,8 @@ export async function removeTaskReviewer(
   }
 
   return prisma.$transaction(async (tx) => {
+    await lockTask(tx, taskId);
+
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { case_id: true, status: true, created_by_user_id: true },
@@ -268,6 +280,8 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
   const { taskId, reviewerUserId, decision } = data;
 
   return prisma.$transaction(async (tx) => {
+    await lockTask(tx, taskId);
+
     await tx.taskReviewer.updateMany({
       where: { task_id: taskId, reviewer_user_id: reviewerUserId },
       data: { decision, reviewed_at: new Date() },

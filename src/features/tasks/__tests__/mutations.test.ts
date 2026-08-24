@@ -51,6 +51,7 @@ type Tx = {
   taskReviewer: typeof prisma.taskReviewer;
   taskAssignment: typeof prisma.taskAssignment;
   caseAssignment: typeof prisma.caseAssignment;
+  $queryRaw: ReturnType<typeof vi.fn>;
 };
 
 const tx: Tx = {
@@ -58,6 +59,7 @@ const tx: Tx = {
   taskReviewer: prisma.taskReviewer,
   taskAssignment: prisma.taskAssignment,
   caseAssignment: prisma.caseAssignment,
+  $queryRaw: vi.fn(),
 };
 
 const transactionMock = vi.mocked(prisma.$transaction) as unknown as Mock<

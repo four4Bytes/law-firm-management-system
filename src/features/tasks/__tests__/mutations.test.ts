@@ -211,7 +211,7 @@ describe("updateTask", () => {
   it("updates a task with assignee sync", async () => {
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
     vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
-      mockTaskAssignment({ status: "Pending" }),
+      mockTaskAssignment({ user_id: "u1", status: "Submitted" }),
     ]);
     vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
       mockTaskReviewer({ reviewer_user_id: "u1", decision: "Pending" }),
@@ -227,7 +227,7 @@ describe("updateTask", () => {
       data: {
         title: "Updated",
         taskAssignments: {
-          deleteMany: {},
+          deleteMany: { user_id: { in: ["u1"] } },
           create: [{ user_id: "u2" }],
         },
       },
@@ -236,6 +236,32 @@ describe("updateTask", () => {
     expect(prisma.caseAssignment.createMany).toHaveBeenCalledWith({
       data: [{ case_id: "c1", user_id: "u2" }],
       skipDuplicates: true,
+    });
+  });
+
+  it("preserves unaffected assignees when syncing the assignee list", async () => {
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+      mockTaskAssignment({ user_id: "u1", status: "Submitted" }),
+      mockTaskAssignment({ user_id: "u3", status: "Submitted" }),
+    ]);
+    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Pending" }),
+    ]);
+
+    await updateTask("t1", {
+      assignee_ids: ["u2", "u3"],
+    });
+
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: {
+        taskAssignments: {
+          deleteMany: { user_id: { in: ["u1"] } },
+          create: [{ user_id: "u2" }],
+        },
+      },
+      select: { id: true, case_id: true },
     });
   });
 

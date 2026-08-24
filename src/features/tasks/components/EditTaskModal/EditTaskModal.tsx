@@ -359,7 +359,6 @@ export function EditTaskModal({
 
             {isCurrentUserAssignee && (
               <div className={styles.section}>
-                <span className={styles.sectionLabel}>Your submission</span>
                 <Select
                   label="Submission status"
                   aria-label="Your submission status"

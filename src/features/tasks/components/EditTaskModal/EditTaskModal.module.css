@@ -43,12 +43,6 @@
     width: max-content;
   }
 
-  .sectionLabel {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text-muted);
-  }
-
   .columnHeader {
     display: flex;
     align-items: center;

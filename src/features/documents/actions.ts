@@ -11,7 +11,7 @@ import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, TASK_LOCKED_MESSAGE } from "@/lib/errors";
+import { ForbiddenError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 import {
@@ -22,7 +22,12 @@ import {
 } from "@/lib/s3";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
-import { createDocument, deleteDocument as deleteDocumentRecord } from "./mutations";
+import {
+  createDocument,
+  createDocumentForTask,
+  deleteDocumentForTask,
+  deleteDocument as deleteDocumentRecord,
+} from "./mutations";
 import {
   getDocumentAccessContext,
   getDocumentById,
@@ -153,23 +158,37 @@ export async function confirmDocumentUploadAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
-    if (task_id) {
-      const parentTask = await getTaskById(task_id);
-      if (parentTask?.status === TaskStatus.Cancelled) {
-        return { success: false, error: TASK_LOCKED_MESSAGE };
-      }
-    }
+    let doc: { id: string };
 
-    const doc = await createDocument({
-      file_name,
-      file_path,
-      file_type,
-      file_size,
-      case_id,
-      consultation_id,
-      task_id,
-      uploaded_by_user_id: session.id,
-    });
+    if (task_id) {
+      try {
+        doc = await createDocumentForTask(task_id, {
+          file_name,
+          file_path,
+          file_type,
+          file_size,
+          case_id,
+          consultation_id,
+          uploaded_by_user_id: session.id,
+        });
+      } catch (error) {
+        if (error instanceof TaskLockedError) {
+          return { success: false, error: TASK_LOCKED_MESSAGE };
+        }
+        throw error;
+      }
+    } else {
+      doc = await createDocument({
+        file_name,
+        file_path,
+        file_type,
+        file_size,
+        case_id,
+        consultation_id,
+        task_id,
+        uploaded_by_user_id: session.id,
+      });
+    }
 
     const taskCaseId = task_id ? ((await getTaskById(task_id))?.case_id ?? null) : null;
     const resultCaseId = case_id ?? taskCaseId;
@@ -247,10 +266,6 @@ export async function deleteDocumentAction(
     const doc = await getDocumentById(documentId);
     if (!doc) return { success: false, error: "Document not found" };
 
-    if (doc.task?.status === TaskStatus.Cancelled) {
-      return { success: false, error: TASK_LOCKED_MESSAGE };
-    }
-
     const parentCaseId = doc.case_id ?? doc.task?.case_id ?? null;
     const access = await getDocumentAccessContext(session.id, doc.id);
     const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
@@ -263,9 +278,19 @@ export async function deleteDocumentAction(
       if (!can(session.role, "task.update", taskAccess)) {
         return { success: false, error: FORBIDDEN_MESSAGE };
       }
+
+      try {
+        await deleteDocumentForTask(doc.task_id, documentId);
+      } catch (error) {
+        if (error instanceof TaskLockedError) {
+          return { success: false, error: TASK_LOCKED_MESSAGE };
+        }
+        throw error;
+      }
+    } else {
+      await deleteDocumentRecord(documentId);
     }
 
-    await deleteDocumentRecord(documentId);
     await deleteDocumentFiles([doc.file_path]);
 
     after(() =>

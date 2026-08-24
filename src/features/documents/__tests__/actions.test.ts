@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
-import { TASK_LOCKED_MESSAGE } from "@/lib/errors";
+import { TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -14,7 +14,7 @@ import {
   getDocumentsPaginatedAction,
   getDocumentUploadUrlAction,
 } from "../actions";
-import { createDocument, deleteDocument } from "../mutations";
+import { createDocumentForTask, deleteDocument, deleteDocumentForTask } from "../mutations";
 import { getDocumentAccessContext, getDocumentById } from "../queries";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -70,6 +70,8 @@ vi.mock("../queries", () => ({
 vi.mock("../mutations", () => ({
   createDocument: vi.fn(),
   deleteDocument: vi.fn(),
+  createDocumentForTask: vi.fn(),
+  deleteDocumentForTask: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -151,6 +153,10 @@ describe("task subdata lock", () => {
       own: false,
       taskOnly: true,
     });
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+    });
   });
 
   it("refuses to issue an upload URL for a cancelled task", async () => {
@@ -169,6 +175,7 @@ describe("task subdata lock", () => {
 
   it("refuses to confirm a document upload on a cancelled task", async () => {
     vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+    vi.mocked(createDocumentForTask).mockRejectedValue(new TaskLockedError());
 
     const result = await confirmDocumentUploadAction({
       file_name: "a.pdf",
@@ -181,7 +188,7 @@ describe("task subdata lock", () => {
     });
 
     expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
-    expect(createDocument).not.toHaveBeenCalled();
+    expect(createDocumentForTask).toHaveBeenCalledWith(uuid, expect.any(Object));
   });
 
   it("refuses to delete a document on a cancelled task", async () => {
@@ -190,11 +197,12 @@ describe("task subdata lock", () => {
       task_id: uuid,
       task: cancelledTask,
     });
+    vi.mocked(deleteDocumentForTask).mockRejectedValue(new TaskLockedError());
 
     const result = await deleteDocumentAction({ documentId: uuid });
 
     expect(result).toEqual({ success: false, error: TASK_LOCKED_MESSAGE });
-    expect(deleteDocument).not.toHaveBeenCalled();
+    expect(deleteDocumentForTask).toHaveBeenCalledWith(uuid, uuid);
   });
 });
 
@@ -278,7 +286,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     });
 
     expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
-    expect(createDocument).not.toHaveBeenCalled();
+    expect(createDocumentForTask).not.toHaveBeenCalled();
   });
 
   it("denies a non-task-attached Paralegal uploader from deleting a task document", async () => {
@@ -299,7 +307,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     const result = await deleteDocumentAction({ documentId: uuid });
 
     expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
-    expect(deleteDocument).not.toHaveBeenCalled();
+    expect(deleteDocumentForTask).not.toHaveBeenCalled();
   });
 
   it("allows a task-attached Paralegal uploader to delete a task document", async () => {
@@ -316,10 +324,11 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
       own: false,
       taskOnly: true,
     });
+    vi.mocked(deleteDocumentForTask).mockResolvedValue({ id: "d1" });
 
     const result = await deleteDocumentAction({ documentId: uuid });
 
     expect(result).toEqual({ success: true });
-    expect(deleteDocument).toHaveBeenCalledWith(uuid);
+    expect(deleteDocumentForTask).toHaveBeenCalledWith(uuid, uuid);
   });
 });

@@ -20,6 +20,7 @@ import type { NoteRow } from "@/features/notes/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 import {
   actionForbidden,
   actionInvalid,
@@ -29,7 +30,7 @@ import {
 import {
   assertRecordPermission,
   requireAuth,
-  requirePermissionOrNull,
+  requirePermission,
   type AuthenticatedUser,
 } from "@/lib/auth-guards";
 import { toActionResponse } from "@/lib/errors";
@@ -143,21 +144,18 @@ export async function getConsultationForEditAction(
 export async function createConsultationAction(
   payload: z.input<typeof ConsultationCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requirePermissionOrNull("consultation.create");
-  if (!session) {
-    return actionForbidden();
-  }
-
-  const parsed = ConsultationCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return actionInvalid("consultation");
-  }
-
-  const { client_id, concern, booking_datetime, status, reminder_days, assignee_ids } = parsed.data;
-
-  let createdConsultation: { id: string };
   try {
-    createdConsultation = await createConsultation({
+    const session = await requirePermission("consultation.create");
+
+    const parsed = ConsultationCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      return actionInvalid("consultation");
+    }
+
+    const { client_id, concern, booking_datetime, status, reminder_days, assignee_ids } =
+      parsed.data;
+
+    const createdConsultation = await createConsultation({
       client_id,
       concern,
       booking_datetime,
@@ -188,19 +186,15 @@ export async function createConsultationAction(
 export async function createConsultationWithClientAction(
   payload: z.input<typeof ConsultationWithClientCreatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
-  const session = await requirePermissionOrNull("consultation.create");
-  if (!session) {
-    return actionForbidden();
-  }
-
-  const parsed = ConsultationWithClientCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return actionInvalid("consultation");
-  }
-
-  let createdWithClient: { id: string };
   try {
-    createdWithClient = await createConsultationWithClient({
+    const session = await requirePermission("consultation.create");
+
+    const parsed = ConsultationWithClientCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      return actionInvalid("consultation");
+    }
+
+    const createdWithClient = await createConsultationWithClient({
       ...parsed.data,
       created_by_user_id: session.id,
     });
@@ -461,6 +455,9 @@ export async function deleteConsultationAction(
 
     return { success: true };
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return actionNotFound("Consultation");
+    }
     return toActionResponse(error, "delete consultation");
   }
 }

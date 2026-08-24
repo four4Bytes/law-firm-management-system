@@ -35,7 +35,7 @@ afterEach(async () => {
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
-  requirePermissionOrNull: vi
+  requirePermission: vi
     .fn()
     .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
   assertRecordPermission: vi.fn((session, permission, context) => {

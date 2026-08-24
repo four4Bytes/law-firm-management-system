@@ -93,7 +93,7 @@ export function useModalForm<TArgs>({
         onSuccess?.();
       } else {
         toastError(
-          failureMessage,
+          result.error?.title ?? failureMessage,
           result.error?.description ?? "Something went wrong on our end. Please try again.",
         );
       }

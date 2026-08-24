@@ -107,9 +107,17 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         return;
       }
       setViewTask(data.row);
-    } catch {
+    } catch (error) {
       if (requestId !== latestRequest.current) return;
-      toastDenied();
+      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
+      if (isForbidden) {
+        toastDenied();
+      } else {
+        toastError(
+          "Failed to load task",
+          "Something went wrong while loading this task. Please try again.",
+        );
+      }
     } finally {
       if (requestId === latestRequest.current) setPendingViewId(null);
     }
@@ -133,9 +141,17 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       } else {
         toastDenied();
       }
-    } catch {
+    } catch (error) {
       if (requestId !== latestRequest.current) return;
-      toastDenied();
+      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
+      if (isForbidden) {
+        toastDenied();
+      } else {
+        toastError(
+          "Failed to load task",
+          "Something went wrong while loading this task. Please try again.",
+        );
+      }
     } finally {
       if (requestId === latestRequest.current) setPendingEditId(null);
     }

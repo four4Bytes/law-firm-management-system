@@ -72,7 +72,16 @@ export function CreateCaseFromConsultationModal({
     setFields(resetFields(defaultTitle));
     setAssigneeIds(new Set());
     if (onCancel) {
-      const reverted = await onCancel();
+      let reverted: boolean;
+      try {
+        reverted = await onCancel();
+      } catch {
+        toastError(
+          "Failed to revert consultation status",
+          "The consultation status could not be restored. Please review it before trying again.",
+        );
+        return;
+      }
       if (!reverted) {
         toastError(
           "Failed to revert consultation status",

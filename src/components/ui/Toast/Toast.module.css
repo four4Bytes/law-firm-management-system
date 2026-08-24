@@ -59,7 +59,7 @@
 
     .close {
       flex: 0 0 auto;
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-md);
       width: var(--space-2xl);
       height: var(--space-2xl);
       padding: 0;

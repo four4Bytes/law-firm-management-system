@@ -38,8 +38,6 @@ type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
 
 export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
   const canCreate = can(sessionUserRole, "user.create");
-  const canUpdate = can(sessionUserRole, "user.update");
-  const canDelete = can(sessionUserRole, "user.delete");
 
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
@@ -71,39 +69,31 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         );
       },
     },
-    ...(canUpdate || canDelete
-      ? [
-          {
-            id: "is_active" as const,
-            name: "Action" as const,
-            render: (_value: unknown, row: unknown) => {
-              const user = row as UserRow;
-              return (
-                <div className={styles.actions}>
-                  {canUpdate && user.role !== Role.Dev && (
-                    <Button
-                      variant="ghost"
-                      aria-label={`Edit ${user.name}`}
-                      onPress={() => setModalTarget({ type: "edit", user })}
-                    >
-                      <FaPenToSquare className={styles.icon} />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      variant="ghost"
-                      aria-label={`Deactivate ${user.name}`}
-                      onPress={() => setDeletingUser(user)}
-                    >
-                      <FaTrashCan className={styles.icon} />
-                    </Button>
-                  )}
-                </div>
-              );
-            },
-          } as ColumnDef<UserRow>,
-        ]
-      : []),
+    {
+      id: "is_active" as const,
+      name: "Action" as const,
+      render: (_value: unknown, row: unknown) => {
+        const user = row as UserRow;
+        return (
+          <div className={styles.actions}>
+            <Button
+              variant="ghost"
+              aria-label={`Edit ${user.name}`}
+              onPress={() => setModalTarget({ type: "edit", user })}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Button
+              variant="ghost"
+              aria-label={`Deactivate ${user.name}`}
+              onPress={() => setDeletingUser(user)}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+          </div>
+        );
+      },
+    },
   ];
 
   return (

@@ -41,11 +41,6 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
   const requestRefs = useRef(new Map<string, number>());
 
   const canCreate = can(userRole, "attachment.create", access);
-  const canDelete = can(
-    userRole,
-    caseId ? "attachment.delete" : "consultation.attachment.delete",
-    access,
-  );
 
   const handleRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -137,21 +132,19 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
               >
                 <FaDownload className={styles.icon} />
               </Button>
-              {canDelete && (
-                <Button
-                  variant="ghost"
-                  aria-label="Delete attachment"
-                  onPress={() => setDeleteTarget(doc)}
-                >
-                  <FaTrashCan className={styles.icon} />
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                aria-label="Delete attachment"
+                onPress={() => setDeleteTarget(doc)}
+              >
+                <FaTrashCan className={styles.icon} />
+              </Button>
             </div>
           );
         },
       },
     ],
-    [pendingDownloadIds, handleDownload, canDelete],
+    [pendingDownloadIds, handleDownload],
   );
 
   return (

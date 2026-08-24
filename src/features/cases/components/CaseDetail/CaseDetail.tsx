@@ -23,7 +23,7 @@ import { getActiveUsersAction } from "@/features/tasks/actions";
 import { TasksTab } from "@/features/tasks/components/TasksTab/TasksTab";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
-import { can, type AccessContext } from "@/lib/rbac";
+import { can, FORBIDDEN_MESSAGE, type AccessContext } from "@/lib/rbac";
 
 import { CaseOverview } from "../CaseOverview/CaseOverview";
 import styles from "./CaseDetail.module.css";
@@ -48,8 +48,6 @@ export function CaseDetail({ overview, access, userRole }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
 
-  const canEdit = can(userRole, "case.update", access);
-  const canDelete = can(userRole, "case.delete", access);
   const canViewPayments = can(userRole, "payment.read");
 
   const allTabs = ["tasks", "attachments", "notes", "milestones", "payments", "activity"] as const;
@@ -102,8 +100,14 @@ export function CaseDetail({ overview, access, userRole }: Props) {
       const clientData = await getClientForEditAction(caseData.client_id);
       if (!clientData) throw new Error("Client not found");
       setEditData({ caseData, clientData, users });
-    } catch {
-      queue.add({ title: "Failed to load case data" }, { timeout: 5000 });
+    } catch (error) {
+      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
+      queue.add(
+        {
+          title: isForbidden ? FORBIDDEN_MESSAGE : "Failed to load case data",
+        },
+        { timeout: 5000 },
+      );
     } finally {
       setIsEditPending(false);
     }
@@ -134,8 +138,8 @@ export function CaseDetail({ overview, access, userRole }: Props) {
 
       <CaseOverview
         data={overview}
-        onEdit={canEdit ? handleEdit : undefined}
-        onDelete={canDelete ? () => setShowDeleteConfirm(true) : undefined}
+        onEdit={handleEdit}
+        onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
       />
 

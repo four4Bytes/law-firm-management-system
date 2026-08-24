@@ -234,12 +234,7 @@ export async function addTaskReviewer(
 export async function removeTaskReviewer(
   taskId: string,
   reviewerUserId: string,
-  createdByUserId: string,
 ): Promise<{ id: string }> {
-  if (reviewerUserId === createdByUserId) {
-    throw new Error("Cannot remove the task creator as a reviewer");
-  }
-
   return prisma.$transaction(async (tx) => {
     await lockTask(tx, taskId);
 
@@ -248,6 +243,10 @@ export async function removeTaskReviewer(
       select: { case_id: true, status: true, created_by_user_id: true },
     });
     if (!task) throw new Error("Task not found");
+
+    if (reviewerUserId === task.created_by_user_id) {
+      throw new Error("Cannot remove the task creator as a reviewer");
+    }
 
     await tx.taskReviewer.deleteMany({
       where: { task_id: taskId, reviewer_user_id: reviewerUserId },

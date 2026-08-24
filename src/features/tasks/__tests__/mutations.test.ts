@@ -423,7 +423,9 @@ describe("addTaskReviewer (status transitions)", () => {
 
 describe("removeTaskReviewer", () => {
   it("throws when removing the task creator", async () => {
-    await expect(removeTaskReviewer("t1", "u1", "u1")).rejects.toThrow(
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
+
+    await expect(removeTaskReviewer("t1", "u1")).rejects.toThrow(
       "Cannot remove the task creator as a reviewer",
     );
   });
@@ -432,7 +434,7 @@ describe("removeTaskReviewer", () => {
     vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
     vi.mocked(prisma.taskReviewer.deleteMany).mockResolvedValue({ count: 1 });
 
-    const result = await removeTaskReviewer("t1", "u4", "u1");
+    const result = await removeTaskReviewer("t1", "u4");
 
     expect(result.id).toBe("t1");
     expect(prisma.taskReviewer.deleteMany).toHaveBeenCalledWith({
@@ -450,7 +452,7 @@ describe("removeTaskReviewer", () => {
       mockTaskAssignment({ status: "Submitted" }),
     ]);
 
-    await removeTaskReviewer("t1", "u4", "u1");
+    await removeTaskReviewer("t1", "u4");
 
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },

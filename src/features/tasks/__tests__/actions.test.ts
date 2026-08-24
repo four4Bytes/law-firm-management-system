@@ -542,7 +542,7 @@ describe("removeTaskReviewerAction", () => {
 
     const result = await removeTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid2 });
     expect(result).toEqual({ success: true });
-    expect(removeTaskReviewer).toHaveBeenCalledWith(uuid, uuid2, "u2");
+    expect(removeTaskReviewer).toHaveBeenCalledWith(uuid, uuid2);
   });
 });
 

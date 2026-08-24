@@ -82,7 +82,7 @@ export async function getDocumentsPaginatedAction(
     consultationId,
     taskId,
   });
-  if (!can(session.role, "attachment.read", parentAccess)) {
+  if (!can(session.role, taskId ? "task.read" : "attachment.read", parentAccess)) {
     throw new ForbiddenError();
   }
 
@@ -110,7 +110,7 @@ export async function getDocumentUploadUrlAction(
     consultationId: consultation_id,
     taskId: task_id,
   });
-  if (!can(session.role, "attachment.create", parentAccess)) {
+  if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
     throw new ForbiddenError();
   }
 
@@ -149,7 +149,7 @@ export async function confirmDocumentUploadAction(
       consultationId: consultation_id,
       taskId: task_id,
     });
-    if (!can(session.role, "attachment.create", parentAccess)) {
+    if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
@@ -249,6 +249,13 @@ export async function deleteDocumentAction(
     const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
     if (!can(session.role, permission, access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (doc.task_id) {
+      const taskAccess = await getTaskAccessContext(session.id, doc.task_id);
+      if (!can(session.role, "task.update", taskAccess)) {
+        return { success: false, error: FORBIDDEN_MESSAGE };
+      }
     }
 
     await deleteDocumentRecord(documentId);

@@ -264,6 +264,41 @@ describe("updateTaskAction", () => {
       error: FORBIDDEN_MESSAGE,
     });
   });
+
+  it("denies a Lawyer who is a case member but not attached to the task", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await updateTaskAction({
+      taskId: uuid,
+      title: "Renamed",
+      description: undefined,
+      assignee_ids: undefined,
+    });
+
+    expect(result).toEqual({ success: false, error: FORBIDDEN_MESSAGE });
+  });
+
+  it("allows a Lawyer who is attached to the task (assignee/reviewer)", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
+
+    const result = await updateTaskAction({
+      taskId: uuid,
+      title: "Renamed",
+      description: undefined,
+      assignee_ids: undefined,
+    });
+
+    expect(result).toEqual({ success: true });
+  });
 });
 
 describe("updateTaskAction notification split", () => {
@@ -319,6 +354,31 @@ describe("deleteTaskAction", () => {
       success: false,
       error: FORBIDDEN_MESSAGE,
     });
+  });
+
+  it("denies a Lawyer who is a case member but not the task creator", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+
+    expect(await deleteTaskAction({ taskId: uuid })).toEqual({
+      success: false,
+      error: FORBIDDEN_MESSAGE,
+    });
+  });
+
+  it("allows the task creator to delete", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(taskRecord);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(deleteTask).mockResolvedValue(taskRecord);
+
+    expect(await deleteTaskAction({ taskId: uuid })).toEqual({ success: true });
   });
 
   it("returns a failure status when the underlying delete throws", async () => {

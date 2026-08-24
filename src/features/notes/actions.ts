@@ -55,7 +55,7 @@ export async function getTaskNotesAction(taskId: string): Promise<NoteRow[]> {
   if (!parsed.success) return [];
 
   const access = await getTaskAccessContext(session.id, parsed.data);
-  if (!can(session.role, "note.read", access)) return [];
+  if (!can(session.role, "task.read", access)) return [];
 
   return getTaskNotes(parsed.data);
 }
@@ -76,7 +76,7 @@ export async function createNoteAction(
   try {
     if (task_id) {
       const taskAccess = await getTaskAccessContext(session.id, task_id);
-      if (!can(session.role, "note.create", taskAccess)) {
+      if (!can(session.role, "task.update", taskAccess)) {
         return { success: false, error: FORBIDDEN_MESSAGE };
       }
     } else if (case_id) {
@@ -162,6 +162,13 @@ export async function updateNoteAction(
       return { success: false, error: FORBIDDEN_MESSAGE };
     }
 
+    if (existing.task_id) {
+      const taskAccess = await getTaskAccessContext(session.id, existing.task_id);
+      if (!can(session.role, "task.update", taskAccess)) {
+        return { success: false, error: FORBIDDEN_MESSAGE };
+      }
+    }
+
     if (existing.content === content) {
       return { success: true };
     }
@@ -212,6 +219,13 @@ export async function deleteNoteAction(
     const access = await getNoteAccessContext(session.id, noteId);
     if (!can(session.role, "note.delete", access)) {
       return { success: false, error: FORBIDDEN_MESSAGE };
+    }
+
+    if (existing.task_id) {
+      const taskAccess = await getTaskAccessContext(session.id, existing.task_id);
+      if (!can(session.role, "task.update", taskAccess)) {
+        return { success: false, error: FORBIDDEN_MESSAGE };
+      }
     }
 
     await deleteNote(noteId);

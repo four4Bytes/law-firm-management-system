@@ -1,25 +1,22 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FaDownload, FaEye, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import {
-  deleteDocumentAction,
-  getDocumentDownloadUrlAction,
-  getDocumentsPaginatedAction,
-} from "@/features/documents/actions";
+import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal/UploadDocumentModal";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
+import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { formatFileSize, formatFileType } from "@/lib/file-format";
 import { can, type AccessContext } from "@/lib/rbac";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./AttachmentsTab.module.css";
 
@@ -36,40 +33,12 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
-  const [pendingDownloadIds, setPendingDownloadIds] = useState<Set<string>>(new Set());
-  const nextRequestId = useRef(0);
-  const requestRefs = useRef(new Map<string, number>());
 
   const canCreate = can(userRole, "attachment.create", access);
 
   const handleRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  const handleDownload = useCallback(async (doc: DocumentRow) => {
-    const requestId = ++nextRequestId.current;
-    requestRefs.current.set(doc.id, requestId);
-    setPendingDownloadIds((prev) => new Set(prev).add(doc.id));
-    try {
-      const { url, file_name } = await getDocumentDownloadUrlAction(doc.id);
-      if (requestRefs.current.get(doc.id) !== requestId) return;
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = file_name;
-      anchor.click();
-      anchor.remove();
-    } catch {
-      if (requestRefs.current.get(doc.id) !== requestId) return;
-      toastError("Failed to download file", "The file could not be downloaded. Please try again.");
-    } finally {
-      if (requestRefs.current.get(doc.id) === requestId) {
-        requestRefs.current.delete(doc.id);
-        setPendingDownloadIds((prev) => {
-          const next = new Set(prev);
-          next.delete(doc.id);
-          return next;
-        });
-      }
-    }
-  }, []);
+  const { handleDownload, pendingIds } = useDocumentDownload();
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -128,7 +97,7 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
                 variant="ghost"
                 aria-label="Download attachment"
                 onPress={() => handleDownload(doc)}
-                isPending={pendingDownloadIds.has(doc.id)}
+                isPending={pendingIds.has(doc.id)}
               >
                 <FaDownload className={styles.icon} />
               </Button>
@@ -144,7 +113,7 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
         },
       },
     ],
-    [pendingDownloadIds, handleDownload],
+    [handleDownload, pendingIds],
   );
 
   return (
@@ -158,7 +127,7 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
         loadingMessage="Loading attachments..."
         searchLabel="Search attachments"
         selectionMode="none"
-        collectionDependencies={[pendingDownloadIds]}
+        collectionDependencies={[pendingIds]}
         renderAddButton={canCreate}
         addButtonLabel="Add Attachment"
         onAddButtonPress={() => setUploadModalOpen(true)}

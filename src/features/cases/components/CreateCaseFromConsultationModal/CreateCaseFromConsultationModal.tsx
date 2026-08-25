@@ -119,7 +119,7 @@ export function CreateCaseFromConsultationModal({
         setFields(resetFields(defaultTitle));
         setAssigneeIds(new Set());
         onOpenChange(false);
-        onSuccess(result.data.caseId);
+        onSuccess(result.data.id);
       } else {
         toastActionError(result, "create case");
       }

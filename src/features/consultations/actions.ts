@@ -25,6 +25,7 @@ import {
   actionForbidden,
   actionInvalid,
   actionNotFound,
+  type ActionDataResponse,
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import {
@@ -185,7 +186,7 @@ export async function createConsultationAction(
 
 export async function createConsultationWithClientAction(
   payload: z.input<typeof ConsultationWithClientCreatePayloadSchema>,
-): Promise<ActionStatusResponse> {
+): Promise<ActionDataResponse<{ id: string }>> {
   try {
     const session = await requirePermission("consultation.create");
 
@@ -211,7 +212,7 @@ export async function createConsultationWithClientAction(
 
     revalidatePath("/consultation");
 
-    return { success: true };
+    return { success: true, data: { id: createdWithClient.id } };
   } catch (error) {
     return toActionResponse(error, "create consultation");
   }

@@ -32,7 +32,7 @@ const STATUS_OPTIONS = Object.values(ConsultationStatus);
 interface AddConsultationModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (consultationId: string) => void;
   users: ActiveUserSummary[];
 }
 
@@ -77,11 +77,14 @@ export function AddConsultationModal({
   const { concern, date, time, status } = consultation;
 
   const { isPending, submitForm, handleCancel } = useModalForm<
-    z.input<typeof ConsultationWithClientCreatePayloadSchema>
+    z.input<typeof ConsultationWithClientCreatePayloadSchema>,
+    { id: string }
   >({
     submit: createConsultationWithClientAction,
     onOpenChange,
-    onSuccess,
+    onSuccess: (data) => {
+      if (data) onSuccess(data.id);
+    },
     successMessage: "Consultation created",
     successDescription: "The consultation has been created.",
     failureMessage: "Failed to create consultation. Please try again.",

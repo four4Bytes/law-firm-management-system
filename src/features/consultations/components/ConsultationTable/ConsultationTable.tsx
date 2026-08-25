@@ -83,7 +83,6 @@ export function ConsultationTable({
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
   const canCreate = can(userRole, "consultation.create");
@@ -124,16 +123,16 @@ export function ConsultationTable({
         renderAddButton={canCreate}
         addButtonLabel="Add Consultation"
         onAddButtonPress={openAddModal}
-        refreshTrigger={refreshTrigger}
       />
 
       {isAddOpen && (
         <AddConsultationModal
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
-          onSuccess={() => {
+          onSuccess={(consultationId) => {
             setIsAddOpen(false);
-            setRefreshTrigger((t) => t + 1);
+            startLoading();
+            router.push(`/consultation/${consultationId}`);
           }}
           users={users}
         />

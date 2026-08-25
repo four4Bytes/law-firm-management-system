@@ -1,6 +1,7 @@
 "use client";
 
-import { FaCheck, FaEye, FaRegFileLines, FaXmark } from "react-icons/fa6";
+import { useState } from "react";
+import { FaCheck, FaDownload, FaEye, FaRegFileLines, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
@@ -22,8 +23,10 @@ interface FileListProps {
   onRemove: (id: number) => void;
   existingDocuments?: DocumentRow[];
   onDelete?: (documentId: string) => void;
+  onDownload?: (document: DocumentRow) => void | Promise<void>;
   onView?: (document: DocumentRow) => void;
   isLoading?: boolean;
+  showSize?: boolean;
 }
 
 export function FileList({
@@ -32,9 +35,27 @@ export function FileList({
   onRemove,
   existingDocuments,
   onDelete,
+  onDownload,
   onView,
   isLoading,
+  showSize = true,
 }: FileListProps) {
+  const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
+
+  async function handleDownload(doc: DocumentRow) {
+    if (!onDownload) return;
+    setDownloadingIds((prev) => new Set(prev).add(doc.id));
+    try {
+      await onDownload(doc);
+    } finally {
+      setDownloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  }
+
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
@@ -53,7 +74,7 @@ export function FileList({
           <span className={styles.fileName} aria-label={doc.file_name}>
             {truncateFilename(doc.file_name)}
           </span>
-          <span className={styles.fileSize}>{formatFileSize(doc.file_size)}</span>
+          {showSize && <span className={styles.fileSize}>{formatFileSize(doc.file_size)}</span>}
 
           {onView && (
             <Button
@@ -64,6 +85,19 @@ export function FileList({
               onPress={() => onView(doc)}
             >
               <FaEye />
+            </Button>
+          )}
+
+          {onDownload && (
+            <Button
+              variant="ghost"
+              className={styles.removeButton}
+              aria-label={`Download ${doc.file_name}`}
+              isDisabled={isBusy}
+              isPending={downloadingIds.has(doc.id)}
+              onPress={() => handleDownload(doc)}
+            >
+              <FaDownload />
             </Button>
           )}
 
@@ -87,7 +121,7 @@ export function FileList({
           <span className={styles.fileName} aria-label={entry.file.name}>
             {truncateFilename(entry.file.name)}
           </span>
-          <span className={styles.fileSize}>{formatFileSize(entry.file.size)}</span>
+          {showSize && <span className={styles.fileSize}>{formatFileSize(entry.file.size)}</span>}
 
           {entry.status === "pending" && (
             <Button

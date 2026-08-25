@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
 import { countActiveAdminsAndDevs, getUserByEmail, getUserById } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
-import { requirePermissionOrNull } from "@/lib/auth-guards";
+import { requirePermission } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { UnauthorizedError } from "@/lib/errors";
 
 import { createUserAction, deactivateUserAction, updateUserAction } from "../actions";
 
@@ -15,7 +15,6 @@ vi.mock("next/server", () => ({
 
 vi.mock("@/lib/auth-guards", () => ({
   requirePermission: vi.fn(),
-  requirePermissionOrNull: vi.fn(),
 }));
 
 vi.mock("@/lib/developer-emails", () => ({
@@ -47,36 +46,48 @@ describe("createUserAction", () => {
   const validPayload = { email: "lawyer@law.com", role: "Lawyer" as const };
 
   it("returns an error when unauthorized", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(null);
+    vi.mocked(requirePermission).mockRejectedValue(new UnauthorizedError());
 
     expect(await createUserAction(validPayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "unauthorized",
+        title: "Session expired",
+        description: "Please sign in again to continue.",
+      },
     });
   });
 
   it("returns an error for a payload missing email", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(await createUserAction({ role: "Lawyer" } as any)).toEqual({
       success: false,
-      error: "Invalid email or role",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
   it("returns an error for an invalid role string", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(await createUserAction({ email: "lawyer@law.com", role: "SuperAdmin" } as any)).toEqual({
       success: false,
-      error: "Invalid email or role",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
   it("creates a user successfully", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserByEmail).mockResolvedValue(null);
     vi.mocked(createUser).mockResolvedValue({ id: "new-user-id" });
 
@@ -87,7 +98,7 @@ describe("createUserAction", () => {
   });
 
   it("creates a Dev user from a developer email", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(isDeveloperEmail).mockReturnValue(true);
     vi.mocked(getUserByEmail).mockResolvedValue(null);
     vi.mocked(createUser).mockResolvedValue({ id: "new-user-id" });
@@ -99,7 +110,7 @@ describe("createUserAction", () => {
   });
 
   it("returns an error when the email belongs to an active user", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: "existing-id",
       role: "Lawyer",
@@ -110,13 +121,17 @@ describe("createUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "A user with this email already exists.",
+      error: {
+        code: "conflict",
+        title: "Email already in use",
+        description: "A user with this email already exists.",
+      },
     });
     expect(createUser).not.toHaveBeenCalled();
   });
 
   it("reactivates an inactive existing user", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: "inactive-id",
       role: "Lawyer",
@@ -132,7 +147,7 @@ describe("createUserAction", () => {
   });
 
   it("returns an error when reactivation fails", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: "inactive-id",
       role: "Lawyer",
@@ -144,12 +159,16 @@ describe("createUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to reactivate user.",
+      error: {
+        code: "unknown",
+        title: "Failed to create user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 
   it("returns an error when creation fails", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserByEmail).mockResolvedValue(null);
     vi.mocked(createUser).mockRejectedValue(new Error("db error"));
 
@@ -157,7 +176,11 @@ describe("createUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to create user.",
+      error: {
+        code: "unknown",
+        title: "Failed to create user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });
@@ -166,51 +189,67 @@ describe("updateUserAction", () => {
   const validPayload = { userId: uuid, email: "updated@law.com", role: "Paralegal" as const };
 
   it("returns an error when unauthorized", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(null);
+    vi.mocked(requirePermission).mockRejectedValue(new UnauthorizedError());
 
     expect(await updateUserAction(validPayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "unauthorized",
+        title: "Session expired",
+        description: "Please sign in again to continue.",
+      },
     });
   });
 
   it("returns an error for an invalid payload", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
 
     expect(
       await updateUserAction({ userId: "bad-id", email: "test@law.com", role: "Lawyer" }),
     ).toEqual({
       success: false,
-      error: "Invalid input",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
   it("returns an error when the user is not found", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue(null);
 
     const result = await updateUserAction(validPayload);
 
     expect(result).toEqual({
       success: false,
-      error: "User not found.",
+      error: {
+        code: "not_found",
+        title: "User not found",
+        description: "The user may have been deleted by another user.",
+      },
     });
   });
 
   it("returns an error when the target is a Dev account", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: Role.Dev, is_active: true });
 
     const result = await updateUserAction(validPayload);
 
     expect(result).toEqual({
       success: false,
-      error: "Cannot edit developer accounts.",
+      error: {
+        code: "conflict",
+        title: "Developer account",
+        description: "Developer accounts cannot be edited.",
+      },
     });
   });
 
   it("returns an error on duplicate email", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: "other-id",
@@ -222,12 +261,16 @@ describe("updateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "A user with this email already exists.",
+      error: {
+        code: "conflict",
+        title: "Email already in use",
+        description: "A user with this email already exists.",
+      },
     });
   });
 
   it("updates a user successfully", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
     vi.mocked(getUserByEmail).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
     vi.mocked(updateUser).mockResolvedValue(undefined);
@@ -239,7 +282,7 @@ describe("updateUserAction", () => {
   });
 
   it("returns an error when the update fails", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
     vi.mocked(getUserByEmail).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
     vi.mocked(updateUser).mockRejectedValue(new Error("db error"));
@@ -248,7 +291,11 @@ describe("updateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to update user.",
+      error: {
+        code: "unknown",
+        title: "Failed to update user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });
@@ -257,37 +304,49 @@ describe("deactivateUserAction", () => {
   const validPayload = { userId: uuid };
 
   it("returns an error when unauthorized", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(null);
+    vi.mocked(requirePermission).mockRejectedValue(new UnauthorizedError());
 
     expect(await deactivateUserAction(validPayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "unauthorized",
+        title: "Session expired",
+        description: "Please sign in again to continue.",
+      },
     });
   });
 
   it("returns an error for an invalid payload", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
 
     expect(await deactivateUserAction({ userId: "bad-id" })).toEqual({
       success: false,
-      error: "Invalid user ID",
+      error: {
+        code: "validation",
+        title: "Invalid user data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
   it("returns an error when the user is not found", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue(null);
 
     const result = await deactivateUserAction(validPayload);
 
     expect(result).toEqual({
       success: false,
-      error: "User not found.",
+      error: {
+        code: "not_found",
+        title: "User not found",
+        description: "The user may have been deleted by another user.",
+      },
     });
   });
 
   it("returns an error when deactivating the last active Admin/Dev", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: Role.Admin, is_active: true });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(0);
 
@@ -295,12 +354,16 @@ describe("deactivateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Cannot deactivate the last admin or developer.",
+      error: {
+        code: "conflict",
+        title: "Last admin",
+        description: "Cannot deactivate the last admin or developer.",
+      },
     });
   });
 
   it("deactivates a regular user successfully", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
 
@@ -311,7 +374,7 @@ describe("deactivateUserAction", () => {
   });
 
   it("deactivates an Admin when other admins remain", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: Role.Admin, is_active: true });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(1);
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
@@ -323,7 +386,7 @@ describe("deactivateUserAction", () => {
   });
 
   it("returns an error when deactivation fails", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue(sessionAdmin);
+    vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
     vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
     vi.mocked(setUserActiveStatus).mockRejectedValue(new Error("db error"));
 
@@ -331,12 +394,16 @@ describe("deactivateUserAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Failed to deactivate user.",
+      error: {
+        code: "unknown",
+        title: "Failed to deactivate user",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 
   it("flags self-deactivation when the target is the current user", async () => {
-    vi.mocked(requirePermissionOrNull).mockResolvedValue({
+    vi.mocked(requirePermission).mockResolvedValue({
       id: uuid,
       email: "admin@law.com",
       role: "Admin",

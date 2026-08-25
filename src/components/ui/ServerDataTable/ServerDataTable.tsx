@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/Button/Button";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
-import { queue } from "@/components/ui/Toast/Toast";
 import { toSortQuery } from "@/lib/sort";
+import { toastError } from "@/lib/toast-utils";
 import type { SortQuery } from "@/lib/types";
 import { useDebounce } from "@/lib/useDebounce";
 
@@ -103,10 +103,10 @@ export function ServerDataTable<T extends { id: string }>({
       } catch {
         if (cancelled) return;
         setIsInitialLoad(false);
-        queue.add({
-          title: "Failed to load data",
-          description: "Could not retrieve the list. Please try again.",
-        });
+        toastError(
+          "Failed to load data",
+          "The list could not be loaded. Please check your connection and try again.",
+        );
       } finally {
         if (!cancelled) setIsFetching(false);
       }
@@ -136,10 +136,7 @@ export function ServerDataTable<T extends { id: string }>({
       setCursor(result.nextCursor);
       setHasMore(result.nextCursor !== null);
     } catch {
-      queue.add({
-        title: "Failed to load more",
-        description: "Could not retrieve additional items. Please try again.",
-      });
+      toastError("Failed to load more", "Additional items could not be loaded. Please try again.");
     } finally {
       setIsLoadingMore(false);
     }

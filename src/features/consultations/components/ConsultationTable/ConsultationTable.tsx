@@ -6,7 +6,6 @@ import { useCallback, useState } from "react";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
-import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
@@ -16,6 +15,7 @@ import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { can } from "@/lib/rbac";
+import { toastError } from "@/lib/toast-utils";
 
 const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
   Scheduled: "info",
@@ -83,7 +83,6 @@ export function ConsultationTable({
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
   const canCreate = can(userRole, "consultation.create");
@@ -94,7 +93,10 @@ export function ConsultationTable({
       setUsers(users);
       setIsAddOpen(true);
     } catch {
-      queue.add({ title: "Failed to load users" }, { timeout: 5000 });
+      toastError(
+        "Failed to load users",
+        "The team member list could not be loaded. Please try again.",
+      );
     }
   }, []);
 
@@ -121,16 +123,16 @@ export function ConsultationTable({
         renderAddButton={canCreate}
         addButtonLabel="Add Consultation"
         onAddButtonPress={openAddModal}
-        refreshTrigger={refreshTrigger}
       />
 
       {isAddOpen && (
         <AddConsultationModal
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
-          onSuccess={() => {
+          onSuccess={(consultationId) => {
             setIsAddOpen(false);
-            setRefreshTrigger((t) => t + 1);
+            startLoading();
+            router.push(`/consultation/${consultationId}`);
           }}
           users={users}
         />

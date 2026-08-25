@@ -15,12 +15,13 @@ import { Button } from "@/components/ui/Button/Button";
 
 import styles from "./Toast.module.css";
 
-interface MyToastContent {
+export interface ToastContent {
   title: string;
-  description?: string;
+  /** Supporting line rendered under the title. Always present. */
+  description: string;
 }
 
-export const queue = new ToastQueue<MyToastContent>({
+export const queue = new ToastQueue<ToastContent>({
   wrapUpdate(fn) {
     if ("startViewTransition" in document) {
       document.startViewTransition(() => {
@@ -39,9 +40,7 @@ export function ToastRegion() {
         <Toast toast={toast} className={styles.toast}>
           <AriaToastContent className={styles.content}>
             <span className={styles.title}>{toast.content.title}</span>
-            {toast.content.description && (
-              <span className={styles.description}>{toast.content.description}</span>
-            )}
+            <span className={styles.description}>{toast.content.description}</span>
           </AriaToastContent>
           <Button slot="close" variant="ghost" aria-label="Close" className={styles.close}>
             <FaXmark />
@@ -52,6 +51,6 @@ export function ToastRegion() {
   );
 }
 
-export function Toast(props: ToastProps<MyToastContent>) {
+export function Toast(props: ToastProps<ToastContent>) {
   return <AriaToast {...props} className={clsx(props.className)} />;
 }

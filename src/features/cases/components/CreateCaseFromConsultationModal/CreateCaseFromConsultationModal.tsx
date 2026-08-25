@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { queue } from "@/components/ui/Toast/Toast";
 import { createCaseAction } from "@/features/cases/actions";
 import { CaseCreatePayloadSchema } from "@/features/cases/schemas";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
@@ -19,6 +18,7 @@ import {
   requiredString,
   selectEnumHandler,
 } from "@/lib/form-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./CreateCaseFromConsultationModal.module.css";
 
@@ -72,11 +72,20 @@ export function CreateCaseFromConsultationModal({
     setFields(resetFields(defaultTitle));
     setAssigneeIds(new Set());
     if (onCancel) {
-      const reverted = await onCancel();
+      let reverted: boolean;
+      try {
+        reverted = await onCancel();
+      } catch {
+        toastError(
+          "Failed to revert consultation status",
+          "The consultation status could not be restored. Please review it before trying again.",
+        );
+        return;
+      }
       if (!reverted) {
-        queue.add(
-          { title: "Failed to revert consultation status. Please try again." },
-          { timeout: 5000 },
+        toastError(
+          "Failed to revert consultation status",
+          "The consultation status could not be restored. Please review it before trying again.",
         );
         return;
       }
@@ -106,19 +115,16 @@ export function CreateCaseFromConsultationModal({
       });
 
       if (result.success && result.data) {
-        queue.add({ title: "Case created" }, { timeout: 5000 });
+        toastSuccess("Case created", "The case has been created.");
         setFields(resetFields(defaultTitle));
         setAssigneeIds(new Set());
         onOpenChange(false);
-        onSuccess(result.data.caseId);
+        onSuccess(result.data.id);
       } else {
-        queue.add(
-          { title: result.error ?? "Failed to create case. Please try again." },
-          { timeout: 5000 },
-        );
+        toastActionError(result, "create case");
       }
     } catch {
-      queue.add({ title: "Failed to create case. Please try again." }, { timeout: 5000 });
+      toastError("Failed to create case", "Something went wrong on our end. Please try again.");
     } finally {
       setIsPending(false);
     }

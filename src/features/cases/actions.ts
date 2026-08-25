@@ -25,14 +25,23 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import { Prisma } from "@/generated/prisma/client";
+import {
+  actionConflict,
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import {
   assertRecordPermission,
   requireAuth,
-  requirePermissionOrNull,
+  requirePermission,
   type AuthenticatedUser,
 } from "@/lib/auth-guards";
-import { can, FORBIDDEN_MESSAGE, type AccessContext, type Permission } from "@/lib/rbac";
+import { toActionResponse } from "@/lib/errors";
+import { can, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
 import {
@@ -173,37 +182,36 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
 
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
-): Promise<ActionDataResponse<{ caseId: string }>> {
-  const session = await requirePermissionOrNull("case.create");
-  if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
-  }
-
-  const parsed = CaseCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
-  }
-
-  const {
-    client_id,
-    case_title,
-    case_type,
-    status,
-    parties_involved,
-    source_consultation_id,
-    assignee_ids,
-  } = parsed.data;
-
-  if (source_consultation_id) {
-    const existing = await getCaseBySourceConsultationId(source_consultation_id);
-    if (existing) {
-      return { success: false, error: "A case already exists for this consultation" };
-    }
-  }
-
-  let createdCase: { id: string };
+): Promise<ActionDataResponse<{ id: string }>> {
   try {
-    createdCase = await createCase({
+    const session = await requirePermission("case.create");
+
+    const parsed = CaseCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      return actionInvalid("case");
+    }
+
+    const {
+      client_id,
+      case_title,
+      case_type,
+      status,
+      parties_involved,
+      source_consultation_id,
+      assignee_ids,
+    } = parsed.data;
+
+    if (source_consultation_id) {
+      const existing = await getCaseBySourceConsultationId(source_consultation_id);
+      if (existing) {
+        return actionConflict(
+          "Case already exists",
+          "A case already exists for this consultation.",
+        );
+      }
+    }
+
+    const createdCase = await createCase({
       client_id,
       case_title,
       case_type,
@@ -226,33 +234,29 @@ export async function createCaseAction(
 
     revalidatePath("/case");
 
-    return { success: true, data: { caseId: createdCase.id } };
+    return { success: true, data: { id: createdCase.id } };
   } catch (error) {
-    if ((error as { code?: string })?.code === "P2002") {
-      return { success: false, error: "A case already exists for this consultation" };
-    }
-    return { success: false, error: "Failed to create case" };
+    return toActionResponse(error, "create case", {
+      title: "Case already exists",
+      description: "A case already exists for this consultation.",
+    });
   }
 }
 
 export async function createCaseWithClientAction(
   payload: z.input<typeof CaseWithClientCreatePayloadSchema>,
-): Promise<ActionStatusResponse> {
-  const session = await requirePermissionOrNull("case.create");
-  if (!session) {
-    return { success: false, error: FORBIDDEN_MESSAGE };
-  }
-
-  const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
-  }
-
-  const { client, case: caseData } = parsed.data;
-
-  let createdWithClient: { id: string };
+): Promise<ActionDataResponse<{ id: string }>> {
   try {
-    createdWithClient = await createCaseWithClient({
+    const session = await requirePermission("case.create");
+
+    const parsed = CaseWithClientCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      return actionInvalid("case");
+    }
+
+    const { client, case: caseData } = parsed.data;
+
+    const createdWithClient = await createCaseWithClient({
       client,
       case: caseData,
       created_by_user_id: session.id,
@@ -270,9 +274,9 @@ export async function createCaseWithClientAction(
 
     revalidatePath("/case");
 
-    return { success: true };
-  } catch {
-    return { success: false, error: "Failed to create case" };
+    return { success: true, data: { id: createdWithClient.id } };
+  } catch (error) {
+    return toActionResponse(error, "create case");
   }
 }
 
@@ -283,7 +287,7 @@ export async function updateCaseAction(
 
   const parsed = CaseUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
+    return actionInvalid("case");
   }
 
   const {
@@ -299,10 +303,10 @@ export async function updateCaseAction(
 
   try {
     const existing = await getCaseEditData(caseId);
-    if (!existing) return { success: false, error: "Case not found" };
+    if (!existing) return actionNotFound("Case");
 
     if (!(await hasCasePermission(session, caseId, "case.update"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await updateCase({
@@ -374,8 +378,8 @@ export async function updateCaseAction(
     revalidatePath("/case");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update case" };
+  } catch (error) {
+    return toActionResponse(error, "update case");
   }
 }
 
@@ -386,17 +390,17 @@ export async function updateCaseWithClientAction(
 
   const parsed = CaseWithClientUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case data" };
+    return actionInvalid("case");
   }
 
   const { case_id, client_id, client, case: caseData } = parsed.data;
 
   try {
     const existing = await getCaseEditData(case_id);
-    if (!existing) return { success: false, error: "Case not found" };
+    if (!existing) return actionNotFound("Case");
 
     if (!(await hasCasePermission(session, case_id, "case.update"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await updateCaseWithClient({
@@ -464,8 +468,8 @@ export async function updateCaseWithClientAction(
     revalidatePath("/case");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update case" };
+  } catch (error) {
+    return toActionResponse(error, "update case");
   }
 }
 
@@ -476,15 +480,15 @@ export async function deleteCaseAction(
 
   const parsed = CaseDeletePayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    return { success: false, error: "Invalid case ID" };
+    return actionInvalid("case");
   }
 
   try {
     const existing = await getCaseEditData(parsed.data.caseId);
-    if (!existing) return { success: false, error: "Case not found" };
+    if (!existing) return actionNotFound("Case");
 
     if (!(await hasCasePermission(session, parsed.data.caseId, "case.delete"))) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await deleteCase(parsed.data.caseId);
@@ -502,7 +506,10 @@ export async function deleteCaseAction(
     revalidatePath("/case");
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete case" };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return actionNotFound("Case");
+    }
+    return toActionResponse(error, "delete case");
   }
 }

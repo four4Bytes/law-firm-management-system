@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { queue } from "@/components/ui/Toast/Toast";
 import { logoutUser } from "@/features/auth/actions";
 import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
 import { UserFormModal } from "@/features/users/components/UserFormModal/UserFormModal";
@@ -16,6 +15,7 @@ import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
 import { can } from "@/lib/rbac";
+import { toastActionError, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./UserTable.module.css";
 
@@ -38,8 +38,6 @@ type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
 
 export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
   const canCreate = can(sessionUserRole, "user.create");
-  const canUpdate = can(sessionUserRole, "user.update");
-  const canDelete = can(sessionUserRole, "user.delete");
 
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
@@ -71,39 +69,31 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         );
       },
     },
-    ...(canUpdate || canDelete
-      ? [
-          {
-            id: "is_active" as const,
-            name: "Action" as const,
-            render: (_value: unknown, row: unknown) => {
-              const user = row as UserRow;
-              return (
-                <div className={styles.actions}>
-                  {canUpdate && user.role !== Role.Dev && (
-                    <Button
-                      variant="ghost"
-                      aria-label={`Edit ${user.name}`}
-                      onPress={() => setModalTarget({ type: "edit", user })}
-                    >
-                      <FaPenToSquare className={styles.icon} />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      variant="ghost"
-                      aria-label={`Deactivate ${user.name}`}
-                      onPress={() => setDeletingUser(user)}
-                    >
-                      <FaTrashCan className={styles.icon} />
-                    </Button>
-                  )}
-                </div>
-              );
-            },
-          } as ColumnDef<UserRow>,
-        ]
-      : []),
+    {
+      id: "is_active" as const,
+      name: "Action" as const,
+      render: (_value: unknown, row: unknown) => {
+        const user = row as UserRow;
+        return (
+          <div className={styles.actions}>
+            <Button
+              variant="ghost"
+              aria-label={`Edit ${user.name}`}
+              onPress={() => setModalTarget({ type: "edit", user })}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Button
+              variant="ghost"
+              aria-label={`Deactivate ${user.name}`}
+              onPress={() => setDeletingUser(user)}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+          </div>
+        );
+      },
+    },
   ];
 
   return (
@@ -149,8 +139,8 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         onConfirm={async () => {
           if (!deletingUser) return;
           const result = await deactivateUserAction({ userId: deletingUser.id });
-          if (result.error) {
-            queue.add({ title: result.error });
+          if (!result.success) {
+            toastActionError(result, "deactivate user");
             return;
           }
           if (result.data?.selfDeactivated) {
@@ -159,9 +149,9 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
           }
           setDeletingUser(null);
           setRefreshTrigger((t) => t + 1);
-          queue.add(
-            { title: "User deactivated", description: deletingUser.email },
-            { timeout: 5000 },
+          toastSuccess(
+            "User deactivated",
+            `The account for ${deletingUser.email} has been deactivated.`,
           );
         }}
       >

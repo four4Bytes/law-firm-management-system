@@ -3,21 +3,27 @@
 import { useState } from "react";
 import type { ZodType } from "zod";
 
-import { queue } from "@/components/ui/Toast/Toast";
-import type { ActionStatusResponse } from "@/lib/action-response";
+import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import { toastError, toastSuccess } from "@/lib/toast-utils";
 
 /** Configuration for {@link useModalForm}. */
-interface UseModalFormOptions<TArgs> {
+interface UseModalFormOptions<TArgs, TData> {
   /** Server Action invoked with the payload; omit to render a read-only form. */
-  submit?: (args: TArgs) => Promise<ActionStatusResponse>;
+  submit?: (args: TArgs) => Promise<ActionStatusResponse | ActionDataResponse<TData>>;
   /** Called to close the modal (on success or cancel). */
   onOpenChange: (open: boolean) => void;
   /** Toast shown when the action succeeds. */
   successMessage: string;
+  /** Full-sentence confirmation shown beneath `successMessage` on success. */
+  successDescription?: string;
   /** Toast shown when the action fails or is rejected by `schema`. */
   failureMessage: string;
-  /** Optional callback run after a successful submission. */
-  onSuccess?: () => void;
+  /**
+   * Optional callback invoked after a successful submission with the action's
+   * returned `data`, when the Server Action responds with an
+   * {@link ActionDataResponse} envelope.
+   */
+  onSuccess?: (data?: TData) => void;
   /** Optional reset invoked on cancel and after a successful submission. */
   reset?: () => void;
   /**
@@ -46,17 +52,20 @@ interface UseModalFormReturn<TArgs> {
  * from the payload — omitting it widens `submitForm` arguments to `unknown`.
  *
  * @typeParam TArgs - The payload type accepted by the Server Action.
+ * @typeParam TData - Data returned by the action on success via an
+ * {@link ActionDataResponse} envelope; defaults to `unknown`.
  * @returns An object with `isPending`, `submitForm`, and `handleCancel`.
  */
-export function useModalForm<TArgs>({
+export function useModalForm<TArgs, TData = unknown>({
   submit,
   onOpenChange,
   successMessage,
+  successDescription,
   failureMessage,
   onSuccess,
   reset,
   schema,
-}: UseModalFormOptions<TArgs>): UseModalFormReturn<TArgs> {
+}: UseModalFormOptions<TArgs, TData>): UseModalFormReturn<TArgs> {
   const [isPending, setIsPending] = useState(false);
 
   /**
@@ -69,9 +78,13 @@ export function useModalForm<TArgs>({
   async function submitForm(args: TArgs) {
     if (!submit) return;
 
-    if (schema && !schema.safeParse(args).success) {
-      queue.add({ title: failureMessage }, { timeout: 5000 });
-      return;
+    if (schema) {
+      const parsed = schema.safeParse(args);
+      if (!parsed.success) {
+        const issueMessage = parsed.error.issues[0]?.message;
+        toastError(failureMessage, issueMessage ?? "Please review your input and try again.");
+        return;
+      }
     }
 
     setIsPending(true);
@@ -80,16 +93,19 @@ export function useModalForm<TArgs>({
       const result = await submit(args);
 
       if (result.success) {
-        queue.add({ title: successMessage }, { timeout: 5000 });
+        toastSuccess(successMessage, successDescription ?? "Your changes have been saved.");
         reset?.();
         onOpenChange(false);
-        onSuccess?.();
+        onSuccess?.("data" in result ? result.data : undefined);
       } else {
-        queue.add({ title: result.error ?? failureMessage }, { timeout: 5000 });
+        toastError(
+          result.error?.title ?? failureMessage,
+          result.error?.description ?? "Something went wrong on our end. Please try again.",
+        );
       }
     } catch (error) {
       console.error("useModalForm: submit failed", error);
-      queue.add({ title: failureMessage }, { timeout: 5000 });
+      toastError(failureMessage, "Something went wrong. Please try again.");
     } finally {
       setIsPending(false);
     }

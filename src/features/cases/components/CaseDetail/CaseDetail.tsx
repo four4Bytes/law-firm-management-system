@@ -7,7 +7,6 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
-import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
 import { deleteCaseAction, getCaseForEditAction } from "@/features/cases/actions";
@@ -24,6 +23,13 @@ import { TasksTab } from "@/features/tasks/components/TasksTab/TasksTab";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
+import {
+  toastActionError,
+  toastDenied,
+  toastError,
+  toastNotFound,
+  toastSuccess,
+} from "@/lib/toast-utils";
 
 import { CaseOverview } from "../CaseOverview/CaseOverview";
 import styles from "./CaseDetail.module.css";
@@ -48,8 +54,6 @@ export function CaseDetail({ overview, access, userRole }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
 
-  const canEdit = can(userRole, "case.update", access);
-  const canDelete = can(userRole, "case.delete", access);
   const canViewPayments = can(userRole, "payment.read");
 
   const allTabs = ["tasks", "attachments", "notes", "milestones", "payments", "activity"] as const;
@@ -98,12 +102,26 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         getCaseForEditAction(overview.id),
         getActiveUsersAction(),
       ]);
-      if (!caseData) throw new Error("Case not found");
+      if (!caseData) {
+        toastNotFound("Case");
+        return;
+      }
       const clientData = await getClientForEditAction(caseData.client_id);
-      if (!clientData) throw new Error("Client not found");
+      if (!clientData) {
+        toastNotFound("Client");
+        return;
+      }
       setEditData({ caseData, clientData, users });
-    } catch {
-      queue.add({ title: "Failed to load case data" }, { timeout: 5000 });
+    } catch (error) {
+      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
+      if (isForbidden) {
+        toastDenied();
+        return;
+      }
+      toastError(
+        "Failed to load case data",
+        "Something went wrong while loading this case. Please try again.",
+      );
     } finally {
       setIsEditPending(false);
     }
@@ -115,14 +133,14 @@ export function CaseDetail({ overview, access, userRole }: Props) {
 
       if (result.success) {
         setShowDeleteConfirm(false);
-        queue.add({ title: "Case deleted" }, { timeout: 5000 });
+        toastSuccess("Case deleted", "The case has been deleted.");
         startLoading();
         router.push("/case");
       } else {
-        queue.add({ title: result.error ?? "Failed to delete case" }, { timeout: 5000 });
+        toastActionError(result, "delete case");
       }
     } catch {
-      queue.add({ title: "Failed to delete case. Please try again." }, { timeout: 5000 });
+      toastError("Failed to delete case", "Something went wrong on our end. Please try again.");
     }
   }
 
@@ -134,8 +152,8 @@ export function CaseDetail({ overview, access, userRole }: Props) {
 
       <CaseOverview
         data={overview}
-        onEdit={canEdit ? handleEdit : undefined}
-        onDelete={canDelete ? () => setShowDeleteConfirm(true) : undefined}
+        onEdit={handleEdit}
+        onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
       />
 

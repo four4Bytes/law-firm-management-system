@@ -160,8 +160,9 @@ export async function getDocumentFilePathsByConsultationId(
 
 /**
  * Collects the S3 object keys for every document that a case deletion will
- * cascade-remove: documents attached directly to the case, to its tasks, and
- * to its consultations.
+ * cascade-remove: documents attached directly to the case and to its tasks.
+ * Consultations are intentionally excluded — deleting a case only unlinks its
+ * source consultation, so consultation-owned documents must survive.
  *
  * @param caseId - The case whose document files should be collected.
  * @returns The `file_path` values of all documents removed by the delete.
@@ -169,11 +170,7 @@ export async function getDocumentFilePathsByConsultationId(
 export async function getDocumentFilePathsForCaseDeletion(caseId: string): Promise<string[]> {
   const documents = await prisma.document.findMany({
     where: {
-      OR: [
-        { case_id: caseId },
-        { task: { case_id: caseId } },
-        { consultation: { case_id: caseId } },
-      ],
+      OR: [{ case_id: caseId }, { task: { case_id: caseId } }],
     },
     select: { file_path: true },
   });

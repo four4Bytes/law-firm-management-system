@@ -55,6 +55,7 @@ export function EditPaymentModal({
     onOpenChange,
     onSuccess,
     successMessage: "Payment updated",
+    successDescription: "The payment has been updated.",
     failureMessage: "Failed to update payment",
     schema: PaymentUpdatePayloadSchema,
   });

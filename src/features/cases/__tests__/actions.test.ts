@@ -35,7 +35,7 @@ afterEach(async () => {
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
-  requirePermissionOrNull: vi
+  requirePermission: vi
     .fn()
     .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
   assertRecordPermission: vi.fn((session, permission, context) => {
@@ -172,7 +172,11 @@ describe("createCaseAction", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(await createCaseAction({} as any)).toEqual({
       success: false,
-      error: "Invalid case data",
+      error: {
+        code: "validation",
+        title: "Invalid case data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -181,7 +185,7 @@ describe("createCaseAction", () => {
 
     const result = await createCaseAction(validPayload);
 
-    expect(result).toEqual({ success: true, data: { caseId: "1" } });
+    expect(result).toEqual({ success: true, data: { id: "1" } });
     expect(createCase).toHaveBeenCalledWith(
       expect.objectContaining({
         case_type: "Civil",
@@ -197,7 +201,11 @@ describe("createCaseAction", () => {
 
     expect(await createCaseAction(validPayload)).toEqual({
       success: false,
-      error: "Failed to create case",
+      error: {
+        code: "unknown",
+        title: "Failed to create case",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 
@@ -213,7 +221,11 @@ describe("createCaseAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "A case already exists for this consultation",
+      error: {
+        code: "conflict",
+        title: "Case already exists",
+        description: "A case already exists for this consultation.",
+      },
     });
   });
 
@@ -227,7 +239,11 @@ describe("createCaseAction", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "A case already exists for this consultation",
+      error: {
+        code: "conflict",
+        title: "Case already exists",
+        description: "A case already exists for this consultation.",
+      },
     });
     expect(createCase).not.toHaveBeenCalled();
   });
@@ -246,7 +262,11 @@ describe("updateCaseAction", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(await updateCaseAction({ caseId: uuid } as any)).toEqual({
       success: false,
-      error: "Invalid case data",
+      error: {
+        code: "validation",
+        title: "Invalid case data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -255,7 +275,11 @@ describe("updateCaseAction", () => {
 
     expect(await updateCaseAction(validPayload)).toEqual({
       success: false,
-      error: "Case not found",
+      error: {
+        code: "not_found",
+        title: "Case not found",
+        description: "The case may have been deleted by another user.",
+      },
     });
   });
 
@@ -272,7 +296,11 @@ describe("updateCaseAction", () => {
 
     expect(await updateCaseAction(validPayload)).toEqual({
       success: false,
-      error: "Failed to update case",
+      error: {
+        code: "unknown",
+        title: "Failed to update case",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });
@@ -281,7 +309,11 @@ describe("deleteCaseAction", () => {
   it("returns an error for an invalid payload", async () => {
     expect(await deleteCaseAction({ caseId: "abc" })).toEqual({
       success: false,
-      error: "Invalid case ID",
+      error: {
+        code: "validation",
+        title: "Invalid case data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -290,7 +322,11 @@ describe("deleteCaseAction", () => {
 
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({
       success: false,
-      error: "Case not found",
+      error: {
+        code: "not_found",
+        title: "Case not found",
+        description: "The case may have been deleted by another user.",
+      },
     });
   });
 
@@ -317,7 +353,11 @@ describe("deleteCaseAction", () => {
 
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({
       success: false,
-      error: "Failed to delete case",
+      error: {
+        code: "unknown",
+        title: "Failed to delete case",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });
@@ -361,24 +401,24 @@ describe("authorization guards for non-Admin users", () => {
     });
   });
 
-  it("returns FORBIDDEN_MESSAGE from updateCaseAction when not assigned and not the owner", async () => {
+  it("returns forbidden envelope from updateCaseAction when not assigned and not the owner", async () => {
     expect(await updateCaseAction(updatePayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: { code: "forbidden", title: "Access denied", description: FORBIDDEN_MESSAGE },
     });
   });
 
-  it("returns FORBIDDEN_MESSAGE from updateCaseWithClientAction when not assigned and not the owner", async () => {
+  it("returns forbidden envelope from updateCaseWithClientAction when not assigned and not the owner", async () => {
     expect(await updateCaseWithClientAction(updateWithClientPayload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: { code: "forbidden", title: "Access denied", description: FORBIDDEN_MESSAGE },
     });
   });
 
-  it("returns FORBIDDEN_MESSAGE from deleteCaseAction when not assigned and not the owner", async () => {
+  it("returns forbidden envelope from deleteCaseAction when not assigned and not the owner", async () => {
     expect(await deleteCaseAction({ caseId: uuid })).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: { code: "forbidden", title: "Access denied", description: FORBIDDEN_MESSAGE },
     });
   });
 

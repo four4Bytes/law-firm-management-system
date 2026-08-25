@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { queue } from "@/components/ui/Toast/Toast";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
@@ -15,6 +14,7 @@ import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
+import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/toast-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./AddTaskModal.module.css";
@@ -66,10 +66,10 @@ export function AddTaskModal({
     if (isPending) return;
 
     if (assigneeIds.size < 1) {
-      queue.add({
-        title: "Add at least one assignee",
-        description: "A task needs at least one assignee",
-      });
+      toastError(
+        "Add at least one assignee",
+        "A task needs at least one assignee before it can be created.",
+      );
       return;
     }
 
@@ -81,7 +81,10 @@ export function AddTaskModal({
     });
 
     if (!parsed.success) {
-      queue.add({ title: "Failed to create task", description: "Please check the form fields" });
+      toastError(
+        "Failed to create task",
+        "Please review the highlighted form fields and try again.",
+      );
       return;
     }
 
@@ -94,7 +97,7 @@ export function AddTaskModal({
         const result = await createTaskAction(parsed.data);
 
         if (!result.success || !result.data) {
-          queue.add({ title: "Failed to create task", description: result.error });
+          toastActionError(result, "create task");
           setIsPending(false);
           return;
         }
@@ -110,7 +113,7 @@ export function AddTaskModal({
           const result = await addTaskReviewerAction({ taskId, reviewerUserId: id });
           if (!result.success) {
             reviewerFailed = true;
-            queue.add({ title: result.error ?? "Failed to add reviewer" });
+            toastActionError(result, "add reviewer");
             continue;
           }
           setAddedReviewerIds((prev) => new Set(prev).add(id));
@@ -125,27 +128,30 @@ export function AddTaskModal({
         setParent({ taskId });
         const { uploaded, failed } = await uploadFiles();
         if (failed > 0) {
-          queue.add({ title: "Task created, but some files failed to upload" }, { timeout: 5000 });
+          toastInfo(
+            "Task created, but some files failed to upload",
+            "The task was created, but some attachments did not upload. Try adding them again.",
+          );
           return;
         }
         if (uploaded > 0) {
-          queue.add(
-            { title: `Task created with ${uploaded} file${uploaded > 1 ? "s" : ""}` },
-            { timeout: 5000 },
+          toastSuccess(
+            `Task created with ${uploaded} file${uploaded > 1 ? "s" : ""}`,
+            "The task and its attachments have been added.",
           );
         }
       } else {
-        queue.add({ title: "Task created" }, { timeout: 5000 });
+        toastSuccess("Task created", "The task has been created.");
       }
 
       resetForm();
       onOpenChange(false);
       onSuccess();
     } catch {
-      queue.add({
-        title: "Failed to create task",
-        description: "An unexpected error occurred. Please try again.",
-      });
+      toastError(
+        "Unexpected error",
+        "Something went wrong while creating the task. Please try again.",
+      );
     } finally {
       setIsPending(false);
     }
@@ -153,7 +159,7 @@ export function AddTaskModal({
 
   return (
     <Modal title="Add Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField

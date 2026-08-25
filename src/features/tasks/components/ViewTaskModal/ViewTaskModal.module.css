@@ -1,5 +1,9 @@
 .modal {
+  --list-max-height: none;
+
   .columns {
+    flex: 1;
+    min-height: 0;
     display: flex;
     gap: var(--space-2xl);
     text-align: left;
@@ -8,6 +12,7 @@
   .column {
     flex: 1;
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
@@ -23,6 +28,11 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
+  }
+
+  .fillField {
+    flex: 1;
+    min-height: 0;
   }
 
   .label {
@@ -44,11 +54,11 @@
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
   }
+}
 
-  .wide {
-    width: var(--modal-wide-width);
-    max-width: 95vw;
-  }
+.wide {
+  width: var(--modal-wide-width);
+  max-width: 95vw;
 }
 
 /* Mobile overrides */

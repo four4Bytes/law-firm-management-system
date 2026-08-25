@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { queue } from "@/components/ui/Toast/Toast";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
+import { toastError, toastSuccess } from "@/lib/toast-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./UploadDocumentModal.module.css";
@@ -47,9 +47,10 @@ export function UploadDocumentModal({
     if (!open) {
       const currentFailed = fileEntries.filter((e) => e.status === "failed");
       if (currentFailed.length > 0) {
-        queue.add({
-          title: `${currentFailed.length} file${currentFailed.length > 1 ? "s" : ""} failed to upload`,
-        });
+        toastError(
+          `${currentFailed.length} file${currentFailed.length > 1 ? "s" : ""} failed to upload`,
+          "The failed files were cleared when the dialog closed. Re-add them to try again.",
+        );
       }
       resetFiles();
     }
@@ -61,9 +62,9 @@ export function UploadDocumentModal({
       const { uploaded, failed } = await uploadFiles();
 
       if (uploaded > 0) {
-        queue.add(
-          { title: `${uploaded} file${uploaded > 1 ? "s" : ""} uploaded` },
-          { timeout: 5000 },
+        toastSuccess(
+          `${uploaded} file${uploaded > 1 ? "s" : ""} uploaded`,
+          "Your files have been attached successfully.",
         );
       }
 
@@ -76,10 +77,7 @@ export function UploadDocumentModal({
         onSuccess();
       }
     } catch {
-      queue.add({
-        title: "Upload failed",
-        description: "An unexpected error occurred. Please try again.",
-      });
+      toastError("Upload failed", "An unexpected error occurred. Please try again.");
     }
   }
 

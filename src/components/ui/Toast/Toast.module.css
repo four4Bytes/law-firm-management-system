@@ -31,14 +31,8 @@
     border-radius: var(--radius-md);
     outline: none;
     forced-color-adjust: none;
-
-    &[data-entering] {
-      animation: slide-up var(--transition-fast);
-    }
-
-    &[data-exiting] {
-      animation: fade-out var(--transition-fast);
-    }
+    animation: slide-up var(--transition-fast);
+    view-transition-name: auto;
 
     &[data-focus-visible] {
       outline: 2px solid var(--color-brand-accent--focus);
@@ -52,20 +46,20 @@
       min-width: 0;
 
       .title {
-        font-size: var(--font-size-md);
+        font-size: var(--font-size-sm);
         font-weight: var(--font-weight-semi-bold);
         color: var(--color-text-primary);
       }
 
       .description {
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-xs);
         color: var(--color-text-secondary);
       }
     }
 
     .close {
       flex: 0 0 auto;
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-md);
       width: var(--space-2xl);
       height: var(--space-2xl);
       padding: 0;
@@ -81,15 +75,6 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
   }
 }
 

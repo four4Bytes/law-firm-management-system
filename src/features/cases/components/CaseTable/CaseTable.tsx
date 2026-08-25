@@ -6,7 +6,6 @@ import { useCallback, useState } from "react";
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
-import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
@@ -15,6 +14,7 @@ import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { CaseStatus, type Role } from "@/generated/prisma/browser";
 import { can } from "@/lib/rbac";
+import { toastError } from "@/lib/toast-utils";
 
 const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
   Open: "info",
@@ -71,7 +71,6 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
   const canCreate = can(userRole, "case.create");
@@ -82,7 +81,10 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
       setUsers(users);
       setIsAddOpen(true);
     } catch {
-      queue.add({ title: "Failed to load users" }, { timeout: 5000 });
+      toastError(
+        "Failed to load users",
+        "The team member list could not be loaded. Please try again.",
+      );
     }
   }, []);
 
@@ -109,16 +111,16 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
         renderAddButton={canCreate}
         addButtonLabel="Add Case"
         onAddButtonPress={openAddModal}
-        refreshTrigger={refreshTrigger}
       />
 
       {isAddOpen && (
         <AddCaseModal
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
-          onSuccess={() => {
+          onSuccess={(caseId) => {
             setIsAddOpen(false);
-            setRefreshTrigger((t) => t + 1);
+            startLoading();
+            router.push(`/case/${caseId}`);
           }}
           users={users}
         />

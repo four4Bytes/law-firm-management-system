@@ -73,13 +73,15 @@ src/
 │   ├── email-templates.ts               # HTML email templates
 │   ├── form-utils.ts                    # Form validation helpers
 │   ├── schemas.ts                       # Shared Zod schemas
-│   ├── action-response.ts               # ActionStatusResponse types
-│   ├── errors.ts                        # Custom error classes
+│   ├── action-response.ts               # ActionStatusResponse types + error factories
+│   ├── errors.ts                        # Custom error classes + toActionResponse catch-mapper
+│   ├── logger.ts                        # Server-side structured logging (logError/logWarn)
 │   ├── env.ts                           # Environment variable accessors
 │   ├── date.ts                          # Date formatting helpers
 │   ├── file-format.ts                   # File size/type formatting
 │   ├── path.ts                          # Navigation path helpers
 │   ├── sort.ts                          # Sort descriptor conversion
+│   ├── toast-utils.ts                   # Shared toast helpers (title + description always)
 │   ├── types.ts                         # Shared type definitions
 │   ├── useDebounce.ts                   # Debounce hook
 │   ├── useModalForm.ts                  # Modal form lifecycle hook
@@ -127,16 +129,16 @@ File uploads never stream through the Next.js runtime:
 
 ## Security Boundaries
 
-| Concern              | Mechanism                                                                                                                                                            |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth**             | `requireAuth()` — centralized, returns verified session                                                                                                              |
-| **Role enforcement** | `requirePermission(...)` for context-free cells; `requireAuth()` + `can(role, permission, accessContext)` per record — matrix in `src/lib/rbac.ts` (mirrors RBAC.md) |
-| **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                                                  |
-| **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                                                   |
-| **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                                                            |
-| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                                                           |
-| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` (catch errors, never leak stack traces)                                   |
-| **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                                                                |
+| Concern              | Mechanism                                                                                                                                                                                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth**             | `requireAuth()` — centralized, returns verified session                                                                                                                                                                                                                                      |
+| **Role enforcement** | `requirePermission(...)` for context-free cells; `requireAuth()` + `can(role, permission, accessContext)` per record — matrix in `src/lib/rbac.ts` (mirrors RBAC.md)                                                                                                                         |
+| **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                                                                                                                                                                          |
+| **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                                                                                                                                                                           |
+| **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                                                                                                                                                                                    |
+| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                                                                                                                                                                                   |
+| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` with a structured `{ code, title, description }` error built via `src/lib/action-response.ts` factories and the `toActionResponse` catch-mapper (unknown causes logged server-side, never leaked) |
+| **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                                                                                                                                                                                        |
 
 ## Conventions
 

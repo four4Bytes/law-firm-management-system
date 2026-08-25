@@ -8,7 +8,6 @@ import { FaBell } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button/Button";
 import { Popover } from "@/components/ui/Popover/Popover";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
-import { queue } from "@/components/ui/Toast/Toast";
 import {
   getUnreadNotificationsAction,
   markAllNotificationsReadAction,
@@ -17,6 +16,7 @@ import {
 import { useUnreadCount } from "@/features/notifications/hooks/useUnreadCount";
 import type { NotificationRow } from "@/features/notifications/queries";
 import { timeAgo } from "@/lib/date";
+import { toastActionError, toastError } from "@/lib/toast-utils";
 
 import styles from "./NotificationBell.module.css";
 
@@ -45,7 +45,10 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
           }
         } catch {
           if (!cancelled) {
-            queue.add({ title: "Failed to load notifications" }, { timeout: 5000 });
+            toastError(
+              "Failed to load notifications",
+              "We couldn't retrieve your notifications. Please try again.",
+            );
           }
         } finally {
           if (!cancelled) {
@@ -73,13 +76,13 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
           router.push(actionUrl);
         }
       } else {
-        queue.add(
-          { title: result.error ?? "Failed to mark notification as read" },
-          { timeout: 5000 },
-        );
+        toastActionError(result, "mark notification as read");
       }
     } catch {
-      queue.add({ title: "Failed to mark notification as read" }, { timeout: 5000 });
+      toastError(
+        "Failed to mark notification as read",
+        "The notification could not be updated. Please try again.",
+      );
     } finally {
       pendingIdsRef.current.delete(notificationId);
       setPendingIds(new Set(pendingIdsRef.current));
@@ -93,13 +96,13 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
         setUnreadCount(0);
         setNotifications([]);
       } else {
-        queue.add(
-          { title: result.error ?? "Failed to mark all notifications as read" },
-          { timeout: 5000 },
-        );
+        toastActionError(result, "mark all notifications as read");
       }
     } catch {
-      queue.add({ title: "Failed to mark all notifications as read" }, { timeout: 5000 });
+      toastError(
+        "Failed to mark all notifications as read",
+        "The notifications could not be updated. Please try again.",
+      );
     }
   }
 

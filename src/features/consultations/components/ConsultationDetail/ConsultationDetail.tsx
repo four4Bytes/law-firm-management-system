@@ -7,7 +7,6 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
-import { queue } from "@/components/ui/Toast/Toast";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
 import { getClientForEditAction } from "@/features/clients/actions";
@@ -26,6 +25,13 @@ import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
 import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
+import {
+  toastActionError,
+  toastDenied,
+  toastError,
+  toastNotFound,
+  toastSuccess,
+} from "@/lib/toast-utils";
 
 import { ConsultationOverview } from "../ConsultationOverview/ConsultationOverview";
 import styles from "./ConsultationDetail.module.css";
@@ -49,8 +55,6 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
 
-  const canEdit = can(userRole, "consultation.update", access);
-  const canDelete = can(userRole, "consultation.delete", access);
   const canViewPayments = can(userRole, "payment.read");
 
   const allTabs = ["attachments", "notes", "payments", "activity"] as const;
@@ -92,12 +96,26 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
     setIsEditPending(true);
     try {
       const consultation = await getConsultationForEditAction(overview.id);
-      if (!consultation) throw new Error("Consultation not found");
+      if (!consultation) {
+        toastNotFound("Consultation");
+        return;
+      }
       const clientData = await getClientForEditAction(consultation.client_id);
-      if (!clientData) throw new Error("Client not found");
+      if (!clientData) {
+        toastNotFound("Client");
+        return;
+      }
       setEditData({ consultation, clientData });
-    } catch {
-      queue.add({ title: "Failed to load consultation data" }, { timeout: 5000 });
+    } catch (error) {
+      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
+      if (isForbidden) {
+        toastDenied();
+        return;
+      }
+      toastError(
+        "Failed to load consultation data",
+        "Something went wrong while loading this consultation. Please try again.",
+      );
     } finally {
       setIsEditPending(false);
     }
@@ -109,14 +127,17 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
 
       if (result.success) {
         setShowDeleteConfirm(false);
-        queue.add({ title: "Consultation deleted" }, { timeout: 5000 });
+        toastSuccess("Consultation deleted", "The consultation has been deleted.");
         startLoading();
         router.push("/consultation");
       } else {
-        queue.add({ title: result.error ?? "Failed to delete consultation" }, { timeout: 5000 });
+        toastActionError(result, "delete consultation");
       }
     } catch {
-      queue.add({ title: "Failed to delete consultation. Please try again." }, { timeout: 5000 });
+      toastError(
+        "Failed to delete consultation",
+        "Something went wrong on our end. Please try again.",
+      );
     }
   }
 
@@ -128,8 +149,8 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
 
       <ConsultationOverview
         data={overview}
-        onEdit={canEdit ? handleEdit : undefined}
-        onDelete={canDelete ? () => setShowDeleteConfirm(true) : undefined}
+        onEdit={handleEdit}
+        onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
       />
 

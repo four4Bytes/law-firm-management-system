@@ -4,16 +4,17 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 
 import { Modal } from "@/components/ui/Modal/Modal";
-import { queue } from "@/components/ui/Toast/Toast";
 import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
+import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
 import { getTaskNotesAction } from "@/features/notes/actions";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
+import { toastError } from "@/lib/toast-utils";
 
 import styles from "./ViewTaskModal.module.css";
 
@@ -28,6 +29,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
   const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
+  const { handleDownload } = useDocumentDownload();
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +54,10 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
         setDocuments(all);
       } catch {
         if (cancelled) return;
-        queue.add({ title: "Failed to load attachments" }, { timeout: 5000 });
+        toastError(
+          "Failed to load attachments",
+          "We couldn't load the attachments for this task. Please try again.",
+        );
       } finally {
         if (!cancelled) setIsLoadingDocuments(false);
       }
@@ -66,7 +71,10 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
         setNotes(rows);
       } catch {
         if (cancelled) return;
-        queue.add({ title: "Failed to load notes" }, { timeout: 5000 });
+        toastError(
+          "Failed to load notes",
+          "We couldn't load the notes for this task. Please try again.",
+        );
       }
     }
 
@@ -87,7 +95,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
         title="Task"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        className={clsx(styles.modal, (hasFiles || hasNotes) && styles.wide)}
+        className={clsx(styles.modal, hasFiles && hasNotes && styles.wide)}
       >
         <div className={styles.columns}>
           <div className={styles.column}>
@@ -121,7 +129,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             <>
               <div className={styles.divider} />
               <div className={styles.column}>
-                <div className={styles.field}>
+                <div className={clsx(styles.field, styles.fillField)}>
                   <span className={styles.label}>Attachments</span>
                   <FileList
                     entries={[]}
@@ -129,7 +137,9 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
                     onRemove={() => {}}
                     existingDocuments={documents}
                     onView={setPreviewDocument}
+                    onDownload={handleDownload}
                     isLoading={isLoadingDocuments}
+                    showSize={false}
                   />
                 </div>
               </div>

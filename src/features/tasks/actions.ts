@@ -9,10 +9,17 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType, TaskStatus } from "@/generated/prisma/browser";
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import {
+  actionConflict,
+  actionForbidden,
+  actionInvalid,
+  actionNotFound,
+  type ActionDataResponse,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError } from "@/lib/errors";
-import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { ForbiddenError, toActionResponse } from "@/lib/errors";
+import { can } from "@/lib/rbac";
 
 import {
   addTaskReviewer,
@@ -125,14 +132,14 @@ export async function createTaskAction(
   const session = await requireAuth();
 
   const parsed = TaskCreatePayloadSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid task data" };
+  if (!parsed.success) return actionInvalid("task");
 
   const { title, description, case_id, assignee_ids } = parsed.data;
 
   try {
     const caseAccess = await getCaseAccessContext(session.id, case_id);
     if (!can(session.role, "task.create", caseAccess)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     const task = await createTask({
@@ -156,8 +163,8 @@ export async function createTaskAction(
     revalidatePath(`/case/${case_id}`);
 
     return { success: true, data: { id: task.id } };
-  } catch {
-    return { success: false, error: "Failed to create task" };
+  } catch (error) {
+    return toActionResponse(error, "create task");
   }
 }
 
@@ -167,22 +174,22 @@ export async function updateTaskAction(
   const session = await requireAuth();
 
   const parsed = TaskUpdatePayloadSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid task data" };
+  if (!parsed.success) return actionInvalid("task");
 
   const { taskId, title, description, assignee_ids } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
-    if (!existing) return { success: false, error: "Task not found" };
+    if (!existing) return actionNotFound("Task");
 
     const access = await getTaskAccessContext(session.id, taskId);
 
     if (existing.status === TaskStatus.Cancelled) {
-      return { success: false, error: "Task is locked and cannot be edited" };
+      return actionConflict("Task locked", "A cancelled task is locked and cannot be edited.");
     }
 
     if (!can(session.role, "task.update", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     const existingAssigneeIds = existing.taskAssignments.map((a) => a.user_id);
@@ -192,7 +199,7 @@ export async function updateTaskAction(
         !existingAssigneeIds.every((id) => assignee_ids.includes(id)));
 
     if (assigneesChanged && !access.own) {
-      return { success: false, error: "Only the task creator can change assignees" };
+      return actionConflict("Not allowed", "Only the task creator can change assignees.");
     }
 
     if (
@@ -245,8 +252,8 @@ export async function updateTaskAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update task" };
+  } catch (error) {
+    return toActionResponse(error, "update task");
   }
 }
 
@@ -256,17 +263,17 @@ export async function deleteTaskAction(
   const session = await requireAuth();
 
   const parsed = TaskIdSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid task ID" };
+  if (!parsed.success) return actionInvalid("task");
 
   const { taskId } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
-    if (!existing) return { success: false, error: "Task not found" };
+    if (!existing) return actionNotFound("Task");
 
     const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.delete", access)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await deleteTask(taskId);
@@ -284,8 +291,8 @@ export async function deleteTaskAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete task" };
+  } catch (error) {
+    return toActionResponse(error, "delete task");
   }
 }
 
@@ -295,24 +302,23 @@ export async function submitTaskAction(
   const session = await requireAuth();
 
   const parsed = TaskSubmitSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid task ID" };
+  if (!parsed.success) return actionInvalid("task");
 
   const { taskId, status } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
-    if (!existing) return { success: false, error: "Task not found" };
+    if (!existing) return actionNotFound("Task");
 
     if (existing.status !== TaskStatus.Pending && existing.status !== TaskStatus.Submitted) {
-      return { success: false, error: "Task is locked and cannot be submitted" };
+      return actionConflict("Task locked", "The task is locked and cannot be submitted.");
     }
 
     const access = await getTaskAccessContext(session.id, taskId);
-    if (!can(session.role, "task.update", access))
-      return { success: false, error: FORBIDDEN_MESSAGE };
+    if (!can(session.role, "task.update", access)) return actionForbidden();
 
     const isAssignee = existing.taskAssignments.some((a) => a.user_id === session.id);
-    if (!isAssignee) return { success: false, error: FORBIDDEN_MESSAGE };
+    if (!isAssignee) return actionForbidden();
 
     const before = existing.status;
     const { taskStatus } = await setAssignmentStatus(taskId, session.id, status);
@@ -353,8 +359,8 @@ export async function submitTaskAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to submit task" };
+  } catch (error) {
+    return toActionResponse(error, "submit task");
   }
 }
 
@@ -364,25 +370,25 @@ export async function reviewTaskAction(
   const session = await requireAuth();
 
   const parsed = TaskReviewSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid review data" };
+  if (!parsed.success) return actionInvalid("review");
 
   const { taskId, decision } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
-    if (!existing) return { success: false, error: "Task not found" };
+    if (!existing) return actionNotFound("Task");
 
     if (existing.status !== TaskStatus.Submitted) {
-      return { success: false, error: "Only submitted tasks can be reviewed" };
+      return actionConflict("Cannot review task", "Only submitted tasks can be reviewed.");
     }
 
     const access = await getTaskAccessContext(session.id, taskId);
     const review = existing.taskReviewers.find((r) => r.reviewer_user_id === session.id);
     if (!can(session.role, "task.update", access) || !review) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
     if (review.reviewed_at) {
-      return { success: false, error: "You have already reviewed this task" };
+      return actionConflict("Already reviewed", "You have already reviewed this task.");
     }
 
     const { taskStatus } = await applyReviewDecision({
@@ -426,8 +432,8 @@ export async function reviewTaskAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to record review" };
+  } catch (error) {
+    return toActionResponse(error, "record review");
   }
 }
 
@@ -437,22 +443,22 @@ export async function addTaskReviewerAction(
   const session = await requireAuth();
 
   const parsed = TaskAddReviewerSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid reviewer data" };
+  if (!parsed.success) return actionInvalid("reviewer");
 
   const { taskId, reviewerUserId } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
-    if (!existing) return { success: false, error: "Task not found" };
+    if (!existing) return actionNotFound("Task");
 
     if (existing.status === TaskStatus.Cancelled) {
-      return { success: false, error: "Cannot add a reviewer to a cancelled task" };
+      return actionConflict("Task cancelled", "Cannot add a reviewer to a cancelled task.");
     }
 
     const access = await getTaskAccessContext(session.id, taskId);
     const isReviewer = existing.taskReviewers.some((r) => r.reviewer_user_id === session.id);
     if (!can(session.role, "task.update", access) || (!access.own && !isReviewer)) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     await addTaskReviewer(taskId, reviewerUserId);
@@ -487,8 +493,8 @@ export async function addTaskReviewerAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to add reviewer" };
+  } catch (error) {
+    return toActionResponse(error, "add reviewer");
   }
 }
 
@@ -498,21 +504,21 @@ export async function removeTaskReviewerAction(
   const session = await requireAuth();
 
   const parsed = TaskRemoveReviewerSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid reviewer data" };
+  if (!parsed.success) return actionInvalid("reviewer");
 
   const { taskId, reviewerUserId } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
-    if (!existing) return { success: false, error: "Task not found" };
+    if (!existing) return actionNotFound("Task");
 
     const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.update", access) || !access.own) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     if (reviewerUserId === existing.created_by_user_id) {
-      return { success: false, error: "Cannot remove the task creator as a reviewer" };
+      return actionConflict("Not allowed", "Cannot remove the task creator as a reviewer.");
     }
 
     await removeTaskReviewer(taskId, reviewerUserId);
@@ -530,8 +536,8 @@ export async function removeTaskReviewerAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to remove reviewer" };
+  } catch (error) {
+    return toActionResponse(error, "remove reviewer");
   }
 }
 
@@ -541,21 +547,21 @@ export async function cancelTaskAction(
   const session = await requireAuth();
 
   const parsed = TaskCancelSchema.safeParse(payload);
-  if (!parsed.success) return { success: false, error: "Invalid task ID" };
+  if (!parsed.success) return actionInvalid("task");
 
   const { taskId } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
-    if (!existing) return { success: false, error: "Task not found" };
+    if (!existing) return actionNotFound("Task");
 
     const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.delete", access) || !access.own) {
-      return { success: false, error: FORBIDDEN_MESSAGE };
+      return actionForbidden();
     }
 
     if (existing.status === TaskStatus.Cancelled) {
-      return { success: false, error: "This task has already been cancelled" };
+      return actionConflict("Task cancelled", "This task has already been cancelled.");
     }
 
     await cancelTask(taskId);
@@ -573,7 +579,7 @@ export async function cancelTaskAction(
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
-  } catch {
-    return { success: false, error: "Failed to cancel task" };
+  } catch (error) {
+    return toActionResponse(error, "cancel task");
   }
 }

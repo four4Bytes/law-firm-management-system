@@ -157,7 +157,11 @@ describe("createMilestoneAction", () => {
 
     expect(await createMilestoneAction(payload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
     });
   });
 
@@ -198,7 +202,11 @@ describe("updateMilestoneAction", () => {
 
     expect(await updateMilestoneAction(payload)).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
     });
   });
 
@@ -299,7 +307,11 @@ describe("deleteMilestoneAction", () => {
   it("returns FORBIDDEN_MESSAGE when milestone delete is denied", async () => {
     expect(await deleteMilestoneAction({ milestoneId: uuid })).toEqual({
       success: false,
-      error: FORBIDDEN_MESSAGE,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
     });
   });
 

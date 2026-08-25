@@ -1,8 +1,21 @@
 /**
- * Custom error classes for the application.
+ * Custom error classes and the shared catch-block mapper for Server Actions.
+ *
+ * Uses a stable `digest` property so error boundaries can reliably identify
+ * each class without depending on the `message` string.
  *
  * @module lib/errors
  */
+
+import {
+  actionConflict,
+  actionForbidden,
+  actionLocked,
+  actionUnauthorized,
+  unknownActionError,
+  type ActionStatusResponse,
+} from "@/lib/action-response";
+import { logError } from "@/lib/logger";
 
 /**
  * Error thrown when a user lacks permission for an action.
@@ -57,3 +70,41 @@ export class TaskLockedError extends Error {
  * write-locked (create/update/delete refused).
  */
 export const TASK_LOCKED_MESSAGE = "This task is cancelled and its attachments are locked";
+
+/** Conflict copy supplied by the caller when a P2002 violation is domain-specific. */
+interface ConflictCopy {
+  /** Short headline (e.g. `"Case already exists"`). */
+  title: string;
+  /** Explanation of which constraint was violated. */
+  description: string;
+}
+
+/**
+ * Maps an unknown caught value to a structured {@link ActionStatusResponse}.
+ *
+ * Expected, classified failures (`ForbiddenError`, `UnauthorizedError`,
+ * `TaskLockedError`) convert to their matching presets without logging.
+ * Prisma `P2002` unique violations map to a conflict when the caller supplies
+ * {@link ConflictCopy}. Everything else is logged via `logError` and returned
+ * as a sanitized unknown-error envelope — raw exceptions never reach the client.
+ *
+ * @param error - The value caught in a Server Action `catch` block.
+ * @param operation - Verb phrase for the fallback title
+ *   (e.g. `"update case"` → `"Failed to update case"`).
+ * @param conflict - Optional copy used when the error is a P2002 violation.
+ * @returns A structured failed response safe to return to the client.
+ */
+export function toActionResponse(
+  error: unknown,
+  operation: string,
+  conflict?: ConflictCopy,
+): ActionStatusResponse {
+  if (error instanceof ForbiddenError) return actionForbidden();
+  if (error instanceof UnauthorizedError) return actionUnauthorized();
+  if (error instanceof TaskLockedError) return actionLocked();
+  if ((error as { code?: string } | null)?.code === "P2002" && conflict) {
+    return actionConflict(conflict.title, conflict.description);
+  }
+  logError(operation, error);
+  return { success: false, error: unknownActionError(operation) };
+}

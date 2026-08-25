@@ -62,6 +62,7 @@ export function EditCaseModal({
       onOpenChange,
       onSuccess,
       successMessage: "Case updated",
+      successDescription: "The case has been updated.",
       failureMessage: "Failed to update case. Please try again.",
       schema: CaseWithClientUpdatePayloadSchema,
     },

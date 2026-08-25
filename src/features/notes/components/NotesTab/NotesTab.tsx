@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { queue } from "@/components/ui/Toast/Toast";
 import { getCaseNotesPaginatedAction } from "@/features/cases/actions";
 import { getConsultationNotesPaginatedAction } from "@/features/consultations/actions";
 import { deleteNoteAction, getNoteRowByIdAction } from "@/features/notes/actions";
@@ -18,6 +17,13 @@ import type { NoteRow } from "@/features/notes/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { can, type AccessContext } from "@/lib/rbac";
+import {
+  toastActionError,
+  toastDenied,
+  toastError,
+  toastNotFound,
+  toastSuccess,
+} from "@/lib/toast-utils";
 
 import styles from "./NotesTab.module.css";
 
@@ -52,17 +58,17 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
       const data = await getNoteRowByIdAction(note.id);
       if (requestId !== latestRequest.current) return;
       if (!data.row) {
-        queue.add({ title: "Note not found" }, { timeout: 5000 });
+        toastNotFound("Note");
         return;
       }
       if (!data.canUpdate) {
-        queue.add({ title: "You don't have permission to edit this note." }, { timeout: 5000 });
+        toastDenied();
         return;
       }
       setEditNote(data.row);
     } catch {
       if (requestId !== latestRequest.current) return;
-      queue.add({ title: "Failed to load note" }, { timeout: 5000 });
+      toastError("Failed to load note", "Please try again in a moment.");
     } finally {
       if (requestId === latestRequest.current) setPendingEditId(null);
     }
@@ -74,9 +80,9 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
     if (result.success) {
       setDeleteTarget(null);
       handleRefresh();
-      queue.add({ title: "Note deleted" }, { timeout: 5000 });
+      toastSuccess("Note deleted", "The note has been deleted.");
     } else {
-      queue.add({ title: result.error ?? "Failed to delete note" }, { timeout: 5000 });
+      toastActionError(result, "delete note");
     }
   }
 

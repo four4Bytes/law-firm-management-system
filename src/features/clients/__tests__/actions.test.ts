@@ -45,7 +45,11 @@ describe("createClientAction", () => {
     // @ts-expect-error testing invalid payload
     expect(await createClientAction({})).toEqual({
       success: false,
-      error: "Invalid client data",
+      error: {
+        code: "validation",
+        title: "Invalid client data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -65,7 +69,11 @@ describe("createClientAction", () => {
 
     expect(await createClientAction({ name: "Alice Client" })).toEqual({
       success: false,
-      error: "Failed to create client",
+      error: {
+        code: "unknown",
+        title: "Failed to create client",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });
@@ -101,7 +109,11 @@ describe("updateClientAction", () => {
     // @ts-expect-error testing invalid payload
     expect(await updateClientAction({ clientId: uuid })).toEqual({
       success: false,
-      error: "Invalid client data",
+      error: {
+        code: "validation",
+        title: "Invalid client data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
     });
   });
 
@@ -121,7 +133,11 @@ describe("updateClientAction", () => {
 
     expect(await updateClientAction({ clientId: uuid, name: "Alice Client" })).toEqual({
       success: false,
-      error: "Failed to update client",
+      error: {
+        code: "unknown",
+        title: "Failed to update client",
+        description: "Something went wrong on our end. Please try again.",
+      },
     });
   });
 });

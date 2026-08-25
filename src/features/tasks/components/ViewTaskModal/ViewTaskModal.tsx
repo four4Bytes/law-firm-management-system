@@ -127,7 +127,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             <>
               <div className={styles.divider} />
               <div className={styles.column}>
-                <div className={styles.field}>
+                <div className={clsx(styles.field, styles.fillField)}>
                   <span className={styles.label}>Attachments</span>
                   <FileList
                     entries={[]}

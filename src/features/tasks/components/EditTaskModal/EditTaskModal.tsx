@@ -331,7 +331,7 @@ export function EditTaskModal({
 
   return (
     <Modal title="Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSave}>
+      <Form onSubmit={handleSave} className={styles.form}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField

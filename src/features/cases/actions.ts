@@ -182,7 +182,7 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
 
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
-): Promise<ActionDataResponse<{ caseId: string }>> {
+): Promise<ActionDataResponse<{ id: string }>> {
   try {
     const session = await requirePermission("case.create");
 
@@ -234,7 +234,7 @@ export async function createCaseAction(
 
     revalidatePath("/case");
 
-    return { success: true, data: { caseId: createdCase.id } };
+    return { success: true, data: { id: createdCase.id } };
   } catch (error) {
     return toActionResponse(error, "create case", {
       title: "Case already exists",
@@ -245,7 +245,7 @@ export async function createCaseAction(
 
 export async function createCaseWithClientAction(
   payload: z.input<typeof CaseWithClientCreatePayloadSchema>,
-): Promise<ActionStatusResponse> {
+): Promise<ActionDataResponse<{ id: string }>> {
   try {
     const session = await requirePermission("case.create");
 
@@ -274,7 +274,7 @@ export async function createCaseWithClientAction(
 
     revalidatePath("/case");
 
-    return { success: true };
+    return { success: true, data: { id: createdWithClient.id } };
   } catch (error) {
     return toActionResponse(error, "create case");
   }

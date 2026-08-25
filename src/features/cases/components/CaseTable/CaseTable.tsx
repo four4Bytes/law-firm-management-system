@@ -71,7 +71,6 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
   const canCreate = can(userRole, "case.create");
@@ -112,16 +111,16 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
         renderAddButton={canCreate}
         addButtonLabel="Add Case"
         onAddButtonPress={openAddModal}
-        refreshTrigger={refreshTrigger}
       />
 
       {isAddOpen && (
         <AddCaseModal
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
-          onSuccess={() => {
+          onSuccess={(caseId) => {
             setIsAddOpen(false);
-            setRefreshTrigger((t) => t + 1);
+            startLoading();
+            router.push(`/case/${caseId}`);
           }}
           users={users}
         />

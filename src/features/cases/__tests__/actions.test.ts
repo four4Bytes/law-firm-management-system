@@ -185,7 +185,7 @@ describe("createCaseAction", () => {
 
     const result = await createCaseAction(validPayload);
 
-    expect(result).toEqual({ success: true, data: { caseId: "1" } });
+    expect(result).toEqual({ success: true, data: { id: "1" } });
     expect(createCase).toHaveBeenCalledWith(
       expect.objectContaining({
         case_type: "Civil",

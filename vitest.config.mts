@@ -19,6 +19,7 @@ export default defineConfig({
           name: "unit",
           include: ["src/**/*.test.{ts,tsx}"],
           exclude: ["src/stories/**"],
+          setupFiles: ["./vitest.setup.ts"],
         },
       },
       {

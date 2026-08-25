@@ -75,6 +75,7 @@ vi.mock("../queries", () => ({
   getTaskAccessContext: vi.fn(),
   getTaskById: vi.fn(),
   getTaskDetailRowById: vi.fn(),
+  getTaskReviewers: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("../mutations", () => ({

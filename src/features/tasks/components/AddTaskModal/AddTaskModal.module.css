@@ -1,7 +1,17 @@
 .modal {
   width: var(--modal-wide-width);
+  --list-max-height: none;
+
+  .form {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
 
   .columns {
+    flex: 1;
+    min-height: 0;
     display: flex;
     gap: var(--space-2xl);
     text-align: left;

@@ -159,7 +159,7 @@ export function AddTaskModal({
 
   return (
     <Modal title="Add Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField

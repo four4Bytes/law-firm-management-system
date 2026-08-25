@@ -41,6 +41,8 @@
       text-align: center;
       max-height: 90vh;
       overflow: auto;
+      display: flex;
+      flex-direction: column;
 
       .title {
         font-size: var(--font-size-lg);

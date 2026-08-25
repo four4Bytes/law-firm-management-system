@@ -376,9 +376,12 @@ export function EditTaskModal({
               users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
             />
 
-            <StatusBadge className={styles.statusBadge} variant={statusVariant[task.status]}>
-              {task.status}
-            </StatusBadge>
+            <div className={styles.statusField}>
+              <span className={styles.label}>Status:</span>
+              <StatusBadge className={styles.statusBadge} variant={statusVariant[task.status]}>
+                {task.status}
+              </StatusBadge>
+            </div>
 
             {capabilities.canCancel && (
               <Checkbox isSelected={cancelChosen} onChange={setCancelChosen}>

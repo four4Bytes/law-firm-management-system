@@ -54,6 +54,13 @@
     width: max-content;
   }
 
+  .statusField {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
   .columnHeader {
     display: flex;
     align-items: center;

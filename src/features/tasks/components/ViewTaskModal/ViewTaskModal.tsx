@@ -95,7 +95,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
         title="Task"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        className={clsx(styles.modal, (hasFiles || hasNotes) && styles.wide)}
+        className={clsx(styles.modal, hasFiles && hasNotes && styles.wide)}
       >
         <div className={styles.columns}>
           <div className={styles.column}>

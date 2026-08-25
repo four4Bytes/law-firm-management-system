@@ -14,6 +14,7 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
+import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
 import { deleteNoteAction, getTaskNotesAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
@@ -83,6 +84,7 @@ export function EditTaskModal({
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
   const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
+  const { handleDownload } = useDocumentDownload();
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(new Set());
   const [addNoteOpen, setAddNoteOpen] = useState(false);
@@ -439,8 +441,10 @@ export function EditTaskModal({
               onRemove={removeFile}
               existingDocuments={documents}
               onView={setPreviewDocument}
+              onDownload={handleDownload}
               onDelete={capabilities.canEdit ? handleRemoveDocument : undefined}
               isLoading={isLoadingDocuments}
+              showSize={false}
             />
           </div>
 

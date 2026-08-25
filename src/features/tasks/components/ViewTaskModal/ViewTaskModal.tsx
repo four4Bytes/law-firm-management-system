@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
+import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
 import { getTaskNotesAction } from "@/features/notes/actions";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
@@ -28,6 +29,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
   const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
+  const { handleDownload } = useDocumentDownload();
 
   useEffect(() => {
     let cancelled = false;
@@ -135,7 +137,9 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
                     onRemove={() => {}}
                     existingDocuments={documents}
                     onView={setPreviewDocument}
+                    onDownload={handleDownload}
                     isLoading={isLoadingDocuments}
+                    showSize={false}
                   />
                 </div>
               </div>

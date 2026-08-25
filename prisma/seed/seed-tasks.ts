@@ -446,34 +446,51 @@ export async function seedTasks(
   const created: { id: string; title: string }[] = [];
 
   for (const t of tasks) {
+    const createdByUserId = userByEmail[t.createdByEmail];
+
     const task = await prisma.task.create({
       data: {
         case_id: caseByTitle[t.caseTitle],
         title: t.title,
         description: t.description,
         status: t.status,
-        created_by_user_id: userByEmail[t.createdByEmail],
+        created_by_user_id: createdByUserId,
       },
     });
     created.push({ id: task.id, title: t.title });
+
+    // Assignees are "Submitted" once the task reaches Submitted/Completed,
+    // otherwise they are still working (Pending).
+    const assigneeStatus =
+      t.status === "Submitted" || t.status === "Completed" ? "Submitted" : "Pending";
 
     for (const email of t.assigneeEmails) {
       await prisma.taskAssignment.create({
         data: {
           task_id: task.id,
           user_id: userByEmail[email],
+          status: assigneeStatus,
         },
       });
     }
 
-    if (t.reviewerEmail) {
-      await prisma.taskReviewer.create({
-        data: {
-          task_id: task.id,
-          reviewer_user_id: userByEmail[t.reviewerEmail],
-        },
-      });
-    }
+    // The creator is always a reviewer (task-review-workflow.md §2). Any
+    // explicitly seeded reviewer is added alongside the creator; the Set
+    // de-duplicates the case where the creator reviews their own task.
+    const reviewerIds = new Set<string>([createdByUserId]);
+    if (t.reviewerEmail) reviewerIds.add(userByEmail[t.reviewerEmail]);
+
+    const reviewerAccepted = t.status === "Completed";
+
+    await prisma.taskReviewer.createMany({
+      data: [...reviewerIds].map((user_id) => ({
+        task_id: task.id,
+        reviewer_user_id: user_id,
+        decision: reviewerAccepted ? "Accepted" : "Pending",
+        reviewed_at: reviewerAccepted ? new Date() : null,
+      })),
+      skipDuplicates: true,
+    });
   }
 
   console.log(`Seeded ${created.length} tasks with assignments and reviewers.`);

@@ -4,7 +4,7 @@
 
 - **Node.js** 22+
 - **pnpm** 11
-- **Docker** + **Docker Compose** (for local Postgres & MinIO)
+- **Docker** + **Docker Compose** (for local Postgres, MinIO & Mailpit)
 
 ## Setup
 
@@ -17,10 +17,10 @@ cd law-firm-management-system
 pnpm install
 
 # 3. Copy environment files
-cp .env.dev.example .env.dev       # local development (make dev*)
-cp .env.prod.example .env.prod     # production stack (make prod*)
+cp .env.example .env               # application runtime (Next.js, Prisma CLI, tests)
+cp .env.dev.example .env.dev       # dev infrastructure (make dev*)
 
-# 4. Start dev infrastructure (Postgres + MinIO)
+# 4. Start dev infrastructure (Postgres + MinIO + Mailpit)
 make dev-up
 
 # 5. Run database migrations
@@ -33,21 +33,51 @@ pnpm prisma:seed
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Mailpit (local email inbox) is available at [http://localhost:8025](http://localhost:8025).
 
-## Environment Variables
+## Environment Files
 
-| Variable               | Required | Description                                                                                         |
-| ---------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET`          | Yes      | Generate with `pnpm dlx auth secret`                                                                |
-| `AUTH_GOOGLE_ID`       | Yes      | Google OAuth client ID                                                                              |
-| `AUTH_GOOGLE_SECRET`   | Yes      | Google OAuth client secret                                                                          |
-| `DEVELOPER_EMAILS`     | Yes      | Comma-separated emails that bypass Google OAuth in dev                                              |
-| `APP_ORIGIN`           | Yes      | Public URL (e.g. `http://localhost:3000`)                                                           |
-| `EMAIL_FROM`           | Yes      | Sender address for transactional emails                                                             |
-| `MINIO_KMS_SECRET_KEY` | Yes      | Base64 key for MinIO SSE; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
+| File                                                      | Consumed by                                             | Contents                             |
+| --------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------ |
+| `.env`                                                    | Next.js dev server, Prisma CLI, seed script, Vitest     | Application runtime variables        |
+| `.env.dev`                                                | `make dev-*` targets only (Docker Compose dev stack)    | Infrastructure-only variables        |
+| `.env.prod`                                               | `make prod-*` targets (Docker Compose production stack) | Infrastructure **and** app variables |
+| `.env.example` / `.env.dev.example` / `.env.prod.example` | — (templates to copy)                                   |                                      |
 
-`.env.dev` is used by `make dev*` targets, `.env.prod` by `make prod*` targets. `.env.example` serves as a combined reference for all variable descriptions.
+`.env.prod` is combined because in production the Next.js app runs inside a container and receives its runtime environment from that same file.
+
+## Environment Variables (.env)
+
+| Variable                          | Required | Description                                                                                           |
+| --------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                    | Yes      | Postgres connection string (`postgresql://testing:testing@localhost:5432/testing` for local dev)      |
+| `AUTH_SECRET`                     | Yes      | NextAuth secret; generate with `openssl rand -hex 32`                                                 |
+| `AUTH_GOOGLE_ID`                  | Yes      | Google OAuth client ID ([credentials console](https://console.cloud.google.com/apis/credentials))     |
+| `AUTH_GOOGLE_SECRET`              | Yes      | Google OAuth client secret                                                                            |
+| `DEVELOPER_EMAILS`                | Yes      | Comma-separated Google accounts allowed to sign in without being pre-registered (bootstrap Dev users) |
+| `S3_ENDPOINT`                     | Yes      | S3-compatible endpoint (`http://localhost:9000` for local MinIO)                                      |
+| `S3_REGION`                       | Yes      | Storage region (e.g. `us-east-1`)                                                                     |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes      | Storage credentials (MinIO defaults: `minioadmin` / `minioadmin`)                                     |
+| `S3_BUCKET`                       | Yes      | Bucket name for document storage (`law-firm-files`; created automatically by `make dev-up`)           |
+| `S3_FORCE_PATH_STYLE`             | Yes      | Set `true` for MinIO/local endpoints                                                                  |
+| `EMAIL_FROM`                      | Yes      | Sender address for transactional emails                                                               |
+| `EMAIL_HOST` / `EMAIL_PORT`       | Yes      | SMTP host/port (Mailpit defaults: `localhost:1025`)                                                   |
+| `EMAIL_USER` / `EMAIL_PASS`       | Yes      | SMTP credentials (Mailpit defaults: `mailpit` / `mailpit`)                                            |
+| `EMAIL_SECURE`                    | Yes      | Use TLS for SMTP (`false` for local Mailpit)                                                          |
+| `APP_ORIGIN`                      | Yes      | Public URL used to build absolute links (e.g. `http://localhost:3000`)                                |
+| `CRON_SECRET`                     | Yes      | Authenticates cron job webhook requests; generate with `openssl rand -hex 32`                         |
+| `DEFAULT_REMINDER_DAYS`           | No       | Days before due date to send reminders (default `3`)                                                  |
+| `NOTIFICATION_RETENTION_DAYS`     | No       | Days before notifications are cleaned up (default `90`)                                               |
+| `APP_TIMEZONE`                    | No       | IANA timezone for server-side date/time display (defaults to server's local timezone)                 |
+| `STORAGE_GC_CRON_SCHEDULE`        | No       | node-cron schedule for the storage GC sweep (default weekly Sunday 03:00)                             |
+
+### Infrastructure Variables (.env.dev)
+
+| Variable                                              | Required | Description                                                                                                            |
+| ----------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Yes      | Postgres container credentials (dev defaults: `testing`)                                                               |
+| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`             | Yes      | MinIO container credentials (dev defaults: `minioadmin`)                                                               |
+| `MINIO_KMS_SECRET_KEY`                                | No       | Base64 key for MinIO SSE encryption at rest; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
 
 ## Available Commands
 
@@ -75,7 +105,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Target            | Description                                               |
 | ----------------- | --------------------------------------------------------- |
-| `make dev-up`     | Start dev containers (Postgres + MinIO)                   |
+| `make dev-up`     | Start dev containers (Postgres + MinIO + Mailpit)         |
 | `make dev-down`   | Stop dev containers                                       |
 | `make dev-clean`  | Stop dev containers and remove volumes                    |
 | `make dev-reset`  | Down + up (hard reset dev environment)                    |

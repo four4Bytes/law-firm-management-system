@@ -32,7 +32,7 @@ The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email a
 
 **Lifecycle:**
 
-1. Add your email(s) to `DEVELOPER_EMAILS` in `.env.dev`.
+1. Add your email(s) to `DEVELOPER_EMAILS` in `.env`.
 2. Sign in via Google OAuth — a `Dev`-role user is created automatically.
 3. Use the `Dev` account to create the first `Admin` users (via the user management UI).
 4. Once `Admin` users exist, either:

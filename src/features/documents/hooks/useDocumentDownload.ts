@@ -2,12 +2,16 @@
 
 import { useCallback, useRef, useState } from "react";
 
+import { getDocumentDownloadUrlAction } from "@/features/documents/actions";
+import type { DocumentRow } from "@/features/documents/queries";
 import { toastError } from "@/lib/toast-utils";
 
-import { getDocumentDownloadUrlAction } from "../actions";
-import type { DocumentRow } from "../queries";
+interface UseDocumentDownloadReturn {
+  handleDownload: (doc: Pick<DocumentRow, "id">) => Promise<void>;
+  pendingIds: Set<string>;
+}
 
-export function useDocumentDownload() {
+export function useDocumentDownload(): UseDocumentDownloadReturn {
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const nextRequestId = useRef(0);
   const requestRefs = useRef(new Map<string, number>());

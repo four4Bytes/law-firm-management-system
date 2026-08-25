@@ -54,11 +54,11 @@
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
   }
+}
 
-  .wide {
-    width: var(--modal-wide-width);
-    max-width: 95vw;
-  }
+.wide {
+  width: var(--modal-wide-width);
+  max-width: 95vw;
 }
 
 /* Mobile overrides */

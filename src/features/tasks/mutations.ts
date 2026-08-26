@@ -366,6 +366,29 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
   });
 }
 
+export async function reopenTask(taskId: string): Promise<{ id: string }> {
+  return prisma.$transaction(async (tx) => {
+    await lockTask(tx, taskId);
+
+    // A manual reopen reuses the rework reset: every reviewer decision and
+    // assignee submission returns to Pending so the task re-derives cleanly.
+    await tx.taskReviewer.updateMany({
+      where: { task_id: taskId },
+      data: { decision: "Pending", reviewed_at: null },
+    });
+    await tx.taskAssignment.updateMany({
+      where: { task_id: taskId },
+      data: { status: "Pending" },
+    });
+
+    return tx.task.update({
+      where: { id: taskId },
+      data: { status: TaskStatus.Pending },
+      select: { id: true },
+    });
+  });
+}
+
 export async function cancelTask(taskId: string): Promise<{ id: string }> {
   return prisma.task.update({
     where: { id: taskId },

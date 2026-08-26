@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   TaskAddReviewerSchema,
-  TaskCancelSchema,
   TaskCreatePayloadSchema,
   TaskIdSchema,
   TaskReviewSchema,
+  TaskStatusChangeSchema,
   TaskSubmitSchema,
   TaskUpdatePayloadSchema,
 } from "../schemas";
@@ -168,14 +168,24 @@ describe("TaskAddReviewerSchema", () => {
   });
 });
 
-describe("TaskCancelSchema", () => {
-  it("accepts a valid task id", () => {
-    const result = TaskCancelSchema.safeParse({ taskId: uuid });
+describe("TaskStatusChangeSchema", () => {
+  it("accepts a valid task id with Pending status", () => {
+    const result = TaskStatusChangeSchema.safeParse({ taskId: uuid, status: "Pending" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a valid task id with Cancelled status", () => {
+    const result = TaskStatusChangeSchema.safeParse({ taskId: uuid, status: "Cancelled" });
     expect(result.success).toBe(true);
   });
 
   it("rejects a non-uuid task id", () => {
-    const result = TaskCancelSchema.safeParse({ taskId: "abc" });
+    const result = TaskStatusChangeSchema.safeParse({ taskId: "abc", status: "Pending" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unsupported status", () => {
+    const result = TaskStatusChangeSchema.safeParse({ taskId: uuid, status: "Completed" });
     expect(result.success).toBe(false);
   });
 });

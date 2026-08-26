@@ -7,12 +7,12 @@ import { requireAuth } from "@/lib/auth-guards";
 
 import {
   addTaskReviewerAction,
-  cancelTaskAction,
   createTaskAction,
   deleteTaskAction,
   getTaskDetailRowByIdAction,
   removeTaskReviewerAction,
   reviewTaskAction,
+  setTaskStatusAction,
   submitTaskAction,
   updateTaskAction,
 } from "../actions";
@@ -23,6 +23,7 @@ import {
   createTask,
   deleteTask,
   removeTaskReviewer,
+  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "../mutations";
@@ -87,6 +88,7 @@ vi.mock("../mutations", () => ({
   addTaskReviewer: vi.fn(),
   removeTaskReviewer: vi.fn(),
   cancelTask: vi.fn(),
+  reopenTask: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -179,7 +181,7 @@ describe("getTaskDetailRowByIdAction", () => {
         isReviewer: false,
         canSubmit: false,
         canReview: false,
-        canCancel: false,
+        canSetStatus: false,
         canManageReviewers: false,
         canEdit: false,
       },
@@ -210,7 +212,7 @@ describe("getTaskDetailRowByIdAction", () => {
         isReviewer: false,
         canSubmit: false,
         canReview: false,
-        canCancel: false,
+        canSetStatus: false,
         canManageReviewers: false,
         canEdit: true,
       },
@@ -593,10 +595,14 @@ describe("removeTaskReviewerAction", () => {
   });
 });
 
-describe("cancelTaskAction", () => {
+describe("setTaskStatusAction", () => {
+  const creatorAccess = { assigned: true, own: true, taskOnly: true };
+  const nonCreatorAccess = { assigned: true, own: false, taskOnly: true };
+
   it("returns a forbidden envelope for a non-creator", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue(nonCreatorAccess);
     vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u1" });
-    expect(await cancelTaskAction({ taskId: uuid })).toEqual({
+    expect(await setTaskStatusAction({ taskId: uuid, status: "Cancelled" })).toEqual({
       success: false,
       error: {
         code: "forbidden",
@@ -607,25 +613,18 @@ describe("cancelTaskAction", () => {
   });
 
   it("cancels a task for its creator", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue({
-      assigned: true,
-      own: true,
-      taskOnly: true,
-    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
     vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
     vi.mocked(cancelTask).mockResolvedValue({ id: uuid });
 
-    const result = await cancelTaskAction({ taskId: uuid });
+    const result = await setTaskStatusAction({ taskId: uuid, status: "Cancelled" });
     expect(result).toEqual({ success: true });
     expect(cancelTask).toHaveBeenCalledWith(uuid);
+    expect(reopenTask).not.toHaveBeenCalled();
   });
 
   it("allows the creator to cancel a Completed task", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue({
-      assigned: true,
-      own: true,
-      taskOnly: true,
-    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
       status: "Completed" as const,
@@ -633,9 +632,87 @@ describe("cancelTaskAction", () => {
     });
     vi.mocked(cancelTask).mockResolvedValue({ id: uuid });
 
-    const result = await cancelTaskAction({ taskId: uuid });
+    const result = await setTaskStatusAction({ taskId: uuid, status: "Cancelled" });
     expect(result).toEqual({ success: true });
     expect(cancelTask).toHaveBeenCalledWith(uuid);
+  });
+
+  it("reopens a Submitted task for its creator, resetting decisions and submissions", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Submitted" as const,
+      created_by_user_id: "u2",
+    });
+    vi.mocked(reopenTask).mockResolvedValue({ id: uuid });
+
+    const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
+    expect(result).toEqual({ success: true });
+    expect(reopenTask).toHaveBeenCalledWith(uuid);
+    expect(cancelTask).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when the task is already Pending", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
+
+    const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
+    expect(result).toEqual({ success: true });
+    expect(reopenTask).not.toHaveBeenCalled();
+    expect(cancelTask).not.toHaveBeenCalled();
+  });
+
+  it("returns a conflict envelope when cancelling an already-cancelled task", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Cancelled" as const,
+      created_by_user_id: "u2",
+    });
+
+    const result = await setTaskStatusAction({ taskId: uuid, status: "Cancelled" });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Task cancelled",
+        description: "This task has already been cancelled.",
+      },
+    });
+  });
+
+  it("returns a conflict envelope when reopening a cancelled task", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Cancelled" as const,
+      created_by_user_id: "u2",
+    });
+
+    const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Task cancelled",
+        description: "A cancelled task cannot be reopened.",
+      },
+    });
+  });
+
+  it("returns a validation envelope for an unsupported status", async () => {
+    const result = await setTaskStatusAction({
+      taskId: uuid,
+      status: "Submitted" as never,
+    });
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "validation",
+        title: "Invalid task data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
+    });
   });
 });
 

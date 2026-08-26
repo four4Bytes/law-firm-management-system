@@ -79,7 +79,8 @@ The task status is **fully derived** — assignees and reviewers never set it di
 - `Submitted` → `Completed`: derived when **every** reviewer is `Accepted`.
 - `Submitted` → `Pending` (rework): derived when any reviewer `Rejected` (all reviewer decisions **and** all assignee submissions reset to `Pending`), **or** when any assignee reverts their own row to `Pending`.
 - `Completed` → `Pending` (reopen): derived when a reviewer is added (defaults `Pending`); all reviewer decisions and assignee submissions reset to `Pending`.
-- Any active status → `Cancelled`: only the task **creator** may cancel — the Server Action permits it solely when the caller is the task's `created_by_user_id`; assignees and reviewers cannot. Cancellation is a status change (the record is retained), not a deletion.
+- Any active status → `Pending` (manual reopen): **only the task creator** may reopen a task via the Edit Task Status Select (`Pending` option) — the Server Action permits it solely when the caller is the task's `created_by_user_id`. Reopening applies the standard rework reset: every reviewer decision and assignee submission returns to `Pending`. Reopening an already-`Pending` task is a no-op.
+- Any active status → `Cancelled`: only the task **creator** may cancel — via the same Status Select (`Cancelled` option), permitted by the Server Action solely when the caller is the task's `created_by_user_id`; assignees and reviewers cannot. Cancellation is a status change (the record is retained), not a deletion, and cancelled tasks cannot be reopened.
 - Editing the assignee list (creator only) applies a delta sync: added assignees start `Pending`, removed ones are dropped, and existing assignees retain their submission state.
 
 ## 4. Review Model
@@ -120,8 +121,9 @@ Task files and details (title, description, files) are editable through the norm
 The review workflow is driven solely by assignee submission states and reviewer decisions
 (§3/§4); `Task.status` is fully derived and never directly edited by assignees or reviewers.
 
-The only manual status control is cancellation, which the creator may perform at any active
-status (§10.3). Editing the assignee list remains creator-only (§10.1) and recreates
+The only manual status controls — both creator-only via the Edit Task Status Select (§10.3) —
+are cancellation and reopening, each permitted by the Server Action solely when the caller is
+the task's `created_by_user_id`. Editing the assignee list remains creator-only (§10.1) and recreates
 assignments, reopening the task (§3).
 
 ## 6. Comments and Feedback
@@ -219,7 +221,7 @@ There are exactly **three task modals**, and they look identical:
 - **Task Status is derived and read-only.** It is shown as a `StatusBadge` (not a Select) for every role — assignees and reviewers never set it directly. It reflects the combined derivation in [§4](#status-derivation).
 - **Assignee submission is per-row.** Each assignee sees their own row in the Assignees list with a `Submit` Select (`Pending` / `Submitted`), editable **only by that assignee**. Submitting flips their row; when the last assignee submits, the task derives to `Submitted`. An assignee may revert `Submitted → Pending` while the task is `Pending` or `Submitted` (to fix an accidental submit); the row is locked in `Completed` / `Cancelled`.
 - **Reviewer decision** (`Accepted` / `Rejected`) is unchanged (see [10.4](#104-reviewer-decision-select)); the status re-derives automatically.
-- **Cancellation** is the only manual status control: the **creator** gets a separate `Cancel` Select (single `Cancelled` option). Non-creators see no cancel control. The Server Action permits cancellation solely when the caller is the task's `created_by_user_id`.
+- **Status Select (creator-only manual control).** The task **creator** gets a single Status Select in `Edit Task` with two options — `Pending` and `Cancelled` — plus a neutral placeholder ("Keep current status"). Choosing `Cancelled` cancels the task (§3); choosing `Pending` manually reopens it with the full rework reset (all reviewer decisions and assignee submissions return to `Pending`). Non-creators see no such control. The Server Action (`setTaskStatusAction`) permits both transitions solely when the caller is the task's `created_by_user_id`; reopening is a no-op on an already-`Pending` task, and both are rejected on a cancelled (terminal) task.
 - Editing the assignee list (creator only) recreates assignments and resets all submission states to `Pending` (rework), reopening the task.
 - The server remains authoritative: every transition is validated and re-derived in the Server Actions; the selects are UX affordances only.
 

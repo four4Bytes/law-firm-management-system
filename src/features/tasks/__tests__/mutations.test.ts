@@ -12,6 +12,7 @@ import {
   deleteTask,
   deriveTaskStatus,
   removeTaskReviewer,
+  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "../mutations";
@@ -607,6 +608,29 @@ describe("cancelTask", () => {
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
       data: { status: "Cancelled" },
+      select: { id: true },
+    });
+  });
+});
+
+describe("reopenTask", () => {
+  it("resets reviewer decisions, assignee submissions, and sets status to Pending", async () => {
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+
+    const result = await reopenTask("t1");
+
+    expect(result.id).toBe("t1");
+    expect(prisma.taskReviewer.updateMany).toHaveBeenCalledWith({
+      where: { task_id: "t1" },
+      data: { decision: "Pending", reviewed_at: null },
+    });
+    expect(prisma.taskAssignment.updateMany).toHaveBeenCalledWith({
+      where: { task_id: "t1" },
+      data: { status: "Pending" },
+    });
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { status: "Pending" },
       select: { id: true },
     });
   });

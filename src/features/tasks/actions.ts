@@ -28,6 +28,7 @@ import {
   createTask,
   deleteTask,
   removeTaskReviewer,
+  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "./mutations";
@@ -42,11 +43,11 @@ import {
 } from "./queries";
 import {
   TaskAddReviewerSchema,
-  TaskCancelSchema,
   TaskCreatePayloadSchema,
   TaskIdSchema,
   TaskRemoveReviewerSchema,
   TaskReviewSchema,
+  TaskStatusChangeSchema,
   TaskSubmitSchema,
   TaskUpdatePayloadSchema,
 } from "./schemas";
@@ -57,7 +58,7 @@ export interface TaskCapabilities {
   isReviewer: boolean;
   canSubmit: boolean;
   canReview: boolean;
-  canCancel: boolean;
+  canSetStatus: boolean;
   canManageReviewers: boolean;
   canEdit: boolean;
 }
@@ -95,7 +96,7 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
         isReviewer: false,
         canSubmit: false,
         canReview: false,
-        canCancel: false,
+        canSetStatus: false,
         canManageReviewers: false,
         canEdit: false,
       },
@@ -107,10 +108,6 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
   const reviewer = row.reviewers.find((r) => r.reviewer_user_id === session.id);
   const isReviewer = reviewer !== undefined;
   const isAssignee = row.assignee_ids.includes(session.id);
-  const isActive =
-    row.status === TaskStatus.Pending ||
-    row.status === TaskStatus.Submitted ||
-    row.status === TaskStatus.Completed;
 
   const capabilities: TaskCapabilities = {
     isCreator,
@@ -118,7 +115,7 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
     canSubmit:
       isAssignee && (row.status === TaskStatus.Pending || row.status === TaskStatus.Submitted),
     canReview: isReviewer && row.status === TaskStatus.Submitted && !reviewer?.reviewed_at,
-    canCancel: isCreator && isActive,
+    canSetStatus: isCreator,
     canManageReviewers: isCreator || isReviewer,
     canEdit: canUpdate && row.status !== TaskStatus.Cancelled,
   };
@@ -541,15 +538,15 @@ export async function removeTaskReviewerAction(
   }
 }
 
-export async function cancelTaskAction(
-  payload: z.input<typeof TaskCancelSchema>,
+export async function setTaskStatusAction(
+  payload: z.input<typeof TaskStatusChangeSchema>,
 ): Promise<ActionStatusResponse> {
   const session = await requireAuth();
 
-  const parsed = TaskCancelSchema.safeParse(payload);
+  const parsed = TaskStatusChangeSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("task");
 
-  const { taskId } = parsed.data;
+  const { taskId, status } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
@@ -560,26 +557,47 @@ export async function cancelTaskAction(
       return actionForbidden();
     }
 
-    if (existing.status === TaskStatus.Cancelled) {
-      return actionConflict("Task cancelled", "This task has already been cancelled.");
+    if (status === TaskStatus.Cancelled) {
+      if (existing.status === TaskStatus.Cancelled) {
+        return actionConflict("Task cancelled", "This task has already been cancelled.");
+      }
+
+      await cancelTask(taskId);
+
+      after(() =>
+        logAudit({
+          actorUserId: session.id,
+          action: "task.updated",
+          entityType: "Case",
+          entityId: existing.case_id,
+          details: `Cancelled task: "${existing.title}"`,
+        }),
+      );
+    } else {
+      if (existing.status === TaskStatus.Cancelled) {
+        return actionConflict("Task cancelled", "A cancelled task cannot be reopened.");
+      }
+      if (existing.status === TaskStatus.Pending) {
+        return { success: true };
+      }
+
+      await reopenTask(taskId);
+
+      after(() =>
+        logAudit({
+          actorUserId: session.id,
+          action: "task.updated",
+          entityType: "Case",
+          entityId: existing.case_id,
+          details: `Reopened task: "${existing.title}"`,
+        }),
+      );
     }
-
-    await cancelTask(taskId);
-
-    after(() =>
-      logAudit({
-        actorUserId: session.id,
-        action: "task.updated",
-        entityType: "Case",
-        entityId: existing.case_id,
-        details: `Cancelled task: "${existing.title}"`,
-      }),
-    );
 
     revalidatePath(`/case/${existing.case_id}`);
 
     return { success: true };
   } catch (error) {
-    return toActionResponse(error, "cancel task");
+    return toActionResponse(error, "update task status");
   }
 }

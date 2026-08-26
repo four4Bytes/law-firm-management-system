@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
-import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { notifyRecipients } from "@/features/notifications/notify";
 import { NotificationType } from "@/generated/prisma/browser";
 import {
   actionForbidden,
@@ -158,18 +158,15 @@ export async function updateMilestoneAction(
         if (assigneeIds.length === 0) return;
         if (existing.status === status) return;
 
-        await dispatchNotifications(
-          {
-            userIds: assigneeIds,
-            type: NotificationType.MilestoneStatusChanged,
-            title: `Milestone status changed: ${title}`,
-            message: `Milestone "${title}" status changed from ${existing.status} to ${status}`,
-            actionUrl: `/case/${existing.case_id}`,
-            caseId: existing.case_id,
-            milestoneId: existing.id,
-          },
-          session.id,
-        );
+        await notifyRecipients(session.id, {
+          userIds: assigneeIds,
+          type: NotificationType.MilestoneStatusChanged,
+          title: `Milestone status changed: ${title}`,
+          message: `Milestone "${title}" status changed from ${existing.status} to ${status}`,
+          actionUrl: `/case/${existing.case_id}`,
+          caseId: existing.case_id,
+          milestoneId: existing.id,
+        });
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }

@@ -21,7 +21,7 @@ import {
   type CaseRow,
 } from "@/features/cases/queries";
 import type { NoteRow } from "@/features/notes/queries";
-import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
 import { NotificationType } from "@/generated/prisma/browser";
@@ -233,21 +233,14 @@ export async function createCaseAction(
 
       const assigneeIds = assignee_ids ?? [];
       if (assigneeIds.length > 0) {
-        try {
-          await dispatchNotifications(
-            {
-              userIds: assigneeIds,
-              type: NotificationType.CaseAssigned,
-              title: `Case assigned: ${case_title}`,
-              message: `You have been assigned to case: "${case_title}"`,
-              actionUrl: `/case/${createdCase.id}`,
-              caseId: createdCase.id,
-            },
-            session.id,
-          );
-        } catch (err) {
-          console.error("Failed to dispatch notification:", err);
-        }
+        await notifyRecipients(session.id, {
+          userIds: assigneeIds,
+          type: NotificationType.CaseAssigned,
+          title: `Case assigned: ${case_title}`,
+          message: `You have been assigned to case: "${case_title}"`,
+          actionUrl: `/case/${createdCase.id}`,
+          caseId: createdCase.id,
+        });
       }
     });
 
@@ -292,21 +285,14 @@ export async function createCaseWithClientAction(
 
       const assigneeIds = caseData.assignee_ids ?? [];
       if (assigneeIds.length > 0) {
-        try {
-          await dispatchNotifications(
-            {
-              userIds: assigneeIds,
-              type: NotificationType.CaseAssigned,
-              title: `Case assigned: ${caseData.case_title}`,
-              message: `You have been assigned to case: "${caseData.case_title}"`,
-              actionUrl: `/case/${createdWithClient.id}`,
-              caseId: createdWithClient.id,
-            },
-            session.id,
-          );
-        } catch (err) {
-          console.error("Failed to dispatch notification:", err);
-        }
+        await notifyRecipients(session.id, {
+          userIds: assigneeIds,
+          type: NotificationType.CaseAssigned,
+          title: `Case assigned: ${caseData.case_title}`,
+          message: `You have been assigned to case: "${caseData.case_title}"`,
+          actionUrl: `/case/${createdWithClient.id}`,
+          caseId: createdWithClient.id,
+        });
       }
     });
 
@@ -367,34 +353,28 @@ export async function updateCaseAction(
         details: `Updated case: "${case_title}"`,
       });
 
-      try {
-        const newAssigneeIds = diffNewAssigneeIds(
-          assignee_ids ?? existing.assignee_ids,
-          existing.assignee_ids,
-        );
+      const newAssigneeIds = diffNewAssigneeIds(
+        assignee_ids ?? existing.assignee_ids,
+        existing.assignee_ids,
+      );
 
-        if (newAssigneeIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: newAssigneeIds,
-              type: NotificationType.CaseAssigned,
-              title: `Case assigned: ${case_title}`,
-              message: `You have been assigned to case: "${case_title}"`,
-              actionUrl: `/case/${caseId}`,
-              caseId,
-            },
-            session.id,
-          );
-        }
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
+      if (newAssigneeIds.length > 0) {
+        await notifyRecipients(session.id, {
+          userIds: newAssigneeIds,
+          type: NotificationType.CaseAssigned,
+          title: `Case assigned: ${case_title}`,
+          message: `You have been assigned to case: "${case_title}"`,
+          actionUrl: `/case/${caseId}`,
+          caseId,
+        });
       }
 
       try {
         if (existing.status !== status) {
           const assigneeIds = await getCaseAssigneeIds(caseId);
           if (assigneeIds.length > 0) {
-            await dispatchNotifications(
+            await notifyRecipients(
+              session.id,
               {
                 userIds: assigneeIds,
                 type: NotificationType.CaseStatusChanged,
@@ -403,7 +383,7 @@ export async function updateCaseAction(
                 actionUrl: `/case/${caseId}`,
                 caseId,
               },
-              session.id,
+              "status change",
             );
           }
         }
@@ -457,34 +437,28 @@ export async function updateCaseWithClientAction(
         details: `Updated case: "${caseData.case_title}" with client: "${client.name}"`,
       });
 
-      try {
-        const newAssigneeIds = diffNewAssigneeIds(
-          caseData.assignee_ids ?? existing.assignee_ids,
-          existing.assignee_ids,
-        );
+      const newAssigneeIds = diffNewAssigneeIds(
+        caseData.assignee_ids ?? existing.assignee_ids,
+        existing.assignee_ids,
+      );
 
-        if (newAssigneeIds.length > 0) {
-          await dispatchNotifications(
-            {
-              userIds: newAssigneeIds,
-              type: NotificationType.CaseAssigned,
-              title: `Case assigned: ${caseData.case_title}`,
-              message: `You have been assigned to case: "${caseData.case_title}"`,
-              actionUrl: `/case/${case_id}`,
-              caseId: case_id,
-            },
-            session.id,
-          );
-        }
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
+      if (newAssigneeIds.length > 0) {
+        await notifyRecipients(session.id, {
+          userIds: newAssigneeIds,
+          type: NotificationType.CaseAssigned,
+          title: `Case assigned: ${caseData.case_title}`,
+          message: `You have been assigned to case: "${caseData.case_title}"`,
+          actionUrl: `/case/${case_id}`,
+          caseId: case_id,
+        });
       }
 
       try {
         if (existing.status !== caseData.status) {
           const assigneeIds = await getCaseAssigneeIds(case_id);
           if (assigneeIds.length > 0) {
-            await dispatchNotifications(
+            await notifyRecipients(
+              session.id,
               {
                 userIds: assigneeIds,
                 type: NotificationType.CaseStatusChanged,
@@ -493,7 +467,7 @@ export async function updateCaseWithClientAction(
                 actionUrl: `/case/${case_id}`,
                 caseId: case_id,
               },
-              session.id,
+              "status change",
             );
           }
         }

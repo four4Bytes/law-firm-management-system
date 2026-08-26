@@ -4,6 +4,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, ReviewDecision, Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
+import { TaskCancelledError } from "@/lib/errors";
 
 import {
   addTaskReviewerAction,
@@ -644,7 +645,7 @@ describe("setTaskStatusAction", () => {
       status: "Submitted" as const,
       created_by_user_id: "u2",
     });
-    vi.mocked(reopenTask).mockResolvedValue({ id: uuid });
+    vi.mocked(reopenTask).mockResolvedValue({ id: uuid, reopened: true });
 
     const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
     expect(result).toEqual({ success: true });
@@ -652,13 +653,14 @@ describe("setTaskStatusAction", () => {
     expect(cancelTask).not.toHaveBeenCalled();
   });
 
-  it("is a no-op when the task is already Pending", async () => {
+  it("skips the audit entry when reopening is a server-side no-op", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
     vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
+    vi.mocked(reopenTask).mockResolvedValue({ id: uuid, reopened: false });
 
     const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
     expect(result).toEqual({ success: true });
-    expect(reopenTask).not.toHaveBeenCalled();
+    expect(reopenTask).toHaveBeenCalledWith(uuid);
     expect(cancelTask).not.toHaveBeenCalled();
   });
 
@@ -666,9 +668,9 @@ describe("setTaskStatusAction", () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      status: "Cancelled" as const,
       created_by_user_id: "u2",
     });
+    vi.mocked(cancelTask).mockRejectedValue(new TaskCancelledError());
 
     const result = await setTaskStatusAction({ taskId: uuid, status: "Cancelled" });
     expect(result).toEqual({
@@ -685,9 +687,9 @@ describe("setTaskStatusAction", () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      status: "Cancelled" as const,
       created_by_user_id: "u2",
     });
+    vi.mocked(reopenTask).mockRejectedValue(new TaskCancelledError());
 
     const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
     expect(result).toEqual({

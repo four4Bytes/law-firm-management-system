@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
+import { TaskCancelledError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -599,27 +600,40 @@ describe("applyReviewDecision", () => {
 });
 
 describe("cancelTask", () => {
-  it("cancels a task", async () => {
+  it("cancels a task after verifying its status under the lock", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Submitted" }));
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
     const result = await cancelTask("t1");
 
     expect(result.id).toBe("t1");
+    expect(prisma.task.findUnique).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      select: { status: true },
+    });
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
       data: { status: "Cancelled" },
       select: { id: true },
     });
   });
+
+  it("throws TaskCancelledError when the task is already cancelled", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Cancelled" }));
+
+    await expect(cancelTask("t1")).rejects.toThrow(TaskCancelledError);
+    expect(prisma.task.update).not.toHaveBeenCalled();
+  });
 });
 
 describe("reopenTask", () => {
   it("resets reviewer decisions, assignee submissions, and sets status to Pending", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Completed" }));
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
     const result = await reopenTask("t1");
 
-    expect(result.id).toBe("t1");
+    expect(result).toEqual({ id: "t1", reopened: true });
     expect(prisma.taskReviewer.updateMany).toHaveBeenCalledWith({
       where: { task_id: "t1" },
       data: { decision: "Pending", reviewed_at: null },
@@ -633,6 +647,24 @@ describe("reopenTask", () => {
       data: { status: "Pending" },
       select: { id: true },
     });
+  });
+
+  it("is a no-op without resets when the task is already Pending", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Pending" }));
+
+    const result = await reopenTask("t1");
+
+    expect(result).toEqual({ id: "t1", reopened: false });
+    expect(prisma.taskReviewer.updateMany).not.toHaveBeenCalled();
+    expect(prisma.taskAssignment.updateMany).not.toHaveBeenCalled();
+    expect(prisma.task.update).not.toHaveBeenCalled();
+  });
+
+  it("throws TaskCancelledError when the task is cancelled", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Cancelled" }));
+
+    await expect(reopenTask("t1")).rejects.toThrow(TaskCancelledError);
+    expect(prisma.task.update).not.toHaveBeenCalled();
   });
 });
 

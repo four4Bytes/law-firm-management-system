@@ -71,6 +71,21 @@ export class TaskLockedError extends Error {
  */
 export const TASK_LOCKED_MESSAGE = "This task is cancelled and its attachments are locked";
 
+/**
+ * Error thrown by a status-transition mutation when the target task is
+ * already `Cancelled`. Cancelled is terminal, so cancel and reopen requests
+ * that raced past the pre-read are refused under the row lock.
+ */
+export class TaskCancelledError extends Error {
+  /** Stable identifier for error boundary detection. */
+  readonly digest = "TASK_CANCELLED";
+
+  constructor() {
+    super("This task has already been cancelled");
+    this.name = "TaskCancelledError";
+  }
+}
+
 /** Conflict copy supplied by the caller when a P2002 violation is domain-specific. */
 interface ConflictCopy {
   /** Short headline (e.g. `"Case already exists"`). */

@@ -19,7 +19,7 @@ indent_size = 4
 [*.py]
 indent_size = 4
 
-[*.{bat,cmd}]
+[*.{bat,cmd,ps1}]
 end_of_line = crlf
 
 [*.go]

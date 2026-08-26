@@ -18,7 +18,7 @@ import {
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, toActionResponse } from "@/lib/errors";
+import { ForbiddenError, TaskCancelledError, toActionResponse } from "@/lib/errors";
 import { can } from "@/lib/rbac";
 
 import {
@@ -557,39 +557,24 @@ export async function setTaskStatusAction(
       return actionForbidden();
     }
 
+    let changed = true;
     if (status === TaskStatus.Cancelled) {
-      if (existing.status === TaskStatus.Cancelled) {
-        return actionConflict("Task cancelled", "This task has already been cancelled.");
-      }
-
       await cancelTask(taskId);
-
-      after(() =>
-        logAudit({
-          actorUserId: session.id,
-          action: "task.updated",
-          entityType: "Case",
-          entityId: existing.case_id,
-          details: `Cancelled task: "${existing.title}"`,
-        }),
-      );
     } else {
-      if (existing.status === TaskStatus.Cancelled) {
-        return actionConflict("Task cancelled", "A cancelled task cannot be reopened.");
-      }
-      if (existing.status === TaskStatus.Pending) {
-        return { success: true };
-      }
+      changed = (await reopenTask(taskId)).reopened;
+    }
 
-      await reopenTask(taskId);
-
+    if (changed) {
       after(() =>
         logAudit({
           actorUserId: session.id,
           action: "task.updated",
           entityType: "Case",
           entityId: existing.case_id,
-          details: `Reopened task: "${existing.title}"`,
+          details:
+            status === TaskStatus.Cancelled
+              ? `Cancelled task: "${existing.title}"`
+              : `Reopened task: "${existing.title}"`,
         }),
       );
     }
@@ -598,6 +583,14 @@ export async function setTaskStatusAction(
 
     return { success: true };
   } catch (error) {
+    if (error instanceof TaskCancelledError) {
+      return actionConflict(
+        "Task cancelled",
+        status === TaskStatus.Cancelled
+          ? "This task has already been cancelled."
+          : "A cancelled task cannot be reopened.",
+      );
+    }
     return toActionResponse(error, "update task status");
   }
 }

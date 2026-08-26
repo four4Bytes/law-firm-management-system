@@ -1,5 +1,6 @@
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
+import { TaskCancelledError } from "@/lib/errors";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -366,10 +367,54 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
   });
 }
 
+export async function reopenTask(taskId: string): Promise<{ id: string; reopened: boolean }> {
+  return prisma.$transaction(async (tx) => {
+    await lockTask(tx, taskId);
+
+    const task = await tx.task.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+    if (!task) throw new Error("Task not found");
+    if (task.status === TaskStatus.Cancelled) throw new TaskCancelledError();
+    if (task.status === TaskStatus.Pending) return { id: taskId, reopened: false };
+
+    // A manual reopen reuses the rework reset: every reviewer decision and
+    // assignee submission returns to Pending so the task re-derives cleanly.
+    await tx.taskReviewer.updateMany({
+      where: { task_id: taskId },
+      data: { decision: "Pending", reviewed_at: null },
+    });
+    await tx.taskAssignment.updateMany({
+      where: { task_id: taskId },
+      data: { status: "Pending" },
+    });
+
+    const updated = await tx.task.update({
+      where: { id: taskId },
+      data: { status: TaskStatus.Pending },
+      select: { id: true },
+    });
+
+    return { id: updated.id, reopened: true };
+  });
+}
+
 export async function cancelTask(taskId: string): Promise<{ id: string }> {
-  return prisma.task.update({
-    where: { id: taskId },
-    data: { status: TaskStatus.Cancelled },
-    select: { id: true },
+  return prisma.$transaction(async (tx) => {
+    await lockTask(tx, taskId);
+
+    const task = await tx.task.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+    if (!task) throw new Error("Task not found");
+    if (task.status === TaskStatus.Cancelled) throw new TaskCancelledError();
+
+    return tx.task.update({
+      where: { id: taskId },
+      data: { status: TaskStatus.Cancelled },
+      select: { id: true },
+    });
   });
 }

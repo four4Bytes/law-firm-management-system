@@ -196,6 +196,25 @@ describe("createCaseAction", () => {
     expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 
+  it("dispatches CaseAssigned to the assignees on creation", async () => {
+    vi.mocked(createCase).mockResolvedValue({ id: "1" });
+
+    const result = await createCaseAction({
+      ...validPayload,
+      assignee_ids: [uuid, "550e8400-e29b-41d4-a716-446655440001"],
+    });
+
+    expect(result).toEqual({ success: true, data: { id: "1" } });
+    await flushAfterCallbacks();
+
+    expect(dispatchNotifications).toHaveBeenCalledTimes(1);
+    const [payload, actorUserId] = vi.mocked(dispatchNotifications).mock.calls[0];
+    expect(payload.type).toBe(NotificationType.CaseAssigned);
+    expect(payload.userIds).toEqual([uuid, "550e8400-e29b-41d4-a716-446655440001"]);
+    expect(actorUserId).toBe("u1");
+    expect(payload.caseId).toBe("1");
+  });
+
   it("returns an error when creation fails", async () => {
     vi.mocked(createCase).mockRejectedValue(new Error("db error"));
 

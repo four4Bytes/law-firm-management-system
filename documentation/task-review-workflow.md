@@ -79,7 +79,8 @@ The task status is **fully derived** — assignees and reviewers never set it di
 - `Submitted` → `Completed`: derived when **every** reviewer is `Accepted`.
 - `Submitted` → `Pending` (rework): derived when any reviewer `Rejected` (all reviewer decisions **and** all assignee submissions reset to `Pending`), **or** when any assignee reverts their own row to `Pending`.
 - `Completed` → `Pending` (reopen): derived when a reviewer is added (defaults `Pending`); all reviewer decisions and assignee submissions reset to `Pending`.
-- Any active status → `Cancelled`: only the task **creator** may cancel — the Server Action permits it solely when the caller is the task's `created_by_user_id`; assignees and reviewers cannot. Cancellation is a status change (the record is retained), not a deletion.
+- Any active status → `Pending` (manual reopen): **only the task creator** may reopen a task via the Edit Task Status Select (`Pending` option) — the Server Action permits it solely when the caller is the task's `created_by_user_id`. Reopening applies the standard rework reset: every reviewer decision and assignee submission returns to `Pending`. Reopening an already-`Pending` task is a no-op.
+- Any active status → `Cancelled`: only the task **creator** may cancel — via the same Status Select (`Cancelled` option), permitted by the Server Action solely when the caller is the task's `created_by_user_id`; assignees and reviewers cannot. Cancellation is a status change (the record is retained), not a deletion, and cancelled tasks cannot be reopened.
 - Editing the assignee list (creator only) applies a delta sync: added assignees start `Pending`, removed ones are dropped, and existing assignees retain their submission state.
 
 ## 4. Review Model
@@ -120,8 +121,9 @@ Task files and details (title, description, files) are editable through the norm
 The review workflow is driven solely by assignee submission states and reviewer decisions
 (§3/§4); `Task.status` is fully derived and never directly edited by assignees or reviewers.
 
-The only manual status control is cancellation, which the creator may perform at any active
-status (§10.3). Editing the assignee list remains creator-only (§10.1) and recreates
+The only manual status controls — both creator-only via the Edit Task Status Select (§10.3) —
+are cancellation and reopening, each permitted by the Server Action solely when the caller is
+the task's `created_by_user_id`. Editing the assignee list remains creator-only (§10.1) and recreates
 assignments, reopening the task (§3).
 
 ## 6. Comments and Feedback
@@ -193,21 +195,6 @@ There are exactly **three task modals**, and they look identical:
 
 ### 10.2 Layout — View / Edit Task (3 columns)
 
-```
-┌──────────────────────────┬────────────────────────┬────────────────────────┐
-│ 1. Task Info             │ 2. Files               │ 3. Notes               │
-│                          │                        │                        │
-│  Title                   │ DropZone               │ Review comments        │
-│  Description             │ FileList (existing +   │   (list, truncated)    │
-│  Assignees  [select + per-row submit]     │   new uploads)         │ [+] Add Note (Edit)    │
-│  Reviewers  [select]     │                        │                        │
-│  Status     [badge]     │                        │                        │
-│  Decision   [select]     │                        │                        │
-│  (Edit only, per role)   │                        │                        │
-│                          │                        │                        │
-└──────────────────────────┴────────────────────────┴────────────────────────┘
-```
-
 - **Column visibility differs between the two modals:** in `Edit Task` all three columns are always rendered (Column 2 carries the `DropZone` and Column 3 carries the `[+] Add Note` button, so neither is ever empty). In `View Task` a column is rendered **only if it has content** — an empty Files column (no documents) or an empty Notes column (no review comments) is omitted.
 - **Column 1 — Task Info:** Title, Description, then Assignees and Reviewers rendered **as multi-selects for the creator only** — non-creators see read-only name chips — plus a derived Status badge (see [10.3](#103-status-and-submission)). The **Decision** select is rendered only for users who are reviewers on the task and only while the task is `Submitted` (see [10.4](#104-reviewer-decision-select)); otherwise it is omitted.
 - **Column 2 — Files:** `FileList` (existing documents + entries for new uploads) and a `DropZone`. In `View Task` the upload controls are hidden and existing files are read-only (View file only, no delete). In `Edit Task` the column is always rendered; in `View Task` it is omitted when there are no documents.
@@ -216,10 +203,10 @@ There are exactly **three task modals**, and they look identical:
 
 ### 10.3 Status and Submission
 
-- **Task Status is derived and read-only.** It is shown as a `StatusBadge` (not a Select) for every role — assignees and reviewers never set it directly. It reflects the combined derivation in [§4](#status-derivation).
+- **Task Status is derived.** It reflects the combined derivation in [§4](#status-derivation): `View Task` shows it as a read-only `StatusBadge`; `Edit Task` surfaces it through the creator's Status Select below (non-creators see no status control there). Assignees and reviewers never set it directly.
 - **Assignee submission is per-row.** Each assignee sees their own row in the Assignees list with a `Submit` Select (`Pending` / `Submitted`), editable **only by that assignee**. Submitting flips their row; when the last assignee submits, the task derives to `Submitted`. An assignee may revert `Submitted → Pending` while the task is `Pending` or `Submitted` (to fix an accidental submit); the row is locked in `Completed` / `Cancelled`.
 - **Reviewer decision** (`Accepted` / `Rejected`) is unchanged (see [10.4](#104-reviewer-decision-select)); the status re-derives automatically.
-- **Cancellation** is the only manual status control: the **creator** gets a separate `Cancel` Select (single `Cancelled` option). Non-creators see no cancel control. The Server Action permits cancellation solely when the caller is the task's `created_by_user_id`.
+- **Status Select (creator-only manual control).** The task **creator** gets a single Status Select in `Edit Task` that renders the task's current status as its selected value. `Submitted` and `Completed` appear as disabled options (they are derived states no one sets directly); only `Pending` and `Cancelled` are selectable. Choosing `Cancelled` cancels the task (§3); choosing `Pending` manually reopens it with the full rework reset (all reviewer decisions and assignee submissions return to `Pending`). When the task is already cancelled the select renders read-only (cancelled is terminal). Non-creators see no such control. The Server Action (`setTaskStatusAction`) permits both transitions solely when the caller is the task's `created_by_user_id`; reopening an already-`Pending` task is a server-side no-op. All status validation runs inside the lock-protected transition mutations, so concurrent requests cannot race past the checks.
 - Editing the assignee list (creator only) recreates assignments and resets all submission states to `Pending` (rework), reopening the task.
 - The server remains authoritative: every transition is validated and re-derived in the Server Actions; the selects are UX affordances only.
 

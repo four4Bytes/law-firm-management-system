@@ -134,7 +134,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         return;
       }
       const c = data.capabilities;
-      if (c.canEdit || c.canReview || c.canManageReviewers || c.canSubmit || c.canCancel) {
+      if (c.canEdit || c.canReview || c.canManageReviewers || c.canSubmit || c.canSetStatus) {
         setEditTask(data.row);
         setEditCapabilities(data.capabilities);
         setEditCurrentUserId(data.currentUserId);

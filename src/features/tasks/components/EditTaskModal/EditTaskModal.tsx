@@ -5,11 +5,9 @@ import { Form } from "react-aria-components";
 import { FaPlus } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
-import { Checkbox } from "@/components/ui/Checkbox/Checkbox";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
-import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
@@ -23,9 +21,9 @@ import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import {
   addTaskReviewerAction,
-  cancelTaskAction,
   removeTaskReviewerAction,
   reviewTaskAction,
+  setTaskStatusAction,
   submitTaskAction,
   updateTaskAction,
   type TaskCapabilities,
@@ -41,13 +39,6 @@ import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
 import styles from "./EditTaskModal.module.css";
-
-const statusVariant: Record<TaskStatus, StatusBadgeVariant> = {
-  [TaskStatus.Pending]: "pending",
-  [TaskStatus.Submitted]: "info",
-  [TaskStatus.Completed]: "done",
-  [TaskStatus.Cancelled]: "cancelled",
-};
 
 interface EditTaskModalProps {
   isOpen: boolean;
@@ -78,7 +69,7 @@ export function EditTaskModal({
     Record<string, TaskAssignmentStatus>
   >(Object.fromEntries(task.assignTo.map((a) => [a.id, a.status])));
   const [decision, setDecision] = useState<"Accepted" | "Rejected" | null>(null);
-  const [cancelChosen, setCancelChosen] = useState(false);
+  const [statusChoice, setStatusChoice] = useState<"Pending" | "Cancelled" | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
@@ -228,10 +219,10 @@ export function EditTaskModal({
         }
       }
 
-      if (capabilities.canCancel && cancelChosen) {
-        const result = await cancelTaskAction({ taskId: task.id });
+      if (capabilities.canSetStatus && statusChoice !== null && statusChoice !== task.status) {
+        const result = await setTaskStatusAction({ taskId: task.id, status: statusChoice });
         if (!result.success) {
-          toastActionError(result, "cancel task");
+          toastActionError(result, "update task status");
           setIsPending(false);
           return;
         }
@@ -376,17 +367,30 @@ export function EditTaskModal({
               users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
             />
 
-            <div className={styles.statusField}>
-              <span className={styles.label}>Status:</span>
-              <StatusBadge className={styles.statusBadge} variant={statusVariant[task.status]}>
-                {task.status}
-              </StatusBadge>
-            </div>
-
-            {capabilities.canCancel && (
-              <Checkbox isSelected={cancelChosen} onChange={setCancelChosen}>
-                Cancel task
-              </Checkbox>
+            {capabilities.canSetStatus && (
+              <div className={styles.section}>
+                <Select
+                  label="Status"
+                  aria-label="Change task status"
+                  value={statusChoice ?? task.status}
+                  isDisabled={task.status === TaskStatus.Cancelled}
+                  disabledKeys={[TaskStatus.Submitted, TaskStatus.Completed]}
+                  onChange={(key) =>
+                    setStatusChoice(
+                      key === TaskStatus.Pending
+                        ? "Pending"
+                        : key === TaskStatus.Cancelled
+                          ? "Cancelled"
+                          : null,
+                    )
+                  }
+                >
+                  <SelectItem id={TaskStatus.Pending}>Pending</SelectItem>
+                  <SelectItem id={TaskStatus.Submitted}>Submitted</SelectItem>
+                  <SelectItem id={TaskStatus.Completed}>Completed</SelectItem>
+                  <SelectItem id={TaskStatus.Cancelled}>Cancelled</SelectItem>
+                </Select>
+              </div>
             )}
 
             {isCurrentUserAssignee && (

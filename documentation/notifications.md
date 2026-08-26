@@ -50,7 +50,7 @@ Only **active** users are eligible; recipients are per-event, not role-based ([s
 
 Fired by Server Actions in `after()` callbacks after the mutation succeeds (audited, non-blocking).
 
-> Creation and deletion of a record are audited, not announced — **except** the first assignment. When a record is created with assignees (or, for a task, reviewers), those users are notified exactly as if they had been assigned later; the record's own creation/deletion and content-only edits dispatch nothing. Immediate notifications cover assignment changes (case/task/consultation, including at creation), status changes (case/consultation/milestone), and the Accepted→New Case consultation transition.
+> Creation and deletion of a record are audited, not announced — **except** the first assignment. When a record is created with assignees, those users are notified exactly as if they had been assigned later; the record's own creation/deletion and content-only edits dispatch nothing. Immediate notifications cover assignment changes (case/task/consultation, including at creation), status changes (case/consultation/milestone), and the Accepted→New Case consultation transition.
 
 ### Cases
 

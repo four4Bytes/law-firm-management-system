@@ -195,21 +195,6 @@ There are exactly **three task modals**, and they look identical:
 
 ### 10.2 Layout — View / Edit Task (3 columns)
 
-```
-┌──────────────────────────┬────────────────────────┬────────────────────────┐
-│ 1. Task Info             │ 2. Files               │ 3. Notes               │
-│                          │                        │                        │
-│  Title                   │ DropZone               │ Review comments        │
-│  Description             │ FileList (existing +   │   (list, truncated)    │
-│  Assignees  [select + per-row submit]     │   new uploads)         │ [+] Add Note (Edit)    │
-│  Reviewers  [select]     │                        │                        │
-│  Status     [badge]     │                        │                        │
-│  Decision   [select]     │                        │                        │
-│  (Edit only, per role)   │                        │                        │
-│                          │                        │                        │
-└──────────────────────────┴────────────────────────┴────────────────────────┘
-```
-
 - **Column visibility differs between the two modals:** in `Edit Task` all three columns are always rendered (Column 2 carries the `DropZone` and Column 3 carries the `[+] Add Note` button, so neither is ever empty). In `View Task` a column is rendered **only if it has content** — an empty Files column (no documents) or an empty Notes column (no review comments) is omitted.
 - **Column 1 — Task Info:** Title, Description, then Assignees and Reviewers rendered **as multi-selects for the creator only** — non-creators see read-only name chips — plus a derived Status badge (see [10.3](#103-status-and-submission)). The **Decision** select is rendered only for users who are reviewers on the task and only while the task is `Submitted` (see [10.4](#104-reviewer-decision-select)); otherwise it is omitted.
 - **Column 2 — Files:** `FileList` (existing documents + entries for new uploads) and a `DropZone`. In `View Task` the upload controls are hidden and existing files are read-only (View file only, no delete). In `Edit Task` the column is always rendered; in `View Task` it is omitted when there are no documents.

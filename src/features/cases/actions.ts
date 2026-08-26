@@ -222,15 +222,34 @@ export async function createCaseAction(
       created_by_user_id: session.id,
     });
 
-    after(() =>
-      logAudit({
+    after(async () => {
+      await logAudit({
         actorUserId: session.id,
         action: "case.created",
         entityType: "Case",
         entityId: createdCase.id,
         details: `Created case: "${case_title}"`,
-      }),
-    );
+      });
+
+      const assigneeIds = assignee_ids ?? [];
+      if (assigneeIds.length > 0) {
+        try {
+          await dispatchNotifications(
+            {
+              userIds: assigneeIds,
+              type: NotificationType.CaseAssigned,
+              title: `Case assigned: ${case_title}`,
+              message: `You have been assigned to case: "${case_title}"`,
+              actionUrl: `/case/${createdCase.id}`,
+              caseId: createdCase.id,
+            },
+            session.id,
+          );
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+    });
 
     revalidatePath("/case");
 
@@ -262,15 +281,34 @@ export async function createCaseWithClientAction(
       created_by_user_id: session.id,
     });
 
-    after(() =>
-      logAudit({
+    after(async () => {
+      await logAudit({
         actorUserId: session.id,
         action: "case.created",
         entityType: "Case",
         entityId: createdWithClient.id,
         details: `Created case: "${caseData.case_title}" with client: "${client.name}"`,
-      }),
-    );
+      });
+
+      const assigneeIds = caseData.assignee_ids ?? [];
+      if (assigneeIds.length > 0) {
+        try {
+          await dispatchNotifications(
+            {
+              userIds: assigneeIds,
+              type: NotificationType.CaseAssigned,
+              title: `Case assigned: ${caseData.case_title}`,
+              message: `You have been assigned to case: "${caseData.case_title}"`,
+              actionUrl: `/case/${createdWithClient.id}`,
+              caseId: createdWithClient.id,
+            },
+            session.id,
+          );
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+    });
 
     revalidatePath("/case");
 

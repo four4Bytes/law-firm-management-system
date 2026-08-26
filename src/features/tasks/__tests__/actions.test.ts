@@ -240,7 +240,7 @@ describe("createTaskAction", () => {
     });
   });
 
-  it("creates a task without dispatching a notification", async () => {
+  it("dispatches TaskAssigned to the initial assignees on creation", async () => {
     vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
     vi.mocked(createTask).mockResolvedValue({ id: "t1" });
 
@@ -253,7 +253,15 @@ describe("createTaskAction", () => {
 
     expect(result).toEqual({ success: true, data: { id: "t1" } });
     await flushAfterCallbacks();
-    expect(dispatchNotifications).not.toHaveBeenCalled();
+
+    expect(dispatchNotifications).toHaveBeenCalledTimes(1);
+    const [payload, actorUserId] = vi.mocked(dispatchNotifications).mock.calls[0];
+    expect(payload.type).toBe(NotificationType.TaskAssigned);
+    expect(payload.userIds).toEqual([uuid]);
+    expect(actorUserId).toBe("u2");
+    expect(payload.actionUrl).toBe(`/case/${uuid}`);
+    expect(payload.caseId).toBe(uuid);
+    expect(payload.taskId).toBe("t1");
   });
 });
 

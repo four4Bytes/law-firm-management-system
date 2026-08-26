@@ -166,15 +166,34 @@ export async function createConsultationAction(
       assignee_ids,
     });
 
-    after(() =>
-      logAudit({
+    after(async () => {
+      await logAudit({
         actorUserId: session.id,
         action: "consultation.created",
         entityType: "Consultation",
         entityId: createdConsultation.id,
         details: `Created consultation: "${concern}"`,
-      }),
-    );
+      });
+
+      const assigneeIds = assignee_ids ?? [];
+      if (assigneeIds.length > 0) {
+        try {
+          await dispatchNotifications(
+            {
+              userIds: assigneeIds,
+              type: NotificationType.ConsultationAssigned,
+              title: `Consultation assigned: ${concern.substring(0, 100)}`,
+              message: `You have been assigned to consultation: "${concern.substring(0, 100)}"`,
+              actionUrl: `/consultation/${createdConsultation.id}`,
+              consultationId: createdConsultation.id,
+            },
+            session.id,
+          );
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+    });
 
     revalidatePath("/consultation");
 
@@ -200,15 +219,34 @@ export async function createConsultationWithClientAction(
       created_by_user_id: session.id,
     });
 
-    after(() =>
-      logAudit({
+    after(async () => {
+      await logAudit({
         actorUserId: session.id,
         action: "consultation.created",
         entityType: "Consultation",
         entityId: createdWithClient.id,
         details: `Created consultation: "${parsed.data.consultation.concern}" with client: "${parsed.data.client.name}"`,
-      }),
-    );
+      });
+
+      const assigneeIds = parsed.data.consultation.assignee_ids ?? [];
+      if (assigneeIds.length > 0) {
+        try {
+          await dispatchNotifications(
+            {
+              userIds: assigneeIds,
+              type: NotificationType.ConsultationAssigned,
+              title: `Consultation assigned: ${parsed.data.consultation.concern.substring(0, 100)}`,
+              message: `You have been assigned to consultation: "${parsed.data.consultation.concern.substring(0, 100)}"`,
+              actionUrl: `/consultation/${createdWithClient.id}`,
+              consultationId: createdWithClient.id,
+            },
+            session.id,
+          );
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+    });
 
     revalidatePath("/consultation");
 

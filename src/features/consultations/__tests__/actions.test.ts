@@ -212,6 +212,25 @@ describe("createConsultationAction", () => {
       }),
     );
   });
+
+  it("dispatches ConsultationAssigned to the assignees on creation", async () => {
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
+
+    const result = await createConsultationAction({
+      ...validPayload,
+      assignee_ids: [uuid, "550e8400-e29b-41d4-a716-446655440001"],
+    });
+
+    expect(result).toEqual({ success: true });
+    await flushAfterCallbacks();
+
+    expect(dispatchNotifications).toHaveBeenCalledTimes(1);
+    const [payload, actorUserId] = vi.mocked(dispatchNotifications).mock.calls[0];
+    expect(payload.type).toBe(NotificationType.ConsultationAssigned);
+    expect(payload.userIds).toEqual([uuid, "550e8400-e29b-41d4-a716-446655440001"]);
+    expect(actorUserId).toBe("u1");
+    expect(payload.consultationId).toBe(consultationRecord.id);
+  });
 });
 
 describe("updateConsultationAction", () => {

@@ -50,28 +50,30 @@ Only **active** users are eligible; recipients are per-event, not role-based ([s
 
 Fired by Server Actions in `after()` callbacks after the mutation succeeds (audited, non-blocking).
 
-> Creation and deletion never dispatch for any entity type — those are audited, not announced. Immediate notifications cover assignment changes (case/task/consultation), status changes (case/consultation/milestone), and the Accepted→New Case consultation transition.
+> Creation and deletion of a record are audited, not announced — **except** the first assignment. When a record is created with assignees (or, for a task, reviewers), those users are notified exactly as if they had been assigned later; the record's own creation/deletion and content-only edits dispatch nothing. Immediate notifications cover assignment changes (case/task/consultation, including at creation), status changes (case/consultation/milestone), and the Accepted→New Case consultation transition.
 
 ### Cases
 
 | Event                         | Recipients            | Type                | Notes                 |
 | ----------------------------- | --------------------- | ------------------- | --------------------- |
+| Case created - assignee added | Initial assignees     | `CaseAssigned`      | Actor always excluded |
 | Case updated - assignee added | Newly added assignees | `CaseAssigned`      | Actor always excluded |
 | Case status changed           | All case assignees    | `CaseStatusChanged` | Actor always excluded |
 
-> Any status transition (incl. → `Closed`/`Settled`/`Terminated`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Open to Closed`). Actor always excluded.
+> Any status transition (incl. → `Closed`/`Settled`/`Terminated`) notifies; deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from Open to Closed`). Actor always excluded.
 
 ### Tasks (sub-data of Case)
 
 | Event                          | Recipients            | Type                | Notes                 |
 | ------------------------------ | --------------------- | ------------------- | --------------------- |
+| Task created - assignee added  | Initial assignees     | `TaskAssigned`      | Actor always excluded |
 | Task updated - assignee added  | Newly added assignees | `TaskAssigned`      | Actor always excluded |
 | Task updated - reviewer added  | Newly added reviewer  | `TaskAssigned`      | Actor always excluded |
 | Task submitted (→ `Submitted`) | All reviewers         | `TaskStatusChanged` | Actor always excluded |
 | Task completed (→ `Completed`) | All assignees         | `TaskStatusChanged` | Actor always excluded |
 | Task rejected (→ `Pending`)    | All assignees         | `TaskStatusChanged` | Actor always excluded |
 
-> Task status changes fire only on the review transitions — → `Submitted` (assignee submits), → `Completed` (all reviewers accepted), → `Pending` (any reviewer rejected); creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Submitted to Completed`). Actor always excluded.
+> Task status changes fire only on the review transitions — → `Submitted` (assignee submits), → `Completed` (all reviewers accepted), → `Pending` (any reviewer rejected); deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from Submitted to Completed`). Actor always excluded.
 
 ### Milestones (sub-data of Case)
 
@@ -85,10 +87,11 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 | Event                                  | Recipients                 | Type                        | Notes                 |
 | -------------------------------------- | -------------------------- | --------------------------- | --------------------- |
+| Consultation created - assignee joined | Initial assignees          | `ConsultationAssigned`      | Actor always excluded |
 | Consultation updated - assignee joined | Newly added assignees      | `ConsultationAssigned`      | Actor always excluded |
 | Consultation status changed            | All consultation assignees | `ConsultationStatusChanged` | Actor always excluded |
 
-> Any status transition (incl. → `Accepted`/`Completed`/`Rejected`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Scheduled to Accepted`). Actor always excluded.
+> Any status transition (incl. → `Accepted`/`Completed`/`Rejected`) notifies; deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from Scheduled to Accepted`). Actor always excluded.
 >
 > **Accepted = New Case:** when a consultation transitions to `Accepted`, a new case is created from it. The status-change notification fires on the transition; the case creation itself dispatches nothing (creation is audited, not announced). If the user cancels case creation, the status reverts to the previous value and the revert dispatches its own status-change notification (`from Accepted to <previous>`).
 >

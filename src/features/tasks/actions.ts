@@ -147,15 +147,34 @@ export async function createTaskAction(
       assignee_ids,
     });
 
-    after(() =>
-      logAudit({
+    after(async () => {
+      await logAudit({
         actorUserId: session.id,
         action: "task.created",
         entityType: "Case",
         entityId: case_id,
         details: `Created task: "${title}"`,
-      }),
-    );
+      });
+
+      if (assignee_ids.length > 0) {
+        try {
+          await dispatchNotifications(
+            {
+              userIds: assignee_ids,
+              type: NotificationType.TaskAssigned,
+              title: `Task assigned: ${title}`,
+              message: `You have been assigned to task: "${title}"`,
+              actionUrl: `/case/${case_id}`,
+              caseId: case_id,
+              taskId: task.id,
+            },
+            session.id,
+          );
+        } catch (err) {
+          console.error("Failed to dispatch notification:", err);
+        }
+      }
+    });
 
     revalidatePath(`/case/${case_id}`);
 

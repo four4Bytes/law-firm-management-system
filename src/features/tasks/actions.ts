@@ -234,7 +234,7 @@ export async function updateTaskAction(
       const newAssigneeIds = diffNewAssigneeIds(
         parsed.data.assignee_ids ?? existingAssigneeIds,
         existingAssigneeIds,
-      );
+      ).filter((id) => !existing.taskReviewers.some((r) => r.reviewer_user_id === id));
 
       if (newAssigneeIds.length > 0) {
         await notifyRecipients(session.id, {
@@ -462,15 +462,18 @@ export async function addTaskReviewerAction(
         details: `Added reviewer to task: "${existing.title}"`,
       });
 
-      await notifyRecipients(session.id, {
-        userIds: [reviewerUserId],
-        type: NotificationType.TaskAssigned,
-        title: `Review requested: ${existing.title}`,
-        message: `You have been added as a reviewer to task: "${existing.title}"`,
-        actionUrl: `/case/${existing.case_id}`,
-        caseId: existing.case_id,
-        taskId,
-      });
+      const alreadyAssignee = existing.taskAssignments.some((a) => a.user_id === reviewerUserId);
+      if (!alreadyAssignee) {
+        await notifyRecipients(session.id, {
+          userIds: [reviewerUserId],
+          type: NotificationType.TaskAssigned,
+          title: `Review requested: ${existing.title}`,
+          message: `You have been added as a reviewer to task: "${existing.title}"`,
+          actionUrl: `/case/${existing.case_id}`,
+          caseId: existing.case_id,
+          taskId,
+        });
+      }
     });
 
     revalidatePath(`/case/${existing.case_id}`);

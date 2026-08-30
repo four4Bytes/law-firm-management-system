@@ -55,11 +55,11 @@ All automation lives in `.github/`. Workflows key off the `dev` → `main` pull 
 
 ### Workflow files
 
-| File             | Purpose                             | Triggers                                                              |
-| ---------------- | ----------------------------------- | --------------------------------------------------------------------- |
-| `ci-release.yml` | Checks, CalVer release, Docker push | Push to `main`, any pull request, manual `workflow_dispatch`          |
-| `codeql.yml`     | CodeQL security scanning            | Push / PR to `main` or `dev`, scheduled weekly (Wed 12:17 UTC)        |
-| `labeler.yml`    | Auto-label PRs from branch prefixes | Pull request opened / synchronized / reopened (`pull_request_target`) |
+| File             | Purpose                             | Triggers                                                                   |
+| ---------------- | ----------------------------------- | -------------------------------------------------------------------------- |
+| `ci-release.yml` | Checks, CalVer release, Docker push | Push to `main` or `dev`, PR to `main` or `dev`, manual `workflow_dispatch` |
+| `codeql.yml`     | CodeQL security scanning            | Push / PR to `main` or `dev`, scheduled weekly (Wed 12:17 UTC)             |
+| `labeler.yml`    | Auto-label PRs from branch prefixes | Pull request opened / synchronized / reopened (`pull_request_target`)      |
 
 ### PR labeling & release notes
 
@@ -81,16 +81,15 @@ Dependabot (`.github/dependabot.yml`) opens weekly npm dependency PRs against **
 
 ### CI & Release pipeline (`ci-release.yml`)
 
-On every push to `main`, a three-stage pipeline runs: **`ci`** → **`release`** → **`docker`**. Pull requests only run the **`ci`** stage; a failing check blocks merging.
+On every push to `main` or `dev`, the **`ci`** stage runs; **`release`** → **`docker`** run only on pushes to `main` (PRs run `ci` only). A failing check blocks merging. Concurrency cancels prior runs on the same ref except `main`.
 
 **`ci`** — `ubuntu-latest`: Node 22 via `pnpm/action-setup` + `setup-node` (pnpm cache), `pnpm install --frozen-lockfile`, then `pnpm build` → `pnpm validate` → `pnpm test` (ESLint and Next.js build caches are persisted between runs).
 
-**`release`** — push to `main` only, requires `ci`; authenticated via a dedicated GitHub App using the `RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY` secrets (elevates to `contents: write`):
+**`release`** — push to `main` only (non-PR, `workflow_dispatch` allowed), requires `ci`; authenticated via a dedicated GitHub App using the `RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY` secrets (elevates to `contents: write`):
 
-1. Computes the next CalVer tag `v{YYYY}.{MM}.{DD}.{PATCH}` (increments same-day tags).
-2. Bumps `package.json` to that version and pushes the commit `chore: bump package.json to {version} [skip ci]` — the `[skip ci]` marker keeps the sync commit from re-triggering the pipeline.
-3. Generates the changelog from PRs merged into **`dev`** (`release-notes generate-notes`, categories from `.github/release.yml`).
-4. Creates the GitHub Release tagged with the CalVer, targeting the `main` commit.
+1. Computes the next CalVer tag `v{YYYY}.{MM}.{DD}.{PATCH}` (increments same-day tags, skips if the tag already exists).
+2. Generates the changelog from PRs merged into **`main`** (`generate-notes` with `target_commitish="main"` + `previous_tag_name`, categories from `.github/release.yml` excluding `skip-changelog`; header is prepended in the workflow since `release.yml` `header` is unsupported).
+3. Creates the GitHub Release tagged with the CalVer, targeting the `main` HEAD (tag-only, no `package.json` commit).
 
 **`docker`** — push to `main` only, requires `release`: builds from the root `Dockerfile` with `NEXT_PUBLIC_APP_VERSION` = CalVer version and pushes `ghcr.io/four4bytes/law-firm-management-system` under the **CalVer tag** and **`latest`** (GHCR auth via the automatic `GITHUB_TOKEN`, `packages: write`). See [Docker Image](#docker-image).
 
@@ -165,7 +164,7 @@ Uses `docker-compose.prod.yml` with `.env.prod` environment variables.
 
 ## Vercel Deployment
 
-The sidebar displays the app version via `NEXT_PUBLIC_APP_VERSION`, resolved from `package.json` at build time. After each release, the CI workflow bumps `package.json` to match the CalVer tag and pushes with `[skip ci]`.
+The sidebar displays the app version via `NEXT_PUBLIC_APP_VERSION`, resolved at build time from the `NEXT_PUBLIC_APP_VERSION` build arg (CalVer tag injected by CI via `needs.release.outputs.version`) with a fallback to `package.json` version (`next.config.ts:5`).
 
 Optionally, override the version at deploy time by setting `NEXT_PUBLIC_APP_VERSION` in the Vercel project dashboard.
 

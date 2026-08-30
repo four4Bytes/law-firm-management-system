@@ -1,0 +1,182 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cache ESLint
+        uses: actions/cache@v5
+        with:
+          path: node_modules/.cache/.eslintcache
+          key: ${{ runner.os }}-eslint-${{ hashFiles('pnpm-lock.yaml', 'eslint.config.*') }}-${{ hashFiles('**/*.{js,jsx,ts,tsx}') }}
+          restore-keys: |
+            ${{ runner.os }}-eslint-
+
+      - name: Cache Next.js build
+        uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.{js,jsx,ts,tsx}') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - run: pnpm build
+
+      - run: pnpm validate
+
+      - run: pnpm test
+
+  release:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.calver.outputs.tag }}
+      version: ${{ steps.calver.outputs.version }}
+    permissions:
+      contents: write
+    steps:
+      - name: Generate Bot Token
+        id: bot-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ steps.bot-token.outputs.token }}
+
+      - name: Generate CalVer version
+        id: calver
+        run: |
+          DATE_TAG="v$(date +'%Y.%m.%d')"
+          LAST=$(git tag -l "${DATE_TAG}.*" | sort -V | tail -1)
+          if [ -z "$LAST" ]; then
+            PATCH=0
+          else
+            PATCH=$(( ${LAST##*.} + 1 ))
+          fi
+          TAG="${DATE_TAG}.${PATCH}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping release"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Create CalVer tag and release
+        if: steps.calver.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ steps.bot-token.outputs.token }}
+          TAG: ${{ steps.calver.outputs.tag }}
+        run: |
+          COMMIT_SHA=$(git rev-parse HEAD)
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="$TAG" \
+              -f target_commitish="main" \
+              -f previous_tag_name="$PREV_TAG" \
+              --jq .body > /tmp/body.md
+          else
+            gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="$TAG" \
+              -f target_commitish="main" \
+              --jq .body > /tmp/body.md
+          fi
+
+          {
+            cat <<'HDR'
+          # Law Firm Management System
+
+          A web-based case management system developed as our school mini-capstone project.
+
+          Links:
+
+          - Main App: [https://law-firm-management-system.r4ppz.dev](https://law-firm-management-system.r4ppz.dev)
+          - Stories: [https://four4bytes.github.io/law-firm-management-system](https://four4bytes.github.io/law-firm-management-system)
+          - Documentation: [https://github.com/four4Bytes/law-firm-management-system/tree/main/documentation](https://github.com/four4Bytes/law-firm-management-system/tree/main/documentation)
+
+          HDR
+            cat /tmp/body.md
+          } > changelog.md
+
+          gh release create "$TAG" \
+            --notes-file changelog.md \
+            --target "$COMMIT_SHA" \
+            --title "$TAG"
+
+  docker:
+    needs: release
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.release.outputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase repository
+        id: repo
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.repo.outputs.name }}
+          tags: |
+            type=raw,value=${{ needs.release.outputs.tag }}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_APP_VERSION=${{ needs.release.outputs.version }}

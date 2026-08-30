@@ -286,6 +286,48 @@ export const getCaseNotesPaginated = cache(
   },
 );
 
+export const getCaseNotesWithTaskNotesPaginated = cache(
+  async ({
+    caseId,
+    search = "",
+    cursor,
+    pageSize = 20,
+  }: CasePageQuery): Promise<{
+    rows: NoteRow[];
+    nextCursor: string | null;
+  }> => {
+    const where = {
+      OR: [{ case_id: caseId }, { task: { case_id: caseId } }],
+      ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
+    };
+
+    const orderBy = { created_at: "desc" } as const;
+
+    const notes = await prisma.note.findMany({
+      take: pageSize + 1,
+      skip: cursor ? 1 : 0,
+      ...(cursor ? { cursor: { id: cursor } } : {}),
+      where,
+      orderBy,
+      include: {
+        createdBy: { select: { name: true } },
+      },
+    });
+
+    const hasMore = notes.length > pageSize;
+    if (hasMore) notes.pop();
+
+    const rows: NoteRow[] = notes.map((n) => ({
+      id: n.id,
+      content: n.content,
+      author: n.createdBy.name,
+      created_at: n.created_at,
+    }));
+
+    return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
+  },
+);
+
 // ----- Milestones -----
 
 export type CaseMilestoneListRow = Pick<

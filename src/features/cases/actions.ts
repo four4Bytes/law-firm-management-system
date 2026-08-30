@@ -12,6 +12,7 @@ import {
   getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
+  getCaseNotesWithTaskNotesPaginated,
   getCaseOverviewById,
   getCasesPaginated,
   getCaseTasksPaginated,
@@ -146,6 +147,24 @@ export async function getCaseNotesPaginatedAction(
   await requireCasePermission(session, parsed.data.caseId, "note.read");
 
   return getCaseNotesPaginated(parsed.data);
+}
+
+export async function getCaseNotesWithTaskNotesPaginatedAction(
+  params: z.input<typeof CasePageQuerySchema>,
+): Promise<{
+  rows: NoteRow[];
+  nextCursor: string | null;
+}> {
+  const session = await requireAuth();
+
+  const parsed = CasePageQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  await requireCasePermission(session, parsed.data.caseId, "note.read");
+
+  return getCaseNotesWithTaskNotesPaginated(parsed.data);
 }
 
 export async function getCaseMilestonesPaginatedAction(

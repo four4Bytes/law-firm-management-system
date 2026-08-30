@@ -2,17 +2,25 @@ import { z } from "zod";
 
 import { isAcceptedFileExtension } from "@/lib/file-types";
 import { requiredText } from "@/lib/form-utils";
-import { exactlyOneParentRefinement, SortQuerySchema } from "@/lib/schemas";
+import {
+  exactlyOneParentRefinement,
+  exactlyOneParentRefinementCamel,
+  SortQuerySchema,
+} from "@/lib/schemas";
 
-export const DocumentPageQuerySchema = z.object({
-  caseId: z.uuid().optional(),
-  consultationId: z.uuid().optional(),
-  taskId: z.uuid().optional(),
-  search: z.string().trim().max(500).optional().default(""),
-  cursor: z.uuid().optional(),
-  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
-  sort: SortQuerySchema.optional(),
-});
+export const DocumentPageQuerySchema = z
+  .object({
+    caseId: z.uuid().optional(),
+    consultationId: z.uuid().optional(),
+    taskId: z.uuid().optional(),
+    search: z.string().trim().max(500).optional().default(""),
+    cursor: z.uuid().optional(),
+    pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+    sort: SortQuerySchema.optional(),
+  })
+  .refine(exactlyOneParentRefinementCamel, {
+    message: "Provide exactly one of caseId, consultationId, or taskId",
+  });
 
 export const DocumentUploadPayloadSchema = z
   .object({

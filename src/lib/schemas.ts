@@ -29,7 +29,7 @@ export const ClientDataSchema = z.object({
   address: optionalText(500, "Address"),
 });
 
-/** Payload that must reference exactly one parent resource. */
+/** Payload that must reference exactly one parent resource (snake_case). */
 interface ParentRefinementPayload {
   case_id?: string | null;
   consultation_id?: string | null;
@@ -46,5 +46,25 @@ interface ParentRefinementPayload {
 export function exactlyOneParentRefinement(payload: ParentRefinementPayload): boolean {
   const count =
     Number(!!payload.case_id) + Number(!!payload.consultation_id) + Number(!!payload.task_id);
+  return count === 1;
+}
+
+/** Payload that must reference exactly one parent resource (camelCase). */
+interface ParentRefinementPayloadCamel {
+  caseId?: string | null;
+  consultationId?: string | null;
+  taskId?: string | null;
+}
+
+/**
+ * Zod refinement asserting that exactly one parent (`caseId`,
+ * `consultationId`, or `taskId`) is present.
+ *
+ * @param payload - The parent identifiers; must include exactly one of `caseId`, `consultationId`, or `taskId`.
+ * @returns True when exactly one parent is provided, false when more than one or none are set.
+ */
+export function exactlyOneParentRefinementCamel(payload: ParentRefinementPayloadCamel): boolean {
+  const count =
+    Number(!!payload.caseId) + Number(!!payload.consultationId) + Number(!!payload.taskId);
   return count === 1;
 }

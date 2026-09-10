@@ -8,7 +8,7 @@ const meta: Meta<typeof StatusBadge> = {
   argTypes: {
     variant: {
       control: { type: "select" },
-      options: ["pending", "ongoing", "info", "done", "cancelled", "warning", "danger", "accent"],
+      options: ["pending", "info", "done", "cancelled", "warning", "danger", "accent"],
     },
     children: { control: "text" },
   },
@@ -22,13 +22,6 @@ export const Pending: Story = {
   args: {
     variant: "pending",
     children: "Pending",
-  },
-};
-
-export const Ongoing: Story = {
-  args: {
-    variant: "ongoing",
-    children: "Ongoing",
   },
 };
 
@@ -56,7 +49,7 @@ export const Cancelled: Story = {
 export const Warning: Story = {
   args: {
     variant: "warning",
-    children: "Ongoing",
+    children: "Warning",
   },
 };
 

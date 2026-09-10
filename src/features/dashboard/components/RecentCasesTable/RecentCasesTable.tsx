@@ -17,7 +17,6 @@ interface RecentCasesTableProps {
 
 const caseStatusClassMap: Record<string, string> = {
   Open: styles.caseStatusOpen,
-  Ongoing: styles.caseStatusOngoing,
   Closed: styles.caseStatusClosed,
   Terminated: styles.caseStatusTerminated,
   Settled: styles.caseStatusSettled,

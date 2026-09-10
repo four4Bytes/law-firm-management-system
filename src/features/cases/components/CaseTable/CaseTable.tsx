@@ -1,0 +1,129 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+
+import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
+import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { getCasesPaginatedAction } from "@/features/cases/actions";
+import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
+import type { CaseRow } from "@/features/cases/queries";
+import { getActiveUsersAction } from "@/features/tasks/actions";
+import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { CaseStatus, type Role } from "@/generated/prisma/browser";
+import { can } from "@/lib/rbac";
+import { toastError } from "@/lib/toast-utils";
+
+const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
+  Open: "info",
+  Closed: "done",
+  Terminated: "danger",
+  Settled: "info",
+};
+
+const columns: ColumnDef<CaseRow>[] = [
+  {
+    id: "case_title",
+    name: "Case Title",
+    isRowHeader: true,
+    allowsSorting: true,
+  },
+  {
+    id: "clientName",
+    name: "Client Name",
+    allowsSorting: true,
+  },
+  {
+    id: "case_type",
+    name: "Type",
+    allowsSorting: true,
+  },
+  {
+    id: "assignTo",
+    name: "Assign To",
+  },
+  {
+    id: "latestMilestone",
+    name: "Latest Milestone",
+  },
+  {
+    id: "status",
+    name: "Status",
+    allowsSorting: true,
+    render: (value) => {
+      const status = value as string | null;
+      if (!status) return null;
+      return <StatusBadge variant={statusClassMap[status as CaseStatus]}>{status}</StatusBadge>;
+    },
+  },
+];
+
+interface CaseTableProps {
+  initialCases?: CaseRow[];
+  initialCursor?: string | null;
+  userRole: Role | null;
+}
+
+export function CaseTable({ initialCases, initialCursor, userRole }: CaseTableProps) {
+  const router = useRouter();
+  const { startLoading } = useNavigationProgress();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+
+  const canCreate = can(userRole, "case.create");
+
+  const openAddModal = useCallback(async () => {
+    try {
+      const users = await getActiveUsersAction();
+      setUsers(users);
+      setIsAddOpen(true);
+    } catch {
+      toastError(
+        "Failed to load users",
+        "The team member list could not be loaded. Please try again.",
+      );
+    }
+  }, []);
+
+  return (
+    <>
+      <ServerDataTable
+        fetchAction={async (p) => {
+          const result = await getCasesPaginatedAction(p);
+          return { rows: result.cases, nextCursor: result.nextCursor };
+        }}
+        columns={columns}
+        initialRows={initialCases}
+        initialCursor={initialCursor}
+        searchPlaceholder="Search cases..."
+        emptyContent="No cases yet"
+        loadingMessage="Loading cases..."
+        searchLabel="Search cases"
+        selectionMode="single"
+        selectionBehavior="replace"
+        onRowAction={(id) => {
+          startLoading();
+          router.push(`/case/${id}`);
+        }}
+        renderAddButton={canCreate}
+        addButtonLabel="Add Case"
+        onAddButtonPress={openAddModal}
+      />
+
+      {isAddOpen && (
+        <AddCaseModal
+          isOpen={isAddOpen}
+          onOpenChange={setIsAddOpen}
+          onSuccess={(caseId) => {
+            setIsAddOpen(false);
+            startLoading();
+            router.push(`/case/${caseId}`);
+          }}
+          users={users}
+        />
+      )}
+    </>
+  );
+}

@@ -1,0 +1,395 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  Dev
+  Admin
+  BranchManager
+  Lawyer
+  Paralegal
+  ProcessServer
+}
+
+enum ConsultationStatus {
+  Scheduled
+  Completed
+  Accepted
+  Rejected
+  Cancelled
+}
+
+enum CaseStatus {
+  Open
+  Closed
+  Terminated
+  Settled
+}
+
+enum TaskStatus {
+  Pending
+  Submitted
+  Completed
+  Cancelled
+}
+
+enum ReviewDecision {
+  Pending
+  Accepted
+  Rejected
+}
+
+enum TaskAssignmentStatus {
+  Pending
+  Submitted
+}
+
+enum CaseMilestoneStatus {
+  Pending
+  Done
+  Cancelled
+}
+
+enum NotificationType {
+  ConsultationReminder
+  ConsultationOverdue
+  MilestoneDueSoon
+  MilestoneStatusChanged
+  MilestoneOverdue
+  TaskAssigned
+  TaskStatusChanged
+  CaseAssigned
+  CaseStatusChanged
+  ConsultationAssigned
+  ConsultationStatusChanged
+}
+
+enum PaymentStatus {
+  Unpaid
+  Partial
+  Paid
+  Refunded
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model User {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  email      String   @unique
+  google_sub String?  @unique
+  role       Role?
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+
+  accounts                Account[]
+  consultations           Consultation[]
+  cases                   Case[]
+  createdTasks            Task[]                   @relation("TaskCreator")
+  caseAssignments         CaseAssignment[]
+  consultationAssignments ConsultationAssignment[]
+  taskAssignments         TaskAssignment[]
+  notifications           Notification[]
+  payments                Payment[]
+  documents               Document[]
+  notes                   Note[]
+  caseMilestones          CaseMilestone[]
+  auditLogs               AuditLog[]
+  taskReviewsAssigned     TaskReviewer[]           @relation("ReviewerUser")
+
+  @@index([is_active])
+  @@index([created_at])
+}
+
+model Client {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  address      String?
+  email        String?
+  phone_number String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  consultations Consultation[]
+  cases         Case[]
+}
+
+model Consultation {
+  id                 String             @id @default(uuid()) @db.Uuid
+  client_id          String             @db.Uuid
+  created_by_user_id String             @db.Uuid
+  booking_datetime   DateTime
+  concern            String
+  status             ConsultationStatus
+  created_at         DateTime           @default(now())
+  updated_at         DateTime           @updatedAt
+  reminder_days      Int?
+  last_reminded_at   DateTime?
+
+  client                  Client                   @relation(fields: [client_id], references: [id])
+  createdBy               User                     @relation(fields: [created_by_user_id], references: [id])
+  payments                Payment[]
+  documents               Document[]
+  notes                   Note[]
+  cases                   Case[]
+  notifications           Notification[]
+  consultationAssignments ConsultationAssignment[]
+
+  @@index([booking_datetime])
+  @@index([status, booking_datetime])
+}
+
+model Case {
+  id                     String     @id @default(uuid()) @db.Uuid
+  client_id              String     @db.Uuid
+  source_consultation_id String?    @unique @db.Uuid
+  case_title             String
+  case_type              String
+  parties_involved       String?
+  status                 CaseStatus
+  created_by_user_id     String     @db.Uuid
+  created_at             DateTime   @default(now())
+  updated_at             DateTime   @updatedAt
+
+  client             Client           @relation(fields: [client_id], references: [id])
+  sourceConsultation Consultation?    @relation(fields: [source_consultation_id], references: [id], onDelete: SetNull)
+  createdBy          User             @relation(fields: [created_by_user_id], references: [id])
+  tasks              Task[]
+  caseAssignments    CaseAssignment[]
+  milestones         CaseMilestone[]
+  payments           Payment[]
+  documents          Document[]
+  notes              Note[]
+  notifications      Notification[]
+
+  @@index([created_at])
+  @@index([status])
+}
+
+model CaseAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  case_id    String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  case Case @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([case_id, user_id])
+}
+
+model ConsultationAssignment {
+  id              String   @id @default(uuid()) @db.Uuid
+  consultation_id String   @db.Uuid
+  user_id         String   @db.Uuid
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  consultation Consultation @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([consultation_id, user_id])
+}
+
+model TaskAssignment {
+  id         String               @id @default(uuid()) @db.Uuid
+  task_id    String               @db.Uuid
+  user_id    String               @db.Uuid
+  status     TaskAssignmentStatus @default(Pending)
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
+
+  task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([task_id, user_id])
+  @@index([task_id, status])
+}
+
+model Task {
+  id                 String     @id @default(uuid()) @db.Uuid
+  case_id            String     @db.Uuid
+  title              String
+  description        String?
+  status             TaskStatus @default(Pending)
+  created_by_user_id String     @db.Uuid
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+
+  case            Case             @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  createdBy       User             @relation("TaskCreator", fields: [created_by_user_id], references: [id])
+  taskAssignments TaskAssignment[]
+  taskReviewers   TaskReviewer[]
+  documents       Document[]
+  notes           Note[]
+  notifications   Notification[]
+
+  @@index([case_id, updated_at])
+}
+
+model TaskReviewer {
+  id               String         @id @default(uuid()) @db.Uuid
+  task_id          String         @db.Uuid
+  reviewer_user_id String         @db.Uuid
+  decision         ReviewDecision @default(Pending)
+  reviewed_at      DateTime?
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+
+  task     Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  reviewer User @relation("ReviewerUser", fields: [reviewer_user_id], references: [id])
+
+  @@unique([task_id, reviewer_user_id])
+  @@index([reviewer_user_id, decision])
+}
+
+model CaseMilestone {
+  id                 String              @id @default(uuid()) @db.Uuid
+  case_id            String              @db.Uuid
+  title              String
+  description        String?
+  due_date           DateTime
+  status             CaseMilestoneStatus @default(Pending)
+  created_by_user_id String              @db.Uuid
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+  reminder_days      Int?
+  last_reminded_at   DateTime?
+
+  case          Case           @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  createdBy     User           @relation(fields: [created_by_user_id], references: [id])
+  notifications Notification[]
+
+  @@index([case_id, due_date])
+  @@index([status, due_date])
+}
+
+model Notification {
+  id              String           @id @default(uuid()) @db.Uuid
+  user_id         String           @db.Uuid
+  type            NotificationType
+  title           String
+  message         String
+  is_read         Boolean          @default(false)
+  action_url      String?
+  case_id         String?          @db.Uuid
+  consultation_id String?          @db.Uuid
+  milestone_id    String?          @db.Uuid
+  task_id         String?          @db.Uuid
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+
+  user         User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  case         Case?          @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  consultation Consultation?  @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  milestone    CaseMilestone? @relation(fields: [milestone_id], references: [id], onDelete: Cascade)
+  task         Task?          @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, is_read, created_at])
+  @@index([user_id, created_at])
+  @@index([created_at])
+}
+
+model Payment {
+  id                 String        @id @default(uuid()) @db.Uuid
+  amount             Decimal       @db.Decimal(12, 2)
+  payment_date       DateTime
+  status             PaymentStatus
+  payment_method     String?
+  receipt_number     String?
+  case_id            String?       @db.Uuid
+  consultation_id    String?       @db.Uuid
+  created_by_user_id String        @db.Uuid
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  createdBy    User          @relation(fields: [created_by_user_id], references: [id])
+
+  @@index([case_id, payment_date])
+  @@index([consultation_id, payment_date])
+}
+
+model Document {
+  id                  String   @id @default(uuid()) @db.Uuid
+  file_name           String
+  file_path           String
+  file_type           String
+  file_size           Int?
+  case_id             String?  @db.Uuid
+  consultation_id     String?  @db.Uuid
+  task_id             String?  @db.Uuid
+  uploaded_by_user_id String   @db.Uuid
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  uploadedBy   User          @relation(fields: [uploaded_by_user_id], references: [id])
+
+  @@index([case_id, created_at])
+  @@index([consultation_id, created_at])
+}
+
+model Note {
+  id                 String   @id @default(uuid()) @db.Uuid
+  content            String
+  case_id            String?  @db.Uuid
+  consultation_id    String?  @db.Uuid
+  task_id            String?  @db.Uuid
+  created_by_user_id String   @db.Uuid
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  createdBy    User          @relation(fields: [created_by_user_id], references: [id])
+  consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
+  case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@index([case_id, created_at])
+  @@index([consultation_id, created_at])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  actor_user_id String   @db.Uuid
+  action        String
+  entity_type   String
+  entity_id     String   @db.Uuid
+  details       String?
+  created_at    DateTime @default(now())
+
+  actor User @relation(fields: [actor_user_id], references: [id])
+
+  @@index([entity_type, entity_id, created_at])
+}

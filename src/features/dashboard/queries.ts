@@ -49,21 +49,17 @@ const milestoneCaseFilter = (
     return {};
   }
 
-  const orConditions: Prisma.CaseWhereInput[] = [];
+  const orConditions: Prisma.CaseMilestoneWhereInput[] = [];
 
   if (assignedUserId) {
-    orConditions.push({ caseAssignments: { some: { user_id: assignedUserId } } });
+    orConditions.push({ case: { caseAssignments: { some: { user_id: assignedUserId } } } });
   }
 
   if (ownUserId) {
     orConditions.push({ created_by_user_id: ownUserId });
   }
 
-  return {
-    case: {
-      OR: orConditions,
-    },
-  };
+  return { OR: orConditions };
 };
 
 export const getDashboardStats = cache(

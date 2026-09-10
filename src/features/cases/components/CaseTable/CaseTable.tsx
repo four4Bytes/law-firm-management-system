@@ -18,7 +18,6 @@ import { toastError } from "@/lib/toast-utils";
 
 const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
   Open: "info",
-  Ongoing: "warning",
   Closed: "done",
   Terminated: "danger",
   Settled: "info",

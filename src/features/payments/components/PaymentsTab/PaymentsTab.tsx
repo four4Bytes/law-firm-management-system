@@ -29,7 +29,7 @@ interface Props {
 
 const statusClassMap: Record<PaymentStatus, StatusBadgeVariant> = {
   Unpaid: "pending",
-  Partial: "ongoing",
+  Partial: "warning",
   Paid: "done",
   Refunded: "cancelled",
 };

@@ -21,7 +21,6 @@ interface Props {
 
 const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
   Open: "info",
-  Ongoing: "warning",
   Closed: "done",
   Terminated: "danger",
   Settled: "info",

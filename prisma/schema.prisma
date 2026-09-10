@@ -26,7 +26,6 @@ enum ConsultationStatus {
 
 enum CaseStatus {
   Open
-  Ongoing
   Closed
   Terminated
   Settled

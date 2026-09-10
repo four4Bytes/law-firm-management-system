@@ -82,7 +82,7 @@ const cases: CaseData[] = [
     title: "Lopez Property Boundary Litigation",
     type: "Civil Litigation",
     status: "Open",
-    createdByEmail: "mario.lopez@aninolaw.com",
+    createdByEmail: "marco.lopez@aninolaw.com",
     partiesInvolved: "Antonio S. Lopez (Plaintiff), Felipe Dimagiba (Defendant)",
     assigneeEmails: [
       "marco.lopez@aninolaw.com",
@@ -184,15 +184,21 @@ export async function seedCases(
   for (const c of cases) {
     const caseRecord = await prisma.case.create({
       data: {
-        client_id: clientByEmail[c.clientEmail],
+        client: { connect: { id: clientByEmail[c.clientEmail] } },
+        createdBy: { connect: { id: userByEmail[c.createdByEmail]! } },
         case_title: c.title,
         case_type: c.type,
         status: c.status,
-        created_by_user_id: userByEmail[c.createdByEmail],
         parties_involved: c.partiesInvolved,
-        source_consultation_id: c.sourceConsultationClientEmail
-          ? (conByClientEmail.get(c.sourceConsultationClientEmail) ?? null)
-          : null,
+        ...(c.sourceConsultationClientEmail
+          ? {
+              sourceConsultation: {
+                connect: {
+                  id: conByClientEmail.get(c.sourceConsultationClientEmail)!,
+                },
+              },
+            }
+          : {}),
       },
     });
     created.push({ id: caseRecord.id, title: c.title });
@@ -201,7 +207,7 @@ export async function seedCases(
       await prisma.caseAssignment.create({
         data: {
           case_id: caseRecord.id,
-          user_id: userByEmail[assigneeEmail],
+          user_id: userByEmail[assigneeEmail]!,
         },
       });
     }

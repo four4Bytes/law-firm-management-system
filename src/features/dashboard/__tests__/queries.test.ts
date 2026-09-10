@@ -156,7 +156,7 @@ describe("getDashboardStats", () => {
         where: {
           status: "Pending",
           due_date: { lt: expect.any(Date) },
-          case: { OR: [{ caseAssignments: { some: { user_id: "uMilestones" } } }] },
+          OR: [{ case: { caseAssignments: { some: { user_id: "uMilestones" } } } }],
         },
       }),
     );
@@ -178,12 +178,10 @@ describe("getDashboardStats", () => {
         where: {
           status: "Pending",
           due_date: { lt: expect.any(Date) },
-          case: {
-            OR: [
-              { caseAssignments: { some: { user_id: "uMilestones" } } },
-              { created_by_user_id: "uMilestones" },
-            ],
-          },
+          OR: [
+            { case: { caseAssignments: { some: { user_id: "uMilestones" } } } },
+            { created_by_user_id: "uMilestones" },
+          ],
         },
       }),
     );
@@ -373,12 +371,10 @@ describe("getUpcomingMilestones", () => {
         where: {
           status: "Pending",
           due_date: { gte: expect.any(Date) },
-          case: {
-            OR: [
-              { caseAssignments: { some: { user_id: "uAssigned" } } },
-              { created_by_user_id: "uOwn" },
-            ],
-          },
+          OR: [
+            { case: { caseAssignments: { some: { user_id: "uAssigned" } } } },
+            { created_by_user_id: "uOwn" },
+          ],
         },
       }),
     );

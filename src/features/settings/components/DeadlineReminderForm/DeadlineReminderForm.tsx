@@ -19,6 +19,16 @@ function formatReminderDay(value: number): string {
   return `${value} days before`;
 }
 
+function keyDaysDescription(days: number): string {
+  if (days === 0) return "Only on the due date";
+  return `Only ${formatReminderDay(days).toLowerCase()} and on the due date`;
+}
+
+function dailyDescription(days: number): string {
+  if (days === 0) return "Only on the due date";
+  return `Every day from ${formatReminderDay(days).toLowerCase()} until the due date`;
+}
+
 interface DeadlineReminderPreferences {
   consultation_reminder_days: number;
   consultation_reminder_frequency: "KeyDays" | "Daily";
@@ -90,10 +100,18 @@ export function DeadlineReminderForm({ initialPreferences }: DeadlineReminderFor
               onChange={(value) => patch("consultation_reminder_frequency", value as string)}
               isDisabled={isPending}
             >
-              <Radio value={ReminderFrequency.KeyDays}>
-                Key days only (Trigger day &amp; Day of booking)
+              <Radio
+                value={ReminderFrequency.KeyDays}
+                description={keyDaysDescription(preferences.consultation_reminder_days)}
+              >
+                Key days only
               </Radio>
-              <Radio value={ReminderFrequency.Daily}>Daily countdown until booking</Radio>
+              <Radio
+                value={ReminderFrequency.Daily}
+                description={dailyDescription(preferences.consultation_reminder_days)}
+              >
+                Daily
+              </Radio>
             </RadioGroup>
           </div>
 
@@ -101,8 +119,9 @@ export function DeadlineReminderForm({ initialPreferences }: DeadlineReminderFor
             isSelected={preferences.consultation_notify_overdue}
             onChange={(v) => patch("consultation_notify_overdue", v)}
             isDisabled={isPending}
+            description="After the due date has passed, sent once"
           >
-            Send a single notification if the consultation is Overdue
+            Send a single notification if overdue
           </Checkbox>
         </div>
 
@@ -135,10 +154,18 @@ export function DeadlineReminderForm({ initialPreferences }: DeadlineReminderFor
               onChange={(value) => patch("milestone_reminder_frequency", value as string)}
               isDisabled={isPending}
             >
-              <Radio value={ReminderFrequency.KeyDays}>
-                Key days only (Trigger day &amp; Due date)
+              <Radio
+                value={ReminderFrequency.KeyDays}
+                description={keyDaysDescription(preferences.milestone_reminder_days)}
+              >
+                Key days only
               </Radio>
-              <Radio value={ReminderFrequency.Daily}>Daily countdown until deadline</Radio>
+              <Radio
+                value={ReminderFrequency.Daily}
+                description={dailyDescription(preferences.milestone_reminder_days)}
+              >
+                Daily
+              </Radio>
             </RadioGroup>
           </div>
 
@@ -146,8 +173,9 @@ export function DeadlineReminderForm({ initialPreferences }: DeadlineReminderFor
             isSelected={preferences.milestone_notify_overdue}
             onChange={(v) => patch("milestone_notify_overdue", v)}
             isDisabled={isPending}
+            description="After the due date has passed, sent once"
           >
-            Send a single notification if milestone is Overdue
+            Send a single notification if overdue
           </Checkbox>
         </div>
       </div>

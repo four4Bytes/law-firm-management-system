@@ -80,10 +80,12 @@ vi.mock("@/lib/prisma", () => {
   const consultation = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() };
   const consultationAssignment = { findFirst: vi.fn(), findMany: vi.fn() };
   const client = { create: vi.fn(), update: vi.fn() };
+  const caseModel = { findFirst: vi.fn().mockResolvedValue(null) };
   const prisma = {
     consultation,
     consultationAssignment,
     client,
+    case: caseModel,
     $transaction: vi.fn((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
   };
   return { prisma };
@@ -93,6 +95,7 @@ vi.mock("@/features/consultations/queries", () => ({
   getConsultationEditData: vi.fn(),
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
   getConsultationAssigneeIds: vi.fn().mockResolvedValue([]),
+  hasLinkedCase: vi.fn().mockResolvedValue(false),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -110,7 +113,6 @@ const consultationRecord: ConsultationWithAssignments = {
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
-  reminder_days: null,
   last_reminded_at: null,
   consultationAssignments: [],
 };
@@ -129,7 +131,6 @@ describe("getConsultationForEditAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled" as const,
-      reminder_days: null,
       assignee_ids: [],
     };
     vi.mocked(getConsultationEditData).mockResolvedValue(editData);
@@ -274,7 +275,6 @@ describe("updateConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
-      reminder_days: null,
       assignee_ids: [],
     });
 
@@ -283,14 +283,13 @@ describe("updateConsultationAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/consultation");
   });
 
-  it("does not clear last_reminded_at when booking and reminder_days are unchanged", async () => {
+  it("does not clear last_reminded_at when booking is unchanged", async () => {
     vi.mocked(getConsultationEditData).mockResolvedValue({
       id: uuid,
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
       status: "Scheduled",
-      reminder_days: null,
       assignee_ids: [],
     });
 
@@ -313,7 +312,6 @@ describe("updateConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
-      reminder_days: null,
       assignee_ids: [],
     });
     vi.mocked(prisma.consultation.update).mockRejectedValue(new Error("db error"));
@@ -361,7 +359,6 @@ describe("deleteConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
-      reminder_days: null,
       assignee_ids: [],
     });
 
@@ -380,7 +377,6 @@ describe("deleteConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
-      reminder_days: null,
       assignee_ids: [],
     });
     vi.mocked(deleteDocumentFiles).mockRejectedValue(new Error("S3 unavailable"));
@@ -402,7 +398,6 @@ describe("deleteConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
-      reminder_days: null,
       assignee_ids: [],
     });
     vi.mocked(prisma.consultation.delete).mockRejectedValue(
@@ -466,7 +461,6 @@ describe("authorization guards for non-Admin users", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
-      reminder_days: null,
       assignee_ids: [],
     });
   });
@@ -530,7 +524,6 @@ describe("updateConsultationAction notification split", () => {
     concern: "Legal advice",
     booking_datetime: consultationRecord.booking_datetime,
     status: "Scheduled" as const,
-    reminder_days: null,
     assignee_ids: [assignee1, assignee2],
   };
 

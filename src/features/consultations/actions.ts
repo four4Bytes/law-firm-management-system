@@ -12,6 +12,7 @@ import {
   getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationsPaginated,
+  hasLinkedCase,
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
@@ -22,6 +23,7 @@ import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
 import {
+  actionConflict,
   actionForbidden,
   actionInvalid,
   actionNotFound,
@@ -261,6 +263,15 @@ export async function updateConsultationAction(
       return actionForbidden();
     }
 
+    if (existing.status === "Accepted" && status !== "Accepted") {
+      if (await hasLinkedCase(consultationId)) {
+        return actionConflict(
+          "Consultation already accepted",
+          "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
+        );
+      }
+    }
+
     const resetReminderTiming = existing.booking_datetime.getTime() !== booking_datetime.getTime();
 
     await updateConsultation({
@@ -348,6 +359,15 @@ export async function updateConsultationWithClientAction(
 
     if (!(await hasConsultationPermission(session, consultation_id, "consultation.update"))) {
       return actionForbidden();
+    }
+
+    if (existing.status === "Accepted" && consultation.status !== "Accepted") {
+      if (await hasLinkedCase(consultation_id)) {
+        return actionConflict(
+          "Consultation already accepted",
+          "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
+        );
+      }
     }
 
     const resetReminderTiming =

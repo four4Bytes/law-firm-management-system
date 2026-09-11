@@ -80,10 +80,12 @@ vi.mock("@/lib/prisma", () => {
   const consultation = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() };
   const consultationAssignment = { findFirst: vi.fn(), findMany: vi.fn() };
   const client = { create: vi.fn(), update: vi.fn() };
+  const caseModel = { findFirst: vi.fn().mockResolvedValue(null) };
   const prisma = {
     consultation,
     consultationAssignment,
     client,
+    case: caseModel,
     $transaction: vi.fn((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
   };
   return { prisma };
@@ -93,6 +95,7 @@ vi.mock("@/features/consultations/queries", () => ({
   getConsultationEditData: vi.fn(),
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
   getConsultationAssigneeIds: vi.fn().mockResolvedValue([]),
+  hasLinkedCase: vi.fn().mockResolvedValue(false),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";

@@ -277,3 +277,11 @@ export const getConsultationAccessContext = cache(
     };
   },
 );
+
+export const hasLinkedCase = cache(async (consultationId: string): Promise<boolean> => {
+  const linked = await prisma.case.findFirst({
+    where: { source_consultation_id: consultationId },
+    select: { id: true },
+  });
+  return linked !== null;
+});

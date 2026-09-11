@@ -3,6 +3,7 @@
 
 import { createNotifications } from "@/features/notifications/mutations";
 import type { NotificationDispatchPayload } from "@/features/notifications/schemas";
+import { getNotificationPreferencesByUserIds } from "@/features/settings/queries";
 import { getActiveUserIds, getUserNameById, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
@@ -81,9 +82,34 @@ export async function dispatchNotifications(
 
   const template = pickTemplate(payload.type);
 
+  let emailAllowedIds: Set<string> | null = null;
+  if (
+    payload.type === NotificationType.CaseAssigned ||
+    payload.type === NotificationType.ConsultationAssigned ||
+    payload.type === NotificationType.TaskAssigned
+  ) {
+    try {
+      const prefsMap = await getNotificationPreferencesByUserIds(filteredPayload.userIds);
+      emailAllowedIds = new Set(
+        [...prefsMap.entries()]
+          .filter(([, prefs]) => {
+            if (payload.type === NotificationType.CaseAssigned)
+              return prefs.notify_email_case_assigned;
+            if (payload.type === NotificationType.ConsultationAssigned)
+              return prefs.notify_email_consultation_assigned;
+            return prefs.notify_email_task_assigned;
+          })
+          .map(([userId]) => userId),
+      );
+    } catch (err) {
+      console.error("Failed to resolve notification preferences, falling back to all email:", err);
+    }
+  }
+
   for (const user of recipients) {
     try {
       if (!user.email) continue;
+      if (emailAllowedIds && !emailAllowedIds.has(user.id)) continue;
 
       const html = template({
         toName: user.name ?? user.email,

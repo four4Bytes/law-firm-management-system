@@ -123,9 +123,23 @@ model User {
   caseMilestones          CaseMilestone[]
   auditLogs               AuditLog[]
   taskReviewsAssigned     TaskReviewer[]           @relation("ReviewerUser")
+  settings                UserSettings?
 
   @@index([is_active])
   @@index([created_at])
+}
+
+model UserSettings {
+  user_id                            String   @id @db.Uuid
+  notify_email_case_assigned         Boolean  @default(true)
+  notify_email_consultation_assigned Boolean  @default(true)
+  notify_email_task_assigned         Boolean  @default(true)
+  created_at                         DateTime @default(now())
+  updated_at                         DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 model Client {

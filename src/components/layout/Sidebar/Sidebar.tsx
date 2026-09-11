@@ -9,6 +9,7 @@ import {
   FaClockRotateLeft,
   FaComments,
   FaFolderOpen,
+  FaGear,
   FaHouse,
   FaUser,
   FaUsers,
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { label: "Consultations", href: "/consultation", icon: FaComments },
   { label: "Cases", href: "/case", icon: FaFolderOpen },
   { label: "Users", href: "/user", icon: FaUsers },
+  { label: "Settings", href: "/settings", icon: FaGear },
   {
     label: "Activity Log",
     href: "/audit",

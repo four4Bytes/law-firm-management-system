@@ -153,8 +153,7 @@ export async function createConsultationAction(
       return actionInvalid("consultation");
     }
 
-    const { client_id, concern, booking_datetime, status, reminder_days, assignee_ids } =
-      parsed.data;
+    const { client_id, concern, booking_datetime, status, assignee_ids } = parsed.data;
 
     const createdConsultation = await createConsultation({
       client_id,
@@ -162,7 +161,6 @@ export async function createConsultationAction(
       booking_datetime,
       status,
       created_by_user_id: session.id,
-      reminder_days,
       assignee_ids,
     });
 
@@ -252,15 +250,8 @@ export async function updateConsultationAction(
     return actionInvalid("consultation");
   }
 
-  const {
-    consultationId,
-    client_id,
-    concern,
-    booking_datetime,
-    status,
-    reminder_days,
-    assignee_ids,
-  } = parsed.data;
+  const { consultationId, client_id, concern, booking_datetime, status, assignee_ids } =
+    parsed.data;
 
   try {
     const existing = await getConsultationEditData(consultationId);
@@ -270,9 +261,7 @@ export async function updateConsultationAction(
       return actionForbidden();
     }
 
-    const resetReminderTiming =
-      existing.booking_datetime.getTime() !== booking_datetime.getTime() ||
-      (reminder_days !== undefined && existing.reminder_days !== reminder_days);
+    const resetReminderTiming = existing.booking_datetime.getTime() !== booking_datetime.getTime();
 
     await updateConsultation({
       consultationId,
@@ -280,7 +269,6 @@ export async function updateConsultationAction(
       concern,
       booking_datetime,
       status,
-      reminder_days,
       assignee_ids,
       resetReminderTiming,
     });
@@ -363,9 +351,7 @@ export async function updateConsultationWithClientAction(
     }
 
     const resetReminderTiming =
-      existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime() ||
-      (consultation.reminder_days !== undefined &&
-        existing.reminder_days !== consultation.reminder_days);
+      existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime();
 
     await updateConsultationWithClient({
       consultation_id,

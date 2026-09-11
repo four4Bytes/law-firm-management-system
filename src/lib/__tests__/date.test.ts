@@ -1,4 +1,4 @@
-import { CalendarDate, getLocalTimeZone, Time } from "@internationalized/date";
+import { CalendarDate, Time } from "@internationalized/date";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { combineDateTime, getAppTimeZone, getStartOfDay } from "@/lib/date";
@@ -24,9 +24,9 @@ describe("getAppTimeZone", () => {
     expect(() => getAppTimeZone()).toThrow(/must be a valid IANA timezone, got: Not\/AZone/);
   });
 
-  it("falls back to the local timezone when unset", () => {
+  it("falls back to Asia/Manila when unset", () => {
     delete process.env.APP_TIMEZONE;
-    expect(getAppTimeZone()).toBe(getLocalTimeZone());
+    expect(getAppTimeZone()).toBe("Asia/Manila");
   });
 });
 

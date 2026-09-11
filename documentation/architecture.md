@@ -34,6 +34,7 @@ src/
 │   │   ├── case/                        # Case list and detail pages
 │   │   ├── consultation/                # Consultation list and detail pages
 │   │   ├── user/                        # User management
+│   │   ├── settings/                    # Per-user preferences (notification email toggles)
 │   │   └── audit/                       # Audit log viewer
 │   ├── api/
 │   │   ├── auth/[...nextauth]/route.ts  # NextAuth handler
@@ -57,11 +58,12 @@ src/
 │   ├── documents/                       # File attachments
 │   ├── payments/                        # Financial records
 │   ├── notes/                           # Internal notes
-│   ├── notifications/                   # User notifications
+│   ├── notifications/                   # User notifications (dispatch + email gating)
 │   ├── reminders/                       # Scheduled reminder logic
 │   ├── clients/                         # Client data
 │   ├── dashboard/                       # Dashboard widgets
-│   └── audit/                           # Audit log queries
+│   ├── audit/                           # Audit log queries
+│   └── settings/                        # Per-user settings (UserSettings + notification email toggles at /settings)
 ├── generated/prisma/                    # Generated Prisma client (gitignored)
 ├── lib/                                 # Shared utilities
 │   ├── prisma.ts                        # Prisma singleton

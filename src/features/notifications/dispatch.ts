@@ -3,6 +3,7 @@
 
 import { createNotifications } from "@/features/notifications/mutations";
 import type { NotificationDispatchPayload } from "@/features/notifications/schemas";
+import { getNotificationPreferencesByUserIds } from "@/features/settings/queries";
 import { getActiveUserIds, getUserNameById, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
@@ -58,8 +59,34 @@ export async function dispatchNotifications(
   if (actorFilteredIds.length === 0) return { count: 0 };
 
   const activeIds = await getActiveUserIds({ ids: actorFilteredIds });
-  const userIds = [...new Set(activeIds)];
+  let userIds = [...new Set(activeIds)];
   if (userIds.length === 0) return { count: 0 };
+
+  const isAssignmentType =
+    payload.type === NotificationType.CaseAssigned ||
+    payload.type === NotificationType.ConsultationAssigned ||
+    payload.type === NotificationType.TaskAssigned;
+
+  if (isAssignmentType) {
+    try {
+      const prefsMap = await getNotificationPreferencesByUserIds(userIds);
+      const allowed = new Set(
+        [...prefsMap.entries()]
+          .filter(([, prefs]) => {
+            if (payload.type === NotificationType.CaseAssigned)
+              return prefs.notify_email_case_assigned;
+            if (payload.type === NotificationType.ConsultationAssigned)
+              return prefs.notify_email_consultation_assigned;
+            return prefs.notify_email_task_assigned;
+          })
+          .map(([userId]) => userId),
+      );
+      userIds = userIds.filter((id) => allowed.has(id));
+      if (userIds.length === 0) return { count: 0 };
+    } catch (err) {
+      console.error("Failed to resolve notification preferences, falling back to all:", err);
+    }
+  }
 
   const filteredPayload = { ...payload, userIds };
   const result = await createNotifications(filteredPayload);

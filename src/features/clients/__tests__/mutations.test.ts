@@ -16,11 +16,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-it("createClient maps empty optional fields to undefined and selects id and name", async () => {
-  await createClient({ name: "Alice", email: "", phone_number: "", address: "" });
+it("createClient passes required phone_number through and selects id and name", async () => {
+  await createClient({ name: "Alice", email: "", phone_number: "09170000001", address: "" });
 
   expect(prisma.client.create).toHaveBeenCalledWith({
-    data: { name: "Alice", email: undefined, phone_number: undefined, address: undefined },
+    data: { name: "Alice", email: undefined, phone_number: "09170000001", address: undefined },
     select: { id: true, name: true },
   });
 });
@@ -44,17 +44,23 @@ it("createClient passes provided optional fields through", async () => {
   });
 });
 
-it("updateClient maps empty optional fields to null", async () => {
-  await updateClient({ clientId: uuid, name: "Alice", email: "", phone_number: "", address: "" });
+it("updateClient passes provided fields through and does not null phone_number", async () => {
+  await updateClient({
+    clientId: uuid,
+    name: "Alice",
+    email: "",
+    phone_number: "09170000001",
+    address: "",
+  });
 
   expect(prisma.client.update).toHaveBeenCalledWith({
     where: { id: uuid },
-    data: { name: "Alice", email: null, phone_number: null, address: null },
+    data: { name: "Alice", email: null, phone_number: "09170000001", address: null },
     select: { id: true, name: true },
   });
 });
 
-it("updateClient passes provided optional fields through", async () => {
+it("updateClient passes provided fields through", async () => {
   await updateClient({
     clientId: uuid,
     name: "Alice",

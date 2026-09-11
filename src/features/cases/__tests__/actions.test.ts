@@ -393,7 +393,7 @@ describe("authorization guards for non-Admin users", () => {
   const updateWithClientPayload = {
     case_id: uuid,
     client_id: uuid,
-    client: { name: "John Doe" },
+    client: { name: "John Doe", phone_number: "09170000001" },
     case: {
       case_title: "Smith vs Jones",
       case_type: "Civil",
@@ -574,7 +574,7 @@ describe("updateCaseAction notification split", () => {
     await updateCaseWithClientAction({
       case_id: uuid,
       client_id: uuid,
-      client: { name: "John Doe" },
+      client: { name: "John Doe", phone_number: "09170000001" },
       case: {
         case_title: "Smith vs Jones",
         case_type: "Civil",

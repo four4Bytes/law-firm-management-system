@@ -56,7 +56,7 @@ describe("createClientAction", () => {
   it("creates a client and revalidates the list", async () => {
     vi.mocked(prisma.client.create).mockResolvedValue(clientRecord);
 
-    const result = await createClientAction({ name: "Alice Client" });
+    const result = await createClientAction({ name: "Alice Client", phone_number: "09170000001" });
 
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
@@ -67,14 +67,16 @@ describe("createClientAction", () => {
   it("returns an error when creation fails", async () => {
     vi.mocked(prisma.client.create).mockRejectedValue(new Error("db error"));
 
-    expect(await createClientAction({ name: "Alice Client" })).toEqual({
-      success: false,
-      error: {
-        code: "unknown",
-        title: "Failed to create client",
-        description: "Something went wrong on our end. Please try again.",
+    expect(await createClientAction({ name: "Alice Client", phone_number: "09170000001" })).toEqual(
+      {
+        success: false,
+        error: {
+          code: "unknown",
+          title: "Failed to create client",
+          description: "Something went wrong on our end. Please try again.",
+        },
       },
-    });
+    );
   });
 });
 
@@ -120,7 +122,11 @@ describe("updateClientAction", () => {
   it("updates a client and revalidates the list", async () => {
     vi.mocked(prisma.client.update).mockResolvedValue(clientRecord);
 
-    const result = await updateClientAction({ clientId: uuid, name: "Alice Client" });
+    const result = await updateClientAction({
+      clientId: uuid,
+      name: "Alice Client",
+      phone_number: "09170000001",
+    });
 
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
@@ -131,7 +137,13 @@ describe("updateClientAction", () => {
   it("returns an error when update fails", async () => {
     vi.mocked(prisma.client.update).mockRejectedValue(new Error("db error"));
 
-    expect(await updateClientAction({ clientId: uuid, name: "Alice Client" })).toEqual({
+    expect(
+      await updateClientAction({
+        clientId: uuid,
+        name: "Alice Client",
+        phone_number: "09170000001",
+      }),
+    ).toEqual({
       success: false,
       error: {
         code: "unknown",

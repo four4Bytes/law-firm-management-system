@@ -108,7 +108,7 @@ export function AddConsultationModal({
       client: {
         name: requiredString(name),
         email: optionalString(email),
-        phone_number: optionalString(phone),
+        phone_number: requiredString(phone),
         address: optionalString(address),
       },
       consultation: {
@@ -154,7 +154,7 @@ export function AddConsultationModal({
               label="Phone"
               value={phone}
               onChange={(v) => setClientField("phone", v)}
-              placeholder="Optional"
+              placeholder="Required"
               validate={createFieldValidator(
                 ConsultationWithClientCreatePayloadSchema.shape.client.shape.phone_number,
               )}

@@ -72,6 +72,6 @@ export async function updateDeadlineReminderPreferencesAction(
 
     return { success: true };
   } catch (error) {
-    return toActionResponse(error, "update notification preferences");
+    return toActionResponse(error, "update deadline reminder preferences");
   }
 }

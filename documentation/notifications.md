@@ -108,10 +108,10 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 ### Trigger
 
-| Deployment           | Trigger                                                                                                                            | Details                                 |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Vercel               | Cron `0 0 * * *` (UTC) → `GET /api/cron/reminders`                                                                                 | `Bearer CRON_SECRET` required; else 401 |
-| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` at midnight app time (`APP_TIMEZONE`, fallback server-local; skipped when `VERCEL` is set) | `noOverlap: true`                       |
+| Deployment           | Trigger                                                                                                                             | Details                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Vercel               | Cron `0 0 * * *` (UTC) → `GET /api/cron/reminders`                                                                                  | `Bearer CRON_SECRET` required; else 401 |
+| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` at midnight app time (`APP_TIMEZONE`, fallback `Asia/Manila`; skipped when `VERCEL` is set) | `noOverlap: true`                       |
 
 Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, running three **isolated** phases in order — a phase failure is logged and does not stop the next:
 
@@ -197,13 +197,12 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 
 ## 9. Environment Variables
 
-| Variable                      | Required   | Default      | Purpose                                                                         |
-| ----------------------------- | ---------- | ------------ | ------------------------------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS`       | No         | `3`          | Fallback when a record has no `reminder_days`                                   |
-| `NOTIFICATION_RETENTION_DAYS` | No         | `90`         | Delete Notification rows older than this                                        |
-| `CRON_SECRET`                 | Yes (all)  | -            | Bearer secret for `GET /api/cron/reminders`                                     |
-| `APP_TIMEZONE`                | No         | server local | IANA timezone: date formatting, reminder day boundary, self-hosted cron trigger |
-| `APP_ORIGIN`                  | Yes (prod) | -            | Origin for absolute `actionUrl` links in emails                                 |
+| Variable                      | Required   | Default       | Purpose                                                                                                                  |
+| ----------------------------- | ---------- | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `NOTIFICATION_RETENTION_DAYS` | No         | `90`          | Delete Notification rows older than this                                                                                 |
+| `CRON_SECRET`                 | Yes (all)  | -             | Bearer secret for `GET /api/cron/reminders`                                                                              |
+| `APP_TIMEZONE`                | No         | `Asia/Manila` | IANA timezone: date formatting, reminder day boundary, self-hosted cron trigger (set to any IANA zone for worldwide use) |
+| `APP_ORIGIN`                  | Yes (prod) | -             | Origin for absolute `actionUrl` links in emails                                                                          |
 
 ---
 

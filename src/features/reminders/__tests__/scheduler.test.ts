@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { CalendarDate } from "@internationalized/date";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
@@ -17,7 +18,7 @@ import {
   unclaimMilestoneReminder,
 } from "../mutations";
 import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from "../queries";
-import { runReminderCheck } from "../scheduler";
+import { __testHelpers, runReminderCheck } from "../scheduler";
 
 vi.mock("@/lib/env", () => ({
   getOptionalInteger: vi.fn((name: string) => (name === "NOTIFICATION_RETENTION_DAYS" ? 90 : 3)),
@@ -498,4 +499,53 @@ it("uses per-user reminder days from settings", async () => {
     expect.objectContaining({ type: NotificationType.MilestoneDueSoon }),
     expect.any(String),
   );
+});
+
+describe("isKeyDay calendar-date arithmetic (DST)", () => {
+  const originalTz = process.env.APP_TIMEZONE;
+
+  afterEach(() => {
+    if (originalTz === undefined) delete process.env.APP_TIMEZONE;
+    else process.env.APP_TIMEZONE = originalTz;
+  });
+
+  it("triggers on spring-forward gap (23h day) using calendar days", () => {
+    process.env.APP_TIMEZONE = "America/New_York";
+    const due = new CalendarDate(2026, 3, 9).toDate("America/New_York");
+    const now = new Date(
+      new CalendarDate(2026, 3, 8).toDate("America/New_York").getTime() + 12 * 3600_000,
+    );
+    expect(__testHelpers.isKeyDay(now, due, 1)).toBe(true);
+  });
+
+  it("triggers on fall-back overlap (25h day) using calendar days", () => {
+    process.env.APP_TIMEZONE = "America/New_York";
+    const due = new CalendarDate(2026, 11, 2).toDate("America/New_York");
+    const now = new Date(
+      new CalendarDate(2026, 11, 1).toDate("America/New_York").getTime() + 12 * 3600_000,
+    );
+    expect(__testHelpers.isKeyDay(now, due, 1)).toBe(true);
+  });
+
+  it("does not trigger when not on key day or due day", () => {
+    process.env.APP_TIMEZONE = "America/New_York";
+    const due = new CalendarDate(2026, 3, 10).toDate("America/New_York");
+    const now = new CalendarDate(2026, 3, 8).toDate("America/New_York");
+    expect(__testHelpers.isKeyDay(now, due, 1)).toBe(false);
+  });
+
+  it("triggers on due day regardless of DST", () => {
+    process.env.APP_TIMEZONE = "America/New_York";
+    const due = new CalendarDate(2026, 3, 9).toDate("America/New_York");
+    const now = new Date(due.getTime() + 6 * 3600_000);
+    expect(__testHelpers.isKeyDay(now, due, 3)).toBe(true);
+  });
+
+  it("triggers on correct calendar trigger for 3-day window across DST", () => {
+    process.env.APP_TIMEZONE = "America/New_York";
+    const due = new CalendarDate(2026, 3, 10).toDate("America/New_York");
+    const triggerDay = new CalendarDate(2026, 3, 7).toDate("America/New_York");
+    const now = new Date(triggerDay.getTime() + 12 * 3600_000);
+    expect(__testHelpers.isKeyDay(now, due, 3)).toBe(true);
+  });
 });

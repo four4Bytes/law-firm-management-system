@@ -48,28 +48,28 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit (local email inbox)
 
 ## Environment Variables (.env)
 
-| Variable                          | Required | Description                                                                                           |
-| --------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                    | Yes      | Postgres connection string (`postgresql://testing:testing@localhost:5432/testing` for local dev)      |
-| `AUTH_SECRET`                     | Yes      | NextAuth secret; generate with `openssl rand -hex 32`                                                 |
-| `AUTH_GOOGLE_ID`                  | Yes      | Google OAuth client ID ([credentials console](https://console.cloud.google.com/apis/credentials))     |
-| `AUTH_GOOGLE_SECRET`              | Yes      | Google OAuth client secret                                                                            |
-| `DEVELOPER_EMAILS`                | Yes      | Comma-separated Google accounts allowed to sign in without being pre-registered (bootstrap Dev users) |
-| `S3_ENDPOINT`                     | Yes      | S3-compatible endpoint (`http://localhost:9000` for local MinIO)                                      |
-| `S3_REGION`                       | Yes      | Storage region (e.g. `us-east-1`)                                                                     |
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes      | Storage credentials (MinIO defaults: `minioadmin` / `minioadmin`)                                     |
-| `S3_BUCKET`                       | Yes      | Bucket name for document storage (`law-firm-files`; created automatically by `make dev-up`)           |
-| `S3_FORCE_PATH_STYLE`             | Yes      | Set `true` for MinIO/local endpoints                                                                  |
-| `EMAIL_FROM`                      | Yes      | Sender address for transactional emails                                                               |
-| `EMAIL_HOST` / `EMAIL_PORT`       | Yes      | SMTP host/port (Mailpit defaults: `localhost:1025`)                                                   |
-| `EMAIL_USER` / `EMAIL_PASS`       | Yes      | SMTP credentials (Mailpit defaults: `mailpit` / `mailpit`)                                            |
-| `EMAIL_SECURE`                    | Yes      | Use TLS for SMTP (`false` for local Mailpit)                                                          |
-| `APP_ORIGIN`                      | Yes      | Public URL used to build absolute links (e.g. `http://localhost:3000`)                                |
-| `CRON_SECRET`                     | Yes      | Authenticates cron job webhook requests; generate with `openssl rand -hex 32`                         |
-| `DEFAULT_REMINDER_DAYS`           | No       | Days before due date to send reminders (default `3`)                                                  |
-| `NOTIFICATION_RETENTION_DAYS`     | No       | Days before notifications are cleaned up (default `90`)                                               |
-| `APP_TIMEZONE`                    | No       | IANA timezone for server-side date/time display (defaults to server's local timezone)                 |
-| `STORAGE_GC_CRON_SCHEDULE`        | No       | node-cron schedule for the storage GC sweep (default weekly Sunday 03:00)                             |
+| Variable                          | Required | Description                                                                                                         |
+| --------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                    | Yes      | Postgres connection string (`postgresql://testing:testing@localhost:5432/testing` for local dev)                    |
+| `AUTH_SECRET`                     | Yes      | NextAuth secret; generate with `openssl rand -hex 32`                                                               |
+| `AUTH_GOOGLE_ID`                  | Yes      | Google OAuth client ID ([credentials console](https://console.cloud.google.com/apis/credentials))                   |
+| `AUTH_GOOGLE_SECRET`              | Yes      | Google OAuth client secret                                                                                          |
+| `DEVELOPER_EMAILS`                | Yes      | Comma-separated Google accounts allowed to sign in without being pre-registered (bootstrap Dev users)               |
+| `S3_ENDPOINT`                     | Yes      | S3-compatible endpoint (`http://localhost:9000` for local MinIO)                                                    |
+| `S3_REGION`                       | Yes      | Storage region (e.g. `us-east-1`)                                                                                   |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes      | Storage credentials (MinIO defaults: `minioadmin` / `minioadmin`)                                                   |
+| `S3_BUCKET`                       | Yes      | Bucket name for document storage (`law-firm-files`; created automatically by `make dev-up`)                         |
+| `S3_FORCE_PATH_STYLE`             | Yes      | Set `true` for MinIO/local endpoints                                                                                |
+| `EMAIL_FROM`                      | Yes      | Sender address for transactional emails                                                                             |
+| `EMAIL_HOST` / `EMAIL_PORT`       | Yes      | SMTP host/port (Mailpit defaults: `localhost:1025`)                                                                 |
+| `EMAIL_USER` / `EMAIL_PASS`       | Yes      | SMTP credentials (Mailpit defaults: `mailpit` / `mailpit`)                                                          |
+| `EMAIL_SECURE`                    | Yes      | Use TLS for SMTP (`false` for local Mailpit)                                                                        |
+| `APP_ORIGIN`                      | Yes      | Public URL used to build absolute links (e.g. `http://localhost:3000`)                                              |
+| `CRON_SECRET`                     | Yes      | Authenticates cron job webhook requests; generate with `openssl rand -hex 32`                                       |
+| `DEFAULT_REMINDER_DAYS`           | No       | Days before due date to send reminders (default `3`)                                                                |
+| `NOTIFICATION_RETENTION_DAYS`     | No       | Days before notifications are cleaned up (default `90`)                                                             |
+| `APP_TIMEZONE`                    | No       | IANA timezone for server-side date/time display (defaults to `Asia/Manila`; set to any IANA zone for worldwide use) |
+| `STORAGE_GC_CRON_SCHEDULE`        | No       | node-cron schedule for the storage GC sweep (default weekly Sunday 03:00)                                           |
 
 ### Infrastructure Variables (.env.dev)
 

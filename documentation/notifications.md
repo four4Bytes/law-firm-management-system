@@ -23,10 +23,13 @@ All notifications pass through `dispatchNotifications(payload, actorUserId, noti
 1. **Actor exclusion** — the actor is removed from recipients unless `notifyActor` is `true`.
 2. **Active users only** — deactivated users never receive anything.
 3. **Deduplication** — duplicate IDs are collapsed.
-4. **Database row** — one `is_read = false` row per recipient.
-5. **Email** — per recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
+4. **Database row** — one `is_read = false` row per recipient. This is **always created** regardless of email preferences.
+5. **Email preference gate** — for `CaseAssigned`, `ConsultationAssigned`, and `TaskAssigned` only, recipients who disabled the matching toggle in `UserSettings` (`notify_email_*_assigned`) are filtered out. All other types (status changes, reminders, etc.) always email when an address exists. Preference lookup is best-effort — a DB failure falls back to sending to all recipients and is logged.
+6. **Email** — per remaining recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
 
 Payload: `userIds`, `type`, `title`, `message`, optional `actionUrl`, and related `caseId` / `consultationId` / `milestoneId` / `taskId`.
+
+> Email preferences are edited at `/settings` by any authenticated user via `src/features/settings/` (`UserSettings` row, defaults all `true`). In-app notifications are always on.
 
 ---
 
@@ -178,6 +181,7 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 - `MilestoneStatusChanged`, `TaskStatusChanged`, `CaseStatusChanged`, and `ConsultationStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
 - All interpolated text is HTML-escaped.
 - Recipients without an email are skipped (the in-app row is still created).
+- Assignment emails (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) respect the recipient's `UserSettings` toggles edited at `/settings` — opted-out users still get the in-app row, just no email.
 
 ---
 

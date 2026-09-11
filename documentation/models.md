@@ -32,6 +32,23 @@ A person who can sign in and use the system.
 
 ---
 
+### User Settings
+
+Per-user preferences attached 1:1 to `User`. Defaults to all email toggles **on** so existing behavior is preserved.
+
+| Field                              | Type      | Required | Description                                              |
+| ---------------------------------- | --------- | -------- | -------------------------------------------------------- |
+| User                               | Link      | Yes      | Owner (`@id user_id`, `onDelete: Cascade`)               |
+| Notify Email Case Assigned         | Boolean   | Yes      | Email when assigned to a case (`@default(true)`)         |
+| Notify Email Consultation Assigned | Boolean   | Yes      | Email when assigned to a consultation (`@default(true)`) |
+| Notify Email Task Assigned         | Boolean   | Yes      | Email when assigned to a task (`@default(true)`)         |
+| Created                            | Timestamp | Yes      | When the settings row was created                        |
+| Updated                            | Timestamp | Yes      | When the settings row was last modified                  |
+
+> `UserSettings` lives in its own table (`@@map("user_settings")`) so future notification and app preferences can be added without bloating `User`. Additional toggles are new boolean columns on this model. See [Notifications & Reminders](./notifications.md#2-dispatch-pipeline) for how assignment emails read these flags.
+
+---
+
 ### Client
 
 An external client (individual or organization) who may have consultations or cases.

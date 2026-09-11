@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import type { Prisma } from "@/generated/prisma/browser";
+import { getStartOfDay } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 export type DashboardStats = {
@@ -48,21 +49,17 @@ const milestoneCaseFilter = (
     return {};
   }
 
-  const orConditions: Prisma.CaseWhereInput[] = [];
+  const orConditions: Prisma.CaseMilestoneWhereInput[] = [];
 
   if (assignedUserId) {
-    orConditions.push({ caseAssignments: { some: { user_id: assignedUserId } } });
+    orConditions.push({ case: { caseAssignments: { some: { user_id: assignedUserId } } } });
   }
 
   if (ownUserId) {
     orConditions.push({ created_by_user_id: ownUserId });
   }
 
-  return {
-    case: {
-      OR: orConditions,
-    },
-  };
+  return { OR: orConditions };
 };
 
 export const getDashboardStats = cache(
@@ -70,8 +67,8 @@ export const getDashboardStats = cache(
     const { casesUserId, consultationsUserId, milestonesUserId, milestonesOwnUserId } = scope;
 
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+    const startOfDay = getStartOfDay(now);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     const casesFilter = casesUserId ? { caseAssignments: { some: { user_id: casesUserId } } } : {};
     const consultationsFilter = consultationsUserId
@@ -162,8 +159,7 @@ export const getUpcomingMilestones = cache(
     assignedUserId?: string,
     ownUserId?: string,
   ): Promise<UpcomingMilestoneRow[]> => {
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDay = getStartOfDay(new Date());
     const milestones = await prisma.caseMilestone.findMany({
       take: limit,
       where: {

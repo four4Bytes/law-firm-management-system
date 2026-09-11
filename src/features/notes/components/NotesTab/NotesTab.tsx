@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { getCaseNotesPaginatedAction } from "@/features/cases/actions";
+import { getCaseNotesWithTaskNotesPaginatedAction } from "@/features/cases/actions";
 import { getConsultationNotesPaginatedAction } from "@/features/consultations/actions";
 import { deleteNoteAction, getNoteRowByIdAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
@@ -126,7 +126,7 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
         refreshTrigger={refreshKey}
         fetchAction={(p) => {
           if (caseId) {
-            return getCaseNotesPaginatedAction({ caseId, ...p });
+            return getCaseNotesWithTaskNotesPaginatedAction({ caseId, ...p });
           }
           if (consultationId) {
             return getConsultationNotesPaginatedAction({ consultationId, ...p });

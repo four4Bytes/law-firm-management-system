@@ -1,4 +1,4 @@
-import { CalendarDate, getLocalTimeZone, Time, toCalendarDateTime } from "@internationalized/date";
+import { CalendarDate, Time, toCalendarDateTime } from "@internationalized/date";
 
 /** Date and time conversion/formatting helpers built on `@internationalized/date`. */
 
@@ -28,14 +28,14 @@ function resolveTimeZone(value: string | undefined, source: string): string | un
  * Both the server and the client resolve from the same `APP_TIMEZONE` value
  * (`NEXT_PUBLIC_APP_TIMEZONE` is inlined for the browser), so `formatDate` /
  * `formatDateTime` produce identical text before and after hydration. When the
- * variable is unset, each side falls back to its local timezone.
+ * variable is unset, it defaults to `Asia/Manila` for this PH-targeted app.
  *
  * @returns An IANA timezone identifier (e.g. `"Asia/Manila"`).
  */
 export function getAppTimeZone(): string {
   const value =
     typeof window === "undefined" ? process.env.APP_TIMEZONE : process.env.NEXT_PUBLIC_APP_TIMEZONE;
-  return resolveTimeZone(value, "APP_TIMEZONE") ?? getLocalTimeZone();
+  return resolveTimeZone(value, "APP_TIMEZONE") ?? "Asia/Manila";
 }
 
 /**

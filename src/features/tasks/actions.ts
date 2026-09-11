@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
-import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType, TaskStatus } from "@/generated/prisma/browser";
 import {
@@ -147,15 +147,25 @@ export async function createTaskAction(
       assignee_ids,
     });
 
-    after(() =>
-      logAudit({
+    after(async () => {
+      await logAudit({
         actorUserId: session.id,
         action: "task.created",
         entityType: "Case",
         entityId: case_id,
         details: `Created task: "${title}"`,
-      }),
-    );
+      });
+
+      await notifyRecipients(session.id, {
+        userIds: assignee_ids,
+        type: NotificationType.TaskAssigned,
+        title: `Task assigned: ${title}`,
+        message: `You have been assigned to task: "${title}"`,
+        actionUrl: `/case/${case_id}`,
+        caseId: case_id,
+        taskId: task.id,
+      });
+    });
 
     revalidatePath(`/case/${case_id}`);
 
@@ -224,25 +234,18 @@ export async function updateTaskAction(
       const newAssigneeIds = diffNewAssigneeIds(
         parsed.data.assignee_ids ?? existingAssigneeIds,
         existingAssigneeIds,
-      );
+      ).filter((id) => !existing.taskReviewers.some((r) => r.reviewer_user_id === id));
 
       if (newAssigneeIds.length > 0) {
-        try {
-          await dispatchNotifications(
-            {
-              userIds: newAssigneeIds,
-              type: NotificationType.TaskAssigned,
-              title: `Task assigned: ${title}`,
-              message: `You have been assigned to task: "${title}"`,
-              actionUrl: `/case/${existing.case_id}`,
-              caseId: existing.case_id,
-              taskId: existing.id,
-            },
-            session.id,
-          );
-        } catch (err) {
-          console.error("Failed to dispatch notification:", err);
-        }
+        await notifyRecipients(session.id, {
+          userIds: newAssigneeIds,
+          type: NotificationType.TaskAssigned,
+          title: `Task assigned: ${title}`,
+          message: `You have been assigned to task: "${title}"`,
+          actionUrl: `/case/${existing.case_id}`,
+          caseId: existing.case_id,
+          taskId: existing.id,
+        });
       }
     });
 
@@ -334,18 +337,15 @@ export async function submitTaskAction(
           const reviewers = await getTaskReviewers(taskId);
           const reviewerIds = reviewers.map((r) => r.reviewer_user_id);
           if (reviewerIds.length > 0) {
-            await dispatchNotifications(
-              {
-                userIds: reviewerIds,
-                type: NotificationType.TaskStatusChanged,
-                title: `Task submitted for review: ${existing.title}`,
-                message: `Task "${existing.title}" is now under review`,
-                actionUrl: `/case/${existing.case_id}`,
-                caseId: existing.case_id,
-                taskId,
-              },
-              session.id,
-            );
+            await notifyRecipients(session.id, {
+              userIds: reviewerIds,
+              type: NotificationType.TaskStatusChanged,
+              title: `Task submitted for review: ${existing.title}`,
+              message: `Task "${existing.title}" is now under review`,
+              actionUrl: `/case/${existing.case_id}`,
+              caseId: existing.case_id,
+              taskId,
+            });
           }
         } catch (err) {
           console.error("Failed to dispatch notification:", err);
@@ -407,22 +407,15 @@ export async function reviewTaskAction(
       });
 
       if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Completed) {
-        try {
-          await dispatchNotifications(
-            {
-              userIds: assigneeIds,
-              type: NotificationType.TaskStatusChanged,
-              title: `Task ${taskStatus === TaskStatus.Completed ? "completed" : "returned for rework"}: ${existing.title}`,
-              message: `Task "${existing.title}" transitioned from ${transition}`,
-              actionUrl: `/case/${existing.case_id}`,
-              caseId: existing.case_id,
-              taskId,
-            },
-            session.id,
-          );
-        } catch (err) {
-          console.error("Failed to dispatch notification:", err);
-        }
+        await notifyRecipients(session.id, {
+          userIds: assigneeIds,
+          type: NotificationType.TaskStatusChanged,
+          title: `Task ${taskStatus === TaskStatus.Completed ? "completed" : "returned for rework"}: ${existing.title}`,
+          message: `Task "${existing.title}" transitioned from ${transition}`,
+          actionUrl: `/case/${existing.case_id}`,
+          caseId: existing.case_id,
+          taskId,
+        });
       }
     });
 
@@ -469,21 +462,17 @@ export async function addTaskReviewerAction(
         details: `Added reviewer to task: "${existing.title}"`,
       });
 
-      try {
-        await dispatchNotifications(
-          {
-            userIds: [reviewerUserId],
-            type: NotificationType.TaskAssigned,
-            title: `Review requested: ${existing.title}`,
-            message: `You have been added as a reviewer to task: "${existing.title}"`,
-            actionUrl: `/case/${existing.case_id}`,
-            caseId: existing.case_id,
-            taskId,
-          },
-          session.id,
-        );
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
+      const alreadyAssignee = existing.taskAssignments.some((a) => a.user_id === reviewerUserId);
+      if (!alreadyAssignee) {
+        await notifyRecipients(session.id, {
+          userIds: [reviewerUserId],
+          type: NotificationType.TaskAssigned,
+          title: `Review requested: ${existing.title}`,
+          message: `You have been added as a reviewer to task: "${existing.title}"`,
+          actionUrl: `/case/${existing.case_id}`,
+          caseId: existing.case_id,
+          taskId,
+        });
       }
     });
 

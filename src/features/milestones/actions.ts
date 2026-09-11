@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
-import { dispatchNotifications } from "@/features/notifications/dispatch";
+import { notifyRecipients } from "@/features/notifications/notify";
 import { NotificationType } from "@/generated/prisma/browser";
 import {
   actionForbidden,
@@ -66,7 +66,7 @@ export async function createMilestoneAction(
   const parsed = MilestoneCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("milestone");
 
-  const { title, description, due_date, status, case_id, reminder_days } = parsed.data;
+  const { title, description, due_date, status, case_id } = parsed.data;
 
   try {
     const caseAccess = await getCaseAccessContext(session.id, case_id);
@@ -81,7 +81,6 @@ export async function createMilestoneAction(
       status,
       case_id,
       created_by_user_id: session.id,
-      reminder_days,
     });
 
     after(() =>
@@ -110,7 +109,7 @@ export async function updateMilestoneAction(
   const parsed = MilestoneUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("milestone");
 
-  const { milestoneId, title, description, due_date, status, reminder_days } = parsed.data;
+  const { milestoneId, title, description, due_date, status } = parsed.data;
 
   try {
     const existing = await getMilestoneById(milestoneId);
@@ -125,22 +124,18 @@ export async function updateMilestoneAction(
       existing.title === title &&
       existing.description === (description || null) &&
       existing.due_date.getTime() === due_date.getTime() &&
-      existing.status === status &&
-      (reminder_days === undefined || existing.reminder_days === reminder_days)
+      existing.status === status
     ) {
       return { success: true };
     }
 
-    const resetReminderTiming =
-      existing.due_date.getTime() !== due_date.getTime() ||
-      (reminder_days !== undefined && existing.reminder_days !== reminder_days);
+    const resetReminderTiming = existing.due_date.getTime() !== due_date.getTime();
 
     await updateMilestone(milestoneId, {
       title,
       description: description || undefined,
       due_date,
       status,
-      reminder_days,
       resetReminderTiming,
     });
 
@@ -158,18 +153,15 @@ export async function updateMilestoneAction(
         if (assigneeIds.length === 0) return;
         if (existing.status === status) return;
 
-        await dispatchNotifications(
-          {
-            userIds: assigneeIds,
-            type: NotificationType.MilestoneStatusChanged,
-            title: `Milestone status changed: ${title}`,
-            message: `Milestone "${title}" status changed from ${existing.status} to ${status}`,
-            actionUrl: `/case/${existing.case_id}`,
-            caseId: existing.case_id,
-            milestoneId: existing.id,
-          },
-          session.id,
-        );
+        await notifyRecipients(session.id, {
+          userIds: assigneeIds,
+          type: NotificationType.MilestoneStatusChanged,
+          title: `Milestone status changed: ${title}`,
+          message: `Milestone "${title}" status changed from ${existing.status} to ${status}`,
+          actionUrl: `/case/${existing.case_id}`,
+          caseId: existing.case_id,
+          milestoneId: existing.id,
+        });
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }

@@ -70,7 +70,7 @@ export async function createConsultationWithClient(
       data: {
         name: data.client.name,
         email: data.client.email || undefined,
-        phone_number: data.client.phone_number || undefined,
+        phone_number: data.client.phone_number,
         address: data.client.address || undefined,
       },
     });
@@ -112,7 +112,7 @@ export async function updateConsultationWithClient(
       data: {
         name: data.client.name,
         email: data.client.email || undefined,
-        phone_number: data.client.phone_number || undefined,
+        phone_number: data.client.phone_number,
         address: data.client.address || undefined,
       },
     });
@@ -124,7 +124,6 @@ export async function updateConsultationWithClient(
         concern: data.consultation.concern,
         booking_datetime: data.consultation.booking_datetime,
         status: data.consultation.status,
-        reminder_days: data.consultation.reminder_days,
         assignee_ids: data.consultation.assignee_ids,
         resetReminderTiming: data.resetReminderTiming,
       },

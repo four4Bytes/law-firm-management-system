@@ -77,7 +77,9 @@ describe("getDocumentsPaginated", () => {
 
     expect(prisma.document.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { case_id: "c1" },
+        where: {
+          OR: [{ case_id: "c1" }, { task: { case_id: "c1" } }],
+        },
       }),
     );
   });

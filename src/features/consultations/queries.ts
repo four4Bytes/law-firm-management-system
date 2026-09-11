@@ -50,7 +50,7 @@ export type ConsultationOverviewData = {
   updated_at: Date;
   client: {
     name: string;
-    phone_number: string | null;
+    phone_number: string;
     email: string | null;
     address: string | null;
   };
@@ -214,7 +214,7 @@ export const getConsultationsPaginated = cache(
 
 export type ConsultationEditData = Pick<
   Consultation,
-  "id" | "client_id" | "concern" | "booking_datetime" | "status" | "reminder_days"
+  "id" | "client_id" | "concern" | "booking_datetime" | "status"
 > & { assignee_ids: string[] };
 
 export const getConsultationAssigneeIds = cache(
@@ -237,7 +237,6 @@ export const getConsultationEditData = cache(
         concern: true,
         booking_datetime: true,
         status: true,
-        reminder_days: true,
         consultationAssignments: {
           select: { user_id: true },
         },
@@ -252,7 +251,6 @@ export const getConsultationEditData = cache(
       concern: data.concern,
       booking_datetime: data.booking_datetime,
       status: data.status,
-      reminder_days: data.reminder_days,
       assignee_ids: data.consultationAssignments.map((a) => a.user_id),
     };
   },
@@ -279,3 +277,11 @@ export const getConsultationAccessContext = cache(
     };
   },
 );
+
+export const hasLinkedCase = cache(async (consultationId: string): Promise<boolean> => {
+  const linked = await prisma.case.findFirst({
+    where: { source_consultation_id: consultationId },
+    select: { id: true },
+  });
+  return linked !== null;
+});

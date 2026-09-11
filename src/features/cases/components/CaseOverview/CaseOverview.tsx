@@ -21,7 +21,6 @@ interface Props {
 
 const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
   Open: "info",
-  Ongoing: "warning",
   Closed: "done",
   Terminated: "danger",
   Settled: "info",
@@ -65,7 +64,7 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Phone</span>
-              <span className={styles.value}>{data.client.phone_number ?? "—"}</span>
+              <span className={styles.value}>{data.client.phone_number}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Email</span>

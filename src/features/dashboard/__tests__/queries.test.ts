@@ -42,7 +42,6 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
-  reminder_days: null,
   last_reminded_at: null,
   client: { name: "Jane Client" },
   ...overrides,
@@ -58,7 +57,6 @@ const mockMilestone = (overrides: Record<string, unknown> = {}) => ({
   created_by_user_id: "u1",
   created_at: new Date("2099-01-01"),
   updated_at: new Date("2099-01-01"),
-  reminder_days: null,
   last_reminded_at: null,
   case: { case_title: "Smith vs Jones" },
   ...overrides,
@@ -156,7 +154,7 @@ describe("getDashboardStats", () => {
         where: {
           status: "Pending",
           due_date: { lt: expect.any(Date) },
-          case: { OR: [{ caseAssignments: { some: { user_id: "uMilestones" } } }] },
+          OR: [{ case: { caseAssignments: { some: { user_id: "uMilestones" } } } }],
         },
       }),
     );
@@ -178,12 +176,10 @@ describe("getDashboardStats", () => {
         where: {
           status: "Pending",
           due_date: { lt: expect.any(Date) },
-          case: {
-            OR: [
-              { caseAssignments: { some: { user_id: "uMilestones" } } },
-              { created_by_user_id: "uMilestones" },
-            ],
-          },
+          OR: [
+            { case: { caseAssignments: { some: { user_id: "uMilestones" } } } },
+            { created_by_user_id: "uMilestones" },
+          ],
         },
       }),
     );
@@ -373,12 +369,10 @@ describe("getUpcomingMilestones", () => {
         where: {
           status: "Pending",
           due_date: { gte: expect.any(Date) },
-          case: {
-            OR: [
-              { caseAssignments: { some: { user_id: "uAssigned" } } },
-              { created_by_user_id: "uOwn" },
-            ],
-          },
+          OR: [
+            { case: { caseAssignments: { some: { user_id: "uAssigned" } } } },
+            { created_by_user_id: "uOwn" },
+          ],
         },
       }),
     );

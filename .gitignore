@@ -53,3 +53,7 @@ storybook-static
 .vscode
 
 docs
+
+.direnv/
+
+secrets/

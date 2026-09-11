@@ -83,7 +83,6 @@ const milestoneRecord = {
   due_date: new Date("2024-06-01"),
   status: "Pending" as const,
   case_id: uuid,
-  reminder_days: null,
 };
 
 const milestoneRow = {
@@ -152,7 +151,6 @@ describe("createMilestoneAction", () => {
       due_date: new Date("2024-06-01"),
       status: "Pending" as const,
       case_id: uuid,
-      reminder_days: null,
     };
 
     expect(await createMilestoneAction(payload)).toEqual({
@@ -181,7 +179,6 @@ describe("createMilestoneAction", () => {
       due_date: new Date("2024-06-01"),
       status: "Pending" as const,
       case_id: uuid,
-      reminder_days: null,
     };
 
     const result = await createMilestoneAction(payload);
@@ -233,17 +230,16 @@ describe("updateMilestoneAction", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("clears reminder_days to null without early-returning", async () => {
-    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, reminder_days: 3 });
+  it("resets reminder timing when due_date changes", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
     vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
 
     const payload = {
       milestoneId: uuid,
       title: milestoneRecord.title,
       description: undefined,
-      due_date: milestoneRecord.due_date,
+      due_date: new Date("2024-06-15"),
       status: milestoneRecord.status,
-      reminder_days: null,
     };
 
     const result = await updateMilestoneAction(payload);
@@ -251,7 +247,7 @@ describe("updateMilestoneAction", () => {
     expect(result).toEqual({ success: true });
     expect(updateMilestone).toHaveBeenCalledWith(
       uuid,
-      expect.objectContaining({ reminder_days: null, resetReminderTiming: true }),
+      expect.objectContaining({ resetReminderTiming: true }),
     );
   });
 });

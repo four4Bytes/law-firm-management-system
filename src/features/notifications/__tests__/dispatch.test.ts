@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getNotificationPreferencesByUserIds } from "@/features/settings/queries";
 import { getActiveUserIds, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { sendEmail } from "@/lib/email";
@@ -16,6 +17,11 @@ vi.mock("@/features/users/queries", () => ({
   getActiveUserIds: vi.fn(),
   getUserNameById: vi.fn().mockResolvedValue("System"),
   getUsersByIds: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/features/settings/queries", () => ({
+  getNotificationPreferencesByUserIds: vi.fn(),
+  getNotificationPreferences: vi.fn(),
 }));
 
 vi.mock("@/lib/email", () => ({
@@ -44,11 +50,54 @@ const payload = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getActiveUserIds).mockImplementation(async ({ ids }) => [...ids]);
-  vi.mocked(getUsersByIds).mockResolvedValue([
-    { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
-    { id: "u2", name: "Bob", email: "bob@aninolaw.com" },
-    { id: "u3", name: "Carol", email: "carol@aninolaw.com" },
-  ]);
+  vi.mocked(getUsersByIds).mockImplementation(async ({ ids }) => {
+    const all = [
+      { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
+      { id: "u2", name: "Bob", email: "bob@aninolaw.com" },
+      { id: "u3", name: "Carol", email: "carol@aninolaw.com" },
+    ];
+    return all.filter((u) => ids.includes(u.id));
+  });
+  vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+    new Map([
+      [
+        "u1",
+        {
+          notify_email_case_assigned: true,
+          notify_email_consultation_assigned: true,
+          notify_email_task_assigned: true,
+          notify_email_case_status_changed: true,
+          notify_email_consultation_status_changed: true,
+          notify_email_task_status_changed: true,
+          notify_email_milestone_status_changed: true,
+        },
+      ],
+      [
+        "u2",
+        {
+          notify_email_case_assigned: true,
+          notify_email_consultation_assigned: true,
+          notify_email_task_assigned: true,
+          notify_email_case_status_changed: true,
+          notify_email_consultation_status_changed: true,
+          notify_email_task_status_changed: true,
+          notify_email_milestone_status_changed: true,
+        },
+      ],
+      [
+        "u3",
+        {
+          notify_email_case_assigned: true,
+          notify_email_consultation_assigned: true,
+          notify_email_task_assigned: true,
+          notify_email_case_status_changed: true,
+          notify_email_consultation_status_changed: true,
+          notify_email_task_status_changed: true,
+          notify_email_milestone_status_changed: true,
+        },
+      ],
+    ]),
+  );
 });
 
 describe("dispatchNotifications", () => {
@@ -135,6 +184,252 @@ describe("dispatchNotifications", () => {
     await dispatchNotifications({ ...payload, type }, "u9");
 
     expect(vi.mocked(statusChangeTemplate)).toHaveBeenCalledTimes(3);
+    expect(sendEmail).toHaveBeenCalledTimes(3);
+  });
+
+  it("respects preference for CaseAssigned — only opted-in users receive notification (in-app + email in sync)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: false,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u3",
+          {
+            notify_email_case_assigned: false,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+      ]),
+    );
+
+    await dispatchNotifications({ ...payload, type: NotificationType.CaseAssigned }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
+  });
+
+  it("respects preference for ConsultationAssigned (in-app + email in sync)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: false,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications({ ...payload, type: NotificationType.ConsultationAssigned }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
+  });
+
+  it("respects preference for TaskAssigned — filters per-task toggle (in-app + email in sync)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: false,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications({ ...payload, type: NotificationType.TaskAssigned }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
+  });
+
+  it("does not filter notification for reminder types even when prefs are off (filtered at scheduler level)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: false,
+            notify_email_consultation_assigned: false,
+            notify_email_task_assigned: false,
+            notify_email_case_status_changed: false,
+            notify_email_consultation_status_changed: false,
+            notify_email_task_status_changed: false,
+            notify_email_milestone_status_changed: false,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1"]);
+    vi.mocked(getUsersByIds).mockResolvedValue([
+      { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
+    ]);
+
+    await dispatchNotifications({ ...payload, type: NotificationType.ConsultationReminder }, "u9");
+
+    expect(getNotificationPreferencesByUserIds).not.toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects preference for CaseStatusChanged — only opted-in users receive notification (in-app + email in sync)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: false,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+    vi.mocked(getUsersByIds).mockImplementation(async ({ ids }: { ids: string[] }) => {
+      const all = [
+        { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
+        { id: "u2", name: "Bob", email: "bob@aninolaw.com" },
+      ];
+      return all.filter((u) => ids.includes(u.id));
+    });
+
+    await dispatchNotifications({ ...payload, type: NotificationType.CaseStatusChanged }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
+  });
+
+  it("respects preference for TaskStatusChanged — filters per-task status toggle", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: false,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications({ ...payload, type: NotificationType.TaskStatusChanged }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to sending to all when preference lookup fails (in-app + email)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockRejectedValue(new Error("db down"));
+
+    await dispatchNotifications({ ...payload, type: NotificationType.CaseAssigned }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: ["u1", "u2", "u3"] }),
+    );
     expect(sendEmail).toHaveBeenCalledTimes(3);
   });
 });

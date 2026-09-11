@@ -48,7 +48,6 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
-  reminder_days: null,
   last_reminded_at: null,
   client: { name: "Jane Client" },
   createdBy: { name: "John Lawyer" },
@@ -243,7 +242,6 @@ describe("getConsultationOverviewById", () => {
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
-    reminder_days: null,
     last_reminded_at: null,
     client: {
       id: "c1",
@@ -514,7 +512,6 @@ describe("getConsultationEditData", () => {
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
-    reminder_days: null,
     last_reminded_at: null,
     consultationAssignments: [{ user_id: "u1" }],
   };
@@ -539,7 +536,6 @@ describe("getConsultationEditData", () => {
         concern: true,
         booking_datetime: true,
         status: true,
-        reminder_days: true,
         consultationAssignments: {
           select: { user_id: true },
         },

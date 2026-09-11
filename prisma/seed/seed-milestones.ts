@@ -10,7 +10,6 @@ interface MilestoneData {
   daysFromNow: number;
   createdByEmail: string;
   notifyEmails: string[];
-  reminderDays?: number;
   lastRemindedDaysAgo?: number;
   suppressOverdue?: boolean;
 }
@@ -387,7 +386,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: -2,
     createdByEmail: "david.tan@aninolaw.com",
     notifyEmails: ["david.tan@aninolaw.com", "catherine.diaz@aninolaw.com"],
-    reminderDays: 3,
     suppressOverdue: true,
   },
   {
@@ -410,7 +408,6 @@ const milestones: MilestoneData[] = [
     daysFromNow: 2,
     createdByEmail: "marco.lopez@aninolaw.com",
     notifyEmails: ["marco.lopez@aninolaw.com"],
-    reminderDays: 3,
   },
 ];
 
@@ -439,7 +436,6 @@ export async function seedMilestones(
         due_date: dueDate,
         status: m.status,
         created_by_user_id: userByEmail[m.createdByEmail],
-        reminder_days: m.reminderDays ?? null,
         last_reminded_at: lastRemindedAt,
       },
     });

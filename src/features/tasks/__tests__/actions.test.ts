@@ -240,7 +240,7 @@ describe("createTaskAction", () => {
     });
   });
 
-  it("creates a task without dispatching a notification", async () => {
+  it("dispatches TaskAssigned to the initial assignees on creation", async () => {
     vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
     vi.mocked(createTask).mockResolvedValue({ id: "t1" });
 
@@ -253,7 +253,15 @@ describe("createTaskAction", () => {
 
     expect(result).toEqual({ success: true, data: { id: "t1" } });
     await flushAfterCallbacks();
-    expect(dispatchNotifications).not.toHaveBeenCalled();
+
+    expect(dispatchNotifications).toHaveBeenCalledTimes(1);
+    const [payload, actorUserId] = vi.mocked(dispatchNotifications).mock.calls[0];
+    expect(payload.type).toBe(NotificationType.TaskAssigned);
+    expect(payload.userIds).toEqual([uuid]);
+    expect(actorUserId).toBe("u2");
+    expect(payload.actionUrl).toBe(`/case/${uuid}`);
+    expect(payload.caseId).toBe(uuid);
+    expect(payload.taskId).toBe("t1");
   });
 });
 
@@ -363,6 +371,26 @@ describe("updateTaskAction notification split", () => {
 
     const types = vi.mocked(dispatchNotifications).mock.calls.map(([payload]) => payload.type);
     expect(types).toEqual([NotificationType.TaskAssigned]);
+  });
+
+  it("excludes a new assignee who is already a reviewer", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      taskAssignments: [{ user_id: assignee1, user: { name: "n2" }, status: "Pending" as const }],
+      taskReviewers: [
+        { id: "tr2", reviewer_user_id: assignee2, decision: "Pending" as const, reviewed_at: null },
+      ],
+    });
+
+    await updateTaskAction({
+      taskId: uuid,
+      title: "Renamed",
+      description: undefined,
+      assignee_ids: [assignee1, assignee2],
+    });
+    await flushAfterCallbacks();
+
+    expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 });
 
@@ -542,6 +570,26 @@ describe("addTaskReviewerAction", () => {
     const result = await addTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid });
     expect(result).toEqual({ success: true });
     expect(addTaskReviewer).toHaveBeenCalledWith(uuid, uuid);
+  });
+
+  it("does not dispatch a notification when the reviewer is already an assignee", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Pending" as const }],
+      taskReviewers: [],
+    });
+    vi.mocked(addTaskReviewer).mockResolvedValue({ id: uuid });
+
+    await addTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid });
+    await flushAfterCallbacks();
+
+    expect(addTaskReviewer).toHaveBeenCalledWith(uuid, uuid);
+    expect(dispatchNotifications).not.toHaveBeenCalled();
   });
 });
 

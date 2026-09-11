@@ -94,7 +94,7 @@ export function EditConsultationModal({
         client: {
           name: requiredString(clientName),
           email: optionalString(clientEmail),
-          phone_number: optionalString(clientPhone),
+          phone_number: requiredString(clientPhone),
           address: optionalString(clientAddress),
         },
         consultation: {
@@ -149,7 +149,7 @@ export function EditConsultationModal({
       client: {
         name: requiredString(clientName),
         email: optionalString(clientEmail),
-        phone_number: optionalString(clientPhone),
+        phone_number: requiredString(clientPhone),
         address: optionalString(clientAddress),
       },
       consultation: {
@@ -229,7 +229,7 @@ export function EditConsultationModal({
                 label="Phone"
                 value={clientPhone}
                 onChange={setClientPhone}
-                placeholder="Optional"
+                placeholder="Required"
                 validate={createFieldValidator(
                   ConsultationWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
                 )}

@@ -17,7 +17,7 @@ const cases: CaseData[] = [
     clientEmail: "juan.delacruz@email.com",
     title: "Dela Cruz Property Title Transfer",
     type: "Real Estate",
-    status: "Ongoing",
+    status: "Open",
     createdByEmail: "catherine.diaz@aninolaw.com",
     sourceConsultationClientEmail: "juan.delacruz@email.com",
     partiesInvolved: "Juan M. Dela Cruz (Buyer), Nuvali Development Corp. (Seller)",
@@ -27,7 +27,7 @@ const cases: CaseData[] = [
     clientEmail: "maria.gonzales@email.com",
     title: "Gonzales Legal Separation",
     type: "Family Law",
-    status: "Ongoing",
+    status: "Open",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     sourceConsultationClientEmail: "maria.gonzales@email.com",
     partiesInvolved: "Maria G. Gonzales (Petitioner), Ricardo Gonzales (Respondent)",
@@ -81,8 +81,8 @@ const cases: CaseData[] = [
     clientEmail: "antonio.lopez@email.com",
     title: "Lopez Property Boundary Litigation",
     type: "Civil Litigation",
-    status: "Ongoing",
-    createdByEmail: "maria.anino@aninolaw.com",
+    status: "Open",
+    createdByEmail: "marco.lopez@aninolaw.com",
     partiesInvolved: "Antonio S. Lopez (Plaintiff), Felipe Dimagiba (Defendant)",
     assigneeEmails: [
       "marco.lopez@aninolaw.com",
@@ -103,7 +103,7 @@ const cases: CaseData[] = [
     clientEmail: "danilo.fernandez@email.com",
     title: "Fernandez Criminal Defense — Estafa Case",
     type: "Criminal",
-    status: "Ongoing",
+    status: "Open",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     partiesInvolved: "Danilo S. Fernandez (Accused), People of the Philippines",
     assigneeEmails: ["ricardo.guevarra@aninolaw.com", "nina.salvador@aninolaw.com"],
@@ -112,7 +112,7 @@ const cases: CaseData[] = [
     clientEmail: "lily.castillo@email.com",
     title: "Castillo Illegal Dismissal Complaint",
     type: "Civil Litigation",
-    status: "Ongoing",
+    status: "Open",
     createdByEmail: "miguel.cruz@aninolaw.com",
     partiesInvolved: "Lily M. Castillo (Complainant), Jollibee Foods Corp. (Respondent)",
     assigneeEmails: ["miguel.cruz@aninolaw.com", "jessica.lim@aninolaw.com"],
@@ -148,7 +148,7 @@ const cases: CaseData[] = [
     clientEmail: "catherine.santos@email.com",
     title: "Santos Foreclosure Defense",
     type: "Family Law",
-    status: "Ongoing",
+    status: "Open",
     createdByEmail: "marco.lopez@aninolaw.com",
     partiesInvolved: "Catherine P. Santos (Homeowner), BPI Family Bank (Creditor)",
     assigneeEmails: ["marco.lopez@aninolaw.com", "nina.salvador@aninolaw.com"],
@@ -184,15 +184,21 @@ export async function seedCases(
   for (const c of cases) {
     const caseRecord = await prisma.case.create({
       data: {
-        client_id: clientByEmail[c.clientEmail],
+        client: { connect: { id: clientByEmail[c.clientEmail] } },
+        createdBy: { connect: { id: userByEmail[c.createdByEmail]! } },
         case_title: c.title,
         case_type: c.type,
         status: c.status,
-        created_by_user_id: userByEmail[c.createdByEmail],
         parties_involved: c.partiesInvolved,
-        source_consultation_id: c.sourceConsultationClientEmail
-          ? (conByClientEmail.get(c.sourceConsultationClientEmail) ?? null)
-          : null,
+        ...(c.sourceConsultationClientEmail
+          ? {
+              sourceConsultation: {
+                connect: {
+                  id: conByClientEmail.get(c.sourceConsultationClientEmail)!,
+                },
+              },
+            }
+          : {}),
       },
     });
     created.push({ id: caseRecord.id, title: c.title });
@@ -201,7 +207,7 @@ export async function seedCases(
       await prisma.caseAssignment.create({
         data: {
           case_id: caseRecord.id,
-          user_id: userByEmail[assigneeEmail],
+          user_id: userByEmail[assigneeEmail]!,
         },
       });
     }

@@ -42,9 +42,12 @@ export const getDocumentsPaginated = cache(
     nextCursor: string | null;
   }> => {
     const where: Record<string, unknown> = {};
-    if (caseId) where.case_id = caseId;
-    if (consultationId) where.consultation_id = consultationId;
-    if (taskId) where.task_id = taskId;
+    if (caseId) {
+      where.OR = [{ case_id: caseId }, { task: { case_id: caseId } }];
+    } else {
+      if (consultationId) where.consultation_id = consultationId;
+      if (taskId) where.task_id = taskId;
+    }
     if (search) {
       where.file_name = { contains: search, mode: "insensitive" as const };
     }

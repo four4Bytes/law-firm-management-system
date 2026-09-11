@@ -66,7 +66,7 @@ export async function createCaseWithClient(
       data: {
         name: data.client.name,
         email: data.client.email || undefined,
-        phone_number: data.client.phone_number || undefined,
+        phone_number: data.client.phone_number,
         address: data.client.address || undefined,
       },
     });
@@ -104,7 +104,7 @@ export async function updateCaseWithClient(
       data: {
         name: data.client.name,
         email: data.client.email ?? null,
-        phone_number: data.client.phone_number ?? null,
+        phone_number: data.client.phone_number,
         address: data.client.address ?? null,
       },
     });

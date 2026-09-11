@@ -26,7 +26,6 @@ enum ConsultationStatus {
 
 enum CaseStatus {
   Open
-  Ongoing
   Closed
   Terminated
   Settled
@@ -77,6 +76,11 @@ enum PaymentStatus {
   Refunded
 }
 
+enum ReminderFrequency {
+  KeyDays
+  Daily
+}
+
 model Account {
   id                String  @id @default(uuid()) @db.Uuid
   userId            String  @map("user_id") @db.Uuid
@@ -124,9 +128,33 @@ model User {
   caseMilestones          CaseMilestone[]
   auditLogs               AuditLog[]
   taskReviewsAssigned     TaskReviewer[]           @relation("ReviewerUser")
+  settings                UserSettings?
 
   @@index([is_active])
   @@index([created_at])
+}
+
+model UserSettings {
+  user_id                                  String            @id @db.Uuid
+  notify_email_case_assigned               Boolean           @default(true)
+  notify_email_consultation_assigned       Boolean           @default(true)
+  notify_email_task_assigned               Boolean           @default(true)
+  notify_email_case_status_changed         Boolean           @default(true)
+  notify_email_consultation_status_changed Boolean           @default(true)
+  notify_email_task_status_changed         Boolean           @default(true)
+  notify_email_milestone_status_changed    Boolean           @default(true)
+  consultation_reminder_days               Int               @default(3)
+  consultation_reminder_frequency          ReminderFrequency @default(KeyDays)
+  consultation_notify_overdue              Boolean           @default(true)
+  milestone_reminder_days                  Int               @default(5)
+  milestone_reminder_frequency             ReminderFrequency @default(KeyDays)
+  milestone_notify_overdue                 Boolean           @default(true)
+  created_at                               DateTime          @default(now())
+  updated_at                               DateTime          @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 model Client {
@@ -134,7 +162,7 @@ model Client {
   name         String
   address      String?
   email        String?
-  phone_number String?
+  phone_number String
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
@@ -151,7 +179,6 @@ model Consultation {
   status             ConsultationStatus
   created_at         DateTime           @default(now())
   updated_at         DateTime           @updatedAt
-  reminder_days      Int?
   last_reminded_at   DateTime?
 
   client                  Client                   @relation(fields: [client_id], references: [id])
@@ -282,7 +309,6 @@ model CaseMilestone {
   created_by_user_id String              @db.Uuid
   created_at         DateTime            @default(now())
   updated_at         DateTime            @updatedAt
-  reminder_days      Int?
   last_reminded_at   DateTime?
 
   case          Case           @relation(fields: [case_id], references: [id], onDelete: Cascade)

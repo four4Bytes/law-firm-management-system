@@ -38,6 +38,9 @@ jobs:
       - name: Build Storybook
         run: BASE_URL=/law-firm-management-system/ pnpm build-storybook
 
+      - name: Disable Jekyll
+        run: touch storybook-static/.nojekyll
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:

@@ -2,13 +2,18 @@ name: CI & Release
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   ci:
@@ -49,7 +54,7 @@ jobs:
 
   release:
     needs: ci
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.calver.outputs.tag }}
@@ -80,39 +85,52 @@ jobs:
             PATCH=$(( ${LAST##*.} + 1 ))
           fi
           TAG="${DATE_TAG}.${PATCH}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping release"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Sync package.json version
-        if: steps.calver.outputs.version != ''
-        env:
-          VERSION: ${{ steps.calver.outputs.version }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          npm pkg set version="$VERSION"
-          git add package.json
-          git commit -m "chore: bump package.json to $VERSION [skip ci]"
-
-      - name: Push version sync commit
-        if: steps.calver.outputs.version != ''
-        run: git push
-
       - name: Create CalVer tag and release
-        if: steps.calver.outputs.version != ''
+        if: steps.calver.outputs.tag != ''
         env:
-          GH_TOKEN: ${{ steps.bot-token.outputs.token }} # Use the bot token here
+          GH_TOKEN: ${{ steps.bot-token.outputs.token }}
           TAG: ${{ steps.calver.outputs.tag }}
         run: |
           COMMIT_SHA=$(git rev-parse HEAD)
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="$TAG" \
+              -f target_commitish="main" \
+              -f previous_tag_name="$PREV_TAG" \
+              --jq .body > /tmp/body.md
+          else
+            gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="$TAG" \
+              -f target_commitish="main" \
+              --jq .body > /tmp/body.md
+          fi
 
-          # Fetch the native release notes targeting the "dev" branch (finds feature -> dev PRs)
-          gh api repos/${{ github.repository }}/releases/generate-notes \
-            -f tag_name="$TAG" \
-            -f target_commitish="dev" \
-            --jq .body > changelog.md
+          {
+            cat <<'HDR'
+          # Law Firm Management System
 
-          # Create the release on "main" targeting the resolved main commit SHA
+          A web-based case management system developed as our school mini-capstone project.
+
+          Links:
+
+          - Main App: [https://law-firm-management-system.r4ppz.dev](https://law-firm-management-system.r4ppz.dev)
+          - Stories: [https://four4bytes.github.io/law-firm-management-system](https://four4bytes.github.io/law-firm-management-system)
+          - Documentation: [https://github.com/four4Bytes/law-firm-management-system/tree/main/documentation](https://github.com/four4Bytes/law-firm-management-system/tree/main/documentation)
+
+          HDR
+            cat /tmp/body.md
+          } > changelog.md
+
           gh release create "$TAG" \
             --notes-file changelog.md \
             --target "$COMMIT_SHA" \
@@ -120,7 +138,7 @@ jobs:
 
   docker:
     needs: release
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.release.outputs.tag != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read

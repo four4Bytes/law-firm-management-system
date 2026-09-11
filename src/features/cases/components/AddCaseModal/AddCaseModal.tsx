@@ -103,7 +103,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
       client: {
         name: requiredString(name),
         email: optionalString(email),
-        phone_number: optionalString(phone),
+        phone_number: requiredString(phone),
         address: optionalString(address),
       },
       case: {
@@ -145,7 +145,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
               label="Phone"
               value={phone}
               onChange={(v) => setClientField("phone", v)}
-              placeholder="Optional"
+              placeholder="Required"
               validate={createFieldValidator(
                 CaseWithClientCreatePayloadSchema.shape.client.shape.phone_number,
               )}

@@ -8,6 +8,7 @@ import {
   getCaseEditData,
   getCaseMilestonesPaginated,
   getCaseNotesPaginated,
+  getCaseNotesWithTaskNotesPaginated,
   getCaseOverviewById,
   getCasesPaginated,
   getCaseTasksPaginated,
@@ -526,6 +527,77 @@ describe("getCaseNotesPaginated", () => {
     const result = await getCaseNotesPaginated({ caseId: "1" });
 
     expect(result.rows).toEqual([]);
+  });
+});
+
+describe("getCaseNotesWithTaskNotesPaginated", () => {
+  const mockNote = (overrides: Record<string, unknown> = {}) => ({
+    id: "n1",
+    content: "Client called about the case",
+    case_id: "1",
+    consultation_id: null,
+    task_id: null,
+    created_by_user_id: "u1",
+    created_at: new Date("2024-06-01"),
+    updated_at: new Date("2024-06-01"),
+    createdBy: { name: "Bob Lawyer" },
+    ...overrides,
+  });
+
+  it("returns mapped note rows including task notes", async () => {
+    const notes = [
+      mockNote({ id: "n1", content: "Case note 1", case_id: "1", task_id: null }),
+      mockNote({
+        id: "n2",
+        content: "Task note 1",
+        case_id: null,
+        task_id: "t1",
+        task: { id: "t1", case_id: "1" },
+      }),
+    ];
+    vi.mocked(prisma.note.findMany).mockResolvedValue(notes);
+
+    const result = await getCaseNotesWithTaskNotesPaginated({ caseId: "1", pageSize: 10 });
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]).toEqual({
+      id: "n1",
+      content: "Case note 1",
+      author: "Bob Lawyer",
+      created_at: notes[0].created_at,
+    });
+    expect(prisma.note.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [{ case_id: "1" }, { task: { case_id: "1" } }],
+        },
+        orderBy: [{ created_at: "desc" }, { id: "asc" }],
+      }),
+    );
+  });
+
+  it("filters by search term", async () => {
+    vi.mocked(prisma.note.findMany).mockResolvedValue([mockNote()]);
+
+    await getCaseNotesWithTaskNotesPaginated({ caseId: "1", search: "evidence" });
+
+    expect(prisma.note.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [{ case_id: "1" }, { task: { case_id: "1" } }],
+          content: { contains: "evidence", mode: "insensitive" },
+        },
+      }),
+    );
+  });
+
+  it("returns empty when none exist", async () => {
+    vi.mocked(prisma.note.findMany).mockResolvedValue([]);
+
+    const result = await getCaseNotesWithTaskNotesPaginated({ caseId: "1" });
+
+    expect(result.rows).toEqual([]);
+    expect(result.nextCursor).toBeNull();
   });
 });
 

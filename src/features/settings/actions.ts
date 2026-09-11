@@ -6,9 +6,12 @@ import { actionInvalid, type ActionStatusResponse } from "@/lib/action-response"
 import { requireAuth } from "@/lib/auth-guards";
 import { toActionResponse } from "@/lib/errors";
 
-import { upsertNotificationPreferences } from "./mutations";
-import { getNotificationPreferences } from "./queries";
-import { UpdateNotificationPreferencesSchema } from "./schemas";
+import { upsertDeadlineReminderPreferences, upsertNotificationPreferences } from "./mutations";
+import { getDeadlineReminderPreferences, getNotificationPreferences } from "./queries";
+import {
+  UpdateDeadlineReminderScheduleSchema,
+  UpdateNotificationPreferencesSchema,
+} from "./schemas";
 
 export async function getNotificationPreferencesAction(): Promise<{
   notify_email_case_assigned: boolean;
@@ -31,6 +34,39 @@ export async function updateNotificationPreferencesAction(
     }
 
     await upsertNotificationPreferences(session.id, parsed.data);
+
+    revalidatePath("/settings");
+
+    return { success: true };
+  } catch (error) {
+    return toActionResponse(error, "update notification preferences");
+  }
+}
+
+export async function getDeadlineReminderPreferencesAction(): Promise<{
+  consultation_reminder_days: number;
+  consultation_reminder_frequency: "KeyDays" | "Daily";
+  consultation_notify_overdue: boolean;
+  milestone_reminder_days: number;
+  milestone_reminder_frequency: "KeyDays" | "Daily";
+  milestone_notify_overdue: boolean;
+}> {
+  const session = await requireAuth();
+  return getDeadlineReminderPreferences(session.id);
+}
+
+export async function updateDeadlineReminderPreferencesAction(
+  payload: unknown,
+): Promise<ActionStatusResponse> {
+  try {
+    const session = await requireAuth();
+
+    const parsed = UpdateDeadlineReminderScheduleSchema.safeParse(payload);
+    if (!parsed.success) {
+      return actionInvalid("settings");
+    }
+
+    await upsertDeadlineReminderPreferences(session.id, parsed.data);
 
     revalidatePath("/settings");
 

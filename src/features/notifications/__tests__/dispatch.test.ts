@@ -66,6 +66,10 @@ beforeEach(() => {
           notify_email_case_assigned: true,
           notify_email_consultation_assigned: true,
           notify_email_task_assigned: true,
+          notify_email_case_status_changed: true,
+          notify_email_consultation_status_changed: true,
+          notify_email_task_status_changed: true,
+          notify_email_milestone_status_changed: true,
         },
       ],
       [
@@ -74,6 +78,10 @@ beforeEach(() => {
           notify_email_case_assigned: true,
           notify_email_consultation_assigned: true,
           notify_email_task_assigned: true,
+          notify_email_case_status_changed: true,
+          notify_email_consultation_status_changed: true,
+          notify_email_task_status_changed: true,
+          notify_email_milestone_status_changed: true,
         },
       ],
       [
@@ -82,6 +90,10 @@ beforeEach(() => {
           notify_email_case_assigned: true,
           notify_email_consultation_assigned: true,
           notify_email_task_assigned: true,
+          notify_email_case_status_changed: true,
+          notify_email_consultation_status_changed: true,
+          notify_email_task_status_changed: true,
+          notify_email_milestone_status_changed: true,
         },
       ],
     ]),
@@ -184,6 +196,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: false,
             notify_email_consultation_assigned: true,
             notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
           },
         ],
         [
@@ -192,6 +208,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: true,
             notify_email_consultation_assigned: true,
             notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
           },
         ],
         [
@@ -200,6 +220,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: false,
             notify_email_consultation_assigned: true,
             notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
           },
         ],
       ]),
@@ -221,6 +245,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: true,
             notify_email_consultation_assigned: false,
             notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
           },
         ],
         [
@@ -229,6 +257,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: true,
             notify_email_consultation_assigned: true,
             notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
           },
         ],
       ]),
@@ -251,6 +283,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: true,
             notify_email_consultation_assigned: true,
             notify_email_task_assigned: false,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
           },
         ],
         [
@@ -259,6 +295,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: true,
             notify_email_consultation_assigned: true,
             notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
           },
         ],
       ]),
@@ -272,7 +312,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
   });
 
-  it("does not filter notification for non-assignment types even when assignment prefs are off", async () => {
+  it("does not filter notification for reminder types even when prefs are off (filtered at scheduler level)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -281,6 +321,10 @@ describe("dispatchNotifications", () => {
             notify_email_case_assigned: false,
             notify_email_consultation_assigned: false,
             notify_email_task_assigned: false,
+            notify_email_case_status_changed: false,
+            notify_email_consultation_status_changed: false,
+            notify_email_task_status_changed: false,
+            notify_email_milestone_status_changed: false,
           },
         ],
       ]),
@@ -290,9 +334,91 @@ describe("dispatchNotifications", () => {
       { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
     ]);
 
-    await dispatchNotifications({ ...payload, type: NotificationType.CaseStatusChanged }, "u9");
+    await dispatchNotifications({ ...payload, type: NotificationType.ConsultationReminder }, "u9");
 
     expect(getNotificationPreferencesByUserIds).not.toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects preference for CaseStatusChanged — only opted-in users receive notification (in-app + email in sync)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: false,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+    vi.mocked(getUsersByIds).mockImplementation(async ({ ids }: { ids: string[] }) => {
+      const all = [
+        { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
+        { id: "u2", name: "Bob", email: "bob@aninolaw.com" },
+      ];
+      return all.filter((u) => ids.includes(u.id));
+    });
+
+    await dispatchNotifications({ ...payload, type: NotificationType.CaseStatusChanged }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
+  });
+
+  it("respects preference for TaskStatusChanged — filters per-task status toggle", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: false,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications({ ...payload, type: NotificationType.TaskStatusChanged }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 

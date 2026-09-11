@@ -43,6 +43,10 @@ describe("getNotificationPreferencesAction", () => {
       notify_email_case_assigned: true,
       notify_email_consultation_assigned: false,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: false,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: false,
     });
 
     const result = await getNotificationPreferencesAction();
@@ -51,6 +55,10 @@ describe("getNotificationPreferencesAction", () => {
       notify_email_case_assigned: true,
       notify_email_consultation_assigned: false,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: false,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: false,
     });
     expect(getNotificationPreferences).toHaveBeenCalledWith("user-1");
   });
@@ -91,6 +99,10 @@ describe("updateNotificationPreferencesAction", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
     });
 
     const result = await updateNotificationPreferencesAction({ notify_email_case_assigned: false });
@@ -107,6 +119,10 @@ describe("updateNotificationPreferencesAction", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: false,
       notify_email_task_assigned: false,
+      notify_email_case_status_changed: false,
+      notify_email_consultation_status_changed: false,
+      notify_email_task_status_changed: false,
+      notify_email_milestone_status_changed: false,
     });
 
     const result = await updateNotificationPreferencesAction({
@@ -118,6 +134,27 @@ describe("updateNotificationPreferencesAction", () => {
     expect(upsertNotificationPreferences).toHaveBeenCalledWith("user-1", {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: false,
+    });
+  });
+
+  it("updates a status-change preference", async () => {
+    vi.mocked(upsertNotificationPreferences).mockResolvedValue({
+      notify_email_case_assigned: true,
+      notify_email_consultation_assigned: true,
+      notify_email_task_assigned: true,
+      notify_email_case_status_changed: false,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
+    });
+
+    const result = await updateNotificationPreferencesAction({
+      notify_email_case_status_changed: false,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(upsertNotificationPreferences).toHaveBeenCalledWith("user-1", {
+      notify_email_case_status_changed: false,
     });
   });
 

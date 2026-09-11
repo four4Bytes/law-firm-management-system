@@ -67,7 +67,13 @@ export async function dispatchNotifications(
     payload.type === NotificationType.ConsultationAssigned ||
     payload.type === NotificationType.TaskAssigned;
 
-  if (isAssignmentType) {
+  const isStatusChangeType =
+    payload.type === NotificationType.CaseStatusChanged ||
+    payload.type === NotificationType.ConsultationStatusChanged ||
+    payload.type === NotificationType.TaskStatusChanged ||
+    payload.type === NotificationType.MilestoneStatusChanged;
+
+  if (isAssignmentType || isStatusChangeType) {
     try {
       const prefsMap = await getNotificationPreferencesByUserIds(userIds);
       const allowed = new Set(
@@ -77,7 +83,17 @@ export async function dispatchNotifications(
               return prefs.notify_email_case_assigned;
             if (payload.type === NotificationType.ConsultationAssigned)
               return prefs.notify_email_consultation_assigned;
-            return prefs.notify_email_task_assigned;
+            if (payload.type === NotificationType.TaskAssigned)
+              return prefs.notify_email_task_assigned;
+            if (payload.type === NotificationType.CaseStatusChanged)
+              return prefs.notify_email_case_status_changed;
+            if (payload.type === NotificationType.ConsultationStatusChanged)
+              return prefs.notify_email_consultation_status_changed;
+            if (payload.type === NotificationType.TaskStatusChanged)
+              return prefs.notify_email_task_status_changed;
+            if (payload.type === NotificationType.MilestoneStatusChanged)
+              return prefs.notify_email_milestone_status_changed;
+            return false;
           })
           .map(([userId]) => userId),
       );

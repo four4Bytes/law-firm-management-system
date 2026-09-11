@@ -23,13 +23,13 @@ All notifications pass through `dispatchNotifications(payload, actorUserId, noti
 1. **Actor exclusion** — the actor is removed from recipients unless `notifyActor` is `true`.
 2. **Active users only** — deactivated users never receive anything.
 3. **Deduplication** — duplicate IDs are collapsed.
-4. **Preference gate (in-app + email in sync)** — assignment types (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) consult `UserSettings` (`notify_email_*_assigned`, edited at `/settings`). Disabled users are removed **before** the DB row is created, so they receive no in-app row and no email. All other types (status changes) always notify. Preference lookup is best-effort — a DB failure falls back to notifying all recipients and is logged.
-5. **Database row** — one `is_read = false` row per remaining recipient. For assignments/milestones/consultations, rows are only created for opted-in users; for other types, one per recipient.
+4. **Preference gate (in-app + email in sync)** — assignment types (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) consult `UserSettings` (`notify_email_*_assigned`, edited at `/settings` under “Assignments”); status-change types (`CaseStatusChanged`, `ConsultationStatusChanged`, `TaskStatusChanged`, `MilestoneStatusChanged`) consult `notify_email_*_status_changed` (under “Status changes”). Disabled users are removed **before** the DB row is created, so they receive no in-app row and no email. Reminder types (`ConsultationReminder`/`Overdue`, `MilestoneDueSoon`/`Overdue`) are not gated here — they are filtered per-user by the scheduler via `UserSettings` frequency/overdue prefs. Preference lookup is best-effort — a DB failure falls back to notifying all recipients and is logged.
+5. **Database row** — one `is_read = false` row per remaining recipient. For assignments and status changes, rows are only created for opted-in users; for reminders, one per per-user-filtered recipient.
 6. **Email** — per remaining recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
 
 Payload: `userIds`, `type`, `title`, `message`, optional `actionUrl`, and related `caseId` / `consultationId` / `milestoneId` / `taskId`.
 
-> Notification preferences are edited at `/settings` by any authenticated user via `src/features/settings/` (`UserSettings` row, defaults all `true`). For assignments and deadline reminders, preferences gate **both** email and in-app — the two channels are always in sync.
+> Notification preferences are edited at `/settings` by any authenticated user via `src/features/settings/` (`UserSettings` row, defaults all `true`). For assignments, status changes, and deadline reminders, preferences gate **both** email and in-app — the two channels are always in sync. Assignment and status-change prefs live under “Notifications” (grouped “Assignments” / “Status changes”); reminder prefs under “Deadline & reminder schedule”.
 
 ---
 

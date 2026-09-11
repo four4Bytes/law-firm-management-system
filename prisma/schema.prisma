@@ -135,18 +135,22 @@ model User {
 }
 
 model UserSettings {
-  user_id                            String            @id @db.Uuid
-  notify_email_case_assigned         Boolean           @default(true)
-  notify_email_consultation_assigned Boolean           @default(true)
-  notify_email_task_assigned         Boolean           @default(true)
-  consultation_reminder_days         Int               @default(3)
-  consultation_reminder_frequency    ReminderFrequency @default(KeyDays)
-  consultation_notify_overdue        Boolean           @default(true)
-  milestone_reminder_days            Int               @default(5)
-  milestone_reminder_frequency       ReminderFrequency @default(KeyDays)
-  milestone_notify_overdue           Boolean           @default(true)
-  created_at                         DateTime          @default(now())
-  updated_at                         DateTime          @updatedAt
+  user_id                                  String            @id @db.Uuid
+  notify_email_case_assigned               Boolean           @default(true)
+  notify_email_consultation_assigned       Boolean           @default(true)
+  notify_email_task_assigned               Boolean           @default(true)
+  notify_email_case_status_changed         Boolean           @default(true)
+  notify_email_consultation_status_changed Boolean           @default(true)
+  notify_email_task_status_changed         Boolean           @default(true)
+  notify_email_milestone_status_changed    Boolean           @default(true)
+  consultation_reminder_days               Int               @default(3)
+  consultation_reminder_frequency          ReminderFrequency @default(KeyDays)
+  consultation_notify_overdue              Boolean           @default(true)
+  milestone_reminder_days                  Int               @default(5)
+  milestone_reminder_frequency             ReminderFrequency @default(KeyDays)
+  milestone_notify_overdue                 Boolean           @default(true)
+  created_at                               DateTime          @default(now())
+  updated_at                               DateTime          @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 

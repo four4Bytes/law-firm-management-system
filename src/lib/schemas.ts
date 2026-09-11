@@ -25,7 +25,7 @@ export const LimitSchema = z.coerce.number().int().min(1).max(100).optional();
 export const ClientDataSchema = z.object({
   name: requiredText(255, "Client name"),
   email: emailText("Email").optional(),
-  phone_number: optionalText(50, "Phone number"),
+  phone_number: requiredText(50, "Phone number"),
   address: optionalText(500, "Address"),
 });
 

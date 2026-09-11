@@ -53,3 +53,5 @@ storybook-static
 .vscode
 
 docs
+
+.direnv/

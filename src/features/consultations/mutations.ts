@@ -70,7 +70,7 @@ export async function createConsultationWithClient(
       data: {
         name: data.client.name,
         email: data.client.email || undefined,
-        phone_number: data.client.phone_number || undefined,
+        phone_number: data.client.phone_number,
         address: data.client.address || undefined,
       },
     });
@@ -112,7 +112,7 @@ export async function updateConsultationWithClient(
       data: {
         name: data.client.name,
         email: data.client.email || undefined,
-        phone_number: data.client.phone_number || undefined,
+        phone_number: data.client.phone_number,
         address: data.client.address || undefined,
       },
     });

@@ -50,7 +50,7 @@ export type ConsultationOverviewData = {
   updated_at: Date;
   client: {
     name: string;
-    phone_number: string | null;
+    phone_number: string;
     email: string | null;
     address: string | null;
   };

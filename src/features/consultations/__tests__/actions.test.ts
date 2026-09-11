@@ -435,7 +435,7 @@ describe("authorization guards for non-Admin users", () => {
   const updateWithClientPayload = {
     consultation_id: uuid,
     client_id: uuid,
-    client: { name: "John Doe" },
+    client: { name: "John Doe", phone_number: "09170000001" },
     consultation: {
       concern: "Legal advice",
       booking_datetime: "2024-06-01T10:00:00.000Z",
@@ -445,7 +445,7 @@ describe("authorization guards for non-Admin users", () => {
 
   const createWithClientPayload = {
     client_id: uuid,
-    client: { name: "John Doe" },
+    client: { name: "John Doe", phone_number: "09170000001" },
     consultation: {
       concern: "Legal advice",
       booking_datetime: "2024-06-01T10:00:00.000Z",
@@ -570,7 +570,7 @@ describe("updateConsultationAction notification split", () => {
     await updateConsultationWithClientAction({
       consultation_id: uuid,
       client_id: uuid,
-      client: { name: "John Doe" },
+      client: { name: "John Doe", phone_number: "09170000001" },
       consultation: {
         concern: "Legal advice",
         booking_datetime: "2024-06-01T10:00:00.000Z",
@@ -611,7 +611,7 @@ describe("updateConsultationAction notification split", () => {
     await updateConsultationWithClientAction({
       consultation_id: uuid,
       client_id: uuid,
-      client: { name: "John Doe" },
+      client: { name: "John Doe", phone_number: "09170000001" },
       consultation: {
         concern: "Legal advice",
         booking_datetime: "2024-06-01T10:00:00.000Z",

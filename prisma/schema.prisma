@@ -26,7 +26,6 @@ enum ConsultationStatus {
 
 enum CaseStatus {
   Open
-  Ongoing
   Closed
   Terminated
   Settled
@@ -134,7 +133,7 @@ model Client {
   name         String
   address      String?
   email        String?
-  phone_number String?
+  phone_number String
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 

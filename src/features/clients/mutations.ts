@@ -9,7 +9,7 @@ export async function createClient(
     data: {
       name: data.name,
       email: data.email || undefined,
-      phone_number: data.phone_number || undefined,
+      phone_number: data.phone_number,
       address: data.address || undefined,
     },
     select: { id: true, name: true },
@@ -24,7 +24,7 @@ export async function updateClient(
     data: {
       name: data.name,
       email: data.email ? data.email : null,
-      phone_number: data.phone_number ? data.phone_number : null,
+      phone_number: data.phone_number,
       address: data.address ? data.address : null,
     },
     select: { id: true, name: true },

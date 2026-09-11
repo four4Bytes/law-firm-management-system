@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import styles from "./StatusBadge.module.css";
 
 export type StatusBadgeVariant =
-  "pending" | "ongoing" | "info" | "done" | "cancelled" | "warning" | "danger" | "accent";
+  "pending" | "info" | "done" | "cancelled" | "warning" | "danger" | "accent";
 
 interface StatusBadgeProps {
   variant: StatusBadgeVariant;
@@ -14,7 +14,6 @@ interface StatusBadgeProps {
 
 const variantClassMap: Record<StatusBadgeVariant, string> = {
   pending: styles.statusPending,
-  ongoing: styles.statusOngoing,
   info: styles.statusInfo,
   done: styles.statusDone,
   cancelled: styles.statusCancelled,

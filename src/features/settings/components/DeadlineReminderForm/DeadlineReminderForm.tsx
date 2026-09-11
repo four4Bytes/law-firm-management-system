@@ -62,7 +62,7 @@ export function DeadlineReminderForm({ initialPreferences }: DeadlineReminderFor
 
       <div className={styles.sections}>
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>A. Consultations</h3>
+          <h3 className={styles.sectionTitle}>Consultations</h3>
 
           <div className={styles.fieldRow}>
             <span className={styles.fieldLabel}>Start reminding me</span>
@@ -107,7 +107,7 @@ export function DeadlineReminderForm({ initialPreferences }: DeadlineReminderFor
         </div>
 
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>B. Case Milestones</h3>
+          <h3 className={styles.sectionTitle}>Case Milestones</h3>
 
           <div className={styles.fieldRow}>
             <span className={styles.fieldLabel}>Start reminding me</span>
@@ -151,11 +151,6 @@ export function DeadlineReminderForm({ initialPreferences }: DeadlineReminderFor
           </Checkbox>
         </div>
       </div>
-
-      <p className={styles.hint}>
-        These settings apply to both email and in-app notifications. Key days triggers only on the
-        first reminder day and on the due date; daily sends every day in between.
-      </p>
     </section>
   );
 }

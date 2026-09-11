@@ -50,11 +50,14 @@ const payload = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getActiveUserIds).mockImplementation(async ({ ids }) => [...ids]);
-  vi.mocked(getUsersByIds).mockResolvedValue([
-    { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
-    { id: "u2", name: "Bob", email: "bob@aninolaw.com" },
-    { id: "u3", name: "Carol", email: "carol@aninolaw.com" },
-  ]);
+  vi.mocked(getUsersByIds).mockImplementation(async ({ ids }) => {
+    const all = [
+      { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
+      { id: "u2", name: "Bob", email: "bob@aninolaw.com" },
+      { id: "u3", name: "Carol", email: "carol@aninolaw.com" },
+    ];
+    return all.filter((u) => ids.includes(u.id));
+  });
   vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
     new Map([
       [
@@ -172,7 +175,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledTimes(3);
   });
 
-  it("respects email preference for CaseAssigned — only opted-in users receive email but all get in-app row", async () => {
+  it("respects preference for CaseAssigned — only opted-in users receive notification (in-app + email in sync)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -204,14 +207,12 @@ describe("dispatchNotifications", () => {
 
     await dispatchNotifications({ ...payload, type: NotificationType.CaseAssigned }, "u9");
 
-    expect(createNotifications).toHaveBeenCalledWith(
-      expect.objectContaining({ userIds: ["u1", "u2", "u3"] }),
-    );
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
   });
 
-  it("respects email preference for ConsultationAssigned", async () => {
+  it("respects preference for ConsultationAssigned (in-app + email in sync)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -236,11 +237,12 @@ describe("dispatchNotifications", () => {
 
     await dispatchNotifications({ ...payload, type: NotificationType.ConsultationAssigned }, "u9");
 
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
   });
 
-  it("respects email preference for TaskAssigned — filters per-task toggle", async () => {
+  it("respects preference for TaskAssigned — filters per-task toggle (in-app + email in sync)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -262,18 +264,15 @@ describe("dispatchNotifications", () => {
       ]),
     );
     vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
-    vi.mocked(getUsersByIds).mockResolvedValue([
-      { id: "u1", name: "Alice", email: "alice@aninolaw.com" },
-      { id: "u2", name: "Bob", email: "bob@aninolaw.com" },
-    ]);
 
     await dispatchNotifications({ ...payload, type: NotificationType.TaskAssigned }, "u9");
 
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
   });
 
-  it("does not filter email for non-assignment types even when assignment prefs are off", async () => {
+  it("does not filter notification for non-assignment types even when assignment prefs are off", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -297,12 +296,14 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to sending all emails when preference lookup fails", async () => {
+  it("falls back to sending to all when preference lookup fails (in-app + email)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockRejectedValue(new Error("db down"));
 
     await dispatchNotifications({ ...payload, type: NotificationType.CaseAssigned }, "u9");
 
-    expect(createNotifications).toHaveBeenCalled();
+    expect(createNotifications).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: ["u1", "u2", "u3"] }),
+    );
     expect(sendEmail).toHaveBeenCalledTimes(3);
   });
 });

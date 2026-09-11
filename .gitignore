@@ -55,3 +55,5 @@ storybook-static
 docs
 
 .direnv/
+
+secrets/

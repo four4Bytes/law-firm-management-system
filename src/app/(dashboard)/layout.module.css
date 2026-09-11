@@ -1,6 +1,7 @@
 .layout {
   display: flex;
-  height: 100dvh;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background-color: var(--color-app-bg);
 
@@ -15,6 +16,9 @@
       flex: 1;
       min-height: 0;
       overflow-y: auto;
+      overflow-anchor: none;
+      scroll-behavior: auto;
+      contain: layout paint;
     }
   }
 }

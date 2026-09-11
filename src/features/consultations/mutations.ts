@@ -124,7 +124,6 @@ export async function updateConsultationWithClient(
         concern: data.consultation.concern,
         booking_datetime: data.consultation.booking_datetime,
         status: data.consultation.status,
-        reminder_days: data.consultation.reminder_days,
         assignee_ids: data.consultation.assignee_ids,
         resetReminderTiming: data.resetReminderTiming,
       },

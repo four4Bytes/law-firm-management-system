@@ -7,14 +7,12 @@ export interface MilestoneReminderCandidate {
   due_date: Date;
   caseId: string;
   assigneeIds: string[];
-  reminderDays: number | null;
 }
 
 export interface ConsultationReminderCandidate {
   id: string;
   concern: string;
   booking_datetime: Date;
-  reminderDays: number | null;
   assigneeIds: string[];
 }
 
@@ -31,7 +29,6 @@ export async function getMilestonesNeedingReminder(): Promise<MilestoneReminderC
       title: true,
       due_date: true,
       case_id: true,
-      reminder_days: true,
       case: {
         select: {
           caseAssignments: {
@@ -49,7 +46,6 @@ export async function getMilestonesNeedingReminder(): Promise<MilestoneReminderC
     due_date: m.due_date,
     caseId: m.case_id,
     assigneeIds: m.case.caseAssignments.map((a) => a.user_id),
-    reminderDays: m.reminder_days,
   }));
 }
 
@@ -65,7 +61,6 @@ export async function getConsultationsNeedingReminder(): Promise<ConsultationRem
       id: true,
       concern: true,
       booking_datetime: true,
-      reminder_days: true,
       consultationAssignments: {
         where: { user: { is_active: true } },
         select: { user_id: true },
@@ -77,7 +72,6 @@ export async function getConsultationsNeedingReminder(): Promise<ConsultationRem
     id: c.id,
     concern: c.concern,
     booking_datetime: c.booking_datetime,
-    reminderDays: c.reminder_days,
     assigneeIds: c.consultationAssignments.map((a) => a.user_id),
   }));
 }

@@ -23,10 +23,13 @@ All notifications pass through `dispatchNotifications(payload, actorUserId, noti
 1. **Actor exclusion** — the actor is removed from recipients unless `notifyActor` is `true`.
 2. **Active users only** — deactivated users never receive anything.
 3. **Deduplication** — duplicate IDs are collapsed.
-4. **Database row** — one `is_read = false` row per recipient.
-5. **Email** — per recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
+4. **Preference gate (in-app + email in sync)** — assignment types (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) consult `UserSettings` (`notify_email_*_assigned`, edited at `/settings` under “Assignments”); status-change types (`CaseStatusChanged`, `ConsultationStatusChanged`, `TaskStatusChanged`, `MilestoneStatusChanged`) consult `notify_email_*_status_changed` (under “Status changes”). Disabled users are removed **before** the DB row is created, so they receive no in-app row and no email. Reminder types (`ConsultationReminder`/`Overdue`, `MilestoneDueSoon`/`Overdue`) are not gated here — they are filtered per-user by the scheduler via `UserSettings` frequency/overdue prefs. Preference lookup is best-effort — a DB failure falls back to notifying all recipients and is logged.
+5. **Database row** — one `is_read = false` row per remaining recipient. For assignments and status changes, rows are only created for opted-in users; for reminders, one per per-user-filtered recipient.
+6. **Email** — per remaining recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
 
 Payload: `userIds`, `type`, `title`, `message`, optional `actionUrl`, and related `caseId` / `consultationId` / `milestoneId` / `taskId`.
+
+> Notification preferences are edited at `/settings` by any authenticated user via `src/features/settings/` (`UserSettings` row, defaults all `true`). For assignments, status changes, and deadline reminders, preferences gate **both** email and in-app — the two channels are always in sync. Assignment and status-change prefs live under “Notifications” (grouped “Assignments” / “Status changes”); reminder prefs under “Deadline & reminder schedule”.
 
 ---
 
@@ -105,10 +108,10 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 ### Trigger
 
-| Deployment           | Trigger                                                                                                                            | Details                                 |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Vercel               | Cron `0 0 * * *` (UTC) → `GET /api/cron/reminders`                                                                                 | `Bearer CRON_SECRET` required; else 401 |
-| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` at midnight app time (`APP_TIMEZONE`, fallback server-local; skipped when `VERCEL` is set) | `noOverlap: true`                       |
+| Deployment           | Trigger                                                                                                                             | Details                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Vercel               | Cron `0 0 * * *` (UTC) → `GET /api/cron/reminders`                                                                                  | `Bearer CRON_SECRET` required; else 401 |
+| Docker / self-hosted | `node-cron` in `src/instrumentation.ts` at midnight app time (`APP_TIMEZONE`, fallback `Asia/Manila`; skipped when `VERCEL` is set) | `noOverlap: true`                       |
 
 Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, running three **isolated** phases in order — a phase failure is logged and does not stop the next:
 
@@ -118,27 +121,27 @@ Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, r
 
 ### Candidate & window
 
-A milestone/consultation is a candidate when its status is `Pending`/`Scheduled` **and** `last_reminded_at` is `null` or before today (qualifies once per day). Window: `reminder_days` (or `DEFAULT_REMINDER_DAYS`, default 3); `threshold = now + reminder_days * 24h`; `due soon` = due within threshold (future), `overdue` = due before now; outside both → skipped. Message dates use `formatDate`/`formatDateTime`.
+A milestone/consultation is a candidate when its status is `Pending`/`Scheduled` **and** `last_reminded_at` is `null` or before today (qualifies once per day). Window is **per-user** from `UserSettings` (`consultation_reminder_days` default 3, `milestone_reminder_days` default 5, edited at `/settings`); `threshold = now + user_reminder_days * 24h`; `due soon` = due within the user's threshold (future), `overdue` = due before now; outside both → skipped for that user. Recipients are then filtered per-user by `ReminderFrequency` and `notify_overdue` (both channels in sync). Message dates use `formatDate`/`formatDateTime`.
 
 ### Milestones
 
-| State        | Type               | Recipients     | Guard                                                                      |
-| ------------ | ------------------ | -------------- | -------------------------------------------------------------------------- |
-| Due soon     | `MilestoneDueSoon` | Case assignees | Claim first (`last_reminded_at = now`); failed dispatch releases the claim |
-| Overdue      | `MilestoneOverdue` | Case assignees | Suppress first (`last_reminded_at = 9999-12-31`); failed dispatch retracts |
-| No assignees | - (skipped)        | -              | -                                                                          |
+| State                           | Type               | Recipients (after per-user preference filter)                                                                          | Guard                                                                      |
+| ------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Due soon                        | `MilestoneDueSoon` | Case assignees where `due soon` for their `milestone_reminder_days` and frequency allows today (both channels in sync) | Claim first (`last_reminded_at = now`); failed dispatch releases the claim |
+| Overdue                         | `MilestoneOverdue` | Case assignees with `milestone_notify_overdue = true` (both channels)                                                  | Suppress first (`last_reminded_at = 9999-12-31`); failed dispatch retracts |
+| No assignees / none pass filter | - (skipped)        | -                                                                                                                      | -                                                                          |
 
 ### Consultations
 
-| State                                  | Type                   | Recipients             | Guard                                           |
-| -------------------------------------- | ---------------------- | ---------------------- | ----------------------------------------------- |
-| Upcoming                               | `ConsultationReminder` | Consultation assignees | Claim first; failed dispatch releases the claim |
-| Overdue                                | `ConsultationOverdue`  | Consultation assignees | Suppress first; failed dispatch retracts it     |
-| No assignees / `Cancelled`/`Completed` | - (skipped)            | -                      | -                                               |
+| State                                                     | Type                   | Recipients (after per-user preference filter)                                                                             | Guard                                           |
+| --------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Upcoming                                                  | `ConsultationReminder` | Consultation assignees where `due soon` for their `consultation_reminder_days` and frequency allows today (both channels) | Claim first; failed dispatch releases the claim |
+| Overdue                                                   | `ConsultationOverdue`  | Consultation assignees with `consultation_notify_overdue = true` (both channels)                                          | Suppress first; failed dispatch retracts it     |
+| No assignees / none pass filter / `Cancelled`/`Completed` | - (skipped)            | -                                                                                                                         | -                                               |
 
 ### Re-arm on reschedule
 
-`update` recomputes a `resetReminderTiming` flag: when the due/booking datetime or `reminder_days` changes, `last_reminded_at` resets to `null`, re-arming the reminder window and overdue suppression for the new date.
+`update` recomputes a `resetReminderTiming` flag: when the due/booking datetime changes, `last_reminded_at` resets to `null`, re-arming the reminder window and overdue suppression for the new date. Per-user `reminder_days` is now edited at `/settings`, not per record.
 
 ### Failure semantics
 
@@ -177,7 +180,8 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
 - `MilestoneStatusChanged`, `TaskStatusChanged`, `CaseStatusChanged`, and `ConsultationStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
 - All interpolated text is HTML-escaped.
-- Recipients without an email are skipped (the in-app row is still created).
+- Recipients without an email are skipped for the email channel (the in-app row is still gated by preferences — see Dispatch Pipeline).
+- Assignment and reminder notifications (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`, `MilestoneDueSoon`/`Overdue`, `ConsultationReminder`/`Overdue`) respect the recipient's `UserSettings` toggles/frequency edited at `/settings` — opted-out users receive neither the in-app row nor the email (channels always in sync).
 
 ---
 
@@ -193,13 +197,12 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 
 ## 9. Environment Variables
 
-| Variable                      | Required   | Default      | Purpose                                                                         |
-| ----------------------------- | ---------- | ------------ | ------------------------------------------------------------------------------- |
-| `DEFAULT_REMINDER_DAYS`       | No         | `3`          | Fallback when a record has no `reminder_days`                                   |
-| `NOTIFICATION_RETENTION_DAYS` | No         | `90`         | Delete Notification rows older than this                                        |
-| `CRON_SECRET`                 | Yes (all)  | -            | Bearer secret for `GET /api/cron/reminders`                                     |
-| `APP_TIMEZONE`                | No         | server local | IANA timezone: date formatting, reminder day boundary, self-hosted cron trigger |
-| `APP_ORIGIN`                  | Yes (prod) | -            | Origin for absolute `actionUrl` links in emails                                 |
+| Variable                      | Required   | Default       | Purpose                                                                                                                  |
+| ----------------------------- | ---------- | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `NOTIFICATION_RETENTION_DAYS` | No         | `90`          | Delete Notification rows older than this                                                                                 |
+| `CRON_SECRET`                 | Yes (all)  | -             | Bearer secret for `GET /api/cron/reminders`                                                                              |
+| `APP_TIMEZONE`                | No         | `Asia/Manila` | IANA timezone: date formatting, reminder day boundary, self-hosted cron trigger (set to any IANA zone for worldwide use) |
+| `APP_ORIGIN`                  | Yes (prod) | -             | Origin for absolute `actionUrl` links in emails                                                                          |
 
 ---
 

@@ -12,6 +12,7 @@ import {
   getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationsPaginated,
+  hasLinkedCase,
   type ConsultationEditData,
   type ConsultationOverviewData,
   type ConsultationRow,
@@ -22,6 +23,7 @@ import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
 import {
+  actionConflict,
   actionForbidden,
   actionInvalid,
   actionNotFound,
@@ -153,8 +155,7 @@ export async function createConsultationAction(
       return actionInvalid("consultation");
     }
 
-    const { client_id, concern, booking_datetime, status, reminder_days, assignee_ids } =
-      parsed.data;
+    const { client_id, concern, booking_datetime, status, assignee_ids } = parsed.data;
 
     const createdConsultation = await createConsultation({
       client_id,
@@ -162,7 +163,6 @@ export async function createConsultationAction(
       booking_datetime,
       status,
       created_by_user_id: session.id,
-      reminder_days,
       assignee_ids,
     });
 
@@ -252,15 +252,8 @@ export async function updateConsultationAction(
     return actionInvalid("consultation");
   }
 
-  const {
-    consultationId,
-    client_id,
-    concern,
-    booking_datetime,
-    status,
-    reminder_days,
-    assignee_ids,
-  } = parsed.data;
+  const { consultationId, client_id, concern, booking_datetime, status, assignee_ids } =
+    parsed.data;
 
   try {
     const existing = await getConsultationEditData(consultationId);
@@ -270,9 +263,16 @@ export async function updateConsultationAction(
       return actionForbidden();
     }
 
-    const resetReminderTiming =
-      existing.booking_datetime.getTime() !== booking_datetime.getTime() ||
-      (reminder_days !== undefined && existing.reminder_days !== reminder_days);
+    if (existing.status === "Accepted" && status !== "Accepted") {
+      if (await hasLinkedCase(consultationId)) {
+        return actionConflict(
+          "Consultation already accepted",
+          "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
+        );
+      }
+    }
+
+    const resetReminderTiming = existing.booking_datetime.getTime() !== booking_datetime.getTime();
 
     await updateConsultation({
       consultationId,
@@ -280,7 +280,6 @@ export async function updateConsultationAction(
       concern,
       booking_datetime,
       status,
-      reminder_days,
       assignee_ids,
       resetReminderTiming,
     });
@@ -362,10 +361,17 @@ export async function updateConsultationWithClientAction(
       return actionForbidden();
     }
 
+    if (existing.status === "Accepted" && consultation.status !== "Accepted") {
+      if (await hasLinkedCase(consultation_id)) {
+        return actionConflict(
+          "Consultation already accepted",
+          "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
+        );
+      }
+    }
+
     const resetReminderTiming =
-      existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime() ||
-      (consultation.reminder_days !== undefined &&
-        existing.reminder_days !== consultation.reminder_days);
+      existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime();
 
     await updateConsultationWithClient({
       consultation_id,

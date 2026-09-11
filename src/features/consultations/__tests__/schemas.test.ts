@@ -55,33 +55,6 @@ describe("ConsultationCreatePayloadSchema", () => {
     );
   });
 
-  it("accepts valid reminder_days", () => {
-    expect(ConsultationCreatePayloadSchema.safeParse({ ...base, reminder_days: 0 }).success).toBe(
-      true,
-    );
-    expect(ConsultationCreatePayloadSchema.safeParse({ ...base, reminder_days: 7 }).success).toBe(
-      true,
-    );
-  });
-
-  it("accepts null reminder_days", () => {
-    expect(
-      ConsultationCreatePayloadSchema.safeParse({ ...base, reminder_days: null }).success,
-    ).toBe(true);
-  });
-
-  it("rejects negative reminder_days", () => {
-    expect(ConsultationCreatePayloadSchema.safeParse({ ...base, reminder_days: -1 }).success).toBe(
-      false,
-    );
-  });
-
-  it("rejects non-integer reminder_days", () => {
-    expect(ConsultationCreatePayloadSchema.safeParse({ ...base, reminder_days: 3.5 }).success).toBe(
-      false,
-    );
-  });
-
   it("accepts a valid assignee_ids list", () => {
     const result = ConsultationCreatePayloadSchema.safeParse({
       ...base,

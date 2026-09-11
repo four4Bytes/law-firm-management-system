@@ -7,7 +7,6 @@ interface ConsultationData {
   concern: string;
   status: ConsultationStatus;
   daysAgo: number;
-  reminderDays?: number;
   lastRemindedDaysAgo?: number;
   assigneeEmails?: string[];
 }
@@ -20,7 +19,6 @@ const consultations: ConsultationData[] = [
       "Boundary dispute with neighboring property owner — encroachment on northern lot boundary",
     status: "Scheduled",
     daysAgo: -3,
-    reminderDays: 3,
     assigneeEmails: ["marco.lopez@aninolaw.com", "kevin.garcia@aninolaw.com"],
   },
   {
@@ -45,7 +43,6 @@ const consultations: ConsultationData[] = [
     concern: "Review of business loan agreement with BDO — unclear default provisions",
     status: "Scheduled",
     daysAgo: -2,
-    reminderDays: 3,
     lastRemindedDaysAgo: 0,
     assigneeEmails: ["angela.mercado@aninolaw.com"],
   },
@@ -188,7 +185,6 @@ const consultations: ConsultationData[] = [
       "Contract review — software development agreement with offshore team, concerned about IP ownership and non-compete clauses",
     status: "Scheduled",
     daysAgo: -1,
-    reminderDays: 1,
     assigneeEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
   },
   {
@@ -225,7 +221,6 @@ export async function seedConsultations(
         booking_datetime: bookingDate,
         concern: c.concern,
         status: c.status,
-        reminder_days: c.reminderDays ?? null,
         last_reminded_at: remindedAt ?? null,
       },
     });

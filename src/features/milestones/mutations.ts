@@ -8,7 +8,6 @@ export interface MilestoneCreateData {
   status: CaseMilestoneStatus;
   case_id: string;
   created_by_user_id: string;
-  reminder_days?: number | null;
 }
 
 export interface MilestoneUpdateData {
@@ -16,7 +15,6 @@ export interface MilestoneUpdateData {
   description?: string | null;
   due_date: Date;
   status: CaseMilestoneStatus;
-  reminder_days?: number | null;
   resetReminderTiming?: boolean;
 }
 
@@ -29,7 +27,6 @@ export async function createMilestone(data: MilestoneCreateData): Promise<{ id: 
       status: data.status,
       case_id: data.case_id,
       created_by_user_id: data.created_by_user_id,
-      reminder_days: data.reminder_days,
     },
     select: { id: true },
   });
@@ -46,7 +43,6 @@ export async function updateMilestone(
       description: data.description || null,
       due_date: data.due_date,
       status: data.status,
-      reminder_days: data.reminder_days,
       ...(data.resetReminderTiming ? { last_reminded_at: null } : {}),
     },
     select: { id: true },

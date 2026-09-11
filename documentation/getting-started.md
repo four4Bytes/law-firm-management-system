@@ -6,34 +6,43 @@
 - **pnpm** 11
 - **Docker** + **Docker Compose** (for local Postgres, MinIO & Mailpit)
 
+> **Nix users:** you don't need to install Node/pnpm manually — `flake.nix` + `flake.lock` pin them.
+
+## Reproducible dev environment with Nix
+
+`flake.nix` provides a pinned shell (Node 22, pnpm 11.10.0 via corepack, Prisma, Docker) for `x86_64-linux`, `aarch64-linux`, `aarch64-darwin` via `nixpkgs.lib.genAttrs` (`x86_64-darwin` dropped in nixpkgs 26.11). `flake.lock` makes it reproducible.
+
+```bash
+direnv allow          # via .envrc + nix-direnv — keeps your current shell/plugins (recommended)
+# or
+nix develop -c $SHELL # manual, without direnv; bare `nix develop` spawns bash
+```
+
 ## Setup
 
 ```bash
-# 1. Clone the repository
+# 1. Clone
 git clone https://github.com/four4Bytes/law-firm-management-system.git
 cd law-firm-management-system
 
-# 2. Install dependencies
+# 2. Enter dev shell if using Nix (direnv keeps your shell; bare nix develop spawns bash)
+direnv allow  # or: nix develop -c $SHELL
+
+# 3. Install + env
 pnpm install
+cp .env.example .env
+cp .env.dev.example .env.dev
 
-# 3. Copy environment files
-cp .env.example .env               # application runtime (Next.js, Prisma CLI, tests)
-cp .env.dev.example .env.dev       # dev infrastructure (make dev*)
-
-# 4. Start dev infrastructure (Postgres + MinIO + Mailpit)
+# 4. Start infra and DB
 make dev-up
-
-# 5. Run database migrations
 pnpm prisma:migrate
-
-# 6. Seed the database
 pnpm prisma:seed
 
-# 7. Start the dev server
+# 5. Start dev server
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Mailpit (local email inbox) is available at [http://localhost:8025](http://localhost:8025).
+Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhost:8025](http://localhost:8025).
 
 ## Environment Files
 

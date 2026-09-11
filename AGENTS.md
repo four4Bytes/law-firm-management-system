@@ -21,6 +21,8 @@
 - `pnpm prisma:seed` - `tsx prisma/seed.ts`
 - `pnpm prisma:studio` - Prisma Studio
 - `pnpm prepare` - husky + prisma generate (runs on install)
+- `direnv allow` (keeps shell) / `nix develop -c $SHELL` — pinned devShell via `flake.nix` (`flake.lock`); bare `nix develop` spawns bash
+- `nix fmt` / `nix flake update` - format `flake.nix` / bump `nixpkgs`
 
 ## Tech Stack
 
@@ -33,6 +35,7 @@
 - Data: Prisma 7 + PostgreSQL via `@prisma/adapter-pg`. Adapter pattern: `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`. Generated client at `src/generated/prisma/`. Singleton at `src/lib/prisma.ts`. Prisma config at `prisma.config.ts`.
 - Storage: `@aws-sdk/client-s3` api compatible for managing document storage attachments via secure, server-generated presigned URLs.
 - Package Manager: pnpm.
+- Dev Environment: Nix flake (`flake.nix` + `flake.lock`) — `nix develop` gives pinned `nodejs_22`, pnpm, prisma, docker per system via `genAttrs`. Non-Nix contributors install Node/pnpm manually.
 
 ## Architecture
 

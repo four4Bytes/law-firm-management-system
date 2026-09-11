@@ -14,6 +14,10 @@ describe("upsertNotificationPreferences", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
     } as unknown as never);
 
     const result = await upsertNotificationPreferences("u1", { notify_email_case_assigned: false });
@@ -22,6 +26,10 @@ describe("upsertNotificationPreferences", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
     });
     expect(prisma.userSettings.upsert).toHaveBeenCalledWith({
       where: { user_id: "u1" },
@@ -31,6 +39,10 @@ describe("upsertNotificationPreferences", () => {
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_case_status_changed: true,
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: true,
       },
     });
   });
@@ -40,6 +52,10 @@ describe("upsertNotificationPreferences", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: false,
       notify_email_task_assigned: false,
+      notify_email_case_status_changed: false,
+      notify_email_consultation_status_changed: false,
+      notify_email_task_status_changed: false,
+      notify_email_milestone_status_changed: false,
     } as unknown as never);
 
     const result = await upsertNotificationPreferences("u1", {
@@ -49,6 +65,38 @@ describe("upsertNotificationPreferences", () => {
     });
 
     expect(result.notify_email_task_assigned).toBe(false);
+  });
+
+  it("upserts a status-change field", async () => {
+    vi.mocked(prisma.userSettings.upsert).mockResolvedValue({
+      notify_email_case_assigned: true,
+      notify_email_consultation_assigned: true,
+      notify_email_task_assigned: true,
+      notify_email_case_status_changed: false,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
+    } as unknown as never);
+
+    const result = await upsertNotificationPreferences("u1", {
+      notify_email_case_status_changed: false,
+    });
+
+    expect(result.notify_email_case_status_changed).toBe(false);
+    expect(prisma.userSettings.upsert).toHaveBeenCalledWith({
+      where: { user_id: "u1" },
+      update: { notify_email_case_status_changed: false },
+      create: { user_id: "u1", notify_email_case_status_changed: false },
+      select: {
+        notify_email_case_assigned: true,
+        notify_email_consultation_assigned: true,
+        notify_email_task_assigned: true,
+        notify_email_case_status_changed: true,
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: true,
+      },
+    });
   });
 
   it("propagates database errors", async () => {

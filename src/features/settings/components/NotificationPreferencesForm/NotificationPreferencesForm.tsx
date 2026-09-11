@@ -13,6 +13,10 @@ interface NotificationPreferencesFormProps {
     notify_email_case_assigned: boolean;
     notify_email_consultation_assigned: boolean;
     notify_email_task_assigned: boolean;
+    notify_email_case_status_changed: boolean;
+    notify_email_consultation_status_changed: boolean;
+    notify_email_task_status_changed: boolean;
+    notify_email_milestone_status_changed: boolean;
   };
 }
 
@@ -48,6 +52,7 @@ export function NotificationPreferencesForm({
       </div>
 
       <div className={styles.list}>
+        <p className={styles.groupTitle}>Assignments</p>
         <Checkbox
           isSelected={preferences.notify_email_case_assigned}
           onChange={(v) => handleToggle("notify_email_case_assigned", v)}
@@ -73,6 +78,43 @@ export function NotificationPreferencesForm({
           description="Receive a notification when you are assigned to a task"
         >
           Notify me when assigned to a task
+        </Checkbox>
+
+        <p className={styles.groupTitle}>Status changes</p>
+        <Checkbox
+          isSelected={preferences.notify_email_case_status_changed}
+          onChange={(v) => handleToggle("notify_email_case_status_changed", v)}
+          isDisabled={isPending}
+          description="Receive a notification when a case you are assigned to changes status"
+        >
+          Notify me when a case status changes
+        </Checkbox>
+
+        <Checkbox
+          isSelected={preferences.notify_email_consultation_status_changed}
+          onChange={(v) => handleToggle("notify_email_consultation_status_changed", v)}
+          isDisabled={isPending}
+          description="Receive a notification when a consultation you are assigned to changes status"
+        >
+          Notify me when a consultation status changes
+        </Checkbox>
+
+        <Checkbox
+          isSelected={preferences.notify_email_task_status_changed}
+          onChange={(v) => handleToggle("notify_email_task_status_changed", v)}
+          isDisabled={isPending}
+          description="Receive a notification when a task you are assigned to or reviewing changes status"
+        >
+          Notify me when a task status changes
+        </Checkbox>
+
+        <Checkbox
+          isSelected={preferences.notify_email_milestone_status_changed}
+          onChange={(v) => handleToggle("notify_email_milestone_status_changed", v)}
+          isDisabled={isPending}
+          description="Receive a notification when a milestone in your case changes status"
+        >
+          Notify me when a milestone status changes
         </Checkbox>
       </div>
     </section>

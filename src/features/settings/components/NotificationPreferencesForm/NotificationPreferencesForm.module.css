@@ -32,6 +32,17 @@
   gap: var(--space-lg);
 }
 
+.groupTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-top: var(--space-sm);
+}
+
+.groupTitle:first-child {
+  margin-top: 0;
+}
+
 .hint {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);

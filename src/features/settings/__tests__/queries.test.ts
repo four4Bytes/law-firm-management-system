@@ -27,6 +27,10 @@ describe("getNotificationPreferences", () => {
       notify_email_case_assigned: true,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
     });
     expect(prisma.userSettings.findUnique).toHaveBeenCalledWith({
       where: { user_id: "user-1" },
@@ -34,6 +38,10 @@ describe("getNotificationPreferences", () => {
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_case_status_changed: true,
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: true,
       },
     });
   });
@@ -43,6 +51,10 @@ describe("getNotificationPreferences", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: false,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: false,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: false,
     } as unknown as never);
 
     const result = await getNotificationPreferences("user-1");
@@ -51,6 +63,10 @@ describe("getNotificationPreferences", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: false,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: false,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: false,
     });
   });
 
@@ -76,6 +92,10 @@ describe("getNotificationPreferencesByUserIds", () => {
         notify_email_case_assigned: false,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_case_status_changed: false,
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: false,
+        notify_email_milestone_status_changed: true,
       } as unknown as never,
     ]);
 
@@ -85,11 +105,19 @@ describe("getNotificationPreferencesByUserIds", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: false,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: false,
+      notify_email_milestone_status_changed: true,
     });
     expect(result.get("u2")).toEqual({
       notify_email_case_assigned: true,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
     });
   });
 
@@ -100,12 +128,20 @@ describe("getNotificationPreferencesByUserIds", () => {
         notify_email_case_assigned: false,
         notify_email_consultation_assigned: false,
         notify_email_task_assigned: false,
+        notify_email_case_status_changed: false,
+        notify_email_consultation_status_changed: false,
+        notify_email_task_status_changed: false,
+        notify_email_milestone_status_changed: false,
       } as unknown as never,
       {
         user_id: "u2",
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_case_status_changed: true,
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: true,
       } as unknown as never,
     ]);
 
@@ -113,6 +149,8 @@ describe("getNotificationPreferencesByUserIds", () => {
 
     expect(result.get("u1")?.notify_email_case_assigned).toBe(false);
     expect(result.get("u2")?.notify_email_case_assigned).toBe(true);
+    expect(result.get("u1")?.notify_email_milestone_status_changed).toBe(false);
+    expect(result.get("u2")?.notify_email_milestone_status_changed).toBe(true);
   });
 
   it("propagates database errors", async () => {

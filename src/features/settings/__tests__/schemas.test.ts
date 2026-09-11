@@ -14,6 +14,10 @@ describe("NotificationPreferencesSchema", () => {
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: false,
         notify_email_task_assigned: true,
+        notify_email_case_status_changed: true,
+        notify_email_consultation_status_changed: false,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: false,
       }).success,
     ).toBe(true);
   });
@@ -24,6 +28,10 @@ describe("NotificationPreferencesSchema", () => {
         notify_email_case_assigned: "true",
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_case_status_changed: true,
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: true,
       } as unknown as never).success,
     ).toBe(false);
   });
@@ -31,6 +39,20 @@ describe("NotificationPreferencesSchema", () => {
   it("rejects missing fields", () => {
     expect(
       NotificationPreferencesSchema.safeParse({ notify_email_case_assigned: true }).success,
+    ).toBe(false);
+  });
+
+  it("rejects non-boolean status-change values", () => {
+    expect(
+      NotificationPreferencesSchema.safeParse({
+        notify_email_case_assigned: true,
+        notify_email_consultation_assigned: true,
+        notify_email_task_assigned: true,
+        notify_email_case_status_changed: "true",
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: true,
+      } as unknown as never).success,
     ).toBe(false);
   });
 });
@@ -57,6 +79,28 @@ describe("UpdateNotificationPreferencesSchema", () => {
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts all seven fields", () => {
+    expect(
+      UpdateNotificationPreferencesSchema.safeParse({
+        notify_email_case_assigned: true,
+        notify_email_consultation_assigned: true,
+        notify_email_task_assigned: true,
+        notify_email_case_status_changed: true,
+        notify_email_consultation_status_changed: true,
+        notify_email_task_status_changed: true,
+        notify_email_milestone_status_changed: true,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts a single status-change field", () => {
+    expect(
+      UpdateNotificationPreferencesSchema.safeParse({
+        notify_email_task_status_changed: false,
       }).success,
     ).toBe(true);
   });

@@ -3,8 +3,9 @@
 
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
+import { getDeadlineReminderPreferencesByUserIds } from "@/features/settings/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import { formatDate, formatDateTime } from "@/lib/date";
+import { formatDate, formatDateTime, getStartOfDay } from "@/lib/date";
 import { getOptionalInteger } from "@/lib/env";
 
 import {
@@ -22,7 +23,6 @@ import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from ".
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 
 export async function runReminderCheck(): Promise<void> {
-  const defaultDays = getOptionalInteger("DEFAULT_REMINDER_DAYS", 3);
   const retentionDays = getOptionalInteger("NOTIFICATION_RETENTION_DAYS", 90);
   const now = new Date();
 
@@ -33,29 +33,76 @@ export async function runReminderCheck(): Promise<void> {
   }
 
   try {
-    await processMilestones(defaultDays, now);
+    await processMilestones(now);
   } catch (err) {
     console.error("[reminders] Milestone processing failed:", err);
   }
 
   try {
-    await processConsultations(defaultDays, now);
+    await processConsultations(now);
   } catch (err) {
     console.error("[reminders] Consultation processing failed:", err);
   }
 }
 
-async function processMilestones(defaultDays: number, now: Date): Promise<void> {
+function isSameDay(a: Date, b: Date): boolean {
+  return getStartOfDay(a).getTime() === getStartOfDay(b).getTime();
+}
+
+function isKeyDay(now: Date, targetDate: Date, reminderDays: number): boolean {
+  const trigger = new Date(targetDate.getTime() - reminderDays * 86_400_000);
+  return isSameDay(now, trigger) || isSameDay(now, targetDate);
+}
+
+async function processMilestones(now: Date): Promise<void> {
   const milestones = await getMilestonesNeedingReminder();
 
   for (const m of milestones) {
-    const reminderDays = m.reminderDays ?? defaultDays;
-    const remindThreshold = new Date(now.getTime() + reminderDays * 86_400_000);
-    const isDueSoon = m.due_date <= remindThreshold && m.due_date > now;
+    if (m.assigneeIds.length === 0) continue;
+
     const isOverdue = m.due_date < now;
 
-    if (!isDueSoon && !isOverdue) continue;
-    if (m.assigneeIds.length === 0) continue;
+    let prefsMap: Awaited<ReturnType<typeof getDeadlineReminderPreferencesByUserIds>>;
+    try {
+      prefsMap = await getDeadlineReminderPreferencesByUserIds(m.assigneeIds);
+    } catch (err) {
+      console.error(`Failed to resolve milestone reminder preferences for ${m.id}:`, err);
+      prefsMap = new Map(
+        m.assigneeIds.map((id) => [
+          id,
+          {
+            consultation_reminder_days: 3,
+            consultation_reminder_frequency: "KeyDays" as const,
+            consultation_notify_overdue: true,
+            milestone_reminder_days: 5,
+            milestone_reminder_frequency: "KeyDays" as const,
+            milestone_notify_overdue: true,
+          },
+        ]),
+      );
+    }
+
+    let allowedUserIds: string[] = [];
+
+    if (isOverdue) {
+      allowedUserIds = m.assigneeIds.filter((id) => {
+        const prefs = prefsMap.get(id);
+        return prefs ? prefs.milestone_notify_overdue : true;
+      });
+      if (allowedUserIds.length === 0) continue;
+    } else {
+      allowedUserIds = m.assigneeIds.filter((id) => {
+        const prefs = prefsMap.get(id);
+        if (!prefs) return false;
+        const days = prefs.milestone_reminder_days;
+        const isDueSoon =
+          m.due_date <= new Date(now.getTime() + days * 86_400_000) && m.due_date > now;
+        if (!isDueSoon) return false;
+        if (prefs.milestone_reminder_frequency === "Daily") return true;
+        return isKeyDay(now, m.due_date, days);
+      });
+      if (allowedUserIds.length === 0) continue;
+    }
 
     const type = isOverdue ? NotificationType.MilestoneOverdue : NotificationType.MilestoneDueSoon;
     const label = isOverdue ? "overdue" : "due soon";
@@ -71,7 +118,7 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
     try {
       await dispatchNotifications(
         {
-          userIds: m.assigneeIds,
+          userIds: allowedUserIds,
           type,
           title: `Milestone ${label}: ${m.title}`,
           message: `Milestone "${m.title}" is ${label} — due ${formatDate(m.due_date)}`,
@@ -96,17 +143,56 @@ async function processMilestones(defaultDays: number, now: Date): Promise<void> 
   }
 }
 
-async function processConsultations(defaultDays: number, now: Date): Promise<void> {
+async function processConsultations(now: Date): Promise<void> {
   const consultations = await getConsultationsNeedingReminder();
 
   for (const c of consultations) {
-    const reminderDays = c.reminderDays ?? defaultDays;
-    const remindThreshold = new Date(now.getTime() + reminderDays * 86_400_000);
-    const isDueSoon = c.booking_datetime <= remindThreshold && c.booking_datetime > now;
+    if (c.assigneeIds.length === 0) continue;
+
     const isOverdue = c.booking_datetime < now;
 
-    if (!isDueSoon && !isOverdue) continue;
-    if (c.assigneeIds.length === 0) continue;
+    let prefsMap: Awaited<ReturnType<typeof getDeadlineReminderPreferencesByUserIds>>;
+    try {
+      prefsMap = await getDeadlineReminderPreferencesByUserIds(c.assigneeIds);
+    } catch (err) {
+      console.error(`Failed to resolve consultation reminder preferences for ${c.id}:`, err);
+      prefsMap = new Map(
+        c.assigneeIds.map((id) => [
+          id,
+          {
+            consultation_reminder_days: 3,
+            consultation_reminder_frequency: "KeyDays" as const,
+            consultation_notify_overdue: true,
+            milestone_reminder_days: 5,
+            milestone_reminder_frequency: "KeyDays" as const,
+            milestone_notify_overdue: true,
+          },
+        ]),
+      );
+    }
+
+    let allowedUserIds: string[] = [];
+
+    if (isOverdue) {
+      allowedUserIds = c.assigneeIds.filter((id) => {
+        const prefs = prefsMap.get(id);
+        return prefs ? prefs.consultation_notify_overdue : true;
+      });
+      if (allowedUserIds.length === 0) continue;
+    } else {
+      allowedUserIds = c.assigneeIds.filter((id) => {
+        const prefs = prefsMap.get(id);
+        if (!prefs) return false;
+        const days = prefs.consultation_reminder_days;
+        const isDueSoon =
+          c.booking_datetime <= new Date(now.getTime() + days * 86_400_000) &&
+          c.booking_datetime > now;
+        if (!isDueSoon) return false;
+        if (prefs.consultation_reminder_frequency === "Daily") return true;
+        return isKeyDay(now, c.booking_datetime, days);
+      });
+      if (allowedUserIds.length === 0) continue;
+    }
 
     const type = isOverdue
       ? NotificationType.ConsultationOverdue
@@ -124,7 +210,7 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
     try {
       await dispatchNotifications(
         {
-          userIds: c.assigneeIds,
+          userIds: allowedUserIds,
           type,
           title: label === "overdue" ? "Overdue consultation" : "Upcoming consultation reminder",
           message: `A consultation about "${c.concern}" is ${label} — scheduled for ${formatDateTime(c.booking_datetime)}`,
@@ -147,3 +233,8 @@ async function processConsultations(defaultDays: number, now: Date): Promise<voi
     }
   }
 }
+
+export const __testHelpers = {
+  isSameDay,
+  isKeyDay,
+};

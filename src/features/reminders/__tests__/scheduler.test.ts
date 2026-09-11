@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
+import { getDeadlineReminderPreferencesByUserIds } from "@/features/settings/queries";
 import { NotificationType } from "@/generated/prisma/browser";
 import { getOptionalInteger } from "@/lib/env";
 
@@ -26,6 +27,10 @@ vi.mock("@/lib/env", () => ({
 vi.mock("../queries", () => ({
   getMilestonesNeedingReminder: vi.fn().mockResolvedValue([]),
   getConsultationsNeedingReminder: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/features/settings/queries", () => ({
+  getDeadlineReminderPreferencesByUserIds: vi.fn().mockResolvedValue(new Map()),
 }));
 
 vi.mock("../mutations", () => ({
@@ -97,6 +102,23 @@ beforeEach(() => {
     return 0;
   });
 
+  vi.mocked(getDeadlineReminderPreferencesByUserIds).mockImplementation(
+    async (ids: string[]) =>
+      new Map(
+        ids.map((id) => [
+          id,
+          {
+            consultation_reminder_days: 3,
+            consultation_reminder_frequency: "Daily" as const,
+            consultation_notify_overdue: true,
+            milestone_reminder_days: 3,
+            milestone_reminder_frequency: "Daily" as const,
+            milestone_notify_overdue: true,
+          },
+        ]),
+      ),
+  );
+
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-08-09T10:00:00"));
 });
@@ -121,7 +143,6 @@ it("claims a due-soon milestone before dispatching its reminder", async () => {
       due_date: new Date("2026-08-12T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
   ]);
 
@@ -143,7 +164,6 @@ it("skips dispatch when another invocation already claimed the milestone", async
       due_date: new Date("2026-08-12T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
   ]);
   vi.mocked(claimMilestoneReminder).mockResolvedValue(null);
@@ -161,7 +181,6 @@ it("skips milestones outside the reminder window", async () => {
       due_date: new Date("2026-08-20T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
   ]);
 
@@ -179,7 +198,6 @@ it("skips milestones without assignees", async () => {
       due_date: new Date("2026-08-12T10:00:00"),
       caseId: "c1",
       assigneeIds: [],
-      reminderDays: 3,
     },
   ]);
 
@@ -196,7 +214,6 @@ it("suppresses an overdue milestone before dispatching its reminder", async () =
       due_date: new Date("2026-08-01T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
   ]);
 
@@ -218,7 +235,6 @@ it("skips dispatch when another invocation already suppressed the overdue milest
       due_date: new Date("2026-08-01T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
   ]);
   vi.mocked(suppressMilestoneOverdue).mockResolvedValue(false);
@@ -236,7 +252,6 @@ it("releases the milestone claim when dispatch fails", async () => {
       due_date: new Date("2026-08-12T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
   ]);
   vi.mocked(dispatchNotifications).mockRejectedValue(new Error("smtp down"));
@@ -254,7 +269,6 @@ it("retracts an overdue milestone suppression when dispatch fails", async () => 
       due_date: new Date("2026-08-01T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
   ]);
   vi.mocked(dispatchNotifications).mockRejectedValue(new Error("smtp down"));
@@ -270,7 +284,6 @@ it("claims a due-soon consultation before dispatching to assignees", async () =>
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-12T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1", "u2"],
     },
   ]);
@@ -294,7 +307,6 @@ it("skips when another invocation already claimed the consultation", async () =>
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-12T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1"],
     },
   ]);
@@ -311,7 +323,6 @@ it("skips consultations outside the reminder window", async () => {
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-20T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1"],
     },
   ]);
@@ -328,7 +339,6 @@ it("skips consultations without assignees", async () => {
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-12T10:00:00"),
-      reminderDays: 3,
       assigneeIds: [],
     },
   ]);
@@ -345,7 +355,6 @@ it("suppresses an overdue consultation before dispatching its reminder", async (
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-01T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1"],
     },
   ]);
@@ -366,7 +375,6 @@ it("skips dispatch when another invocation already suppressed the consultation",
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-01T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1"],
     },
   ]);
@@ -383,7 +391,6 @@ it("releases the consultation claim when dispatch fails", async () => {
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-12T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1"],
     },
   ]);
@@ -400,7 +407,6 @@ it("retracts an overdue consultation suppression when dispatch fails", async () 
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-01T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1"],
     },
   ]);
@@ -419,7 +425,6 @@ it("continues past a failed milestone claim rollback so later milestones still d
       due_date: new Date("2026-08-12T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: 3,
     },
     {
       id: "m2",
@@ -427,7 +432,6 @@ it("continues past a failed milestone claim rollback so later milestones still d
       due_date: new Date("2026-08-12T09:00:00"),
       caseId: "c2",
       assigneeIds: ["u2"],
-      reminderDays: 3,
     },
   ]);
   vi.mocked(dispatchNotifications).mockRejectedValue(new Error("smtp down"));
@@ -444,14 +448,12 @@ it("continues past a failed consultation rollback so later consultations still d
       id: "c1",
       concern: "Boundary dispute",
       booking_datetime: new Date("2026-08-01T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u1"],
     },
     {
       id: "c2",
       concern: "Contract review",
       booking_datetime: new Date("2026-08-02T10:00:00"),
-      reminderDays: 3,
       assigneeIds: ["u2"],
     },
   ]);
@@ -463,7 +465,23 @@ it("continues past a failed consultation rollback so later consultations still d
   expect(dispatchNotifications).toHaveBeenCalledTimes(2);
 });
 
-it("uses the env default when reminder_days is not set", async () => {
+it("uses per-user reminder days from settings", async () => {
+  const { getDeadlineReminderPreferencesByUserIds } = await import("@/features/settings/queries");
+  vi.mocked(getDeadlineReminderPreferencesByUserIds).mockResolvedValue(
+    new Map([
+      [
+        "u1",
+        {
+          consultation_reminder_days: 3,
+          consultation_reminder_frequency: "Daily",
+          consultation_notify_overdue: true,
+          milestone_reminder_days: 3,
+          milestone_reminder_frequency: "Daily",
+          milestone_notify_overdue: true,
+        },
+      ],
+    ]),
+  );
   vi.mocked(getMilestonesNeedingReminder).mockResolvedValue([
     {
       id: "m1",
@@ -471,10 +489,8 @@ it("uses the env default when reminder_days is not set", async () => {
       due_date: new Date("2026-08-12T10:00:00"),
       caseId: "c1",
       assigneeIds: ["u1"],
-      reminderDays: null,
     },
   ]);
-  vi.mocked(getOptionalInteger).mockReturnValue(3);
 
   await runReminderCheck();
 

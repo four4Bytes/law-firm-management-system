@@ -83,7 +83,7 @@ export function EditCaseModal({
       client: {
         name: requiredString(clientName),
         email: optionalString(clientEmail),
-        phone_number: optionalString(clientPhone),
+        phone_number: requiredString(clientPhone),
         address: optionalString(clientAddress),
       },
       case: {
@@ -124,7 +124,7 @@ export function EditCaseModal({
               label="Phone"
               value={clientPhone}
               onChange={setClientPhone}
-              placeholder="Optional"
+              placeholder="Required"
               validate={createFieldValidator(
                 CaseWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
               )}

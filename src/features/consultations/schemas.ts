@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { nonNegativeInteger, requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
+import { requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
 import { ClientDataSchema, SortQuerySchema } from "@/lib/schemas";
 
 export const ConsultationPageQuerySchema = z.object({
@@ -21,7 +21,6 @@ export const ConsultationCreatePayloadSchema = z.object({
   concern: requiredText(500, "Concern"),
   booking_datetime: z.coerce.date(),
   status: requiredEnum(ConsultationStatus, "Status"),
-  reminder_days: nonNegativeInteger("Reminder days").nullable().optional(),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
@@ -37,7 +36,6 @@ const ConsultationDataSchema = z.object({
   concern: requiredText(500, "Concern"),
   booking_datetime: z.coerce.date(),
   status: requiredEnum(ConsultationStatus, "Status"),
-  reminder_days: nonNegativeInteger("Reminder days").nullable().optional(),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 

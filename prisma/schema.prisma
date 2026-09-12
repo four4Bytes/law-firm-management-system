@@ -38,6 +38,13 @@ enum TaskStatus {
   Cancelled
 }
 
+enum SubtaskStatus {
+  Pending
+  InProgress
+  Completed
+  Cancelled
+}
+
 enum ReviewDecision {
   Pending
   Accepted
@@ -63,6 +70,8 @@ enum NotificationType {
   MilestoneOverdue
   TaskAssigned
   TaskStatusChanged
+  SubtaskDueSoon
+  SubtaskOverdue
   CaseAssigned
   CaseStatusChanged
   ConsultationAssigned
@@ -118,9 +127,11 @@ model User {
   consultations           Consultation[]
   cases                   Case[]
   createdTasks            Task[]                   @relation("TaskCreator")
+  createdSubtasks         Subtask[]                @relation("SubtaskCreator")
   caseAssignments         CaseAssignment[]
   consultationAssignments ConsultationAssignment[]
   taskAssignments         TaskAssignment[]
+  subtaskAssignments      SubtaskAssignment[]
   notifications           Notification[]
   payments                Payment[]
   documents               Document[]
@@ -276,11 +287,49 @@ model Task {
   createdBy       User             @relation("TaskCreator", fields: [created_by_user_id], references: [id])
   taskAssignments TaskAssignment[]
   taskReviewers   TaskReviewer[]
+  subtasks        Subtask[]
   documents       Document[]
   notes           Note[]
   notifications   Notification[]
 
   @@index([case_id, updated_at])
+}
+
+model Subtask {
+  id                 String        @id @default(uuid()) @db.Uuid
+  task_id            String        @db.Uuid
+  title              String
+  description        String?
+  status             SubtaskStatus @default(Pending)
+  priority           String?
+  due_date           DateTime?
+  created_by_user_id String        @db.Uuid
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+  reminder_days      Int?
+  last_reminded_at   DateTime?
+
+  task          Task                @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  createdBy     User                @relation("SubtaskCreator", fields: [created_by_user_id], references: [id])
+  assignments   SubtaskAssignment[]
+  notifications Notification[]
+
+  @@index([task_id, updated_at])
+  @@index([status, due_date])
+}
+
+model SubtaskAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  subtask_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  subtask Subtask @relation(fields: [subtask_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([subtask_id, user_id])
+  @@index([subtask_id])
 }
 
 model TaskReviewer {
@@ -331,6 +380,7 @@ model Notification {
   consultation_id String?          @db.Uuid
   milestone_id    String?          @db.Uuid
   task_id         String?          @db.Uuid
+  subtask_id      String?          @db.Uuid
   created_at      DateTime         @default(now())
   updated_at      DateTime         @updatedAt
 
@@ -339,6 +389,7 @@ model Notification {
   consultation Consultation?  @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
   milestone    CaseMilestone? @relation(fields: [milestone_id], references: [id], onDelete: Cascade)
   task         Task?          @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  subtask      Subtask?       @relation(fields: [subtask_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, is_read, created_at])
   @@index([user_id, created_at])

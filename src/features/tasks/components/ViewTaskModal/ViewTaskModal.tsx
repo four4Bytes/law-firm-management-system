@@ -12,7 +12,8 @@ import type { DocumentRow } from "@/features/documents/queries";
 import { getTaskNotesAction } from "@/features/notes/actions";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
-import type { TaskDetailRow } from "@/features/tasks/queries";
+import { SubtaskList } from "@/features/subtasks/components/SubtaskList/SubtaskList";
+import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
 import { toastError } from "@/lib/toast-utils";
 
@@ -22,9 +23,17 @@ interface ViewTaskModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   task: TaskDetailRow;
+  users: ActiveUserSummary[];
+  canCreate: boolean;
 }
 
-export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps) {
+export function ViewTaskModal({
+  isOpen,
+  onOpenChange,
+  task,
+  users,
+  canCreate,
+}: ViewTaskModalProps) {
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
@@ -123,6 +132,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
               <span className={styles.label}>Status</span>
               <span className={styles.value}>{task.status}</span>
             </div>
+            <SubtaskList taskId={task.id} users={users} canCreate={canCreate} />
           </div>
 
           {hasFiles && (

@@ -244,11 +244,18 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           capabilities={editCapabilities}
           users={users}
           currentUserId={editCurrentUserId ?? ""}
+          canCreateSubtask={canCreate}
         />
       )}
 
       {viewTask && (
-        <ViewTaskModal isOpen={!!viewTask} onOpenChange={() => setViewTask(null)} task={viewTask} />
+        <ViewTaskModal
+          isOpen={!!viewTask}
+          onOpenChange={() => setViewTask(null)}
+          task={viewTask}
+          users={users}
+          canCreate={canCreate}
+        />
       )}
 
       <ConfirmDialog

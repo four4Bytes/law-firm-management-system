@@ -18,6 +18,7 @@ export async function createNotifications(
     consultation_id: data.consultationId ?? null,
     milestone_id: data.milestoneId ?? null,
     task_id: data.taskId ?? null,
+    subtask_id: data.subtaskId ?? null,
   }));
 
   const result = await client.notification.createMany({ data: records });

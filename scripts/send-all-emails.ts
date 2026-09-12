@@ -57,6 +57,8 @@ function pickTemplate(type: NotificationType) {
       return consultationOverdueTemplate;
     case NotificationType.MilestoneDueSoon:
     case NotificationType.MilestoneOverdue:
+    case NotificationType.SubtaskDueSoon:
+    case NotificationType.SubtaskOverdue:
       return milestoneTemplate;
     case NotificationType.TaskAssigned:
       return taskAssignedTemplate;
@@ -140,6 +142,30 @@ function fakeContext(type: NotificationType): { subject: string; ctx: TemplateCo
           title: "Milestone overdue: Serve summons",
           message:
             'Milestone "Serve Summons & File Return — Reyes vs. San Miguel Logistics (Civil Litigation)" is overdue — due Sep 10, 2026',
+          actionUrl: "/case/debug-case-id",
+        },
+      };
+    case NotificationType.SubtaskDueSoon:
+      return {
+        subject: "Subtask Due Soon — Prepare Court Documents",
+        ctx: {
+          toName: "Atty. David Tan",
+          actorName: "Atty. Catherine Diaz",
+          title: "Subtask due soon: Collect required documents",
+          message:
+            'Subtask "Collect required documents — Prepare Court Documents" is due soon — due Sep 14, 2026',
+          actionUrl: "/case/debug-case-id",
+        },
+      };
+    case NotificationType.SubtaskOverdue:
+      return {
+        subject: "Subtask Overdue — Prepare Court Documents",
+        ctx: {
+          toName: "Atty. Jessica Lim",
+          actorName: "Atty. Miguel Cruz",
+          title: "Subtask overdue: Review documents",
+          message:
+            'Subtask "Review documents — Prepare Court Documents" is overdue — due Sep 10, 2026',
           actionUrl: "/case/debug-case-id",
         },
       };

@@ -28,6 +28,10 @@
     gap: var(--space-lg);
   }
 
+  .column:first-child {
+    flex: 1.45;
+  }
+
   .divider {
     width: 1px;
     flex: 0 0 auto;

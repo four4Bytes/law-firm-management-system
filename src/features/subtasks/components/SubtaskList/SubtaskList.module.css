@@ -48,17 +48,40 @@
   }
 
   .percent {
+    flex: 0 0 auto;
+    min-width: 4ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
   }
 
-  .allDone {
-    font-size: var(--font-size-sm);
-    color: var(--color-success);
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: 5rem;
+    padding: var(--space-md);
+    border: 1px dashed var(--color-border-subtle);
+    border-radius: 8px;
+    text-align: center;
   }
 
-  .empty {
+  .emptyIcon {
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-muted);
+  }
+
+  .emptyTitle {
     font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .emptyHint {
+    font-size: var(--font-size-xs);
     color: var(--color-text-muted);
   }
 
@@ -69,15 +92,24 @@
     margin: 0;
     padding: 0;
     list-style: none;
+    min-height: 5rem;
+    max-height: 15rem;
+    overflow-y: auto;
   }
 
-  .row {
+  .card {
     display: flex;
-    align-items: center;
-    gap: var(--space-md);
+    flex-direction: column;
+    gap: var(--space-xs);
     padding: var(--space-sm) var(--space-md);
     border: 1px solid var(--color-border-subtle);
     border-radius: 8px;
+  }
+
+  .topRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
   }
 
   .toggle {
@@ -89,22 +121,46 @@
     height: 18px;
   }
 
-  .details {
+  .title {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .title {
     font-size: var(--font-size-sm);
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .meta {
+  .metaRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    column-gap: var(--space-xl);
+    row-gap: 2px;
+    margin-left: calc(18px + var(--space-sm) * 2 + var(--space-md));
+  }
+
+  .metaItem {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .priorityBadge {
+    flex: 0 0 auto;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semi-bold);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    padding: 2px var(--space-sm);
+    white-space: nowrap;
+  }
+
+  .statusSlot {
+    flex: 0 0 auto;
+    min-width: 8rem;
+    display: flex;
+    justify-content: center;
   }
 
   .actions {
@@ -121,8 +177,13 @@
 
 @media (max-width: 48rem) {
   .section {
-    .row {
+    .topRow {
       flex-wrap: wrap;
+    }
+
+    .title {
+      flex: 1 1 100%;
+      order: 2;
     }
 
     .actions {

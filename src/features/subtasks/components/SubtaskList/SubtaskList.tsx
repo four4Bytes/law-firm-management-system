@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FaPenToSquare, FaPlus, FaRegSquare, FaSquareCheck, FaTrashCan } from "react-icons/fa6";
+import {
+  FaPenToSquare,
+  FaPlus,
+  FaRegClipboard,
+  FaRegSquare,
+  FaSquareCheck,
+  FaTrashCan,
+} from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -12,7 +19,10 @@ import {
   setSubtaskStatusAction,
 } from "@/features/subtasks/actions";
 import { AddSubtaskModal } from "@/features/subtasks/components/AddSubtaskModal/AddSubtaskModal";
-import { EditSubtaskModal } from "@/features/subtasks/components/EditSubtaskModal/EditSubtaskModal";
+import {
+  EditSubtaskModal,
+  type SubtaskEditValues,
+} from "@/features/subtasks/components/EditSubtaskModal/EditSubtaskModal";
 import type { SubtaskProgress, SubtaskRow } from "@/features/subtasks/queries";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { SubtaskStatus } from "@/generated/prisma/browser";
@@ -92,14 +102,37 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
     setTogglingId(subtask.id);
     const nextStatus =
       subtask.status === SubtaskStatus.Completed ? SubtaskStatus.Pending : SubtaskStatus.Completed;
+
+    const previousRows = rows;
+    const previousProgress = progress;
+
+    const nextRows = rows.map((row) =>
+      row.id === subtask.id ? { ...row, status: nextStatus } : row,
+    );
+    const nextCompleted = nextRows.filter((row) => row.status === SubtaskStatus.Completed).length;
+    const nextTotal = nextRows.length;
+
+    setRows(nextRows);
+    setProgress({
+      total: nextTotal,
+      completed: nextCompleted,
+      percent: nextTotal === 0 ? 0 : Math.round((nextCompleted / nextTotal) * 100),
+    });
+
+    function revert() {
+      setRows(previousRows);
+      setProgress(previousProgress);
+    }
+
     try {
       const result = await setSubtaskStatusAction({ subtaskId: subtask.id, status: nextStatus });
       if (!result.success) {
+        revert();
         toastActionError(result, "update subtask status");
         return;
       }
-      handleRefresh();
     } catch {
+      revert();
       toastError(
         "Failed to update subtask",
         "Something went wrong while updating the subtask. Please try again.",
@@ -107,6 +140,33 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
     } finally {
       setTogglingId(null);
     }
+  }
+
+  function handleEditSaved(subtaskId: string, values: SubtaskEditValues) {
+    const nextRows = rows.map((row) => {
+      if (row.id !== subtaskId) return row;
+      return {
+        ...row,
+        title: values.title,
+        description: values.description ?? null,
+        priority: values.priority ?? null,
+        due_date: values.due_date ?? null,
+        status: values.status,
+        assignee_ids: values.assignee_ids,
+        assignees: values.assignee_ids.map((id) => ({
+          id,
+          name: users.find((user) => user.id === id)?.name ?? "Unknown",
+        })),
+      };
+    });
+    const nextCompleted = nextRows.filter((row) => row.status === SubtaskStatus.Completed).length;
+
+    setRows(nextRows);
+    setProgress({
+      total: nextRows.length,
+      completed: nextCompleted,
+      percent: nextRows.length === 0 ? 0 : Math.round((nextCompleted / nextRows.length) * 100),
+    });
   }
 
   async function handleDelete() {
@@ -132,77 +192,89 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
         )}
       </div>
 
-      {progress.total > 0 && (
-        <div className={styles.progress}>
-          <span className={styles.progressText}>
-            Subtasks: {progress.completed}/{progress.total} completed
-          </span>
-          <progress
-            className={styles.bar}
-            value={progress.completed}
-            max={Math.max(progress.total, 1)}
-            aria-label="Subtask progress"
-          />
-          <span className={styles.percent}>{progress.percent}%</span>
-          {progress.completed === progress.total && (
-            <span className={styles.allDone}>All subtasks completed</span>
-          )}
-        </div>
-      )}
+      <div className={styles.progress}>
+        <span className={styles.progressText}>
+          Subtasks: {progress.completed}/{progress.total} completed
+        </span>
+        <progress
+          className={styles.bar}
+          value={progress.completed}
+          max={Math.max(progress.total, 1)}
+          aria-label="Subtask progress"
+        />
+        <span className={styles.percent}>{progress.percent}%</span>
+      </div>
 
-      {isLoading ? (
-        <span className={styles.empty}>Loading subtasks...</span>
+      {isLoading && rows.length === 0 ? (
+        <div className={styles.empty}>
+          <FaRegClipboard className={styles.emptyIcon} aria-hidden="true" />
+          <span className={styles.emptyTitle}>Loading subtasks...</span>
+        </div>
       ) : rows.length === 0 ? (
-        <span className={styles.empty}>No subtasks yet</span>
+        <div className={styles.empty}>
+          <FaRegClipboard className={styles.emptyIcon} aria-hidden="true" />
+          <span className={styles.emptyTitle}>No subtasks recorded</span>
+          <span className={styles.emptyHint}>
+            Click &quot;+ Add Subtask&quot; to create a new one
+          </span>
+        </div>
       ) : (
         <ul className={styles.list}>
           {rows.map((subtask) => {
             const isDone = subtask.status === SubtaskStatus.Completed;
             return (
-              <li key={subtask.id} className={styles.row}>
-                <Button
-                  variant="ghost"
-                  aria-label={isDone ? "Mark subtask as pending" : "Mark subtask as completed"}
-                  onPress={() => handleToggle(subtask)}
-                  isDisabled={togglingId === subtask.id}
-                  className={styles.toggle}
-                >
-                  {isDone ? (
-                    <FaSquareCheck className={styles.checkIcon} />
-                  ) : (
-                    <FaRegSquare className={styles.checkIcon} />
-                  )}
-                </Button>
-                <div className={styles.details}>
-                  <span className={styles.title}>{subtask.title}</span>
-                  <span className={styles.meta}>
-                    Assigned to: {subtask.assignees.map((a) => a.name).join(", ") || "Unassigned"}
+              <li key={subtask.id} className={styles.card}>
+                <div className={styles.topRow}>
+                  <Button
+                    variant="ghost"
+                    aria-label={isDone ? "Mark subtask as pending" : "Mark subtask as completed"}
+                    onPress={() => handleToggle(subtask)}
+                    isDisabled={togglingId === subtask.id}
+                    className={styles.toggle}
+                  >
+                    {isDone ? (
+                      <FaSquareCheck className={styles.checkIcon} />
+                    ) : (
+                      <FaRegSquare className={styles.checkIcon} />
+                    )}
+                  </Button>
+                  <span className={styles.title} title={subtask.title}>
+                    {subtask.title}
                   </span>
-                  {subtask.due_date && (
-                    <span className={styles.meta}>Due: {formatDate(subtask.due_date)}</span>
+                  <span className={styles.statusSlot}>
+                    <StatusBadge variant={statusVariantMap[subtask.status]}>
+                      {statusLabelMap[subtask.status]}
+                    </StatusBadge>
+                  </span>
+                  <div className={styles.actions}>
+                    <Button
+                      variant="ghost"
+                      aria-label="Edit subtask"
+                      onPress={() => setEditSubtask(subtask)}
+                    >
+                      <FaPenToSquare className={styles.icon} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      aria-label="Delete subtask"
+                      onPress={() => setDeleteTarget(subtask)}
+                    >
+                      <FaTrashCan className={styles.icon} />
+                    </Button>
+                  </div>
+                </div>
+                <div className={styles.metaRow}>
+                  <span className={styles.metaItem}>
+                    Assigned: {subtask.assignees.map((a) => a.name).join(", ") || "Unassigned"}
+                  </span>
+                  {subtask.due_date ? (
+                    <span className={styles.metaItem}>Due: {formatDate(subtask.due_date)}</span>
+                  ) : (
+                    <span className={styles.metaItem}>No due date</span>
                   )}
                   {subtask.priority && (
-                    <span className={styles.meta}>Priority: {subtask.priority}</span>
+                    <span className={styles.priorityBadge}>{subtask.priority}</span>
                   )}
-                </div>
-                <StatusBadge variant={statusVariantMap[subtask.status]}>
-                  {statusLabelMap[subtask.status]}
-                </StatusBadge>
-                <div className={styles.actions}>
-                  <Button
-                    variant="ghost"
-                    aria-label="Edit subtask"
-                    onPress={() => setEditSubtask(subtask)}
-                  >
-                    <FaPenToSquare className={styles.icon} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    aria-label="Delete subtask"
-                    onPress={() => setDeleteTarget(subtask)}
-                  >
-                    <FaTrashCan className={styles.icon} />
-                  </Button>
                 </div>
               </li>
             );
@@ -223,7 +295,7 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
           key={editSubtask.id}
           isOpen={!!editSubtask}
           onOpenChange={() => setEditSubtask(null)}
-          onSuccess={handleRefresh}
+          onSaved={handleEditSaved}
           subtask={editSubtask}
           users={users}
         />

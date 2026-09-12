@@ -1,5 +1,7 @@
 .modal {
   --list-max-height: none;
+  width: 30rem;
+  max-width: 94vw;
 
   .columns {
     flex: 1;
@@ -36,7 +38,10 @@
   }
 
   .label {
-    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semi-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--color-text-muted);
   }
 

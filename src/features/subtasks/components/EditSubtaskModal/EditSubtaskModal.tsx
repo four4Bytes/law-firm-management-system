@@ -30,10 +30,20 @@ import styles from "./EditSubtaskModal.module.css";
 
 const STATUS_OPTIONS = Object.values(SubtaskStatus);
 
+export interface SubtaskEditValues {
+  title: string;
+  description?: string | null;
+  priority?: string | null;
+  due_date?: Date | null;
+  status: SubtaskStatus;
+  assignee_ids: string[];
+}
+
 interface EditSubtaskModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
+  onSaved?: (subtaskId: string, values: SubtaskEditValues) => void;
   subtask: SubtaskRow;
   users: ActiveUserSummary[];
 }
@@ -42,6 +52,7 @@ export function EditSubtaskModal({
   isOpen,
   onOpenChange,
   onSuccess,
+  onSaved,
   subtask,
   users,
 }: EditSubtaskModalProps) {
@@ -57,7 +68,20 @@ export function EditSubtaskModal({
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof SubtaskUpdatePayloadSchema>
   >({
-    submit: updateSubtaskAction,
+    submit: async (args) => {
+      const result = await updateSubtaskAction(args);
+      if (result.success) {
+        onSaved?.(subtask.id, {
+          title: args.title,
+          description: args.description,
+          priority: args.priority,
+          due_date: args.due_date instanceof Date ? args.due_date : null,
+          status: args.status,
+          assignee_ids: args.assignee_ids,
+        });
+      }
+      return result;
+    },
     onOpenChange,
     onSuccess,
     successMessage: "Subtask updated",

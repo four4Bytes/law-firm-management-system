@@ -154,6 +154,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: taskId,
       assignee_ids: [assigneeId],
     });
@@ -178,6 +179,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: taskId,
       assignee_ids: [uuid],
     });
@@ -192,6 +194,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: uuid,
       assignee_ids: [uuid],
     });
@@ -207,6 +210,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: taskId,
       assignee_ids: [uuid],
     });
@@ -225,6 +229,7 @@ describe("updateSubtaskAction", () => {
     const result = await updateSubtaskAction({
       subtaskId,
       title: "Sub",
+      description: "Sub description",
       status: "Completed",
       assignee_ids: [assigneeId],
     });
@@ -248,6 +253,7 @@ describe("updateSubtaskAction", () => {
     const result = await updateSubtaskAction({
       subtaskId,
       title: "Sub",
+      description: "Sub description",
       status: "Pending",
       assignee_ids: [uuid],
     });

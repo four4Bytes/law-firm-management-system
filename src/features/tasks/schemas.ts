@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
-import { optionalText, requiredText, uniqueUuidArray } from "@/lib/form-utils";
+import { requiredText, uniqueUuidArray } from "@/lib/form-utils";
 
 export const TaskIdSchema = z.object({
   taskId: z.uuid(),
@@ -9,7 +9,7 @@ export const TaskIdSchema = z.object({
 
 export const TaskCreatePayloadSchema = z.object({
   title: requiredText(500, "Title"),
-  description: optionalText(10000, "Description"),
+  description: requiredText(10000, "Description"),
   case_id: z.uuid(),
   assignee_ids: uniqueUuidArray("Assignee").min(1, "Add at least one assignee"),
 });
@@ -17,7 +17,7 @@ export const TaskCreatePayloadSchema = z.object({
 export const TaskUpdatePayloadSchema = z.object({
   taskId: z.uuid(),
   title: requiredText(500, "Title"),
-  description: optionalText(10000, "Description"),
+  description: requiredText(10000, "Description"),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 

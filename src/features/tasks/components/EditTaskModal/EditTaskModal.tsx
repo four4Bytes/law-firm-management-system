@@ -344,7 +344,7 @@ export function EditTaskModal({
               rows={3}
               value={description}
               onChange={setDescription}
-              placeholder="Optional description..."
+              placeholder="Enter task description..."
               validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
               isDisabled={isPending || !capabilities.canEdit}
             />

@@ -73,7 +73,7 @@ export function EditSubtaskModal({
     await submitForm({
       subtaskId: subtask.id,
       title: requiredString(title),
-      description: optionalString(description),
+      description: requiredString(description),
       priority: optionalString(priority),
       status,
       due_date: dueDate ? toDateValue(dueDate) : null,
@@ -102,7 +102,7 @@ export function EditSubtaskModal({
             label="Description"
             value={description}
             onChange={setDescription}
-            placeholder="Optional description"
+            placeholder="Enter subtask description"
             isTextArea
             rows={3}
             validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.description)}

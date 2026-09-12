@@ -15,7 +15,7 @@ export const SubtaskIdSchema = z.object({
 
 const SubtaskFieldsSchema = z.object({
   title: requiredText(500, "Title"),
-  description: optionalText(10000, "Description"),
+  description: requiredText(10000, "Description"),
   priority: optionalText(50, "Priority"),
   due_date: z.coerce.date().nullable().optional(),
   status: requiredEnum(SubtaskStatus, "Status"),

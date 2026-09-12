@@ -76,7 +76,7 @@ export function AddSubtaskModal({
 
     await submitForm({
       title: requiredString(title),
-      description: optionalString(description),
+      description: requiredString(description),
       priority: optionalString(priority),
       task_id: taskId,
       status,
@@ -101,7 +101,7 @@ export function AddSubtaskModal({
             label="Description"
             value={description}
             onChange={setDescription}
-            placeholder="Optional description"
+            placeholder="Enter subtask description"
             isTextArea
             rows={3}
             validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.description)}

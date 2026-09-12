@@ -1,7 +1,7 @@
 "use client";
 
 import { type CalendarDate } from "@internationalized/date";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
@@ -12,12 +12,12 @@ import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createSubtaskAction } from "@/features/subtasks/actions";
 import { SubtaskCreatePayloadSchema } from "@/features/subtasks/schemas";
+import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { SubtaskStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
-  optionalString,
   requiredString,
   selectEnumHandler,
   toDateValue,
@@ -45,10 +45,32 @@ export function AddSubtaskModal({
 }: AddSubtaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("");
+  const [parentPriority, setParentPriority] = useState<string | null>(null);
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<SubtaskStatus>(SubtaskStatus.Pending);
   const [dueDate, setDueDate] = useState<CalendarDate | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    async function loadParentPriority() {
+      try {
+        const data = await getTaskDetailRowByIdAction(taskId);
+        if (cancelled) return;
+        setParentPriority(data.row?.priority ?? null);
+      } catch {
+        if (cancelled) return;
+        setParentPriority(null);
+      }
+    }
+
+    void loadParentPriority();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, taskId]);
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof SubtaskCreatePayloadSchema>
@@ -63,7 +85,6 @@ export function AddSubtaskModal({
     reset: () => {
       setTitle("");
       setDescription("");
-      setPriority("");
       setAssigneeIds(new Set());
       setStatus(SubtaskStatus.Pending);
       setDueDate(null);
@@ -77,7 +98,6 @@ export function AddSubtaskModal({
     await submitForm({
       title: requiredString(title),
       description: requiredString(description),
-      priority: optionalString(priority),
       task_id: taskId,
       status,
       due_date: dueDate ? toDateValue(dueDate) : undefined,
@@ -91,6 +111,7 @@ export function AddSubtaskModal({
         <div className={styles.content}>
           <TextField
             label="Title"
+            labelClassName={styles.fieldLabel}
             value={title}
             onChange={setTitle}
             placeholder="Subtask title"
@@ -99,6 +120,7 @@ export function AddSubtaskModal({
           />
           <TextField
             label="Description"
+            labelClassName={styles.fieldLabel}
             value={description}
             onChange={setDescription}
             placeholder="Enter subtask description"
@@ -107,19 +129,18 @@ export function AddSubtaskModal({
             validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.description)}
             isDisabled={isPending}
           />
-          <TextField
-            label="Priority"
-            value={priority}
-            onChange={setPriority}
-            placeholder="Optional priority (e.g. High)"
-            validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.priority)}
-            isDisabled={isPending}
-          />
+          <div className={styles.readOnlyField}>
+            <span className={styles.readOnlyLabel}>Priority</span>
+            <span className={styles.readOnlyValue}>
+              {parentPriority ?? "—"} (inherited from main task)
+            </span>
+          </div>
           <UserSelect
             users={users}
             selectedIds={assigneeIds}
             onChange={setAssigneeIds}
             isDisabled={isPending}
+            labelClassName={styles.fieldLabel}
           />
           <DateField
             label="Due Date"
@@ -129,6 +150,7 @@ export function AddSubtaskModal({
           />
           <Select
             label="Status"
+            labelClassName={styles.fieldLabel}
             value={status}
             onChange={selectEnumHandler(SubtaskStatus, setStatus)}
             isDisabled={isPending}

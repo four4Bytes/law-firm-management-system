@@ -24,6 +24,7 @@ export interface SelectProps<
   M extends "single" | "multiple" = "single",
 > extends Omit<AriaSelectProps<T, M>, "children"> {
   label?: string;
+  labelClassName?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   alwaysPlaceholder?: boolean;
@@ -33,6 +34,7 @@ export interface SelectProps<
 
 export function Select<T extends object, M extends "single" | "multiple" = "single">({
   label,
+  labelClassName,
   description,
   errorMessage,
   alwaysPlaceholder,
@@ -43,7 +45,7 @@ export function Select<T extends object, M extends "single" | "multiple" = "sing
 }: SelectProps<T, M>) {
   return (
     <AriaSelect {...props} className={clsx(styles.select, className)}>
-      {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
+      {label && <AriaLabel className={clsx(styles.label, labelClassName)}>{label}</AriaLabel>}
       <Button variant="ghost" className={styles.trigger}>
         <AriaSelectValue className={styles.value}>
           {({ isPlaceholder, defaultChildren }) =>

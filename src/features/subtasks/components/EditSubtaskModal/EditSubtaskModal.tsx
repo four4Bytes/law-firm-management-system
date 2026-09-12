@@ -19,7 +19,6 @@ import { SubtaskStatus } from "@/generated/prisma/browser";
 import { toCalendarDate } from "@/lib/date";
 import {
   createFieldValidator,
-  optionalString,
   requiredString,
   selectEnumHandler,
   toDateValue,
@@ -33,7 +32,6 @@ const STATUS_OPTIONS = Object.values(SubtaskStatus);
 export interface SubtaskEditValues {
   title: string;
   description?: string | null;
-  priority?: string | null;
   due_date?: Date | null;
   status: SubtaskStatus;
   assignee_ids: string[];
@@ -58,7 +56,6 @@ export function EditSubtaskModal({
 }: EditSubtaskModalProps) {
   const [title, setTitle] = useState(subtask.title);
   const [description, setDescription] = useState(subtask.description ?? "");
-  const [priority, setPriority] = useState(subtask.priority ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(subtask.assignee_ids));
   const [status, setStatus] = useState<SubtaskStatus>(subtask.status);
   const [dueDate, setDueDate] = useState<CalendarDate | null>(
@@ -74,7 +71,6 @@ export function EditSubtaskModal({
         onSaved?.(subtask.id, {
           title: args.title,
           description: args.description,
-          priority: args.priority,
           due_date: args.due_date instanceof Date ? args.due_date : null,
           status: args.status,
           assignee_ids: args.assignee_ids,
@@ -98,7 +94,6 @@ export function EditSubtaskModal({
       subtaskId: subtask.id,
       title: requiredString(title),
       description: requiredString(description),
-      priority: optionalString(priority),
       status,
       due_date: dueDate ? toDateValue(dueDate) : null,
       assignee_ids: Array.from(assigneeIds),
@@ -116,6 +111,7 @@ export function EditSubtaskModal({
         <div className={styles.content}>
           <TextField
             label="Title"
+            labelClassName={styles.fieldLabel}
             value={title}
             onChange={setTitle}
             placeholder="Subtask title"
@@ -124,6 +120,7 @@ export function EditSubtaskModal({
           />
           <TextField
             label="Description"
+            labelClassName={styles.fieldLabel}
             value={description}
             onChange={setDescription}
             placeholder="Enter subtask description"
@@ -132,19 +129,18 @@ export function EditSubtaskModal({
             validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.description)}
             isDisabled={isPending}
           />
-          <TextField
-            label="Priority"
-            value={priority}
-            onChange={setPriority}
-            placeholder="Optional priority (e.g. High)"
-            validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.priority)}
-            isDisabled={isPending}
-          />
+          <div className={styles.readOnlyField}>
+            <span className={styles.readOnlyLabel}>Priority</span>
+            <span className={styles.readOnlyValue}>
+              {subtask.priority ?? "—"} (inherited from main task)
+            </span>
+          </div>
           <UserSelect
             users={users}
             selectedIds={assigneeIds}
             onChange={setAssigneeIds}
             isDisabled={isPending}
+            labelClassName={styles.fieldLabel}
           />
           <DateField
             label="Due Date"
@@ -154,6 +150,7 @@ export function EditSubtaskModal({
           />
           <Select
             label="Status"
+            labelClassName={styles.fieldLabel}
             value={status}
             onChange={selectEnumHandler(SubtaskStatus, setStatus)}
             isDisabled={isPending}

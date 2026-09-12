@@ -29,6 +29,7 @@ import {
   updateTaskAction,
   type TaskCapabilities,
 } from "@/features/tasks/actions";
+import { TASK_PRIORITY_NONE_VALUE, taskPriorityOptions } from "@/features/tasks/constants";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserList } from "@/features/users/components/UserList/UserList";
@@ -64,6 +65,7 @@ export function EditTaskModal({
 }: EditTaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
+  const [priority, setPriority] = useState(task.priority ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(
     new Set(task.reviewers.map((r) => r.reviewer_user_id)),
@@ -172,6 +174,7 @@ export function EditTaskModal({
         taskId: task.id,
         title: requiredString(title),
         description: optionalString(description),
+        priority: optionalString(priority),
         assignee_ids: Array.from(assigneeIds),
       });
       if (!parsed.success) {
@@ -332,6 +335,7 @@ export function EditTaskModal({
           <div className={styles.column}>
             <TextField
               label="Title"
+              labelClassName={styles.fieldLabel}
               value={title}
               onChange={setTitle}
               placeholder="Enter task title..."
@@ -340,6 +344,7 @@ export function EditTaskModal({
             />
             <TextField
               label="Description"
+              labelClassName={styles.fieldLabel}
               isTextArea
               rows={3}
               value={description}
@@ -348,15 +353,36 @@ export function EditTaskModal({
               validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
               isDisabled={isPending || !capabilities.canEdit}
             />
+            <Select
+              label="Priority"
+              labelClassName={styles.fieldLabel}
+              value={priority === "" ? TASK_PRIORITY_NONE_VALUE : priority}
+              placeholder="Select priority..."
+              onChange={(key) => {
+                if (key === TASK_PRIORITY_NONE_VALUE) setPriority("");
+                else if (key != null) setPriority(String(key));
+              }}
+              isDisabled={isPending || !capabilities.canEdit}
+            >
+              <SelectItem id={TASK_PRIORITY_NONE_VALUE}>None</SelectItem>
+              {taskPriorityOptions(priority).map((option) => (
+                <SelectItem key={option} id={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </Select>
             <UserSelect
               users={users}
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending || !capabilities.isCreator}
               label="Assignees"
+              labelClassName={styles.fieldLabel}
               hideSelected
             />
-            <UserList users={task.assignTo} />
+            <div className={styles.userBox}>
+              <UserList users={task.assignTo} />
+            </div>
 
             <UserSelect
               users={users}
@@ -364,16 +390,20 @@ export function EditTaskModal({
               onChange={setReviewerIds}
               isDisabled={isPending || !capabilities.canManageReviewers}
               label="Reviewers"
+              labelClassName={styles.fieldLabel}
               hideSelected
             />
-            <UserList
-              users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
-            />
+            <div className={styles.userBox}>
+              <UserList
+                users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
+              />
+            </div>
 
             {capabilities.canSetStatus && (
               <div className={styles.section}>
                 <Select
                   label="Status"
+                  labelClassName={styles.fieldLabel}
                   aria-label="Change task status"
                   value={statusChoice ?? task.status}
                   isDisabled={task.status === TaskStatus.Cancelled}

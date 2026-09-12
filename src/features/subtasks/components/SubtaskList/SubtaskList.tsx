@@ -149,7 +149,6 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
         ...row,
         title: values.title,
         description: values.description ?? null,
-        priority: values.priority ?? null,
         due_date: values.due_date ?? null,
         status: values.status,
         assignee_ids: values.assignee_ids,

@@ -15,6 +15,7 @@ export interface UserSelectProps {
   onChange: (ids: Set<string>) => void;
   isDisabled?: boolean;
   label?: string;
+  labelClassName?: string;
   placeholder?: string;
   hideSelected?: boolean;
 }
@@ -25,6 +26,7 @@ export function UserSelect({
   onChange,
   isDisabled,
   label = "Assignees",
+  labelClassName,
   placeholder = "Select assignees...",
   hideSelected = false,
 }: UserSelectProps) {
@@ -34,6 +36,7 @@ export function UserSelect({
     <>
       <Select
         label={label}
+        labelClassName={labelClassName}
         selectionMode="multiple"
         value={Array.from(selectedIds)}
         onChange={(keys) => onChange(keysToSet(keys))}

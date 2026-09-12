@@ -119,6 +119,10 @@ export function ViewTaskModal({
               </div>
             )}
             <div className={styles.field}>
+              <span className={styles.label}>Priority</span>
+              <span className={styles.value}>{task.priority ?? "—"}</span>
+            </div>
+            <div className={styles.field}>
               <span className={styles.label}>Assignees</span>
               <UserList users={task.assignTo} />
             </div>

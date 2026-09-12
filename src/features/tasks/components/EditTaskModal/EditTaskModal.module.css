@@ -32,6 +32,20 @@
     flex: 1.45;
   }
 
+  .fieldLabel {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semi-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .userBox {
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 8px;
+    padding: var(--space-sm) var(--space-md);
+  }
+
   .divider {
     width: 1px;
     flex: 0 0 auto;

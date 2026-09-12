@@ -51,6 +51,12 @@ import {
   TaskSubmitSchema,
   TaskUpdatePayloadSchema,
 } from "./schemas";
+import {
+  hasAssigneeReviewerOverlap,
+  hasNoAssignee,
+  isReviewerAssignee,
+  wouldLeaveNoReviewer,
+} from "./validation";
 
 /** Per-user capabilities on a single task, computed server-side (never client RBAC). */
 export interface TaskCapabilities {
@@ -139,6 +145,20 @@ export async function createTaskAction(
       return actionForbidden();
     }
 
+    if (hasNoAssignee(assignee_ids)) {
+      return actionConflict(
+        "At least one assignee required",
+        "A task must have at least one assignee. Add a user before saving.",
+      );
+    }
+
+    if (isReviewerAssignee(session.id, assignee_ids)) {
+      return actionConflict(
+        "Assignee and reviewer must be distinct",
+        "A user cannot be both assignee and reviewer on the same task. Remove yourself from assignees or choose a different reviewer.",
+      );
+    }
+
     const task = await createTask({
       title,
       description,
@@ -207,6 +227,26 @@ export async function updateTaskAction(
 
     if (assigneesChanged && !access.own) {
       return actionConflict("Not allowed", "Only the task creator can change assignees.");
+    }
+
+    if (assignee_ids !== undefined) {
+      if (hasNoAssignee(assignee_ids)) {
+        return actionConflict(
+          "At least one assignee required",
+          "A task must have at least one assignee. Add a user before saving.",
+        );
+      }
+      if (
+        hasAssigneeReviewerOverlap(
+          assignee_ids,
+          existing.taskReviewers.map((r) => r.reviewer_user_id),
+        )
+      ) {
+        return actionConflict(
+          "Assignee and reviewer must be distinct",
+          "A user cannot be both assignee and reviewer on the same task. Remove the overlapping user from one role.",
+        );
+      }
     }
 
     if (
@@ -451,6 +491,13 @@ export async function addTaskReviewerAction(
       return actionForbidden();
     }
 
+    if (existing.taskAssignments.some((a) => a.user_id === reviewerUserId)) {
+      return actionConflict(
+        "Assignee and reviewer must be distinct",
+        "A user cannot be both assignee and reviewer on the same task. Remove the user from assignees first.",
+      );
+    }
+
     await addTaskReviewer(taskId, reviewerUserId);
 
     after(async () => {
@@ -505,6 +552,13 @@ export async function removeTaskReviewerAction(
 
     if (reviewerUserId === existing.created_by_user_id) {
       return actionConflict("Not allowed", "Cannot remove the task creator as a reviewer.");
+    }
+
+    if (wouldLeaveNoReviewer(existing.taskReviewers.length - 1)) {
+      return actionConflict(
+        "At least one reviewer required",
+        "A task must have at least one reviewer. Add a reviewer before removing this one.",
+      );
     }
 
     await removeTaskReviewer(taskId, reviewerUserId);

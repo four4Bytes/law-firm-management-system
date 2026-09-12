@@ -65,14 +65,6 @@ export function AddTaskModal({
     event.preventDefault();
     if (isPending) return;
 
-    if (assigneeIds.size < 1) {
-      toastError(
-        "Add at least one assignee",
-        "A task needs at least one assignee before it can be created.",
-      );
-      return;
-    }
-
     const parsed = TaskCreatePayloadSchema.safeParse({
       title: requiredString(title),
       description: optionalString(description),
@@ -159,7 +151,7 @@ export function AddTaskModal({
 
   return (
     <Modal title="Add Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSubmit} className={styles.form}>
+      <Form onSubmit={handleSubmit} validationBehavior="native" className={styles.form}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField
@@ -185,6 +177,7 @@ export function AddTaskModal({
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
+              disabledKeys={reviewerIds}
             />
             <UserSelect
               users={users}
@@ -193,6 +186,7 @@ export function AddTaskModal({
               isDisabled={isPending}
               label="Reviewers"
               placeholder="Select reviewers..."
+              disabledKeys={assigneeIds}
             />
           </div>
 

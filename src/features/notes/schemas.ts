@@ -26,3 +26,17 @@ export const NoteUpdatePayloadSchema = z.object({
 export const NoteIdSchema = z.object({
   noteId: z.uuid(),
 });
+
+export const TaskNotesPageQuerySchema = z.object({
+  taskId: z.uuid(),
+  search: z.string().trim().max(500).optional().default(""),
+  cursor: z.uuid().optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+});
+
+export const CaseNotesPageQuerySchema = z.object({
+  caseId: z.uuid(),
+  search: z.string().trim().max(500).optional().default(""),
+  cursor: z.uuid().optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+});

@@ -1,8 +1,10 @@
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
-import { TaskCancelledError } from "@/lib/errors";
+import { TaskCancelledError, TaskValidationError } from "@/lib/errors";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+
+import { hasAssigneeReviewerOverlap, wouldLeaveNoReviewer } from "./validation";
 
 export interface TaskCreateData {
   title: string;
@@ -63,6 +65,13 @@ export async function createTask(data: TaskCreateData): Promise<{ id: string }> 
   const { assignee_ids, created_by_user_id, case_id, ...taskData } = data;
   const attached = [...new Set([...(assignee_ids ?? []), created_by_user_id])];
 
+  if (assignee_ids?.includes(created_by_user_id)) {
+    throw new TaskValidationError(
+      "Assignee and reviewer must be distinct",
+      "A user cannot be both assignee and reviewer on the same task. Remove the overlapping user from one role.",
+    );
+  }
+
   return prisma.$transaction(async (tx) => {
     const task = await tx.task.create({
       data: {
@@ -103,16 +112,27 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
     let added: string[] = [];
 
     if (assignee_ids !== undefined) {
-      const current = (
-        await tx.taskAssignment.findMany({
-          where: { task_id: id },
-          select: { user_id: true },
-        })
-      ).map((a) => a.user_id);
-      const currentSet = new Set(current);
+      const [current, reviewers] = await Promise.all([
+        tx.taskAssignment.findMany({ where: { task_id: id }, select: { user_id: true } }),
+        tx.taskReviewer.findMany({ where: { task_id: id }, select: { reviewer_user_id: true } }),
+      ]);
+      if (
+        hasAssigneeReviewerOverlap(
+          assignee_ids,
+          reviewers.map((r) => r.reviewer_user_id),
+        )
+      ) {
+        throw new TaskValidationError(
+          "Assignee and reviewer must be distinct",
+          "A user cannot be both assignee and reviewer on the same task. Remove the overlapping user from one role.",
+        );
+      }
+      const currentIds = current.map((a) => a.user_id);
+
+      const currentSet = new Set(currentIds);
       const newSet = new Set(assignee_ids);
 
-      removed = current.filter((u) => !newSet.has(u));
+      removed = currentIds.filter((u) => !newSet.has(u));
       added = assignee_ids.filter((u) => !currentSet.has(u));
     }
 
@@ -228,6 +248,21 @@ export async function addTaskReviewer(
       throw new Error("Cannot add a reviewer to a cancelled task");
     }
 
+    const assigneeMatch = await (
+      tx.taskAssignment as unknown as {
+        findFirst: (args: unknown) => Promise<{ user_id: string } | null>;
+      }
+    ).findFirst({
+      where: { task_id: taskId, user_id: reviewerUserId },
+      select: { user_id: true },
+    });
+    if (assigneeMatch !== null) {
+      throw new TaskValidationError(
+        "Assignee and reviewer must be distinct",
+        "A user cannot be both assignee and reviewer on the same task. Remove the user from assignees first.",
+      );
+    }
+
     await tx.taskReviewer.upsert({
       where: {
         task_id_reviewer_user_id: { task_id: taskId, reviewer_user_id: reviewerUserId },
@@ -289,6 +324,14 @@ export async function removeTaskReviewer(
     await tx.taskReviewer.deleteMany({
       where: { task_id: taskId, reviewer_user_id: reviewerUserId },
     });
+
+    const remainingReviewers = await tx.taskReviewer.count({ where: { task_id: taskId } });
+    if (wouldLeaveNoReviewer(remainingReviewers)) {
+      throw new TaskValidationError(
+        "At least one reviewer required",
+        "A task must have at least one reviewer. Add a reviewer before removing this one.",
+      );
+    }
 
     if (task.status === TaskStatus.Submitted) {
       const [assignments, reviewers] = await Promise.all([

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FaEye, FaPen, FaRegNoteSticky, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
+import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { ViewNoteModal } from "@/features/notes/components/ViewNoteModal/ViewNoteModal";
 import type { NoteRow } from "@/features/notes/queries";
 
@@ -13,10 +14,19 @@ interface NoteListProps {
   notes: NoteRow[];
   onEdit?: (note: NoteRow) => void;
   onDelete?: (noteId: string) => void;
+  isLoading?: boolean;
 }
 
-export function NoteList({ notes, onEdit, onDelete }: NoteListProps) {
+export function NoteList({ notes, onEdit, onDelete, isLoading }: NoteListProps) {
   const [viewNote, setViewNote] = useState<NoteRow | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <ProgressCircle aria-label="Loading notes" />
+      </div>
+    );
+  }
 
   if (notes.length === 0) return null;
 

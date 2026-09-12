@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Form } from "react-aria-components";
 import { FaPlus } from "react-icons/fa6";
 
@@ -9,12 +9,10 @@ import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
+import { deleteDocumentAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
-import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
-import type { DocumentRow } from "@/features/documents/queries";
-import { deleteNoteAction, getTaskNotesAction } from "@/features/notes/actions";
+import { deleteNoteAction } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
 import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
@@ -28,6 +26,8 @@ import {
   updateTaskAction,
   type TaskCapabilities,
 } from "@/features/tasks/actions";
+import { useTaskDocuments } from "@/features/tasks/hooks/useTaskDocuments";
+import { useTaskNotes } from "@/features/tasks/hooks/useTaskNotes";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserList } from "@/features/users/components/UserList/UserList";
@@ -71,12 +71,19 @@ export function EditTaskModal({
   const [decision, setDecision] = useState<"Accepted" | "Rejected" | null>(null);
   const [statusChoice, setStatusChoice] = useState<"Pending" | "Cancelled" | null>(null);
   const [isPending, setIsPending] = useState(false);
-  const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
-  const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
-  const { handleDownload } = useDocumentDownload();
-  const [notes, setNotes] = useState<NoteRow[]>([]);
+  const {
+    documents: serverDocuments,
+    isLoading: isLoadingDocuments,
+    previewDocument,
+    setPreviewDocument,
+    handleDownload,
+  } = useTaskDocuments(task.id);
+  const {
+    notes: serverNotes,
+    isLoading: isLoadingNotes,
+    reload: reloadHookNotes,
+  } = useTaskNotes(task.id);
   const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(new Set());
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
@@ -91,67 +98,19 @@ export function EditTaskModal({
     taskId: task.id,
   });
 
-  useEffect(() => {
-    let cancelled = false;
+  const documents = serverDocuments.filter((d) => !markedForDeletion.has(d.id));
+  const notes = serverNotes.filter((n) => !deletedNoteIds.has(n.id));
 
-    async function loadDocuments() {
-      try {
-        const { rows } = await getDocumentsPaginatedAction({ taskId: task.id, pageSize: 100 });
-        if (cancelled) return;
-        setDocuments(rows);
-      } catch {
-        if (cancelled) return;
-        toastError(
-          "Failed to load attachments",
-          "We couldn't load the attachments for this task. Please try again.",
-        );
-      } finally {
-        if (!cancelled) setIsLoadingDocuments(false);
-      }
-    }
-
-    async function loadNotes() {
-      try {
-        const rows = await getTaskNotesAction(task.id);
-        if (cancelled) return;
-        setNotes(rows);
-      } catch {
-        if (cancelled) return;
-        toastError(
-          "Failed to load notes",
-          "We couldn't load the notes for this task. Please try again.",
-        );
-      }
-    }
-
-    void loadDocuments();
-    void loadNotes();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [task.id]);
-
-  async function reloadNotes() {
-    try {
-      const rows = await getTaskNotesAction(task.id);
-      setNotes(rows);
-    } catch {
-      toastError(
-        "Failed to load notes",
-        "We couldn't load the notes for this task. Please try again.",
-      );
-    }
+  async function reloadNotes(): Promise<void> {
+    reloadHookNotes();
   }
 
   function handleRemoveDocument(documentId: string) {
     setMarkedForDeletion((prev) => new Set(prev).add(documentId));
-    setDocuments((prev) => prev.filter((d) => d.id !== documentId));
   }
 
   function handleRemoveNote(noteId: string) {
     setDeletedNoteIds((prev) => new Set(prev).add(noteId));
-    setNotes((prev) => prev.filter((n) => n.id !== noteId));
   }
 
   function handleCancel() {
@@ -324,7 +283,7 @@ export function EditTaskModal({
 
   return (
     <Modal title="Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSave} className={styles.form}>
+      <Form onSubmit={handleSave} validationBehavior="native" className={styles.form}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField
@@ -352,6 +311,7 @@ export function EditTaskModal({
               isDisabled={isPending || !capabilities.isCreator}
               label="Assignees"
               hideSelected
+              disabledKeys={reviewerIds}
             />
             <UserList users={task.assignTo} />
 
@@ -362,6 +322,7 @@ export function EditTaskModal({
               isDisabled={isPending || !capabilities.canManageReviewers}
               label="Reviewers"
               hideSelected
+              disabledKeys={assigneeIds}
             />
             <UserList
               users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
@@ -471,6 +432,7 @@ export function EditTaskModal({
             </div>
             <NoteList
               notes={notes}
+              isLoading={isLoadingNotes}
               onEdit={capabilities.canEdit ? setEditNote : undefined}
               onDelete={capabilities.canEdit ? handleRemoveNote : undefined}
             />

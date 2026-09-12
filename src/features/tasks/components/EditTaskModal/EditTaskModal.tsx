@@ -19,6 +19,7 @@ import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteMo
 import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
+import { SubtaskList } from "@/features/subtasks/components/SubtaskList/SubtaskList";
 import {
   addTaskReviewerAction,
   removeTaskReviewerAction,
@@ -48,6 +49,7 @@ interface EditTaskModalProps {
   capabilities: TaskCapabilities;
   users: ActiveUserSummary[];
   currentUserId: string;
+  canCreateSubtask: boolean;
 }
 
 export function EditTaskModal({
@@ -58,6 +60,7 @@ export function EditTaskModal({
   capabilities,
   users,
   currentUserId,
+  canCreateSubtask,
 }: EditTaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
@@ -429,6 +432,8 @@ export function EditTaskModal({
                 </Select>
               </div>
             )}
+
+            <SubtaskList taskId={task.id} users={users} canCreate={canCreateSubtask} />
           </div>
 
           <div className={styles.divider} />

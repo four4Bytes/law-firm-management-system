@@ -30,6 +30,8 @@ function pickTemplate(type: NotificationType) {
       return consultationOverdueTemplate;
     case NotificationType.MilestoneDueSoon:
     case NotificationType.MilestoneOverdue:
+    case NotificationType.SubtaskDueSoon:
+    case NotificationType.SubtaskOverdue:
       return milestoneTemplate;
     case NotificationType.TaskAssigned:
       return taskAssignedTemplate;

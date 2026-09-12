@@ -96,3 +96,39 @@ export async function retractConsultationOverdue(id: string): Promise<void> {
     }),
   );
 }
+
+export async function unclaimSubtaskReminder(id: string, claimedAt: Date): Promise<void> {
+  await prisma.subtask.updateMany({
+    where: { id, last_reminded_at: claimedAt },
+    data: { last_reminded_at: null },
+  });
+}
+
+export async function claimSubtaskReminder(id: string): Promise<Date | null> {
+  const todayStart = getStartOfDay(new Date());
+  return claimReminder((claimedAt) =>
+    prisma.subtask.updateMany({
+      where: eligibleToday(id, todayStart),
+      data: { last_reminded_at: claimedAt },
+    }),
+  );
+}
+
+export async function suppressSubtaskOverdue(id: string): Promise<boolean> {
+  const todayStart = getStartOfDay(new Date());
+  return suppressReminder(() =>
+    prisma.subtask.updateMany({
+      where: eligibleToday(id, todayStart),
+      data: { last_reminded_at: REMINDER_SUPPRESSED_AT },
+    }),
+  );
+}
+
+export async function retractSubtaskOverdue(id: string): Promise<void> {
+  await retractReminder(() =>
+    prisma.subtask.updateMany({
+      where: { id, last_reminded_at: REMINDER_SUPPRESSED_AT },
+      data: { last_reminded_at: null },
+    }),
+  );
+}

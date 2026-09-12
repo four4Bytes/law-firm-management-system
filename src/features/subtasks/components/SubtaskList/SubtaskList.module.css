@@ -1,0 +1,132 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .label {
+    font-weight: var(--font-weight-semi-bold);
+    color: var(--color-text-muted);
+  }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .progressText {
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+  }
+
+  .bar {
+    flex: 1;
+    height: 8px;
+    appearance: none;
+  }
+
+  .bar::-webkit-progress-bar {
+    background: var(--color-border-subtle);
+    border-radius: 999px;
+  }
+
+  .bar::-webkit-progress-value {
+    background: var(--color-success);
+    border-radius: 999px;
+  }
+
+  .bar::-moz-progress-bar {
+    background: var(--color-success);
+    border-radius: 999px;
+  }
+
+  .percent {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .allDone {
+    font-size: var(--font-size-sm);
+    color: var(--color-success);
+  }
+
+  .empty {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 8px;
+  }
+
+  .toggle {
+    flex: 0 0 auto;
+  }
+
+  .checkIcon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .title {
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: var(--space-xs);
+  }
+
+  .icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 48rem) {
+  .section {
+    .row {
+      flex-wrap: wrap;
+    }
+
+    .actions {
+      margin-left: auto;
+    }
+  }
+}

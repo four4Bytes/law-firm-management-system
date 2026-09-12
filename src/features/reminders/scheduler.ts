@@ -13,18 +13,27 @@ import { getOptionalInteger } from "@/lib/env";
 import {
   claimConsultationReminder,
   claimMilestoneReminder,
+  claimSubtaskReminder,
   retractConsultationOverdue,
   retractMilestoneOverdue,
+  retractSubtaskOverdue,
   suppressConsultationOverdue,
   suppressMilestoneOverdue,
+  suppressSubtaskOverdue,
   unclaimConsultationReminder,
   unclaimMilestoneReminder,
+  unclaimSubtaskReminder,
 } from "./mutations";
-import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from "./queries";
+import {
+  getConsultationsNeedingReminder,
+  getMilestonesNeedingReminder,
+  getSubtasksNeedingReminder,
+} from "./queries";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 
 export async function runReminderCheck(): Promise<void> {
+  const defaultDays = getOptionalInteger("DEFAULT_REMINDER_DAYS", 3);
   const retentionDays = getOptionalInteger("NOTIFICATION_RETENTION_DAYS", 90);
   const now = new Date();
 
@@ -44,6 +53,12 @@ export async function runReminderCheck(): Promise<void> {
     await processConsultations(now);
   } catch (err) {
     console.error("[reminders] Consultation processing failed:", err);
+  }
+
+  try {
+    await processSubtasks(defaultDays, now);
+  } catch (err) {
+    console.error("[reminders] Subtask processing failed:", err);
   }
 }
 
@@ -151,6 +166,58 @@ async function processMilestones(now: Date): Promise<void> {
         console.error(`Failed to roll back milestone reminder ${m.id}:`, rollbackErr);
       }
       console.error(`Failed to dispatch milestone reminder ${m.id}:`, err);
+    }
+  }
+}
+
+async function processSubtasks(defaultDays: number, now: Date): Promise<void> {
+  const subtasks = await getSubtasksNeedingReminder();
+
+  for (const s of subtasks) {
+    const reminderDays = s.reminderDays ?? defaultDays;
+    const remindThreshold = new Date(now.getTime() + reminderDays * 86_400_000);
+    const isDueSoon = s.due_date <= remindThreshold && s.due_date > now;
+    const isOverdue = s.due_date < now;
+
+    if (!isDueSoon && !isOverdue) continue;
+    if (s.assigneeIds.length === 0) continue;
+
+    const type = isOverdue ? NotificationType.SubtaskOverdue : NotificationType.SubtaskDueSoon;
+    const label = isOverdue ? "overdue" : "due soon";
+
+    let claimedAt: Date | null = null;
+    if (isOverdue) {
+      if (!(await suppressSubtaskOverdue(s.id))) continue;
+    } else {
+      claimedAt = await claimSubtaskReminder(s.id);
+      if (claimedAt === null) continue;
+    }
+
+    try {
+      await dispatchNotifications(
+        {
+          userIds: s.assigneeIds,
+          type,
+          title: `Subtask ${label}: ${s.title}`,
+          message: `Subtask "${s.title}" is ${label} — due ${formatDate(s.due_date)}`,
+          actionUrl: `/case/${s.caseId}`,
+          caseId: s.caseId,
+          taskId: s.taskId,
+          subtaskId: s.id,
+        },
+        SYSTEM_USER_ID,
+      );
+    } catch (err) {
+      try {
+        if (isOverdue) {
+          await retractSubtaskOverdue(s.id);
+        } else if (claimedAt !== null) {
+          await unclaimSubtaskReminder(s.id, claimedAt);
+        }
+      } catch (rollbackErr) {
+        console.error(`Failed to roll back subtask reminder ${s.id}:`, rollbackErr);
+      }
+      console.error(`Failed to dispatch subtask reminder ${s.id}:`, err);
     }
   }
 }

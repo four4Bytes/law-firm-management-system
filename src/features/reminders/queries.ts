@@ -49,6 +49,50 @@ export async function getMilestonesNeedingReminder(): Promise<MilestoneReminderC
   }));
 }
 
+export interface SubtaskReminderCandidate {
+  id: string;
+  title: string;
+  taskId: string;
+  caseId: string;
+  due_date: Date;
+  assigneeIds: string[];
+  reminderDays: number | null;
+}
+
+export async function getSubtasksNeedingReminder(): Promise<SubtaskReminderCandidate[]> {
+  const todayStart = getStartOfDay(new Date());
+
+  const subtasks = await prisma.subtask.findMany({
+    where: {
+      status: { in: ["Pending", "InProgress"] },
+      due_date: { not: null },
+      OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: todayStart } }],
+    },
+    select: {
+      id: true,
+      title: true,
+      due_date: true,
+      task_id: true,
+      reminder_days: true,
+      task: { select: { case_id: true } },
+      assignments: {
+        where: { user: { is_active: true } },
+        select: { user_id: true },
+      },
+    },
+  });
+
+  return subtasks.map((s) => ({
+    id: s.id,
+    title: s.title,
+    taskId: s.task_id,
+    caseId: s.task.case_id,
+    due_date: s.due_date!,
+    assigneeIds: s.assignments.map((a) => a.user_id),
+    reminderDays: s.reminder_days,
+  }));
+}
+
 export async function getConsultationsNeedingReminder(): Promise<ConsultationReminderCandidate[]> {
   const todayStart = getStartOfDay(new Date());
 

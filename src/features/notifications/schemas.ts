@@ -20,6 +20,7 @@ export const NotificationDispatchSchema = z.object({
   consultationId: z.uuid().optional(),
   milestoneId: z.uuid().optional(),
   taskId: z.uuid().optional(),
+  subtaskId: z.uuid().optional(),
 });
 
 export type NotificationDispatchPayload = z.infer<typeof NotificationDispatchSchema>;

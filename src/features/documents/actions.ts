@@ -66,10 +66,10 @@ async function getDocumentParentAccessContext({
   if (taskId) {
     return getTaskAccessContext(userId, taskId);
   }
-  if (!consultationId) {
-    throw new Error("Invalid query parameters");
+  if (consultationId) {
+    return getConsultationAccessContext(userId, consultationId);
   }
-  return getConsultationAccessContext(userId, consultationId);
+  throw new Error("Invalid query parameters");
 }
 
 export async function getDocumentsPaginatedAction(

@@ -15,12 +15,13 @@ export type SubtaskRow = Pick<
   | "title"
   | "description"
   | "status"
-  | "priority"
   | "due_date"
   | "created_at"
   | "updated_at"
   | "created_by_user_id"
 > & {
+  /** Priority inherited from the parent task. */
+  priority: string | null;
   assignees: SubtaskAssignee[];
   assignee_ids: string[];
 };
@@ -39,12 +40,14 @@ function toSubtaskRow(
     | "title"
     | "description"
     | "status"
-    | "priority"
     | "due_date"
     | "created_at"
     | "updated_at"
     | "created_by_user_id"
-  > & { assignments: { user_id: string; user: { name: string } }[] },
+  > & {
+    task: { priority: string | null };
+    assignments: { user_id: string; user: { name: string } }[];
+  },
 ): SubtaskRow {
   return {
     id: subtask.id,
@@ -52,7 +55,7 @@ function toSubtaskRow(
     title: subtask.title,
     description: subtask.description,
     status: subtask.status,
-    priority: subtask.priority,
+    priority: subtask.task.priority,
     due_date: subtask.due_date,
     created_at: subtask.created_at,
     updated_at: subtask.updated_at,
@@ -77,11 +80,11 @@ export const getSubtasksByTaskId = cache(async (taskId: string): Promise<Subtask
       title: true,
       description: true,
       status: true,
-      priority: true,
       due_date: true,
       created_at: true,
       updated_at: true,
       created_by_user_id: true,
+      task: { select: { priority: true } },
       assignments: { select: { user_id: true, user: { select: { name: true } } } },
     },
     orderBy: { created_at: "asc" },
@@ -99,13 +102,12 @@ export const getSubtaskById = cache(async (id: string) => {
       title: true,
       description: true,
       status: true,
-      priority: true,
       due_date: true,
       reminder_days: true,
       created_by_user_id: true,
       created_at: true,
       updated_at: true,
-      task: { select: { case_id: true, status: true } },
+      task: { select: { case_id: true, status: true, priority: true } },
       assignments: { select: { user_id: true, user: { select: { name: true } } } },
     },
   });
@@ -120,11 +122,11 @@ export const getSubtaskRowById = cache(async (id: string): Promise<SubtaskRow | 
       title: true,
       description: true,
       status: true,
-      priority: true,
       due_date: true,
       created_at: true,
       updated_at: true,
       created_by_user_id: true,
+      task: { select: { priority: true } },
       assignments: { select: { user_id: true, user: { select: { name: true } } } },
     },
   });

@@ -39,10 +39,22 @@ describe("TaskCreatePayloadSchema", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "Task title",
       description: "A description",
+      priority: "High",
       case_id: uuid,
       assignee_ids: [uuid],
     });
     expect(result.success).toBe(true);
+  });
+
+  it("rejects an over-long priority", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task title",
+      description: "A description",
+      priority: "x".repeat(51),
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejects empty title", () => {

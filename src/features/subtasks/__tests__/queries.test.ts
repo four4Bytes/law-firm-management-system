@@ -21,13 +21,13 @@ const mockSubtaskData = (overrides: Record<string, unknown> = {}) => ({
   title: "Subtask title",
   description: null,
   status: "Pending" as const,
-  priority: "High",
   due_date: new Date("2026-09-20"),
   created_by_user_id: "u1",
   created_at: new Date("2026-09-01"),
   updated_at: new Date("2026-09-02"),
   reminder_days: null,
   last_reminded_at: null,
+  task: { priority: "High" },
   assignments: [{ user_id: "u2", user: { name: "Maria" } }],
   ...overrides,
 });
@@ -91,6 +91,26 @@ describe("getSubtasksByTaskId", () => {
       select: expect.objectContaining({ id: true }),
       orderBy: { created_at: "asc" },
     });
+  });
+
+  it("inherits priority from the parent task", async () => {
+    vi.mocked(prisma.subtask.findMany).mockResolvedValue([
+      mockSubtaskData({ task: { priority: "Urgent" } }),
+    ]);
+
+    const [row] = await getSubtasksByTaskId("t1");
+
+    expect(row.priority).toBe("Urgent");
+  });
+
+  it("reports null priority when the parent task has none", async () => {
+    vi.mocked(prisma.subtask.findMany).mockResolvedValue([
+      mockSubtaskData({ task: { priority: null } }),
+    ]);
+
+    const [row] = await getSubtasksByTaskId("t1");
+
+    expect(row.priority).toBeNull();
   });
 });
 

@@ -37,13 +37,24 @@ describe("SubtaskCreatePayloadSchema", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "Subtask title",
       description: "A description",
-      priority: "High",
       due_date: new Date("2026-09-20"),
       status: "InProgress",
       task_id: uuid,
       assignee_ids: [uuid],
     });
     expect(result.success).toBe(true);
+  });
+
+  it("ignores a legacy independent priority value", () => {
+    const result = SubtaskCreatePayloadSchema.safeParse({
+      title: "Subtask title",
+      description: "A description",
+      task_id: uuid,
+      assignee_ids: [uuid],
+      priority: "High",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).not.toHaveProperty("priority");
   });
 
   it("rejects empty title", () => {
@@ -101,17 +112,6 @@ describe("SubtaskCreatePayloadSchema", () => {
       description: "Subtask description",
       task_id: uuid,
       assignee_ids: [uuid, uuid],
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects an over-long priority", () => {
-    const result = SubtaskCreatePayloadSchema.safeParse({
-      title: "Subtask",
-      description: "Subtask description",
-      task_id: uuid,
-      assignee_ids: [uuid],
-      priority: "x".repeat(51),
     });
     expect(result.success).toBe(false);
   });

@@ -278,6 +278,7 @@ model Task {
   case_id            String     @db.Uuid
   title              String
   description        String?
+  priority           String?
   status             TaskStatus @default(Pending)
   created_by_user_id String     @db.Uuid
   created_at         DateTime   @default(now())
@@ -301,7 +302,6 @@ model Subtask {
   title              String
   description        String?
   status             SubtaskStatus @default(Pending)
-  priority           String?
   due_date           DateTime?
   created_by_user_id String        @db.Uuid
   created_at         DateTime      @default(now())

@@ -86,6 +86,19 @@ export class TaskCancelledError extends Error {
   }
 }
 
+export class TaskValidationError extends Error {
+  readonly digest = "TASK_VALIDATION";
+  readonly title: string;
+  readonly description: string;
+
+  constructor(title: string, description: string) {
+    super(description);
+    this.name = "TaskValidationError";
+    this.title = title;
+    this.description = description;
+  }
+}
+
 /** Conflict copy supplied by the caller when a P2002 violation is domain-specific. */
 interface ConflictCopy {
   /** Short headline (e.g. `"Case already exists"`). */
@@ -117,6 +130,9 @@ export function toActionResponse(
   if (error instanceof ForbiddenError) return actionForbidden();
   if (error instanceof UnauthorizedError) return actionUnauthorized();
   if (error instanceof TaskLockedError) return actionLocked();
+  if (error instanceof TaskValidationError) {
+    return actionConflict(error.title, error.description);
+  }
   if ((error as { code?: string } | null)?.code === "P2002" && conflict) {
     return actionConflict(conflict.title, conflict.description);
   }

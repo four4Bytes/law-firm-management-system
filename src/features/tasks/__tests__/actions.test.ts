@@ -572,7 +572,7 @@ describe("addTaskReviewerAction", () => {
     expect(addTaskReviewer).toHaveBeenCalledWith(uuid, uuid);
   });
 
-  it("does not dispatch a notification when the reviewer is already an assignee", async () => {
+  it("returns a conflict envelope when the reviewer is already an assignee", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: true,
@@ -583,13 +583,19 @@ describe("addTaskReviewerAction", () => {
       taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Pending" as const }],
       taskReviewers: [],
     });
-    vi.mocked(addTaskReviewer).mockResolvedValue({ id: uuid });
 
-    await addTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid });
-    await flushAfterCallbacks();
+    const result = await addTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid });
 
-    expect(addTaskReviewer).toHaveBeenCalledWith(uuid, uuid);
-    expect(dispatchNotifications).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Assignee and reviewer must be distinct",
+        description:
+          "A user cannot be both assignee and reviewer on the same task. Remove the user from assignees first.",
+      },
+    });
+    expect(addTaskReviewer).not.toHaveBeenCalled();
   });
 });
 
@@ -635,7 +641,14 @@ describe("removeTaskReviewerAction", () => {
       own: true,
       taskOnly: true,
     });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      created_by_user_id: "u2",
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: uuid2, decision: "Pending" as const, reviewed_at: null },
+        { id: "tr2", reviewer_user_id: uuid, decision: "Pending" as const, reviewed_at: null },
+      ],
+    });
     vi.mocked(removeTaskReviewer).mockResolvedValue({ id: uuid });
 
     const result = await removeTaskReviewerAction({ taskId: uuid, reviewerUserId: uuid2 });
@@ -816,14 +829,18 @@ describe("updateTaskAction lifecycle lock", () => {
       own: false,
       taskOnly: true,
     });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Completed" as const,
+      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Pending" as const }],
+    });
     vi.mocked(updateTask).mockResolvedValue({ id: uuid });
 
     const result = await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
       description: undefined,
-      assignee_ids: [],
+      assignee_ids: [uuid],
     });
 
     expect(result).toEqual({ success: true });

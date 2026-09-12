@@ -22,8 +22,14 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
     task: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
-    taskReviewer: { updateMany: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
-    taskAssignment: { updateMany: vi.fn(), findMany: vi.fn() },
+    taskReviewer: {
+      updateMany: vi.fn(),
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+      deleteMany: vi.fn(),
+      count: vi.fn(),
+    },
+    taskAssignment: { updateMany: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
     caseAssignment: { findMany: vi.fn(), createMany: vi.fn() },
   },
 }));
@@ -49,10 +55,10 @@ const mockTask = (overrides: Record<string, unknown> = {}) => ({
 });
 
 type Tx = {
-  task: typeof prisma.task;
-  taskReviewer: typeof prisma.taskReviewer;
-  taskAssignment: typeof prisma.taskAssignment;
-  caseAssignment: typeof prisma.caseAssignment;
+  task: unknown;
+  taskReviewer: unknown;
+  taskAssignment: unknown;
+  caseAssignment: unknown;
   $queryRaw: ReturnType<typeof vi.fn>;
 };
 
@@ -92,7 +98,13 @@ const mockTaskAssignment = (overrides: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(prisma.caseAssignment.findMany).mockResolvedValue([]);
-  transactionMock.mockImplementation((fn) => fn(tx));
+  vi.mocked((prisma.taskAssignment as unknown as { findFirst: Mock }).findFirst).mockResolvedValue(
+    null as unknown as never,
+  );
+  vi.mocked((prisma.taskReviewer as unknown as { count: Mock }).count).mockResolvedValue(
+    1 as unknown as never,
+  );
+  transactionMock.mockImplementation((fn) => fn(tx as never));
 });
 
 describe("createTask", () => {

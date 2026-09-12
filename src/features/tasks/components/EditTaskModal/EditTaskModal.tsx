@@ -283,7 +283,7 @@ export function EditTaskModal({
 
   return (
     <Modal title="Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSave} className={styles.form}>
+      <Form onSubmit={handleSave} validationBehavior="native" className={styles.form}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField
@@ -311,6 +311,7 @@ export function EditTaskModal({
               isDisabled={isPending || !capabilities.isCreator}
               label="Assignees"
               hideSelected
+              disabledKeys={reviewerIds}
             />
             <UserList users={task.assignTo} />
 
@@ -321,6 +322,7 @@ export function EditTaskModal({
               isDisabled={isPending || !capabilities.canManageReviewers}
               label="Reviewers"
               hideSelected
+              disabledKeys={assigneeIds}
             />
             <UserList
               users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}

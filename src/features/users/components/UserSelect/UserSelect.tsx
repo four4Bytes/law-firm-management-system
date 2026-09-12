@@ -17,6 +17,8 @@ export interface UserSelectProps {
   label?: string;
   placeholder?: string;
   hideSelected?: boolean;
+  disabledKeys?: Set<string>;
+  validate?: (value: string[]) => string | null;
 }
 
 export function UserSelect({
@@ -27,6 +29,8 @@ export function UserSelect({
   label = "Assignees",
   placeholder = "Select assignees...",
   hideSelected = false,
+  disabledKeys,
+  validate,
 }: UserSelectProps) {
   const selected = users.filter((user) => selectedIds.has(user.id));
 
@@ -40,6 +44,17 @@ export function UserSelect({
         placeholder={placeholder}
         items={users}
         isDisabled={isDisabled}
+        disabledKeys={disabledKeys}
+        validate={
+          validate
+            ? (v: unknown) => {
+                const arr = Array.isArray(v)
+                  ? (v as string[])
+                  : Array.from((v as Iterable<string>) ?? []);
+                return validate(arr);
+              }
+            : undefined
+        }
         alwaysPlaceholder
       >
         {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}

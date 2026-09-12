@@ -13,3 +13,11 @@ export interface PageQuery {
   pageSize?: number;
   sort?: SortQuery;
 }
+
+export interface TaskPageQuery extends PageQuery {
+  taskId: string;
+}
+
+export interface CasePageQuery extends PageQuery {
+  caseId: string;
+}

@@ -1,20 +1,15 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useState } from "react";
 
 import { Modal } from "@/components/ui/Modal/Modal";
-import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
-import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
-import type { DocumentRow } from "@/features/documents/queries";
-import { getTaskNotesAction } from "@/features/notes/actions";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
-import type { NoteRow } from "@/features/notes/queries";
+import { useTaskDocuments } from "@/features/tasks/hooks/useTaskDocuments";
+import { useTaskNotes } from "@/features/tasks/hooks/useTaskNotes";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
-import { toastError } from "@/lib/toast-utils";
 
 import styles from "./ViewTaskModal.module.css";
 
@@ -25,66 +20,15 @@ interface ViewTaskModalProps {
 }
 
 export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps) {
-  const [documents, setDocuments] = useState<DocumentRow[]>([]);
-  const [notes, setNotes] = useState<NoteRow[]>([]);
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
-  const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
-  const { handleDownload } = useDocumentDownload();
+  const {
+    documents,
+    isLoading: isLoadingDocuments,
+    previewDocument,
+    setPreviewDocument,
+    handleDownload,
+  } = useTaskDocuments(task.id);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadDocuments() {
-      setDocuments([]);
-      setPreviewDocument(null);
-      setIsLoadingDocuments(true);
-      try {
-        const all: DocumentRow[] = [];
-        let cursor: string | undefined;
-        do {
-          const res = await getDocumentsPaginatedAction({
-            taskId: task.id,
-            pageSize: 100,
-            cursor,
-          });
-          all.push(...res.rows);
-          cursor = res.nextCursor ?? undefined;
-        } while (cursor);
-        if (cancelled) return;
-        setDocuments(all);
-      } catch {
-        if (cancelled) return;
-        toastError(
-          "Failed to load attachments",
-          "We couldn't load the attachments for this task. Please try again.",
-        );
-      } finally {
-        if (!cancelled) setIsLoadingDocuments(false);
-      }
-    }
-
-    async function loadNotes() {
-      setNotes([]);
-      try {
-        const rows = await getTaskNotesAction(task.id);
-        if (cancelled) return;
-        setNotes(rows);
-      } catch {
-        if (cancelled) return;
-        toastError(
-          "Failed to load notes",
-          "We couldn't load the notes for this task. Please try again.",
-        );
-      }
-    }
-
-    void loadDocuments();
-    void loadNotes();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [task.id]);
+  const { notes, isLoading: isLoadingNotes } = useTaskNotes(task.id);
 
   const hasFiles = documents.length > 0;
   const hasNotes = notes.length > 0;
@@ -125,7 +69,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             </div>
           </div>
 
-          {hasFiles && (
+          {(isLoadingDocuments || hasFiles) && (
             <>
               <div className={styles.divider} />
               <div className={styles.column}>
@@ -146,12 +90,12 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             </>
           )}
 
-          {hasNotes && (
+          {(isLoadingNotes || hasNotes) && (
             <>
               <div className={styles.divider} />
               <div className={styles.column}>
                 <span className={styles.label}>Notes</span>
-                <NoteList notes={notes} />
+                <NoteList notes={notes} isLoading={isLoadingNotes} />
               </div>
             </>
           )}

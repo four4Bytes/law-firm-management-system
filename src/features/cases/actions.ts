@@ -11,8 +11,6 @@ import {
   getCaseBySourceConsultationId,
   getCaseEditData,
   getCaseMilestonesPaginated,
-  getCaseNotesPaginated,
-  getCaseNotesWithTaskNotesPaginated,
   getCaseOverviewById,
   getCasesPaginated,
   getCaseTasksPaginated,
@@ -21,7 +19,6 @@ import {
   type CaseOverviewData,
   type CaseRow,
 } from "@/features/cases/queries";
-import type { NoteRow } from "@/features/notes/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
@@ -129,42 +126,6 @@ export async function getCaseTasksPaginatedAction(
   await requireCasePermission(session, parsed.data.caseId, "task.read");
 
   return getCaseTasksPaginated(parsed.data);
-}
-
-export async function getCaseNotesPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: NoteRow[];
-  nextCursor: string | null;
-}> {
-  const session = await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  await requireCasePermission(session, parsed.data.caseId, "note.read");
-
-  return getCaseNotesPaginated(parsed.data);
-}
-
-export async function getCaseNotesWithTaskNotesPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: NoteRow[];
-  nextCursor: string | null;
-}> {
-  const session = await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  await requireCasePermission(session, parsed.data.caseId, "note.read");
-
-  return getCaseNotesWithTaskNotesPaginated(parsed.data);
 }
 
 export async function getCaseMilestonesPaginatedAction(

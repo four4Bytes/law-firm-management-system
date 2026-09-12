@@ -1,3 +1,10 @@
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+}
+
 .noteList {
   flex: 1 1 auto;
   min-height: 0;

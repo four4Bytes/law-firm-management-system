@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { getCaseNotesWithTaskNotesPaginatedAction } from "@/features/cases/actions";
 import { getConsultationNotesPaginatedAction } from "@/features/consultations/actions";
-import { deleteNoteAction, getNoteRowByIdAction } from "@/features/notes/actions";
+import {
+  deleteNoteAction,
+  getCaseNotesWithTaskNotesPaginatedAction,
+  getNoteRowByIdAction,
+} from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";
 import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNoteModal";
 import { ViewNoteModal } from "@/features/notes/components/ViewNoteModal/ViewNoteModal";

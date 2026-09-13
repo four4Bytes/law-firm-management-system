@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form } from "react-aria-components";
 import { FaPlus } from "react-icons/fa6";
 
@@ -71,20 +71,23 @@ export function EditTaskModal({
   const [isPending, setIsPending] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
-  const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
+  const [hiddenDocumentIds, setHiddenDocumentIds] = useState<Set<string>>(new Set());
+  const [hiddenNoteIds, setHiddenNoteIds] = useState<Set<string>>(new Set());
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
   const {
     documents: serverDocuments,
     isLoading: isLoadingDocuments,
     previewDocument,
     setPreviewDocument,
     handleDownload,
+    reload: reloadDocuments,
   } = useTaskDocuments(task.id);
   const {
     notes: serverNotes,
     isLoading: isLoadingNotes,
     reload: reloadHookNotes,
   } = useTaskNotes(task.id);
-  const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(new Set());
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
 
@@ -107,27 +110,92 @@ export function EditTaskModal({
         ? `${approvedCount}/${totalReviewers} approvals`
         : "All approvals complete";
 
-  const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload({
-    taskId: task.id,
-  });
+  const { fileEntries, isUploading, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload(
+    {
+      taskId: task.id,
+    },
+  );
 
-  const documents = serverDocuments.filter((d) => !markedForDeletion.has(d.id));
-  const notes = serverNotes.filter((n) => !deletedNoteIds.has(n.id));
+  const documents = serverDocuments.filter((d) => !hiddenDocumentIds.has(d.id));
+  const notes = serverNotes.filter((n) => !hiddenNoteIds.has(n.id));
+
+  const initialAssigneeIds = new Set(task.assignee_ids);
+  const initialReviewerIds = new Set(task.reviewers.map((r) => r.reviewer_user_id));
+  const isDirty =
+    title !== task.title ||
+    description !== (task.description ?? "") ||
+    assigneeIds.size !== initialAssigneeIds.size ||
+    reviewerIds.size !== initialReviewerIds.size ||
+    [...assigneeIds].some((id) => !initialAssigneeIds.has(id)) ||
+    [...reviewerIds].some((id) => !initialReviewerIds.has(id));
 
   async function reloadNotes(): Promise<void> {
     reloadHookNotes();
   }
 
-  function handleRemoveDocument(documentId: string) {
-    setMarkedForDeletion((prev) => new Set(prev).add(documentId));
+  function handleSelectFiles(files: File[]): void {
+    addFiles(files);
   }
 
-  function handleRemoveNote(noteId: string) {
-    setDeletedNoteIds((prev) => new Set(prev).add(noteId));
+  useEffect(() => {
+    const hasPending = fileEntries.some((e) => e.status === "pending" || e.status === "failed");
+    if (!hasPending || isUploading) return;
+    void (async () => {
+      const { uploaded, failed } = await uploadFiles();
+      if (uploaded > 0) {
+        toastSuccess(
+          `Uploaded ${uploaded} file${uploaded > 1 ? "s" : ""}`,
+          "The attachments were saved.",
+        );
+        reloadDocuments();
+        onSuccess();
+      }
+      if (uploaded > 0 && failed === 0) resetFiles();
+    })();
+  }, [fileEntries, isUploading, uploadFiles, reloadDocuments, onSuccess, resetFiles]);
+
+  async function handleRemoveDocument(documentId: string): Promise<void> {
+    if (deletingDocumentId) return;
+    setDeletingDocumentId(documentId);
+    setHiddenDocumentIds((prev) => new Set(prev).add(documentId));
+    const result = await deleteDocumentAction({ documentId });
+    if (!result.success) {
+      setHiddenDocumentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(documentId);
+        return next;
+      });
+      toastActionError(result, "delete document");
+    } else {
+      toastSuccess("Document deleted", "The attachment was removed.");
+      reloadDocuments();
+      onSuccess();
+    }
+    setDeletingDocumentId(null);
+  }
+
+  async function handleRemoveNote(noteId: string): Promise<void> {
+    if (deletingNoteId) return;
+    setDeletingNoteId(noteId);
+    setHiddenNoteIds((prev) => new Set(prev).add(noteId));
+    const result = await deleteNoteAction({ noteId });
+    if (!result.success) {
+      setHiddenNoteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(noteId);
+        return next;
+      });
+      toastActionError(result, "delete note");
+    } else {
+      toastSuccess("Note deleted", "The note was removed.");
+      reloadHookNotes();
+      onSuccess();
+    }
+    setDeletingNoteId(null);
   }
 
   function handleCancel() {
-    if (isPending || isToggling || isReviewing) return;
+    if (isPending) return;
     onOpenChange(false);
   }
 
@@ -244,59 +312,7 @@ export function EditTaskModal({
         }
       }
 
-      let hasFailedUploads = false;
-
-      if (hasFiles) {
-        const { uploaded, failed } = await uploadFiles();
-        hasFailedUploads = failed > 0;
-        if (failed === 0 && uploaded > 0) {
-          toastSuccess(
-            `Task updated with ${uploaded} file${uploaded > 1 ? "s" : ""}`,
-            "The task has been updated and the new attachments were uploaded.",
-          );
-        }
-      } else {
-        toastSuccess("Task updated", "The task has been updated.");
-      }
-
-      if (markedForDeletion.size > 0) {
-        const results = await Promise.all(
-          Array.from(markedForDeletion).map((id) => deleteDocumentAction({ documentId: id })),
-        );
-        const failedCount = results.filter((r) => !r.success).length;
-        if (failedCount > 0) {
-          toastError(
-            `Failed to delete ${failedCount} document${failedCount > 1 ? "s" : ""}`,
-            "Some attachments could not be deleted. Please try again.",
-          );
-        }
-      }
-
-      if (deletedNoteIds.size > 0) {
-        const ids = Array.from(deletedNoteIds);
-        const results = await Promise.all(ids.map((id) => deleteNoteAction({ noteId: id })));
-        const failedCount = results.filter((r) => !r.success).length;
-        if (failedCount > 0) {
-          toastError(
-            `Failed to delete ${failedCount} note${failedCount > 1 ? "s" : ""}`,
-            "Some notes could not be deleted. Please try again.",
-          );
-          setDeletedNoteIds((prev) => {
-            const next = new Set(prev);
-            ids.forEach((id, i) => {
-              if (results[i].success) next.delete(id);
-            });
-            return next;
-          });
-        }
-      }
-
-      if (hasFailedUploads) {
-        setIsPending(false);
-        return;
-      }
-
-      resetFiles();
+      toastSuccess("Task updated", "The task details were saved.");
       onOpenChange(false);
       onSuccess();
     } catch {
@@ -441,17 +457,18 @@ export function EditTaskModal({
           <div className={styles.divider} />
 
           <div className={styles.column}>
+            <span className={styles.label}>Files · auto-saved</span>
             <DropZone
               allowsMultiple
-              onFileSelect={addFiles}
+              onFileSelect={handleSelectFiles}
               acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
-              isDisabled={isPending || !capabilities.canEdit}
+              isDisabled={isUploading || !capabilities.canEdit}
               label="Drop files or click to upload"
               description="Supported: PDF, DOC, XLS, images, TXT, CSV"
             />
             <FileList
               entries={fileEntries}
-              isBusy={isPending}
+              isBusy={isUploading || deletingDocumentId !== null}
               onRemove={removeFile}
               existingDocuments={documents}
               onView={setPreviewDocument}
@@ -466,19 +483,20 @@ export function EditTaskModal({
 
           <div className={styles.column}>
             <div className={styles.columnHeader}>
-              <span className={styles.label}>Notes</span>
+              <span className={styles.label}>Notes · auto-saved</span>
               <Button
                 className={styles.addNoteButton}
                 variant="secondary"
                 type="button"
                 onPress={() => setAddNoteOpen(true)}
+                isDisabled={!capabilities.canEdit}
               >
                 <FaPlus /> Add Note
               </Button>
             </div>
             <NoteList
               notes={notes}
-              isLoading={isLoadingNotes}
+              isLoading={isLoadingNotes || deletingNoteId !== null}
               onEdit={capabilities.canEdit ? setEditNote : undefined}
               onDelete={capabilities.canEdit ? handleRemoveNote : undefined}
             />
@@ -486,19 +504,10 @@ export function EditTaskModal({
         </div>
 
         <div className={styles.actions}>
-          <Button
-            variant="secondary"
-            type="button"
-            onPress={handleCancel}
-            isDisabled={isPending || isToggling || isReviewing}
-          >
+          <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            isDisabled={isPending || isToggling || isReviewing}
-            isPending={isPending}
-          >
+          <Button type="submit" isDisabled={isPending || !isDirty} isPending={isPending}>
             Save
           </Button>
         </div>

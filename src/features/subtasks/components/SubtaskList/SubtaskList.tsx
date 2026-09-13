@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  FaEye,
   FaPenToSquare,
   FaPlus,
   FaRegClipboard,
@@ -23,6 +24,7 @@ import {
   EditSubtaskModal,
   type SubtaskEditValues,
 } from "@/features/subtasks/components/EditSubtaskModal/EditSubtaskModal";
+import { ViewSubtaskModal } from "@/features/subtasks/components/ViewSubtaskModal/ViewSubtaskModal";
 import type { SubtaskProgress, SubtaskRow } from "@/features/subtasks/queries";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { SubtaskStatus } from "@/generated/prisma/browser";
@@ -59,11 +61,15 @@ export function SubtaskList({ taskId, users, canCreate, readOnly }: SubtaskListP
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editSubtask, setEditSubtask] = useState<SubtaskRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SubtaskRow | null>(null);
+  const [viewSubtask, setViewSubtask] = useState<SubtaskRow | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const handleRefresh = useCallback(() => setRefreshTrigger((n) => n + 1), []);
+  const handleRefresh = useCallback(() => {
+    setViewSubtask(null);
+    setRefreshTrigger((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +150,7 @@ export function SubtaskList({ taskId, users, canCreate, readOnly }: SubtaskListP
   }
 
   function handleEditSaved(subtaskId: string, values: SubtaskEditValues) {
+    setViewSubtask(null);
     const nextRows = rows.map((row) => {
       if (row.id !== subtaskId) return row;
       return {
@@ -170,6 +177,7 @@ export function SubtaskList({ taskId, users, canCreate, readOnly }: SubtaskListP
   }
 
   async function handleDelete() {
+    setViewSubtask(null);
     if (!deleteTarget) return;
     const result = await deleteSubtaskAction({ subtaskId: deleteTarget.id });
     if (result.success) {
@@ -258,24 +266,35 @@ export function SubtaskList({ taskId, users, canCreate, readOnly }: SubtaskListP
                       {statusLabelMap[subtask.status]}
                     </StatusBadge>
                   </span>
-                  {!readOnly && (
-                    <div className={styles.actions}>
+                  <div className={styles.actions}>
+                    {readOnly && (
                       <Button
                         variant="ghost"
-                        aria-label="Edit subtask"
-                        onPress={() => setEditSubtask(subtask)}
+                        aria-label="View subtask"
+                        onPress={() => setViewSubtask(subtask)}
                       >
-                        <FaPenToSquare className={styles.icon} />
+                        <FaEye className={styles.icon} />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        aria-label="Delete subtask"
-                        onPress={() => setDeleteTarget(subtask)}
-                      >
-                        <FaTrashCan className={styles.icon} />
-                      </Button>
-                    </div>
-                  )}
+                    )}
+                    {!readOnly && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          aria-label="Edit subtask"
+                          onPress={() => setEditSubtask(subtask)}
+                        >
+                          <FaPenToSquare className={styles.icon} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          aria-label="Delete subtask"
+                          onPress={() => setDeleteTarget(subtask)}
+                        >
+                          <FaTrashCan className={styles.icon} />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className={styles.metaRow}>
                   <span className={styles.metaItem}>
@@ -291,6 +310,14 @@ export function SubtaskList({ taskId, users, canCreate, readOnly }: SubtaskListP
             );
           })}
         </ul>
+      )}
+
+      {viewSubtask && (
+        <ViewSubtaskModal
+          isOpen={!!viewSubtask}
+          onOpenChange={() => setViewSubtask(null)}
+          subtaskId={viewSubtask.id}
+        />
       )}
 
       {!readOnly && (

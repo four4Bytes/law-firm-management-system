@@ -481,7 +481,7 @@ describe("submitTaskAction", () => {
     vi.mocked(setAssignmentStatus).mockResolvedValue({ taskStatus: "InReview" });
 
     const result = await submitTaskAction({ taskId: uuid, status: "Done" });
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, data: { taskStatus: "InReview" } });
     await flushAfterCallbacks();
     expect(setAssignmentStatus).toHaveBeenCalledWith(uuid, "u2", "Done");
   });

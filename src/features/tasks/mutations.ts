@@ -1,6 +1,6 @@
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
-import { TaskValidationError } from "@/lib/errors";
+import { TaskLockedError, TaskValidationError } from "@/lib/errors";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -106,6 +106,7 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       select: { status: true },
     });
     if (!currentTask) throw new Error("Task not found");
+    if (currentTask.status === TaskStatus.Done) throw new TaskLockedError();
 
     let removed: string[] = [];
     let added: string[] = [];
@@ -165,6 +166,20 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       const existingReviewerIds = new Set(existingReviewers.map((r) => r.reviewer_user_id));
       const newReviewerIds = reviewer_ids.filter((id) => !existingReviewerIds.has(id));
       if (newReviewerIds.length > 0) {
+        const finalAssigneeIds =
+          assignee_ids ??
+          (
+            await tx.taskAssignment.findMany({
+              where: { task_id: id },
+              select: { user_id: true },
+            })
+          ).map((a) => a.user_id);
+        if (hasAssigneeReviewerOverlap(newReviewerIds, finalAssigneeIds)) {
+          throw new TaskValidationError(
+            "Assignee and reviewer must be distinct",
+            "A user cannot be both assignee and reviewer on the same task. Remove the overlapping user from one role.",
+          );
+        }
         await tx.taskReviewer.createMany({
           data: newReviewerIds.map((reviewer_user_id) => ({
             task_id: id,
@@ -182,6 +197,13 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       await tx.taskReviewer.deleteMany({
         where: { task_id: id, reviewer_user_id: { in: removed_reviewer_ids } },
       });
+      const remainingReviewers = await tx.taskReviewer.count({ where: { task_id: id } });
+      if (wouldLeaveNoReviewer(remainingReviewers)) {
+        throw new TaskValidationError(
+          "At least one reviewer required",
+          "A task must have at least one reviewer. Add a reviewer before removing this one.",
+        );
+      }
     }
 
     if (

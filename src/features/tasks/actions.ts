@@ -343,7 +343,7 @@ export async function deleteTaskAction(
 
 export async function submitTaskAction(
   payload: z.input<typeof TaskSubmitSchema>,
-): Promise<ActionStatusResponse> {
+): Promise<ActionDataResponse<{ taskStatus: TaskStatus }>> {
   const session = await requireAuth();
 
   const parsed = TaskSubmitSchema.safeParse(payload);
@@ -400,7 +400,7 @@ export async function submitTaskAction(
 
     revalidatePath(`/case/${existing.case_id}`);
 
-    return { success: true };
+    return { success: true, data: { taskStatus } };
   } catch (error) {
     return toActionResponse(error, "submit task");
   }

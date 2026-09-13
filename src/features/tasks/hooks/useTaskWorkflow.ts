@@ -41,10 +41,6 @@ export function useTaskWorkflow(payload: TaskWorkflowInput): TaskWorkflow {
   const canToggleOwnSubmission = isCurrentUserAssignee && localStatus !== TaskStatus.Done;
   const currentReviewer = task.reviewers.find((r) => r.reviewer_user_id === currentUserId);
   const hasReviewed = !!currentReviewer?.reviewed_at || reviewedLocally;
-  const doneCount = Object.values(assignmentStatuses).filter(
-    (s) => s === TaskAssignmentStatus.Done,
-  ).length;
-  const totalAssignees = Object.keys(assignmentStatuses).length || task.assignTo.length;
   const statusHint = getTaskStatusHint({
     status: localStatus,
     assignTo: Object.values(assignmentStatuses).map((status) => ({ status })),
@@ -71,11 +67,7 @@ export function useTaskWorkflow(payload: TaskWorkflowInput): TaskWorkflow {
             ? "Your work is marked done."
             : "Your work is back to todo.",
         );
-        const newDone = next === TaskAssignmentStatus.Done ? doneCount + 1 : doneCount - 1;
-        if (newDone === totalAssignees && localStatus === TaskStatus.Pending)
-          setLocalStatus(TaskStatus.InReview);
-        else if (next === TaskAssignmentStatus.Todo && localStatus === TaskStatus.InReview)
-          setLocalStatus(TaskStatus.Pending);
+        if (result.data?.taskStatus) setLocalStatus(result.data.taskStatus);
         onSuccess();
       }
     } catch {

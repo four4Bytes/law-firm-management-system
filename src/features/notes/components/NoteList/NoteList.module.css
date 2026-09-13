@@ -58,3 +58,11 @@
     color: var(--color-text-muted);
   }
 }
+
+.loadMoreRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 2rem;
+  list-style: none;
+}

@@ -27,7 +27,14 @@ export function TaskNotesSection({ taskId, canEdit, onSuccess, readOnly }: TaskN
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
-  const { notes: serverNotes, isLoading, reload } = useTaskNotes(taskId);
+  const {
+    notes: serverNotes,
+    isLoading,
+    isLoadingMore,
+    nextCursor,
+    reload,
+    loadMore,
+  } = useTaskNotes(taskId);
 
   const notes = serverNotes.filter((n) => !hiddenIds.has(n.id));
 
@@ -83,6 +90,9 @@ export function TaskNotesSection({ taskId, canEdit, onSuccess, readOnly }: TaskN
       <NoteList
         notes={notes}
         isLoading={isLoading || deletingId !== null}
+        hasMore={nextCursor !== null}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMore}
         onEdit={editable ? setEditNote : undefined}
         onDelete={editable ? handleRemoveNote : undefined}
       />

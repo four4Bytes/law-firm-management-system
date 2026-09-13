@@ -262,11 +262,6 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
                     </Button>
                   </div>
                 </div>
-                {subtask.description && (
-                  <p className={styles.description} title={subtask.description}>
-                    {subtask.description}
-                  </p>
-                )}
                 <div className={styles.metaRow}>
                   <span className={styles.metaItem}>
                     Assigned: {subtask.assignees.map((a) => a.name).join(", ") || "Unassigned"}
@@ -275,9 +270,6 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
                     <span className={styles.metaItem}>Due: {formatDate(subtask.due_date)}</span>
                   ) : (
                     <span className={styles.metaItem}>No due date</span>
-                  )}
-                  {subtask.priority && (
-                    <span className={styles.priorityBadge}>{subtask.priority}</span>
                   )}
                 </div>
               </li>

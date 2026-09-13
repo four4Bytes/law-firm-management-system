@@ -80,7 +80,6 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskF
 
   return (
     <div className={styles.section}>
-      {!readOnly && <span className={styles.label}>Files · auto-saved</span>}
       {!readOnly && (
         <DropZone
           allowsMultiple

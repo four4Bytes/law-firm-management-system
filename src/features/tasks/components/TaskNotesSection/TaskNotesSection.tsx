@@ -55,7 +55,7 @@ export function TaskNotesSection({ taskId, canEdit, onSuccess, readOnly }: TaskN
     <div className={styles.section}>
       {!readOnly && (
         <div className={styles.columnHeader}>
-          <span className={styles.label}>Notes · auto-saved</span>
+          <span className={styles.label}>Notes</span>
           <Button
             className={styles.addNoteButton}
             variant="secondary"

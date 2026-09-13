@@ -1,0 +1,25 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.helpText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.reviewActions {
+  display: flex;
+  gap: var(--space-md);
+
+  > * {
+    flex: 1;
+  }
+}

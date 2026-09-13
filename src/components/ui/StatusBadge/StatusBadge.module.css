@@ -4,6 +4,7 @@
   padding: var(--space-sm);
   border-radius: var(--radius-pill);
   text-transform: uppercase;
+  text-align: center;
 }
 
 .statusPending {

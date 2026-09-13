@@ -67,16 +67,16 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 ### Tasks (sub-data of Case)
 
-| Event                          | Recipients            | Type                | Notes                 |
-| ------------------------------ | --------------------- | ------------------- | --------------------- |
-| Task created - assignee added  | Initial assignees     | `TaskAssigned`      | Actor always excluded |
-| Task updated - assignee added  | Newly added assignees | `TaskAssigned`      | Actor always excluded |
-| Task updated - reviewer added  | Newly added reviewer  | `TaskAssigned`      | Actor always excluded |
-| Task submitted (→ `Submitted`) | All reviewers         | `TaskStatusChanged` | Actor always excluded |
-| Task completed (→ `Completed`) | All assignees         | `TaskStatusChanged` | Actor always excluded |
-| Task rejected (→ `Pending`)    | All assignees         | `TaskStatusChanged` | Actor always excluded |
+| Event                         | Recipients            | Type                | Notes                 |
+| ----------------------------- | --------------------- | ------------------- | --------------------- |
+| Task created - assignee added | Initial assignees     | `TaskAssigned`      | Actor always excluded |
+| Task updated - assignee added | Newly added assignees | `TaskAssigned`      | Actor always excluded |
+| Task updated - reviewer added | Newly added reviewer  | `TaskAssigned`      | Actor always excluded |
+| Task submitted (→ `InReview`) | All reviewers         | `TaskStatusChanged` | Actor always excluded |
+| Task completed (→ `Done`)     | All assignees         | `TaskStatusChanged` | Actor always excluded |
+| Task rejected (→ `Pending`)   | All assignees         | `TaskStatusChanged` | Actor always excluded |
 
-> Task status changes fire only on the review transitions — → `Submitted` (assignee submits), → `Completed` (all reviewers accepted), → `Pending` (any reviewer rejected); deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from Submitted to Completed`). Actor always excluded.
+> Task status changes fire only on the review transitions — → `InReview` (all assignees done), → `Done` (all reviewers approved), → `Pending` (any reviewer rejected); deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from InReview to Done`). Actor always excluded.
 >
 > A user who is **both** an assignee and a reviewer on the same task receives a single `TaskAssigned` notification — the reviewer-added notice is suppressed when the recipient is already an assignee (and vice-versa). No duplicate delivery.
 

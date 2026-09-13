@@ -1,3 +1,10 @@
+.emptyState {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  padding: var(--space-sm) 0;
+  text-align: center;
+}
+
 .noteList {
   flex: 1 1 auto;
   min-height: 0;

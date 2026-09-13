@@ -251,7 +251,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           onOpenChange={() => setViewTask(null)}
           task={viewTask}
           users={users}
-          canCreate={canCreate}
         />
       )}
 

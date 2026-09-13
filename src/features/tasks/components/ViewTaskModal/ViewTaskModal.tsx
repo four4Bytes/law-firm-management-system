@@ -24,16 +24,9 @@ interface ViewTaskModalProps {
   onOpenChange: (isOpen: boolean) => void;
   task: TaskDetailRow;
   users: ActiveUserSummary[];
-  canCreate: boolean;
 }
 
-export function ViewTaskModal({
-  isOpen,
-  onOpenChange,
-  task,
-  users,
-  canCreate,
-}: ViewTaskModalProps) {
+export function ViewTaskModal({ isOpen, onOpenChange, task, users }: ViewTaskModalProps) {
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
@@ -97,6 +90,7 @@ export function ViewTaskModal({
 
   const hasFiles = documents.length > 0;
   const hasNotes = notes.length > 0;
+  const hasFilesAndNotes = hasFiles && hasNotes;
 
   return (
     <>
@@ -104,7 +98,7 @@ export function ViewTaskModal({
         title="Task"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        className={clsx(styles.modal, hasFiles && hasNotes && styles.wide)}
+        className={clsx(styles.modal, hasFilesAndNotes && styles.wide)}
       >
         <div className={styles.columns}>
           <div className={styles.column}>
@@ -136,39 +130,43 @@ export function ViewTaskModal({
               <span className={styles.label}>Status</span>
               <span className={styles.value}>{task.status}</span>
             </div>
-            <SubtaskList taskId={task.id} users={users} canCreate={canCreate} />
           </div>
 
-          {hasFiles && (
-            <>
-              <div className={styles.divider} />
-              <div className={styles.column}>
-                <div className={clsx(styles.field, styles.fillField)}>
-                  <span className={styles.label}>Attachments</span>
-                  <FileList
-                    entries={[]}
-                    isBusy={false}
-                    onRemove={() => {}}
-                    existingDocuments={documents}
-                    onView={setPreviewDocument}
-                    onDownload={handleDownload}
-                    isLoading={isLoadingDocuments}
-                    showSize={false}
-                  />
-                </div>
-              </div>
-            </>
-          )}
+          <div className={styles.divider} />
 
-          {hasNotes && (
-            <>
-              <div className={styles.divider} />
-              <div className={styles.column}>
-                <span className={styles.label}>Notes</span>
-                <NoteList notes={notes} />
+          <div className={styles.rightPane}>
+            <div className={styles.rightTop}>
+              <div className={styles.rightDropZone}>
+                <span className={styles.label}>Attachments</span>
+                <FileList
+                  entries={[]}
+                  isBusy={false}
+                  onRemove={() => {}}
+                  existingDocuments={documents}
+                  onView={setPreviewDocument}
+                  onDownload={handleDownload}
+                  isLoading={isLoadingDocuments}
+                  showSize={false}
+                  showEmptyState={true}
+                  onDelete={undefined}
+                />
               </div>
-            </>
-          )}
+              <div className={styles.notesCol}>
+                <span className={styles.label}>Notes</span>
+                <NoteList
+                  notes={notes}
+                  onEdit={undefined}
+                  onDelete={undefined}
+                  showEmptyState={true}
+                />
+              </div>
+            </div>
+
+            <div className={styles.subtasksSection}>
+              <div className={styles.subtasksDivider} />
+              <SubtaskList taskId={task.id} users={users} canCreate={false} readOnly={true} />
+            </div>
+          </div>
         </div>
       </Modal>
       {previewDocument && (

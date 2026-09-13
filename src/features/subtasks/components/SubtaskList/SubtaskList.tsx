@@ -35,6 +35,7 @@ interface SubtaskListProps {
   taskId: string;
   users: ActiveUserSummary[];
   canCreate: boolean;
+  readOnly: boolean;
 }
 
 const statusVariantMap: Record<SubtaskStatus, StatusBadgeVariant> = {
@@ -51,7 +52,7 @@ const statusLabelMap: Record<SubtaskStatus, string> = {
   [SubtaskStatus.Cancelled]: "Cancelled",
 };
 
-export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
+export function SubtaskList({ taskId, users, canCreate, readOnly }: SubtaskListProps) {
   const [rows, setRows] = useState<SubtaskRow[]>([]);
   const [progress, setProgress] = useState<SubtaskProgress>({ total: 0, completed: 0, percent: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -212,10 +213,12 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
       ) : rows.length === 0 ? (
         <div className={styles.empty}>
           <FaRegClipboard className={styles.emptyIcon} aria-hidden="true" />
-          <span className={styles.emptyTitle}>No subtasks recorded</span>
-          <span className={styles.emptyHint}>
-            Click &quot;+ Add Subtask&quot; to create a new one
-          </span>
+          <span className={styles.emptyTitle}>No subtasks</span>
+          {!readOnly && (
+            <span className={styles.emptyHint}>
+              Click &quot;+ Add Subtask&quot; to create a new one
+            </span>
+          )}
         </div>
       ) : (
         <ul className={styles.list}>
@@ -224,19 +227,29 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
             return (
               <li key={subtask.id} className={styles.card}>
                 <div className={styles.topRow}>
-                  <Button
-                    variant="ghost"
-                    aria-label={isDone ? "Mark subtask as pending" : "Mark subtask as completed"}
-                    onPress={() => handleToggle(subtask)}
-                    isDisabled={togglingId === subtask.id}
-                    className={styles.toggle}
-                  >
-                    {isDone ? (
-                      <FaSquareCheck className={styles.checkIcon} />
-                    ) : (
-                      <FaRegSquare className={styles.checkIcon} />
-                    )}
-                  </Button>
+                  {readOnly ? (
+                    <span className={styles.toggle}>
+                      {isDone ? (
+                        <FaSquareCheck className={styles.checkIcon} />
+                      ) : (
+                        <FaRegSquare className={styles.checkIcon} />
+                      )}
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      aria-label={isDone ? "Mark subtask as pending" : "Mark subtask as completed"}
+                      onPress={() => handleToggle(subtask)}
+                      isDisabled={togglingId === subtask.id}
+                      className={styles.toggle}
+                    >
+                      {isDone ? (
+                        <FaSquareCheck className={styles.checkIcon} />
+                      ) : (
+                        <FaRegSquare className={styles.checkIcon} />
+                      )}
+                    </Button>
+                  )}
                   <span className={styles.title} title={subtask.title}>
                     {subtask.title}
                   </span>
@@ -245,22 +258,24 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
                       {statusLabelMap[subtask.status]}
                     </StatusBadge>
                   </span>
-                  <div className={styles.actions}>
-                    <Button
-                      variant="ghost"
-                      aria-label="Edit subtask"
-                      onPress={() => setEditSubtask(subtask)}
-                    >
-                      <FaPenToSquare className={styles.icon} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      aria-label="Delete subtask"
-                      onPress={() => setDeleteTarget(subtask)}
-                    >
-                      <FaTrashCan className={styles.icon} />
-                    </Button>
-                  </div>
+                  {!readOnly && (
+                    <div className={styles.actions}>
+                      <Button
+                        variant="ghost"
+                        aria-label="Edit subtask"
+                        onPress={() => setEditSubtask(subtask)}
+                      >
+                        <FaPenToSquare className={styles.icon} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        aria-label="Delete subtask"
+                        onPress={() => setDeleteTarget(subtask)}
+                      >
+                        <FaTrashCan className={styles.icon} />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className={styles.metaRow}>
                   <span className={styles.metaItem}>
@@ -278,23 +293,27 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
         </ul>
       )}
 
-      <AddSubtaskModal
-        isOpen={isAddOpen}
-        onOpenChange={setIsAddOpen}
-        onSuccess={handleRefresh}
-        taskId={taskId}
-        users={users}
-      />
+      {!readOnly && (
+        <>
+          <AddSubtaskModal
+            isOpen={isAddOpen}
+            onOpenChange={setIsAddOpen}
+            onSuccess={handleRefresh}
+            taskId={taskId}
+            users={users}
+          />
 
-      {editSubtask && (
-        <EditSubtaskModal
-          key={editSubtask.id}
-          isOpen={!!editSubtask}
-          onOpenChange={() => setEditSubtask(null)}
-          onSaved={handleEditSaved}
-          subtask={editSubtask}
-          users={users}
-        />
+          {editSubtask && (
+            <EditSubtaskModal
+              key={editSubtask.id}
+              isOpen={!!editSubtask}
+              onOpenChange={() => setEditSubtask(null)}
+              onSaved={handleEditSaved}
+              subtask={editSubtask}
+              users={users}
+            />
+          )}
+        </>
       )}
 
       <ConfirmDialog

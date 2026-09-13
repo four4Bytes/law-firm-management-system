@@ -465,7 +465,12 @@ export function EditTaskModal({
 
             <div className={styles.subtasksSection}>
               <div className={styles.subtasksDivider} />
-              <SubtaskList taskId={task.id} users={users} canCreate={canCreateSubtask} />
+              <SubtaskList
+                taskId={task.id}
+                users={users}
+                canCreate={canCreateSubtask}
+                readOnly={false}
+              />
             </div>
           </div>
         </div>

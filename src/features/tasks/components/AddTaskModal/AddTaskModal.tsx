@@ -180,6 +180,7 @@ export function AddTaskModal({
               onReviewerIdsChange={setReviewerIds}
               isAssigneeDisabled={isPending}
               isReviewerDisabled={isPending}
+              validate={createFieldValidator(TaskCreatePayloadSchema.shape.assignee_ids)}
             />
           </div>
 

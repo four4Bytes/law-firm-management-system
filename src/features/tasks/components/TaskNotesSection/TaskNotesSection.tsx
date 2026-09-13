@@ -50,6 +50,11 @@ export function TaskNotesSection({ taskId, canEdit, onSuccess, readOnly }: TaskN
         onSuccess();
       }
     } catch {
+      setHiddenIds((prev) => {
+        const next = new Set(prev);
+        next.delete(noteId);
+        return next;
+      });
       toastError(
         "Unexpected error",
         "Something went wrong while deleting the note. Please try again.",

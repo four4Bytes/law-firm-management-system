@@ -66,7 +66,7 @@ export function TaskMetadataFields({
         onAssigneeIdsChange={onAssigneeIdsChange}
         reviewerIds={reviewerIds}
         onReviewerIdsChange={onReviewerIdsChange}
-        isAssigneeDisabled={isPending || !capabilities.isCreator}
+        isAssigneeDisabled={isPending || !capabilities.canEdit}
         isReviewerDisabled={isPending || !capabilities.canManageReviewers}
         validate={fieldValidator}
       />

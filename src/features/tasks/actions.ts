@@ -131,7 +131,7 @@ export async function createTaskAction(
   const parsed = TaskCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("task");
 
-  const { title, description, case_id, assignee_ids } = parsed.data;
+  const { title, description, priority, case_id, assignee_ids } = parsed.data;
 
   try {
     const caseAccess = await getCaseAccessContext(session.id, case_id);
@@ -142,6 +142,7 @@ export async function createTaskAction(
     const task = await createTask({
       title,
       description,
+      priority,
       case_id,
       created_by_user_id: session.id,
       assignee_ids,
@@ -183,7 +184,7 @@ export async function updateTaskAction(
   const parsed = TaskUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("task");
 
-  const { taskId, title, description, assignee_ids } = parsed.data;
+  const { taskId, title, description, priority, assignee_ids } = parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
@@ -212,6 +213,7 @@ export async function updateTaskAction(
     if (
       existing.title === title &&
       existing.description === (description ?? null) &&
+      (existing.priority ?? null) === (priority ?? null) &&
       !assigneesChanged
     ) {
       return { success: true };
@@ -219,7 +221,9 @@ export async function updateTaskAction(
 
     await updateTask(
       taskId,
-      assigneesChanged ? { title, description, assignee_ids } : { title, description },
+      assigneesChanged
+        ? { title, description, priority, assignee_ids }
+        : { title, description, priority },
     );
 
     after(async () => {

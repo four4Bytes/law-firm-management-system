@@ -7,6 +7,7 @@ import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 export interface TaskCreateData {
   title: string;
   description?: string | null;
+  priority?: string | null;
   case_id: string;
   created_by_user_id: string;
   assignee_ids?: string[];
@@ -15,6 +16,7 @@ export interface TaskCreateData {
 export interface TaskUpdateData {
   title?: string;
   description?: string | null;
+  priority?: string | null;
   assignee_ids?: string[];
 }
 

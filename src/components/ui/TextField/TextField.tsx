@@ -18,6 +18,7 @@ import styles from "./TextField.module.css";
 
 export interface TextFieldProps extends AriaTextFieldProps {
   label?: string;
+  labelClassName?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   placeholder?: string;
@@ -30,6 +31,7 @@ export const TextField = React.forwardRef<HTMLInputElement | HTMLTextAreaElement
   (
     {
       label,
+      labelClassName,
       description,
       errorMessage,
       placeholder,
@@ -43,7 +45,7 @@ export const TextField = React.forwardRef<HTMLInputElement | HTMLTextAreaElement
   ) => {
     return (
       <AriaTextField {...props} className={clsx(styles.field, className)}>
-        {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
+        {label && <AriaLabel className={clsx(styles.label, labelClassName)}>{label}</AriaLabel>}
         {isTextArea ? (
           <TextArea
             ref={ref as React.Ref<HTMLTextAreaElement>}

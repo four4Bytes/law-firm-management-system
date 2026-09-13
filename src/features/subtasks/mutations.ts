@@ -5,7 +5,6 @@ import { prisma, type TransactionClient } from "@/lib/prisma";
 export interface SubtaskCreateData {
   title: string;
   description?: string | null;
-  priority?: string | null;
   due_date?: Date | null;
   status?: SubtaskStatus;
   reminder_days?: number | null;
@@ -17,7 +16,6 @@ export interface SubtaskCreateData {
 export interface SubtaskUpdateData {
   title?: string;
   description?: string | null;
-  priority?: string | null;
   due_date?: Date | null;
   status?: SubtaskStatus;
   reminder_days?: number | null;

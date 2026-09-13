@@ -91,6 +91,7 @@ const parentTask = {
   id: taskId,
   title: "Parent",
   description: null,
+  priority: "High",
   status: "Pending" as const,
   case_id: caseId,
   created_by_user_id: "u9",
@@ -111,13 +112,12 @@ const subtaskRecord = {
   title: "Sub",
   description: null,
   status: "Pending" as const,
-  priority: null,
   due_date: null,
   reminder_days: null,
   created_by_user_id: "u1",
   created_at: new Date("2026-09-01"),
   updated_at: new Date("2026-09-01"),
-  task: { case_id: caseId, status: "Pending" as const },
+  task: { case_id: caseId, status: "Pending" as const, priority: "High" },
   assignments: [{ user_id: assigneeId, user: { name: "Maria" } }],
 };
 
@@ -154,6 +154,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: taskId,
       assignee_ids: [assigneeId],
     });
@@ -178,6 +179,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: taskId,
       assignee_ids: [uuid],
     });
@@ -192,6 +194,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: uuid,
       assignee_ids: [uuid],
     });
@@ -207,6 +210,7 @@ describe("createSubtaskAction", () => {
 
     const result = await createSubtaskAction({
       title: "Collect documents",
+      description: "Collect all required documents",
       task_id: taskId,
       assignee_ids: [uuid],
     });
@@ -225,6 +229,7 @@ describe("updateSubtaskAction", () => {
     const result = await updateSubtaskAction({
       subtaskId,
       title: "Sub",
+      description: "Sub description",
       status: "Completed",
       assignee_ids: [assigneeId],
     });
@@ -248,6 +253,7 @@ describe("updateSubtaskAction", () => {
     const result = await updateSubtaskAction({
       subtaskId,
       title: "Sub",
+      description: "Sub description",
       status: "Pending",
       assignee_ids: [uuid],
     });

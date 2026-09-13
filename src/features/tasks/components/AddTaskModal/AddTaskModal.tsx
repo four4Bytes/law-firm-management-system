@@ -6,9 +6,11 @@ import { Form } from "react-aria-components";
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
+import { TASK_PRIORITY_NONE_VALUE, taskPriorityOptions } from "@/features/tasks/constants";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
@@ -36,6 +38,7 @@ export function AddTaskModal({
 }: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(new Set());
   const [isPending, setIsPending] = useState(false);
@@ -48,6 +51,7 @@ export function AddTaskModal({
   function resetForm() {
     setTitle("");
     setDescription("");
+    setPriority("");
     setAssigneeIds(new Set());
     setReviewerIds(new Set());
     setCreatedTaskId(null);
@@ -76,6 +80,7 @@ export function AddTaskModal({
     const parsed = TaskCreatePayloadSchema.safeParse({
       title: requiredString(title),
       description: optionalString(description),
+      priority: optionalString(priority),
       case_id: caseId,
       assignee_ids: Array.from(assigneeIds),
     });
@@ -164,6 +169,7 @@ export function AddTaskModal({
           <div className={styles.column}>
             <TextField
               label="Title"
+              labelClassName={styles.fieldLabel}
               value={title}
               onChange={setTitle}
               placeholder="Enter task title..."
@@ -172,19 +178,39 @@ export function AddTaskModal({
             />
             <TextField
               label="Description"
+              labelClassName={styles.fieldLabel}
               isTextArea
               rows={3}
               value={description}
               onChange={setDescription}
-              placeholder="Optional description..."
+              placeholder="Enter task description..."
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.description)}
               isDisabled={isPending}
             />
+            <Select
+              label="Priority"
+              labelClassName={styles.fieldLabel}
+              value={priority === "" ? TASK_PRIORITY_NONE_VALUE : priority}
+              placeholder="Select priority..."
+              onChange={(key) => {
+                if (key === TASK_PRIORITY_NONE_VALUE) setPriority("");
+                else if (key != null) setPriority(String(key));
+              }}
+              isDisabled={isPending}
+            >
+              <SelectItem id={TASK_PRIORITY_NONE_VALUE}>None</SelectItem>
+              {taskPriorityOptions(priority).map((option) => (
+                <SelectItem key={option} id={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </Select>
             <UserSelect
               users={users}
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
+              labelClassName={styles.fieldLabel}
             />
             <UserSelect
               users={users}
@@ -192,6 +218,7 @@ export function AddTaskModal({
               onChange={setReviewerIds}
               isDisabled={isPending}
               label="Reviewers"
+              labelClassName={styles.fieldLabel}
               placeholder="Select reviewers..."
             />
           </div>

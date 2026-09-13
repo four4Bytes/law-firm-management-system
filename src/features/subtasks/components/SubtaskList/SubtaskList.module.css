@@ -2,12 +2,18 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  min-height: 0;
 
   .header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-md);
+    background: var(--color-surface-bg);
+    padding-bottom: var(--space-xs);
   }
 
   .label {
@@ -16,9 +22,14 @@
   }
 
   .progress {
+    position: sticky;
+    top: 2rem;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: var(--space-md);
+    background: var(--color-surface-bg);
+    padding-bottom: var(--space-xs);
   }
 
   .progressText {
@@ -28,7 +39,7 @@
 
   .bar {
     flex: 1;
-    height: 8px;
+    height: 5px;
     appearance: none;
   }
 
@@ -48,36 +59,84 @@
   }
 
   .percent {
+    flex: 0 0 auto;
+    min-width: 4ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
   }
 
-  .allDone {
-    font-size: var(--font-size-sm);
-    color: var(--color-success);
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: 5rem;
+    padding: var(--space-md);
+    border: 1px dashed var(--color-border-subtle);
+    border-radius: 8px;
+    text-align: center;
   }
 
-  .empty {
+  .emptyIcon {
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-muted);
+  }
+
+  .emptyTitle {
     font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .emptyHint {
+    font-size: var(--font-size-xs);
     color: var(--color-text-muted);
   }
 
   .list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: 8px;
     margin: 0;
-    padding: 0;
+    padding: 0 0 var(--space-sm) 0;
     list-style: none;
+    min-height: 5rem;
+    max-height: 20rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 0;
+    scrollbar-gutter: stable;
+    scroll-padding-bottom: var(--space-sm);
+    width: 100%;
+    overscroll-behavior: contain;
   }
 
-  .row {
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 6px;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .topRow {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-    padding: var(--space-sm) var(--space-md);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: 8px;
+    gap: var(--space-sm);
+    flex-wrap: nowrap;
+    min-width: 0;
+    flex-shrink: 0;
   }
 
   .toggle {
@@ -85,48 +144,76 @@
   }
 
   .checkIcon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .details {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    width: 16px;
+    height: 16px;
   }
 
   .title {
-    font-size: var(--font-size-sm);
+    flex: 1 1 12rem;
+    min-width: 5rem;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     overflow-wrap: anywhere;
   }
 
-  .meta {
-    font-size: var(--font-size-sm);
+  .metaRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    column-gap: var(--space-sm);
+    row-gap: 2px;
+    margin-left: calc(16px + var(--space-sm));
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .metaItem {
+    font-size: var(--font-size-xs);
     color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+
+  .statusSlot {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-wrap: anywhere;
   }
 
   .actions {
     flex: 0 0 auto;
     display: flex;
     gap: var(--space-xs);
+    min-width: 0;
+    margin-left: auto;
   }
 
   .icon {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
   }
-}
 
-@media (max-width: 48rem) {
-  .section {
-    .row {
-      flex-wrap: wrap;
-    }
+  @media (max-width: 48rem) {
+    .section {
+      .topRow {
+        flex-wrap: wrap;
+      }
 
-    .actions {
-      margin-left: auto;
+      .title {
+        flex: 1 1 100%;
+        order: 2;
+      }
+
+      .actions {
+        margin-left: auto;
+      }
     }
   }
 }

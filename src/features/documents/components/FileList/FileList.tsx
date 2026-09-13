@@ -27,6 +27,7 @@ interface FileListProps {
   onView?: (document: DocumentRow) => void;
   isLoading?: boolean;
   showSize?: boolean;
+  showEmptyState?: boolean;
 }
 
 export function FileList({
@@ -39,6 +40,7 @@ export function FileList({
   onView,
   isLoading,
   showSize = true,
+  showEmptyState = false,
 }: FileListProps) {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
 
@@ -64,7 +66,12 @@ export function FileList({
     );
   }
 
-  if (entries.length === 0 && (!existingDocuments || existingDocuments.length === 0)) return null;
+  if (entries.length === 0 && (!existingDocuments || existingDocuments.length === 0)) {
+    if (showEmptyState) {
+      return <div className={styles.emptyState}>No attachments.</div>;
+    }
+    return null;
+  }
 
   return (
     <div className={styles.fileList}>

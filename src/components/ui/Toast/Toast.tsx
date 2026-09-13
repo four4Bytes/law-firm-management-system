@@ -24,9 +24,16 @@ export interface ToastContent {
 export const queue = new ToastQueue<ToastContent>({
   wrapUpdate(fn) {
     if ("startViewTransition" in document) {
-      document.startViewTransition(() => {
-        flushSync(fn);
-      });
+      try {
+        const transition = document.startViewTransition(() => {
+          flushSync(fn);
+        });
+        // A newer transition (e.g. a second toast fired in quick succession)
+        // aborts this one; swallow the rejection so enqueueing never crashes.
+        transition.finished.catch(() => {});
+      } catch {
+        fn();
+      }
     } else {
       fn();
     }

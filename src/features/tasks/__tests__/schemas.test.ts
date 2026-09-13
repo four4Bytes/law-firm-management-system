@@ -28,6 +28,7 @@ describe("TaskCreatePayloadSchema", () => {
   it("accepts a minimal valid payload", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "Task title",
+      description: "Task description",
       case_id: uuid,
       assignee_ids: [uuid],
     });
@@ -38,15 +39,28 @@ describe("TaskCreatePayloadSchema", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "Task title",
       description: "A description",
+      priority: "High",
       case_id: uuid,
       assignee_ids: [uuid],
     });
     expect(result.success).toBe(true);
   });
 
+  it("rejects an over-long priority", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task title",
+      description: "A description",
+      priority: "x".repeat(51),
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects empty title", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "",
+      description: "Task description",
       case_id: uuid,
       assignee_ids: [uuid],
     });
@@ -56,6 +70,26 @@ describe("TaskCreatePayloadSchema", () => {
   it("rejects whitespace-only title", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "   ",
+      description: "Task description",
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing description", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty description", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      description: "   ",
       case_id: uuid,
       assignee_ids: [uuid],
     });
@@ -63,13 +97,18 @@ describe("TaskCreatePayloadSchema", () => {
   });
 
   it("rejects a payload without assignees", () => {
-    const result = TaskCreatePayloadSchema.safeParse({ title: "Task", case_id: uuid });
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      description: "Task description",
+      case_id: uuid,
+    });
     expect(result.success).toBe(false);
   });
 
   it("rejects an empty assignee list", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "Task",
+      description: "Task description",
       case_id: uuid,
       assignee_ids: [],
     });
@@ -79,6 +118,7 @@ describe("TaskCreatePayloadSchema", () => {
   it("rejects duplicate assignee ids", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "Task",
+      description: "Task description",
       case_id: uuid,
       assignee_ids: [uuid, uuid],
     });
@@ -91,6 +131,7 @@ describe("TaskUpdatePayloadSchema", () => {
     const result = TaskUpdatePayloadSchema.safeParse({
       taskId: uuid,
       title: "Updated title",
+      description: "Updated description",
     });
     expect(result.success).toBe(true);
   });
@@ -109,6 +150,15 @@ describe("TaskUpdatePayloadSchema", () => {
     const result = TaskUpdatePayloadSchema.safeParse({
       taskId: uuid,
       title: "",
+      description: "Updated description",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing description", () => {
+    const result = TaskUpdatePayloadSchema.safeParse({
+      taskId: uuid,
+      title: "Task",
     });
     expect(result.success).toBe(false);
   });
@@ -117,6 +167,7 @@ describe("TaskUpdatePayloadSchema", () => {
     const result = TaskUpdatePayloadSchema.safeParse({
       taskId: uuid,
       title: "Task",
+      description: "Updated description",
       assignee_ids: [uuid, uuid],
     });
     expect(result.success).toBe(false);

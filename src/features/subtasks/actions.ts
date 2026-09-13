@@ -97,7 +97,7 @@ export async function createSubtaskAction(
   const parsed = SubtaskCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("subtask");
 
-  const { task_id, title, description, priority, due_date, status, reminder_days, assignee_ids } =
+  const { task_id, title, description, due_date, status, reminder_days, assignee_ids } =
     parsed.data;
 
   try {
@@ -117,7 +117,6 @@ export async function createSubtaskAction(
     const subtask = await createSubtask({
       title,
       description,
-      priority,
       due_date,
       status,
       reminder_days,
@@ -177,7 +176,7 @@ export async function updateSubtaskAction(
   const parsed = SubtaskUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("subtask");
 
-  const { subtaskId, title, description, priority, due_date, status, reminder_days, assignee_ids } =
+  const { subtaskId, title, description, due_date, status, reminder_days, assignee_ids } =
     parsed.data;
 
   try {
@@ -210,7 +209,6 @@ export async function updateSubtaskAction(
     if (
       existing.title === title &&
       existing.description === (description ?? null) &&
-      (existing.priority ?? null) === (priority ?? null) &&
       (existing.due_date?.getTime() ?? null) === (due_date?.getTime() ?? null) &&
       !statusChanged &&
       (existing.reminder_days ?? null) === (reminder_days ?? null) &&
@@ -222,8 +220,8 @@ export async function updateSubtaskAction(
     await updateSubtask(
       subtaskId,
       assigneesChanged
-        ? { title, description, priority, due_date, status, reminder_days, assignee_ids }
-        : { title, description, priority, due_date, status, reminder_days },
+        ? { title, description, due_date, status, reminder_days, assignee_ids }
+        : { title, description, due_date, status, reminder_days },
     );
 
     after(async () => {

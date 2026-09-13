@@ -99,6 +99,7 @@ const taskRecord = {
   id: "t1",
   title: "Draft memo",
   description: null,
+  priority: null,
   status: "Pending" as const,
   case_id: uuid,
   created_by_user_id: "u1",
@@ -117,6 +118,7 @@ const taskRow = {
   id: "t1",
   title: "Draft memo",
   description: null,
+  priority: null,
   status: "Pending" as const,
   case_id: uuid,
   assignee_ids: [] as string[],
@@ -225,7 +227,7 @@ describe("createTaskAction", () => {
   it("returns a forbidden envelope when task create is denied on the parent case", async () => {
     const payload = {
       title: "Draft memo",
-      description: undefined,
+      description: "Task description",
       case_id: uuid,
       assignee_ids: [uuid],
     };
@@ -246,7 +248,7 @@ describe("createTaskAction", () => {
 
     const result = await createTaskAction({
       title: "Draft memo",
-      description: undefined,
+      description: "Task description",
       case_id: uuid,
       assignee_ids: [uuid],
     });
@@ -270,7 +272,7 @@ describe("updateTaskAction", () => {
     const payload = {
       taskId: uuid,
       title: "Renamed",
-      description: undefined,
+      description: "Task description",
       assignee_ids: undefined,
     };
 
@@ -294,7 +296,7 @@ describe("updateTaskAction", () => {
     const result = await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
-      description: undefined,
+      description: "Task description",
       assignee_ids: undefined,
     });
 
@@ -319,7 +321,7 @@ describe("updateTaskAction", () => {
     const result = await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
-      description: undefined,
+      description: "Task description",
       assignee_ids: undefined,
     });
 
@@ -348,7 +350,7 @@ describe("updateTaskAction notification split", () => {
     await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
-      description: undefined,
+      description: "Task description",
       assignee_ids: [assignee1, assignee2],
     });
     await flushAfterCallbacks();
@@ -364,7 +366,7 @@ describe("updateTaskAction notification split", () => {
     await updateTaskAction({
       taskId: uuid,
       title: "Draft memo",
-      description: undefined,
+      description: "Task description",
       assignee_ids: [assignee1, assignee2],
     });
     await flushAfterCallbacks();
@@ -385,7 +387,7 @@ describe("updateTaskAction notification split", () => {
     await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
-      description: undefined,
+      description: "Task description",
       assignee_ids: [assignee1, assignee2],
     });
     await flushAfterCallbacks();
@@ -780,7 +782,7 @@ describe("updateTaskAction lifecycle lock", () => {
       await updateTaskAction({
         taskId: uuid,
         title: "Renamed",
-        description: undefined,
+        description: "Task description",
       }),
     ).toEqual({ success: true });
   });
@@ -797,7 +799,7 @@ describe("updateTaskAction lifecycle lock", () => {
       await updateTaskAction({
         taskId: uuid,
         title: "Renamed",
-        description: undefined,
+        description: "Task description",
         assignee_ids: [uuid],
       }),
     ).toEqual({
@@ -822,12 +824,15 @@ describe("updateTaskAction lifecycle lock", () => {
     const result = await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
-      description: undefined,
+      description: "Task description",
       assignee_ids: [],
     });
 
     expect(result).toEqual({ success: true });
-    expect(updateTask).toHaveBeenCalledWith(uuid, { title: "Renamed", description: undefined });
+    expect(updateTask).toHaveBeenCalledWith(uuid, {
+      title: "Renamed",
+      description: "Task description",
+    });
     expect(vi.mocked(updateTask).mock.calls[0][1]).not.toHaveProperty("assignee_ids");
   });
 
@@ -843,7 +848,7 @@ describe("updateTaskAction lifecycle lock", () => {
     const result = await updateTaskAction({
       taskId: uuid,
       title: "Renamed",
-      description: undefined,
+      description: "Task description",
       assignee_ids: [uuid],
     });
 

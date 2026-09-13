@@ -25,6 +25,7 @@ describe("SubtaskCreatePayloadSchema", () => {
   it("accepts a minimal valid payload with Pending default", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "Subtask title",
+      description: "Subtask description",
       task_id: uuid,
       assignee_ids: [uuid],
     });
@@ -36,7 +37,6 @@ describe("SubtaskCreatePayloadSchema", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "Subtask title",
       description: "A description",
-      priority: "High",
       due_date: new Date("2026-09-20"),
       status: "InProgress",
       task_id: uuid,
@@ -45,9 +45,22 @@ describe("SubtaskCreatePayloadSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("ignores a legacy independent priority value", () => {
+    const result = SubtaskCreatePayloadSchema.safeParse({
+      title: "Subtask title",
+      description: "A description",
+      task_id: uuid,
+      assignee_ids: [uuid],
+      priority: "High",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).not.toHaveProperty("priority");
+  });
+
   it("rejects empty title", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "",
+      description: "Subtask description",
       task_id: uuid,
       assignee_ids: [uuid],
     });
@@ -57,6 +70,26 @@ describe("SubtaskCreatePayloadSchema", () => {
   it("rejects whitespace-only title", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "   ",
+      description: "Subtask description",
+      task_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing description", () => {
+    const result = SubtaskCreatePayloadSchema.safeParse({
+      title: "Subtask",
+      task_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty description", () => {
+    const result = SubtaskCreatePayloadSchema.safeParse({
+      title: "Subtask",
+      description: "   ",
       task_id: uuid,
       assignee_ids: [uuid],
     });
@@ -66,6 +99,7 @@ describe("SubtaskCreatePayloadSchema", () => {
   it("rejects an empty assignee list", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "Subtask",
+      description: "Subtask description",
       task_id: uuid,
       assignee_ids: [],
     });
@@ -75,18 +109,9 @@ describe("SubtaskCreatePayloadSchema", () => {
   it("rejects duplicate assignee ids", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "Subtask",
+      description: "Subtask description",
       task_id: uuid,
       assignee_ids: [uuid, uuid],
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects an over-long priority", () => {
-    const result = SubtaskCreatePayloadSchema.safeParse({
-      title: "Subtask",
-      task_id: uuid,
-      assignee_ids: [uuid],
-      priority: "x".repeat(51),
     });
     expect(result.success).toBe(false);
   });
@@ -94,6 +119,7 @@ describe("SubtaskCreatePayloadSchema", () => {
   it("rejects an invalid task id", () => {
     const result = SubtaskCreatePayloadSchema.safeParse({
       title: "Subtask",
+      description: "Subtask description",
       task_id: "abc",
       assignee_ids: [uuid],
     });
@@ -106,6 +132,7 @@ describe("SubtaskUpdatePayloadSchema", () => {
     const result = SubtaskUpdatePayloadSchema.safeParse({
       subtaskId: uuid,
       title: "Updated title",
+      description: "Updated description",
       status: "Completed",
       assignee_ids: [uuid],
     });
@@ -116,6 +143,17 @@ describe("SubtaskUpdatePayloadSchema", () => {
     const result = SubtaskUpdatePayloadSchema.safeParse({
       subtaskId: uuid,
       title: "",
+      description: "Updated description",
+      status: "Pending",
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing description", () => {
+    const result = SubtaskUpdatePayloadSchema.safeParse({
+      subtaskId: uuid,
+      title: "Title",
       status: "Pending",
       assignee_ids: [uuid],
     });
@@ -126,6 +164,7 @@ describe("SubtaskUpdatePayloadSchema", () => {
     const result = SubtaskUpdatePayloadSchema.safeParse({
       subtaskId: uuid,
       title: "Title",
+      description: "Updated description",
       status: "Submitted",
       assignee_ids: [uuid],
     });

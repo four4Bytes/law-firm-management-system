@@ -347,6 +347,7 @@ describe("getCaseTasksPaginated", () => {
     id: "t1",
     title: "Draft complaint",
     description: null,
+    priority: null,
     status: "Pending" as const,
     case_id: "1",
     created_by_user_id: "u1",

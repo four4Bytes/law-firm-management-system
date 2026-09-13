@@ -20,7 +20,7 @@ export type TaskReviewerRow = {
 };
 
 export type TaskDetailRow = Omit<TaskRow, "assignTo" | "reviewers"> &
-  Pick<Task, "description" | "created_at" | "created_by_user_id"> & {
+  Pick<Task, "description" | "priority" | "created_at" | "created_by_user_id"> & {
     assignTo: { id: string; name: string; status: TaskAssignmentStatus }[];
     assignee_ids: string[];
     reviewers: TaskReviewerRow[];
@@ -41,6 +41,7 @@ export const getTaskById = cache(async (id: string) => {
       id: true,
       title: true,
       description: true,
+      priority: true,
       status: true,
       case_id: true,
       created_by_user_id: true,
@@ -90,6 +91,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
       id: true,
       title: true,
       description: true,
+      priority: true,
       status: true,
       updated_at: true,
       created_at: true,
@@ -116,6 +118,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
     id: task.id,
     title: task.title,
     description: task.description,
+    priority: task.priority,
     status: task.status,
     assignTo: task.taskAssignments.map((a) => ({
       id: a.user_id,

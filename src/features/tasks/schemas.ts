@@ -9,7 +9,8 @@ export const TaskIdSchema = z.object({
 
 export const TaskCreatePayloadSchema = z.object({
   title: requiredText(500, "Title"),
-  description: optionalText(10000, "Description"),
+  description: requiredText(10000, "Description"),
+  priority: optionalText(50, "Priority"),
   case_id: z.uuid(),
   assignee_ids: uniqueUuidArray("Assignee").min(1, "Add at least one assignee"),
 });
@@ -17,7 +18,8 @@ export const TaskCreatePayloadSchema = z.object({
 export const TaskUpdatePayloadSchema = z.object({
   taskId: z.uuid(),
   title: requiredText(500, "Title"),
-  description: optionalText(10000, "Description"),
+  description: requiredText(10000, "Description"),
+  priority: optionalText(50, "Priority"),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 

@@ -26,6 +26,14 @@
     gap: var(--space-lg);
   }
 
+  .fieldLabel {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semi-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
   .divider {
     width: 1px;
     flex: 0 0 auto;

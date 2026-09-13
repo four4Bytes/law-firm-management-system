@@ -1,13 +1,7 @@
 import { z } from "zod";
 
 import { SubtaskStatus } from "@/generated/prisma/browser";
-import {
-  nonNegativeInteger,
-  optionalText,
-  requiredEnum,
-  requiredText,
-  uniqueUuidArray,
-} from "@/lib/form-utils";
+import { nonNegativeInteger, requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
 
 export const SubtaskIdSchema = z.object({
   subtaskId: z.uuid(),
@@ -15,8 +9,7 @@ export const SubtaskIdSchema = z.object({
 
 const SubtaskFieldsSchema = z.object({
   title: requiredText(500, "Title"),
-  description: optionalText(10000, "Description"),
-  priority: optionalText(50, "Priority"),
+  description: requiredText(10000, "Description"),
   due_date: z.coerce.date().nullable().optional(),
   status: requiredEnum(SubtaskStatus, "Status"),
   reminder_days: nonNegativeInteger("Reminder days").nullable().optional(),

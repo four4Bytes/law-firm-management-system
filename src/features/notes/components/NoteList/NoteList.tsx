@@ -13,12 +13,18 @@ interface NoteListProps {
   notes: NoteRow[];
   onEdit?: (note: NoteRow) => void;
   onDelete?: (noteId: string) => void;
+  showEmptyState?: boolean;
 }
 
-export function NoteList({ notes, onEdit, onDelete }: NoteListProps) {
+export function NoteList({ notes, onEdit, onDelete, showEmptyState = false }: NoteListProps) {
   const [viewNote, setViewNote] = useState<NoteRow | null>(null);
 
-  if (notes.length === 0) return null;
+  if (notes.length === 0) {
+    if (showEmptyState) {
+      return <div className={styles.emptyState}>No notes.</div>;
+    }
+    return null;
+  }
 
   return (
     <>

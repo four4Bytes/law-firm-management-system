@@ -476,8 +476,13 @@ export async function seedTasks(
     // The creator is always a reviewer (task-review-workflow.md §2). Any
     // explicitly seeded reviewer is added alongside the creator; the Set
     // de-duplicates the case where the creator reviews their own task.
-    const reviewerIds = new Set<string>([createdByUserId]);
-    if (t.reviewerEmail) reviewerIds.add(userByEmail[t.reviewerEmail]);
+    // Ensure seeded task assignees and reviewers never overlap.
+    const assigneeUserIds = new Set(t.assigneeEmails.map((e) => userByEmail[e]));
+    const reviewerIds = new Set<string>([createdByUserId].filter((id) => !assigneeUserIds.has(id)));
+    if (t.reviewerEmail) {
+      const reviewerUserId = userByEmail[t.reviewerEmail];
+      if (!assigneeUserIds.has(reviewerUserId)) reviewerIds.add(reviewerUserId);
+    }
 
     const reviewerAccepted = t.status === "Done";
 

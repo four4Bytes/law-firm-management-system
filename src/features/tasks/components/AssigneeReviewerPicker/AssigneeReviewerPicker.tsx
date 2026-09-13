@@ -13,6 +13,7 @@ export interface AssigneeReviewerPickerProps {
   isReviewerDisabled: boolean;
   assigneeLabel?: string;
   reviewerLabel?: string;
+  validate?: (value: string[]) => string | null;
 }
 
 export function AssigneeReviewerPicker({
@@ -25,6 +26,7 @@ export function AssigneeReviewerPicker({
   isReviewerDisabled,
   assigneeLabel = "Assignees",
   reviewerLabel = "Reviewers",
+  validate,
 }: AssigneeReviewerPickerProps) {
   return (
     <>
@@ -36,6 +38,7 @@ export function AssigneeReviewerPicker({
         label={assigneeLabel}
         hideSelected
         disabledKeys={reviewerIds}
+        validate={validate}
       />
       <UserSelect
         users={users}

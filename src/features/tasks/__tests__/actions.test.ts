@@ -520,7 +520,7 @@ describe("reviewTaskAction", () => {
     vi.mocked(applyReviewDecision).mockResolvedValue({ taskStatus: "Done" });
 
     const result = await reviewTaskAction({ taskId: uuid, decision: "Approved" });
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, data: { taskStatus: "Done" } });
     expect(applyReviewDecision).toHaveBeenCalledWith({
       taskId: uuid,
       reviewerUserId: "u2",
@@ -650,14 +650,13 @@ describe("removeTaskReviewerAction", () => {
 });
 
 describe("updateTaskAction lifecycle lock", () => {
-  it("allows a non-creator with update access to edit a Done task's details", async () => {
+  it("rejects all metadata changes on a Done task", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
       taskOnly: true,
     });
     vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
-    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
 
     expect(
       await updateTaskAction({
@@ -665,10 +664,18 @@ describe("updateTaskAction lifecycle lock", () => {
         title: "Renamed",
         description: undefined,
       }),
-    ).toEqual({ success: true });
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Task locked",
+        description:
+          "A completed task is locked. Add a reviewer to reopen it before making changes.",
+      },
+    });
   });
 
-  it("refuses assignee changes by a non-creator even with update access", async () => {
+  it("rejects title changes by a non-creator on a Done task", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
@@ -687,13 +694,14 @@ describe("updateTaskAction lifecycle lock", () => {
       success: false,
       error: {
         code: "conflict",
-        title: "Not allowed",
-        description: "Only the task creator can change assignees.",
+        title: "Task locked",
+        description:
+          "A completed task is locked. Add a reviewer to reopen it before making changes.",
       },
     });
   });
 
-  it("lets a non-creator edit details when assignee_ids are unchanged (modal always sends them)", async () => {
+  it("rejects all changes on a Done task even when assignee_ids are unchanged", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
@@ -704,7 +712,6 @@ describe("updateTaskAction lifecycle lock", () => {
       status: "Done" as const,
       taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Todo" as const }],
     });
-    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
 
     const result = await updateTaskAction({
       taskId: uuid,
@@ -713,19 +720,24 @@ describe("updateTaskAction lifecycle lock", () => {
       assignee_ids: [uuid],
     });
 
-    expect(result).toEqual({ success: true });
-    expect(updateTask).toHaveBeenCalledWith(uuid, { title: "Renamed", description: undefined });
-    expect(vi.mocked(updateTask).mock.calls[0][1]).not.toHaveProperty("assignee_ids");
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Task locked",
+        description:
+          "A completed task is locked. Add a reviewer to reopen it before making changes.",
+      },
+    });
   });
 
-  it("allows the creator to edit details on a Done task", async () => {
+  it("rejects creator edits on a Done task", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: true,
       taskOnly: true,
     });
     vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
-    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
 
     const result = await updateTaskAction({
       taskId: uuid,
@@ -733,7 +745,14 @@ describe("updateTaskAction lifecycle lock", () => {
       description: undefined,
     });
 
-    expect(result).toEqual({ success: true });
-    expect(updateTask).toHaveBeenCalled();
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Task locked",
+        description:
+          "A completed task is locked. Add a reviewer to reopen it before making changes.",
+      },
+    });
   });
 });

@@ -6,19 +6,14 @@ import { Form } from "react-aria-components";
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
-import {
-  addTaskReviewerAction,
-  removeTaskReviewerAction,
-  updateTaskAction,
-  type TaskCapabilities,
-} from "@/features/tasks/actions";
+import { updateTaskAction, type TaskCapabilities } from "@/features/tasks/actions";
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { useTaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
-import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
+import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { TaskStatus } from "@/generated/prisma/browser";
-import { optionalString, requiredString } from "@/lib/form-utils";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
 import { TaskMetadataFields } from "./components/TaskMetadataFields/TaskMetadataFields";
@@ -89,12 +84,18 @@ export function EditTaskModal({
     setIsPending(true);
 
     try {
-      if (capabilities.canEdit) {
+      if (capabilities.canEdit || capabilities.canManageReviewers) {
+        const current = new Set(task.reviewers.map((r) => r.reviewer_user_id));
+        const addedReviewers = [...reviewerIds].filter((id) => !current.has(id));
+        const removedReviewers = [...current].filter((id) => !reviewerIds.has(id));
+
         const parsed = TaskUpdatePayloadSchema.safeParse({
           taskId: task.id,
           title: requiredString(title),
           description: optionalString(description),
           assignee_ids: Array.from(assigneeIds),
+          reviewer_ids: addedReviewers.length > 0 ? addedReviewers : undefined,
+          removed_reviewer_ids: removedReviewers.length > 0 ? removedReviewers : undefined,
         });
         if (!parsed.success) {
           toastError(
@@ -108,28 +109,6 @@ export function EditTaskModal({
           toastActionError(result, "update task");
           return;
         }
-      }
-
-      if (capabilities.canManageReviewers) {
-        const current = new Set(task.reviewers.map((r) => r.reviewer_user_id));
-        const added = [...reviewerIds].filter((id) => !current.has(id));
-        const removed = [...current].filter((id) => !reviewerIds.has(id));
-        let reviewerFailed = false;
-        for (const id of added) {
-          const result = await addTaskReviewerAction({ taskId: task.id, reviewerUserId: id });
-          if (!result.success) {
-            reviewerFailed = true;
-            toastActionError(result, "add reviewer");
-          }
-        }
-        for (const id of removed) {
-          const result = await removeTaskReviewerAction({ taskId: task.id, reviewerUserId: id });
-          if (!result.success) {
-            reviewerFailed = true;
-            toastActionError(result, "remove reviewer");
-          }
-        }
-        if (reviewerFailed) return;
       }
 
       toastSuccess("Task updated", "The task details were saved.");
@@ -168,6 +147,7 @@ export function EditTaskModal({
               reviewerIds={reviewerIds}
               onReviewerIdsChange={handleReviewerIdsChange}
               isPending={isPending}
+              fieldValidator={createFieldValidator(TaskCreatePayloadSchema.shape.assignee_ids)}
             />
             <TaskWorkflowSection
               workflow={workflow}
@@ -184,6 +164,7 @@ export function EditTaskModal({
               taskId={task.id}
               canEdit={capabilities.canEdit}
               onSuccess={onSuccess}
+              readOnly={workflow.localStatus === TaskStatus.Done}
             />
           </div>
 
@@ -194,6 +175,7 @@ export function EditTaskModal({
               taskId={task.id}
               canEdit={capabilities.canEdit}
               onSuccess={onSuccess}
+              readOnly={workflow.localStatus === TaskStatus.Done}
             />
           </div>
         </div>

@@ -34,6 +34,7 @@ export function useTaskDocuments(taskId: string): UseTaskDocumentsReturn {
         const allDocs: DocumentRow[] = [];
         let cursor: string | undefined;
         do {
+          if (cancelled) return;
           const res = await getDocumentsPaginatedAction({
             taskId,
             pageSize: 100,

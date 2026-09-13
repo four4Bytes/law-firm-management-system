@@ -18,6 +18,8 @@ export interface TaskUpdateData {
   title?: string;
   description?: string | null;
   assignee_ids?: string[];
+  reviewer_ids?: string[];
+  removed_reviewer_ids?: string[];
 }
 
 export interface ReviewDecisionData {
@@ -94,7 +96,7 @@ export async function createTask(data: TaskCreateData): Promise<{ id: string }> 
 }
 
 export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id: string }> {
-  const { assignee_ids, ...taskData } = data;
+  const { assignee_ids, reviewer_ids, removed_reviewer_ids, ...taskData } = data;
 
   return prisma.$transaction(async (tx) => {
     await lockTask(tx, id);
@@ -153,7 +155,40 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       if (assignee_ids.length) {
         await grantCaseMembership(tx, task.case_id, assignee_ids);
       }
+    }
 
+    if (reviewer_ids !== undefined) {
+      const existingReviewers = await tx.taskReviewer.findMany({
+        where: { task_id: id },
+        select: { reviewer_user_id: true },
+      });
+      const existingReviewerIds = new Set(existingReviewers.map((r) => r.reviewer_user_id));
+      const newReviewerIds = reviewer_ids.filter((id) => !existingReviewerIds.has(id));
+      if (newReviewerIds.length > 0) {
+        await tx.taskReviewer.createMany({
+          data: newReviewerIds.map((reviewer_user_id) => ({
+            task_id: id,
+            reviewer_user_id,
+            decision: "Pending" as const,
+            reviewed_at: null,
+          })),
+          skipDuplicates: true,
+        });
+        await grantCaseMembership(tx, task.case_id, newReviewerIds);
+      }
+    }
+
+    if (removed_reviewer_ids !== undefined && removed_reviewer_ids.length > 0) {
+      await tx.taskReviewer.deleteMany({
+        where: { task_id: id, reviewer_user_id: { in: removed_reviewer_ids } },
+      });
+    }
+
+    if (
+      assignee_ids !== undefined ||
+      reviewer_ids !== undefined ||
+      removed_reviewer_ids !== undefined
+    ) {
       const [assignments, reviewers] = await Promise.all([
         tx.taskAssignment.findMany({ where: { task_id: id }, select: { status: true } }),
         tx.taskReviewer.findMany({ where: { task_id: id }, select: { decision: true } }),

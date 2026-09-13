@@ -10,7 +10,7 @@ import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNot
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import { useTaskNotes } from "@/features/tasks/hooks/useTaskNotes";
-import { toastActionError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./TaskNotesSection.module.css";
 
@@ -35,20 +35,28 @@ export function TaskNotesSection({ taskId, canEdit, onSuccess, readOnly }: TaskN
     if (deletingId) return;
     setDeletingId(noteId);
     setHiddenIds((prev) => new Set(prev).add(noteId));
-    const result = await deleteNoteAction({ noteId });
-    if (!result.success) {
-      setHiddenIds((prev) => {
-        const next = new Set(prev);
-        next.delete(noteId);
-        return next;
-      });
-      toastActionError(result, "delete note");
-    } else {
-      toastSuccess("Note deleted", "The note was removed.");
-      reload();
-      onSuccess();
+    try {
+      const result = await deleteNoteAction({ noteId });
+      if (!result.success) {
+        setHiddenIds((prev) => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
+        });
+        toastActionError(result, "delete note");
+      } else {
+        toastSuccess("Note deleted", "The note was removed.");
+        reload();
+        onSuccess();
+      }
+    } catch {
+      toastError(
+        "Unexpected error",
+        "Something went wrong while deleting the note. Please try again.",
+      );
+    } finally {
+      setDeletingId(null);
     }
-    setDeletingId(null);
   }
 
   return (

@@ -66,13 +66,13 @@ describe("TaskCreatePayloadSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts an empty assignee list (server validates at least one)", () => {
+  it("rejects an empty assignee list", () => {
     const result = TaskCreatePayloadSchema.safeParse({
       title: "Task",
       case_id: uuid,
       assignee_ids: [],
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   it("rejects duplicate assignee ids", () => {

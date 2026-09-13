@@ -96,7 +96,7 @@ export const getTaskNotesPaginated = cache(
       ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
     };
 
-    const orderBy = { created_at: "desc" } as const;
+    const orderBy = [{ created_at: "desc" as const }, { id: "asc" as const }];
 
     const notes = await prisma.note.findMany({
       take: pageSize + 1,
@@ -138,7 +138,7 @@ export const getCaseNotesPaginated = cache(
       ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
     };
 
-    const orderBy = { created_at: "desc" } as const;
+    const orderBy = [{ created_at: "desc" as const }, { id: "asc" as const }];
 
     const notes = await prisma.note.findMany({
       take: pageSize + 1,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getTaskNotesPaginatedAction } from "@/features/notes/actions";
 import type { NoteRow } from "@/features/notes/queries";
@@ -9,51 +9,60 @@ import { toastError } from "@/lib/toast-utils";
 interface UseTaskNotesReturn {
   notes: NoteRow[];
   isLoading: boolean;
+  nextCursor: string | null;
   reload: () => void;
+  loadMore: () => Promise<void>;
 }
 
 export function useTaskNotes(taskId: string): UseTaskNotesReturn {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadNotes(): Promise<void> {
+    async function loadFirstPage(): Promise<void> {
       setNotes([]);
+      setNextCursor(null);
       setIsLoading(true);
       try {
-        const allNotes: NoteRow[] = [];
-        let cursor: string | undefined;
-        do {
-          const res = await getTaskNotesPaginatedAction({
-            taskId,
-            pageSize: 100,
-            cursor,
-          });
-          allNotes.push(...res.rows);
-          cursor = res.nextCursor ?? undefined;
-        } while (cursor);
-        if (cancelled) return;
-        setNotes(allNotes);
+        const res = await getTaskNotesPaginatedAction({ taskId, pageSize: 20 });
+        if (!cancelled) {
+          setNotes(res.rows);
+          setNextCursor(res.nextCursor);
+          setIsLoading(false);
+        }
       } catch {
-        if (cancelled) return;
-        toastError(
-          "Failed to load notes",
-          "We couldn't load the notes for this task. Please try again.",
-        );
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          toastError(
+            "Failed to load notes",
+            "We couldn't load the notes for this task. Please try again.",
+          );
+          setIsLoading(false);
+        }
       }
     }
-
-    void loadNotes();
-
+    void loadFirstPage();
     return () => {
       cancelled = true;
     };
   }, [taskId, reloadKey]);
 
-  return { notes, isLoading, reload: () => setReloadKey((k) => k + 1) };
+  const loadMore = async () => {
+    if (loadingRef.current || !nextCursor) return;
+    loadingRef.current = true;
+    try {
+      const res = await getTaskNotesPaginatedAction({ taskId, pageSize: 20, cursor: nextCursor });
+      setNotes((prev) => [...prev, ...res.rows]);
+      setNextCursor(res.nextCursor);
+    } catch {
+      toastError("Failed to load more notes", "We couldn't load more notes. Please try again.");
+    } finally {
+      loadingRef.current = false;
+    }
+  };
+
+  return { notes, isLoading, nextCursor, reload: () => setReloadKey((k) => k + 1), loadMore };
 }

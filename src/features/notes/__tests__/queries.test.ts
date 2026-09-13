@@ -128,9 +128,24 @@ describe("getTaskNotesPaginated", () => {
     expect(prisma.note.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { task_id: "t1" },
-        orderBy: { created_at: "desc" },
+        orderBy: [{ created_at: "desc" }, { id: "asc" }],
       }),
     );
+  });
+
+  it("handles notes with identical timestamps deterministically", async () => {
+    const now = new Date("2024-06-01T12:00:00Z");
+    const notes = [
+      mockNote({ id: "n1", created_at: now }),
+      mockNote({ id: "n2", created_at: now }),
+    ];
+    vi.mocked(prisma.note.findMany).mockResolvedValue(notes as unknown as never[]);
+
+    const result = await getTaskNotesPaginated({ taskId: "t1", pageSize: 10 });
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0].id).toBe("n1");
+    expect(result.rows[1].id).toBe("n2");
   });
 
   it("handles cursor pagination", async () => {

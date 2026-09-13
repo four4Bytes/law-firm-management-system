@@ -199,7 +199,8 @@ export async function updateTaskAction(
   const parsed = TaskUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("task");
 
-  const { taskId, title, description, assignee_ids } = parsed.data;
+  const { taskId, title, description, assignee_ids, reviewer_ids, removed_reviewer_ids } =
+    parsed.data;
 
   try {
     const existing = await getTaskById(taskId);
@@ -217,15 +218,15 @@ export async function updateTaskAction(
       (existingAssigneeIds.length !== assignee_ids.length ||
         !existingAssigneeIds.every((id) => assignee_ids.includes(id)));
 
-    if (assigneesChanged && !access.own) {
-      return actionConflict("Not allowed", "Only the task creator can change assignees.");
-    }
-
-    if (assigneesChanged && existing.status === TaskStatus.Done) {
+    if (existing.status === TaskStatus.Done) {
       return actionConflict(
         "Task locked",
-        "A completed task is locked. Add a reviewer to reopen it before changing assignees.",
+        "A completed task is locked. Add a reviewer to reopen it before making changes.",
       );
+    }
+
+    if (assigneesChanged && !access.own) {
+      return actionConflict("Not allowed", "Only the task creator can change assignees.");
     }
 
     if (assignee_ids !== undefined) {
@@ -251,15 +252,20 @@ export async function updateTaskAction(
     if (
       existing.title === title &&
       existing.description === (description ?? null) &&
-      !assigneesChanged
+      !assigneesChanged &&
+      !reviewer_ids?.length &&
+      !removed_reviewer_ids?.length
     ) {
       return { success: true };
     }
 
-    await updateTask(
-      taskId,
-      assigneesChanged ? { title, description, assignee_ids } : { title, description },
-    );
+    await updateTask(taskId, {
+      title,
+      description,
+      assignee_ids,
+      reviewer_ids,
+      removed_reviewer_ids,
+    });
 
     after(async () => {
       await logAudit({
@@ -402,7 +408,7 @@ export async function submitTaskAction(
 
 export async function reviewTaskAction(
   payload: z.input<typeof TaskReviewSchema>,
-): Promise<ActionStatusResponse> {
+): Promise<ActionDataResponse<{ taskStatus: TaskStatus }>> {
   const session = await requireAuth();
 
   const parsed = TaskReviewSchema.safeParse(payload);
@@ -460,7 +466,7 @@ export async function reviewTaskAction(
 
     revalidatePath(`/case/${existing.case_id}`);
 
-    return { success: true };
+    return { success: true, data: { taskStatus } };
   } catch (error) {
     return toActionResponse(error, "record review");
   }

@@ -7,8 +7,6 @@ import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/T
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/TaskStatusBadge";
 import { mapReviewersForDisplay } from "@/features/tasks/display";
-import { useTaskDocuments } from "@/features/tasks/hooks/useTaskDocuments";
-import { useTaskNotes } from "@/features/tasks/hooks/useTaskNotes";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
 
@@ -21,11 +19,8 @@ interface ViewTaskModalProps {
 }
 
 export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps) {
-  const { documents, isLoading: isLoadingDocuments } = useTaskDocuments(task.id);
-  const { notes, isLoading: isLoadingNotes } = useTaskNotes(task.id);
-
-  const hasFiles = documents.length > 0;
-  const hasNotes = notes.length > 0;
+  const hasFiles = true;
+  const hasNotes = true;
   const noop = () => {};
 
   return (
@@ -61,27 +56,19 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
           </div>
         </div>
 
-        {(isLoadingDocuments || hasFiles) && (
-          <>
-            <div className={styles.divider} />
-            <div className={styles.column}>
-              <div className={clsx(styles.field, styles.fillField)}>
-                <span className={styles.label}>Attachments</span>
-                <TaskFilesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
-              </div>
-            </div>
-          </>
-        )}
+        <div className={styles.divider} />
+        <div className={styles.column}>
+          <div className={clsx(styles.field, styles.fillField)}>
+            <span className={styles.label}>Attachments</span>
+            <TaskFilesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
+          </div>
+        </div>
 
-        {(isLoadingNotes || hasNotes) && (
-          <>
-            <div className={styles.divider} />
-            <div className={styles.column}>
-              <span className={styles.label}>Notes</span>
-              <TaskNotesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
-            </div>
-          </>
-        )}
+        <div className={styles.divider} />
+        <div className={styles.column}>
+          <span className={styles.label}>Notes</span>
+          <TaskNotesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
+        </div>
       </div>
     </Modal>
   );

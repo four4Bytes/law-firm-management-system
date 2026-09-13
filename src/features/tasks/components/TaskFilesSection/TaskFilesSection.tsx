@@ -42,7 +42,7 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskF
   const documents: DocumentRow[] = serverDocuments.filter((d) => !hiddenIds.has(d.id));
 
   useEffect(() => {
-    const hasPending = fileEntries.some((e) => e.status === "pending" || e.status === "failed");
+    const hasPending = fileEntries.some((e) => e.status === "pending");
     if (!hasPending || isUploading) return;
     void (async () => {
       const { uploaded, failed } = await uploadFiles();

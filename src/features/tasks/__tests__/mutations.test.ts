@@ -568,7 +568,7 @@ describe("applyReviewDecision", () => {
 
     const result = await applyReviewDecision({
       taskId: "t1",
-      reviewerUserId: "u2",
+      reviewerUserId: "u1",
       decision: "Approved",
     });
 

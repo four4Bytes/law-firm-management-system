@@ -22,6 +22,7 @@ export interface TaskMetadataFieldsProps {
   reviewerIds: Set<string>;
   onReviewerIdsChange: (ids: Set<string>) => void;
   isPending: boolean;
+  fieldValidator?: (value: unknown) => string | null;
 }
 
 export function TaskMetadataFields({
@@ -37,6 +38,7 @@ export function TaskMetadataFields({
   reviewerIds,
   onReviewerIdsChange,
   isPending,
+  fieldValidator,
 }: TaskMetadataFieldsProps) {
   return (
     <>
@@ -66,6 +68,7 @@ export function TaskMetadataFields({
         onReviewerIdsChange={onReviewerIdsChange}
         isAssigneeDisabled={isPending || !capabilities.isCreator}
         isReviewerDisabled={isPending || !capabilities.canManageReviewers}
+        validate={fieldValidator}
       />
       <UserList users={task.assignTo} />
       <UserList users={mapReviewersForDisplay(task)} />

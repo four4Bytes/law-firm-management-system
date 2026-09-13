@@ -1,0 +1,114 @@
+"use client";
+
+import { useState } from "react";
+
+import { reviewTaskAction, submitTaskAction } from "@/features/tasks/actions";
+import type { TaskDetailRow } from "@/features/tasks/queries";
+import { TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
+import { toastActionError, toastSuccess } from "@/lib/toast-utils";
+
+export interface TaskWorkflowInput {
+  task: TaskDetailRow;
+  currentUserId: string;
+  isReviewer: boolean;
+  onSuccess: () => void;
+}
+
+export interface TaskWorkflow {
+  localStatus: TaskStatus;
+  statusHint: string;
+  assignmentStatuses: Record<string, TaskAssignmentStatus>;
+  canToggleOwnSubmission: boolean;
+  hasReviewed: boolean;
+  isToggling: boolean;
+  isReviewing: boolean;
+  handleToggleDone: () => Promise<void>;
+  handleReview: (decision: "Approved" | "Rejected") => Promise<void>;
+}
+
+export function useTaskWorkflow(payload: TaskWorkflowInput): TaskWorkflow {
+  const { task, currentUserId, isReviewer, onSuccess } = payload;
+  const [assignmentStatuses, setAssignmentStatuses] = useState<
+    Record<string, TaskAssignmentStatus>
+  >(Object.fromEntries(task.assignTo.map((a) => [a.id, a.status])));
+  const [localStatus, setLocalStatus] = useState<TaskStatus>(task.status);
+  const [isToggling, setIsToggling] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
+
+  const isCurrentUserAssignee = task.assignee_ids.includes(currentUserId);
+  const canToggleOwnSubmission = isCurrentUserAssignee && localStatus !== TaskStatus.Done;
+  const currentReviewer = task.reviewers.find((r) => r.reviewer_user_id === currentUserId);
+  const hasReviewed = !!currentReviewer?.reviewed_at;
+  const doneCount = Object.values(assignmentStatuses).filter(
+    (s) => s === TaskAssignmentStatus.Done,
+  ).length;
+  const totalAssignees = Object.keys(assignmentStatuses).length || task.assignTo.length;
+  const approvedCount = task.reviewers.filter((r) => r.decision === "Approved").length;
+  const totalReviewers = task.reviewers.length;
+  const statusHint =
+    localStatus === TaskStatus.Pending
+      ? totalAssignees
+        ? `${doneCount}/${totalAssignees} assignees done`
+        : "No assignees yet"
+      : localStatus === TaskStatus.InReview
+        ? `${approvedCount}/${totalReviewers} approvals`
+        : "All approvals complete";
+
+  async function handleToggleDone(): Promise<void> {
+    if (!canToggleOwnSubmission || isToggling) return;
+    const current = assignmentStatuses[currentUserId];
+    const next =
+      current === TaskAssignmentStatus.Done ? TaskAssignmentStatus.Todo : TaskAssignmentStatus.Done;
+    setIsToggling(true);
+    const prev = current;
+    setAssignmentStatuses((p) => ({ ...p, [currentUserId]: next }));
+    const result = await submitTaskAction({ taskId: task.id, status: next });
+    if (!result.success) {
+      setAssignmentStatuses((p) => ({ ...p, [currentUserId]: prev }));
+      toastActionError(result, "submit task");
+    } else {
+      toastSuccess(
+        next === TaskAssignmentStatus.Done ? "Marked done" : "Undone",
+        next === TaskAssignmentStatus.Done
+          ? "Your work is marked done."
+          : "Your work is back to todo.",
+      );
+      const newDone = next === TaskAssignmentStatus.Done ? doneCount + 1 : doneCount - 1;
+      if (newDone === totalAssignees && localStatus === TaskStatus.Pending)
+        setLocalStatus(TaskStatus.InReview);
+      else if (next === TaskAssignmentStatus.Todo && localStatus === TaskStatus.InReview)
+        setLocalStatus(TaskStatus.Pending);
+      onSuccess();
+    }
+    setIsToggling(false);
+  }
+
+  async function handleReview(decision: "Approved" | "Rejected"): Promise<void> {
+    if (!isReviewer || hasReviewed || localStatus !== TaskStatus.InReview || isReviewing) return;
+    setIsReviewing(true);
+    const result = await reviewTaskAction({ taskId: task.id, decision });
+    if (!result.success) {
+      toastActionError(result, "record review");
+    } else {
+      toastSuccess(
+        decision === "Approved" ? "Approved" : "Changes requested",
+        decision === "Approved" ? "You approved this task." : "You requested changes.",
+      );
+      setLocalStatus(decision === "Rejected" ? TaskStatus.Pending : TaskStatus.Done);
+      onSuccess();
+    }
+    setIsReviewing(false);
+  }
+
+  return {
+    localStatus,
+    statusHint,
+    assignmentStatuses,
+    canToggleOwnSubmission,
+    hasReviewed,
+    isToggling,
+    isReviewing,
+    handleToggleDone,
+    handleReview,
+  };
+}

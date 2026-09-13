@@ -11,6 +11,8 @@ import {
   updateTaskAction,
   type TaskCapabilities,
 } from "@/features/tasks/actions";
+import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
+import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { useTaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
@@ -18,9 +20,7 @@ import { TaskStatus } from "@/generated/prisma/browser";
 import { optionalString, requiredString } from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
-import { TaskFilesSection } from "./components/TaskFilesSection/TaskFilesSection";
 import { TaskMetadataFields } from "./components/TaskMetadataFields/TaskMetadataFields";
-import { TaskNotesSection } from "./components/TaskNotesSection/TaskNotesSection";
 import { TaskWorkflowSection } from "./components/TaskWorkflowSection/TaskWorkflowSection";
 import styles from "./EditTaskModal.module.css";
 

@@ -18,9 +18,11 @@ export interface TaskFilesSectionProps {
   taskId: string;
   canEdit: boolean;
   onSuccess: () => void;
+  readOnly?: boolean;
 }
 
-export function TaskFilesSection({ taskId, canEdit, onSuccess }: TaskFilesSectionProps) {
+export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskFilesSectionProps) {
+  const editable = canEdit && !readOnly;
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const {
@@ -78,23 +80,25 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess }: TaskFilesSectio
 
   return (
     <div className={styles.section}>
-      <span className={styles.label}>Files · auto-saved</span>
-      <DropZone
-        allowsMultiple
-        onFileSelect={(files) => addFiles(files)}
-        acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
-        isDisabled={isUploading || !canEdit}
-        label="Drop files or click to upload"
-        description="Supported: PDF, DOC, XLS, images, TXT, CSV"
-      />
+      {!readOnly && <span className={styles.label}>Files · auto-saved</span>}
+      {!readOnly && (
+        <DropZone
+          allowsMultiple
+          onFileSelect={(files) => addFiles(files)}
+          acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
+          isDisabled={isUploading || !editable}
+          label="Drop files or click to upload"
+          description="Supported: PDF, DOC, XLS, images, TXT, CSV"
+        />
+      )}
       <FileList
-        entries={fileEntries}
+        entries={readOnly ? [] : fileEntries}
         isBusy={isUploading || deletingId !== null}
         onRemove={removeFile}
         existingDocuments={documents}
         onView={setPreviewDocument}
         onDownload={handleDownload}
-        onDelete={canEdit ? handleRemoveDocument : undefined}
+        onDelete={editable ? handleRemoveDocument : undefined}
         isLoading={isLoading}
         showSize={false}
       />

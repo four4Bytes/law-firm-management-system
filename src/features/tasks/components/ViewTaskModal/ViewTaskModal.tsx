@@ -3,10 +3,10 @@
 import clsx from "clsx";
 
 import { Modal } from "@/components/ui/Modal/Modal";
-import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
-import { FileList } from "@/features/documents/components/FileList/FileList";
-import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
-import { NoteList } from "@/features/notes/components/NoteList/NoteList";
+import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
+import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
+import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/TaskStatusBadge";
+import { mapReviewersForDisplay } from "@/features/tasks/display";
 import { useTaskDocuments } from "@/features/tasks/hooks/useTaskDocuments";
 import { useTaskNotes } from "@/features/tasks/hooks/useTaskNotes";
 import type { TaskDetailRow } from "@/features/tasks/queries";
@@ -21,111 +21,68 @@ interface ViewTaskModalProps {
 }
 
 export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps) {
-  const {
-    documents,
-    isLoading: isLoadingDocuments,
-    previewDocument,
-    setPreviewDocument,
-    handleDownload,
-  } = useTaskDocuments(task.id);
-
+  const { documents, isLoading: isLoadingDocuments } = useTaskDocuments(task.id);
   const { notes, isLoading: isLoadingNotes } = useTaskNotes(task.id);
 
   const hasFiles = documents.length > 0;
   const hasNotes = notes.length > 0;
+  const noop = () => {};
 
   return (
-    <>
-      <Modal
-        title="Task"
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        className={clsx(styles.modal, hasFiles && hasNotes && styles.wide)}
-      >
-        <div className={styles.columns}>
-          <div className={styles.column}>
-            <div className={styles.field}>
-              <span className={styles.label}>Title</span>
-              <span className={styles.value}>{task.title}</span>
-            </div>
-            {task.description && (
-              <div className={styles.field}>
-                <span className={styles.label}>Description</span>
-                <span className={styles.value}>{task.description}</span>
-              </div>
-            )}
-            <div className={styles.field}>
-              <span className={styles.label}>Assignees</span>
-              <UserList users={task.assignTo} />
-            </div>
-            <div className={styles.field}>
-              <span className={styles.label}>Reviewers</span>
-              <UserList
-                users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
-              />
-            </div>
-            <div className={styles.field}>
-              <span className={styles.label}>Status</span>
-              <StatusBadge
-                variant={
-                  task.status === "Pending"
-                    ? "pending"
-                    : task.status === "InReview"
-                      ? "info"
-                      : "done"
-                }
-              >
-                {task.status === "InReview" ? "In Review" : task.status}
-              </StatusBadge>
-              <span className={styles.helpText}>
-                {task.status === "Pending"
-                  ? `${task.assignTo.filter((a) => a.status === "Done").length}/${task.assignTo.length} done`
-                  : task.status === "InReview"
-                    ? `${task.reviewers.filter((r) => r.decision === "Approved").length}/${task.reviewers.length} approvals`
-                    : "All approvals complete"}
-              </span>
-            </div>
+    <Modal
+      title="Task"
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      className={clsx(styles.modal, hasFiles && hasNotes && styles.wide)}
+    >
+      <div className={styles.columns}>
+        <div className={styles.column}>
+          <div className={styles.field}>
+            <span className={styles.label}>Title</span>
+            <span className={styles.value}>{task.title}</span>
           </div>
-
-          {(isLoadingDocuments || hasFiles) && (
-            <>
-              <div className={styles.divider} />
-              <div className={styles.column}>
-                <div className={clsx(styles.field, styles.fillField)}>
-                  <span className={styles.label}>Attachments</span>
-                  <FileList
-                    entries={[]}
-                    isBusy={false}
-                    onRemove={() => {}}
-                    existingDocuments={documents}
-                    onView={setPreviewDocument}
-                    onDownload={handleDownload}
-                    isLoading={isLoadingDocuments}
-                    showSize={false}
-                  />
-                </div>
-              </div>
-            </>
+          {task.description && (
+            <div className={styles.field}>
+              <span className={styles.label}>Description</span>
+              <span className={styles.value}>{task.description}</span>
+            </div>
           )}
-
-          {(isLoadingNotes || hasNotes) && (
-            <>
-              <div className={styles.divider} />
-              <div className={styles.column}>
-                <span className={styles.label}>Notes</span>
-                <NoteList notes={notes} isLoading={isLoadingNotes} />
-              </div>
-            </>
-          )}
+          <div className={styles.field}>
+            <span className={styles.label}>Assignees</span>
+            <UserList users={task.assignTo} />
+          </div>
+          <div className={styles.field}>
+            <span className={styles.label}>Reviewers</span>
+            <UserList users={mapReviewersForDisplay(task)} />
+          </div>
+          <div className={styles.field}>
+            <span className={styles.label}>Status</span>
+            <TaskStatusBadge status={task.status} taskForHint={task} />
+          </div>
         </div>
-      </Modal>
-      {previewDocument && (
-        <ViewAttachmentModal
-          isOpen={!!previewDocument}
-          onOpenChange={() => setPreviewDocument(null)}
-          document={previewDocument}
-        />
-      )}
-    </>
+
+        {(isLoadingDocuments || hasFiles) && (
+          <>
+            <div className={styles.divider} />
+            <div className={styles.column}>
+              <div className={clsx(styles.field, styles.fillField)}>
+                <span className={styles.label}>Attachments</span>
+                <TaskFilesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
+              </div>
+            </div>
+          </>
+        )}
+
+        {(isLoadingNotes || hasNotes) && (
+          <>
+            <div className={styles.divider} />
+            <div className={styles.column}>
+              <span className={styles.label}>Notes</span>
+              <TaskNotesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
   );
 }

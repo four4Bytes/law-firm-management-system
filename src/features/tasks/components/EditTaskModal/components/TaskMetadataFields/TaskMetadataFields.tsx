@@ -2,10 +2,11 @@
 
 import { TextField } from "@/components/ui/TextField/TextField";
 import type { TaskCapabilities } from "@/features/tasks/actions";
+import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
+import { mapReviewersForDisplay } from "@/features/tasks/display";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserList } from "@/features/users/components/UserList/UserList";
-import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { TaskStatus } from "@/generated/prisma/browser";
 import { createFieldValidator } from "@/lib/form-utils";
 
@@ -60,21 +61,12 @@ export function TaskMetadataFields({
         validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
         isDisabled={isPending || !capabilities.canEdit}
       />
-      <UserSelect
+      <AssigneeReviewerPicker
         users={users}
-        selectedIds={assigneeIds}
-        onChange={onAssigneeIdsChange}
-        isDisabled={isPending || !capabilities.isCreator}
-        label="Assignees"
-        hideSelected
-        disabledKeys={reviewerIds}
-      />
-      <UserList users={task.assignTo} />
-
-      <UserSelect
-        users={users}
-        selectedIds={reviewerIds}
-        onChange={(next) => {
+        assigneeIds={assigneeIds}
+        onAssigneeIdsChange={onAssigneeIdsChange}
+        reviewerIds={reviewerIds}
+        onReviewerIdsChange={(next) => {
           if (localStatus === TaskStatus.Done && next.size > reviewerIds.size) {
             const confirmed = window.confirm(
               "This will reopen the completed task and reset all approvals to Pending. Continue?",
@@ -83,18 +75,11 @@ export function TaskMetadataFields({
           }
           onReviewerIdsChange(next);
         }}
-        isDisabled={isPending || !capabilities.canManageReviewers}
-        label="Reviewers"
-        hideSelected
-        disabledKeys={assigneeIds}
+        isAssigneeDisabled={isPending || !capabilities.isCreator}
+        isReviewerDisabled={isPending || !capabilities.canManageReviewers}
       />
-      <UserList
-        users={task.reviewers.map((r) => ({
-          id: r.id,
-          name: r.reviewer_user_id === task.created_by_user_id ? `${r.name} (creator)` : r.name,
-          status: r.decision,
-        }))}
-      />
+      <UserList users={task.assignTo} />
+      <UserList users={mapReviewersForDisplay(task)} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button/Button";
-import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
+import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/TaskStatusBadge";
 import type { TaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
 import { TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 
@@ -37,18 +37,7 @@ export function TaskWorkflowSection({
     <>
       <div className={styles.section}>
         <span className={styles.label}>Status</span>
-        <StatusBadge
-          variant={
-            localStatus === TaskStatus.Pending
-              ? "pending"
-              : localStatus === TaskStatus.InReview
-                ? "info"
-                : "done"
-          }
-        >
-          {localStatus === "InReview" ? "In Review" : localStatus}
-        </StatusBadge>
-        <span className={styles.helpText}>{statusHint}</span>
+        <TaskStatusBadge status={localStatus} hint={statusHint} />
       </div>
 
       {showWorkAction && (

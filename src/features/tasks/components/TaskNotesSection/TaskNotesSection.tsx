@@ -18,9 +18,11 @@ export interface TaskNotesSectionProps {
   taskId: string;
   canEdit: boolean;
   onSuccess: () => void;
+  readOnly?: boolean;
 }
 
-export function TaskNotesSection({ taskId, canEdit, onSuccess }: TaskNotesSectionProps) {
+export function TaskNotesSection({ taskId, canEdit, onSuccess, readOnly }: TaskNotesSectionProps) {
+  const editable = canEdit && !readOnly;
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -51,34 +53,38 @@ export function TaskNotesSection({ taskId, canEdit, onSuccess }: TaskNotesSectio
 
   return (
     <div className={styles.section}>
-      <div className={styles.columnHeader}>
-        <span className={styles.label}>Notes · auto-saved</span>
-        <Button
-          className={styles.addNoteButton}
-          variant="secondary"
-          type="button"
-          onPress={() => setAddOpen(true)}
-          isDisabled={!canEdit}
-        >
-          <FaPlus /> Add Note
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className={styles.columnHeader}>
+          <span className={styles.label}>Notes · auto-saved</span>
+          <Button
+            className={styles.addNoteButton}
+            variant="secondary"
+            type="button"
+            onPress={() => setAddOpen(true)}
+            isDisabled={!editable}
+          >
+            <FaPlus /> Add Note
+          </Button>
+        </div>
+      )}
       <NoteList
         notes={notes}
         isLoading={isLoading || deletingId !== null}
-        onEdit={canEdit ? setEditNote : undefined}
-        onDelete={canEdit ? handleRemoveNote : undefined}
+        onEdit={editable ? setEditNote : undefined}
+        onDelete={editable ? handleRemoveNote : undefined}
       />
-      <AddNoteModal
-        isOpen={addOpen}
-        onOpenChange={setAddOpen}
-        onSuccess={() => {
-          reload();
-          onSuccess();
-        }}
-        taskId={taskId}
-      />
-      {editNote && (
+      {!readOnly && (
+        <AddNoteModal
+          isOpen={addOpen}
+          onOpenChange={setAddOpen}
+          onSuccess={() => {
+            reload();
+            onSuccess();
+          }}
+          taskId={taskId}
+        />
+      )}
+      {editNote && editable && (
         <EditNoteModal
           isOpen={!!editNote}
           onOpenChange={() => setEditNote(null)}

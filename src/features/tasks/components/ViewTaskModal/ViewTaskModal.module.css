@@ -71,6 +71,7 @@
   .modal {
     .columns {
       flex-direction: column;
+      overflow-y: auto;
     }
 
     .divider {

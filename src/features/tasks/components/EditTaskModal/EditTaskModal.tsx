@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useState } from "react";
 import { Form } from "react-aria-components";
 
@@ -133,7 +134,7 @@ export function EditTaskModal({
       )}
       <Form onSubmit={handleSave} validationBehavior="native" className={styles.form}>
         <div className={styles.columns}>
-          <div className={styles.column}>
+          <div className={clsx(styles.column, styles.columnScroll)}>
             <TaskMetadataFields
               task={task}
               users={users}

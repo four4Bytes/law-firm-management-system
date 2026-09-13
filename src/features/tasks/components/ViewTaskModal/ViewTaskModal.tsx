@@ -66,8 +66,10 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
 
         <div className={styles.divider} />
         <div className={styles.column}>
-          <span className={styles.label}>Notes</span>
-          <TaskNotesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
+          <div className={clsx(styles.field, styles.fillField)}>
+            <span className={styles.label}>Notes</span>
+            <TaskNotesSection taskId={task.id} canEdit={false} onSuccess={noop} readOnly />
+          </div>
         </div>
       </div>
     </Modal>

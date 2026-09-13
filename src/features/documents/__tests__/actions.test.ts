@@ -145,9 +145,9 @@ describe("deleteDocumentAction", () => {
 });
 
 describe("task subdata lock", () => {
-  const cancelledTask = {
+  const doneTask = {
     id: uuid,
-    status: "Cancelled" as const,
+    status: "Done" as const,
     case_id: uuid,
   } as unknown as Awaited<ReturnType<typeof getTaskById>>;
 
@@ -163,8 +163,8 @@ describe("task subdata lock", () => {
     });
   });
 
-  it("refuses to issue an upload URL for a cancelled task", async () => {
-    vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+  it("refuses to issue an upload URL for a done task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(doneTask);
 
     await expect(
       getDocumentUploadUrlAction({
@@ -177,8 +177,8 @@ describe("task subdata lock", () => {
     ).rejects.toThrow(TASK_LOCKED_MESSAGE);
   });
 
-  it("refuses to confirm a document upload on a cancelled task", async () => {
-    vi.mocked(getTaskById).mockResolvedValue(cancelledTask);
+  it("refuses to confirm a document upload on a done task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(doneTask);
     vi.mocked(createDocumentForTask).mockRejectedValue(new TaskLockedError());
 
     const result = await confirmDocumentUploadAction({
@@ -202,11 +202,11 @@ describe("task subdata lock", () => {
     expect(createDocumentForTask).toHaveBeenCalledWith(expect.objectContaining({ taskId: uuid }));
   });
 
-  it("refuses to delete a document on a cancelled task", async () => {
+  it("refuses to delete a document on a done task", async () => {
     vi.mocked(getDocumentById).mockResolvedValue({
       ...documentRecord,
       task_id: uuid,
-      task: cancelledTask,
+      task: doneTask,
     });
     vi.mocked(deleteDocumentForTask).mockRejectedValue(new TaskLockedError());
 
@@ -237,7 +237,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     ...documentRecord,
     case_id: null,
     task_id: uuid,
-    task: { case_id: uuid, status: "Pending" as const },
+    task: { case_id: uuid, status: "Todo" as const },
   };
 
   it("denies a non-task-attached Paralegal case member an upload URL", async () => {
@@ -270,7 +270,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Pending" as const,
+      status: "Todo" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
 
@@ -288,7 +288,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Pending" as const,
+      status: "Todo" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
     vi.mocked(getTaskAccessContext).mockResolvedValue({

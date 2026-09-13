@@ -7,7 +7,7 @@ import { FaPlus } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
+import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { deleteDocumentAction } from "@/features/documents/actions";
 import { FileList } from "@/features/documents/components/FileList/FileList";
@@ -21,7 +21,6 @@ import {
   addTaskReviewerAction,
   removeTaskReviewerAction,
   reviewTaskAction,
-  setTaskStatusAction,
   submitTaskAction,
   updateTaskAction,
   type TaskCapabilities,
@@ -32,7 +31,7 @@ import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries"
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
-import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
+import { TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
@@ -68,9 +67,10 @@ export function EditTaskModal({
   const [assignmentStatuses, setAssignmentStatuses] = useState<
     Record<string, TaskAssignmentStatus>
   >(Object.fromEntries(task.assignTo.map((a) => [a.id, a.status])));
-  const [decision, setDecision] = useState<"Accepted" | "Rejected" | null>(null);
-  const [statusChoice, setStatusChoice] = useState<"Pending" | "Cancelled" | null>(null);
+  const [localStatus, setLocalStatus] = useState<TaskStatus>(task.status);
   const [isPending, setIsPending] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set());
   const {
     documents: serverDocuments,
@@ -89,10 +89,23 @@ export function EditTaskModal({
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
 
   const isCurrentUserAssignee = task.assignee_ids.includes(currentUserId);
-  const canToggleOwnSubmission =
-    isCurrentUserAssignee &&
-    task.status !== TaskStatus.Completed &&
-    task.status !== TaskStatus.Cancelled;
+  const canToggleOwnSubmission = isCurrentUserAssignee && localStatus !== TaskStatus.Done;
+  const currentReviewer = task.reviewers.find((r) => r.reviewer_user_id === currentUserId);
+  const hasReviewed = !!currentReviewer?.reviewed_at;
+  const doneCount = Object.values(assignmentStatuses).filter(
+    (s) => s === TaskAssignmentStatus.Done,
+  ).length;
+  const totalAssignees = Object.keys(assignmentStatuses).length || task.assignTo.length;
+  const approvedCount = task.reviewers.filter((r) => r.decision === "Approved").length;
+  const totalReviewers = task.reviewers.length;
+  const statusHint =
+    localStatus === TaskStatus.Todo
+      ? totalAssignees
+        ? `${doneCount}/${totalAssignees} assignees done`
+        : "No assignees yet"
+      : localStatus === TaskStatus.InReview
+        ? `${approvedCount}/${totalReviewers} approvals`
+        : "All approvals complete";
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload({
     taskId: task.id,
@@ -114,8 +127,61 @@ export function EditTaskModal({
   }
 
   function handleCancel() {
-    if (isPending) return;
+    if (isPending || isToggling || isReviewing) return;
     onOpenChange(false);
+  }
+
+  async function handleToggleDone(): Promise<void> {
+    if (!canToggleOwnSubmission || isToggling) return;
+    const current = assignmentStatuses[currentUserId];
+    const next =
+      current === TaskAssignmentStatus.Done ? TaskAssignmentStatus.Todo : TaskAssignmentStatus.Done;
+    setIsToggling(true);
+    const prev = current;
+    setAssignmentStatuses((p) => ({ ...p, [currentUserId]: next }));
+    const result = await submitTaskAction({ taskId: task.id, status: next });
+    if (!result.success) {
+      setAssignmentStatuses((p) => ({ ...p, [currentUserId]: prev }));
+      toastActionError(result, "submit task");
+    } else {
+      toastSuccess(
+        next === TaskAssignmentStatus.Done ? "Marked done" : "Undone",
+        next === TaskAssignmentStatus.Done
+          ? "Your work is marked done."
+          : "Your work is back to todo.",
+      );
+      // derive local status optimistically
+      const newDone = next === TaskAssignmentStatus.Done ? doneCount + 1 : doneCount - 1;
+      if (newDone === totalAssignees && localStatus === TaskStatus.Todo)
+        setLocalStatus(TaskStatus.InReview);
+      else if (next === TaskAssignmentStatus.Todo && localStatus === TaskStatus.InReview)
+        setLocalStatus(TaskStatus.Todo);
+      onSuccess();
+    }
+    setIsToggling(false);
+  }
+
+  async function handleReview(decision: "Approved" | "Rejected"): Promise<void> {
+    if (
+      !capabilities.isReviewer ||
+      hasReviewed ||
+      localStatus !== TaskStatus.InReview ||
+      isReviewing
+    )
+      return;
+    setIsReviewing(true);
+    const result = await reviewTaskAction({ taskId: task.id, decision });
+    if (!result.success) {
+      toastActionError(result, "record review");
+    } else {
+      toastSuccess(
+        decision === "Approved" ? "Approved" : "Changes requested",
+        decision === "Approved" ? "You approved this task." : "You requested changes.",
+      );
+      setLocalStatus(decision === "Rejected" ? TaskStatus.Todo : TaskStatus.Done);
+      onSuccess();
+    }
+    setIsReviewing(false);
   }
 
   async function handleSave(event: React.SyntheticEvent) {
@@ -173,44 +239,6 @@ export function EditTaskModal({
           }
         }
         if (reviewerFailed) {
-          setIsPending(false);
-          return;
-        }
-      }
-
-      if (capabilities.canSetStatus && statusChoice !== null && statusChoice !== task.status) {
-        const result = await setTaskStatusAction({ taskId: task.id, status: statusChoice });
-        if (!result.success) {
-          toastActionError(result, "update task status");
-          setIsPending(false);
-          return;
-        }
-        resetFiles();
-        onOpenChange(false);
-        onSuccess();
-        return;
-      }
-
-      if (isCurrentUserAssignee) {
-        const chosen = assignmentStatuses[currentUserId];
-        const current = task.assignTo.find((a) => a.id === currentUserId)?.status;
-        if (chosen !== current) {
-          const result = await submitTaskAction({ taskId: task.id, status: chosen });
-          if (!result.success) {
-            toastActionError(result, "submit task");
-            setIsPending(false);
-            return;
-          }
-        }
-      }
-
-      if (capabilities.canReview && decision) {
-        const result = await reviewTaskAction({
-          taskId: task.id,
-          decision,
-        });
-        if (!result.success) {
-          toastActionError(result, "record review");
           setIsPending(false);
           return;
         }
@@ -283,6 +311,11 @@ export function EditTaskModal({
 
   return (
     <Modal title="Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
+      {localStatus === TaskStatus.Done && (
+        <div className={styles.banner}>
+          Completed — editing locked. To reopen, add a new reviewer (resets to To Do).
+        </div>
+      )}
       <Form onSubmit={handleSave} validationBehavior="native" className={styles.form}>
         <div className={styles.columns}>
           <div className={styles.column}>
@@ -318,76 +351,89 @@ export function EditTaskModal({
             <UserSelect
               users={users}
               selectedIds={reviewerIds}
-              onChange={setReviewerIds}
+              onChange={(next) => {
+                if (localStatus === TaskStatus.Done && next.size > reviewerIds.size) {
+                  const confirmed = window.confirm(
+                    "This will reopen the completed task and reset all approvals to To Do. Continue?",
+                  );
+                  if (!confirmed) return;
+                }
+                setReviewerIds(next);
+              }}
               isDisabled={isPending || !capabilities.canManageReviewers}
               label="Reviewers"
               hideSelected
               disabledKeys={assigneeIds}
             />
             <UserList
-              users={task.reviewers.map((r) => ({ id: r.id, name: r.name, status: r.decision }))}
+              users={task.reviewers.map((r) => ({
+                id: r.id,
+                name:
+                  r.reviewer_user_id === task.created_by_user_id ? `${r.name} (creator)` : r.name,
+                status: r.decision,
+              }))}
             />
 
-            {capabilities.canSetStatus && (
-              <div className={styles.section}>
-                <Select
-                  label="Status"
-                  aria-label="Change task status"
-                  value={statusChoice ?? task.status}
-                  isDisabled={task.status === TaskStatus.Cancelled}
-                  disabledKeys={[TaskStatus.Submitted, TaskStatus.Completed]}
-                  onChange={(key) =>
-                    setStatusChoice(
-                      key === TaskStatus.Pending
-                        ? "Pending"
-                        : key === TaskStatus.Cancelled
-                          ? "Cancelled"
-                          : null,
-                    )
-                  }
-                >
-                  <SelectItem id={TaskStatus.Pending}>Pending</SelectItem>
-                  <SelectItem id={TaskStatus.Submitted}>Submitted</SelectItem>
-                  <SelectItem id={TaskStatus.Completed}>Completed</SelectItem>
-                  <SelectItem id={TaskStatus.Cancelled}>Cancelled</SelectItem>
-                </Select>
-              </div>
-            )}
+            <div className={styles.section}>
+              <span className={styles.label}>Status</span>
+              <StatusBadge
+                variant={
+                  localStatus === TaskStatus.Todo
+                    ? "pending"
+                    : localStatus === TaskStatus.InReview
+                      ? "info"
+                      : "done"
+                }
+              >
+                {localStatus === "InReview" ? "In Review" : localStatus}
+              </StatusBadge>
+              <span className={styles.helpText}>{statusHint}</span>
+            </div>
 
             {isCurrentUserAssignee && (
               <div className={styles.section}>
-                <Select
-                  label="Submission status"
-                  aria-label="Your submission status"
-                  value={assignmentStatuses[currentUserId]}
-                  onChange={(key) =>
-                    key != null &&
-                    setAssignmentStatuses((prev) => ({
-                      ...prev,
-                      [currentUserId]: key as TaskAssignmentStatus,
-                    }))
+                <span className={styles.label}>Your work</span>
+                <Button
+                  variant={
+                    assignmentStatuses[currentUserId] === TaskAssignmentStatus.Done
+                      ? "secondary"
+                      : "primary"
                   }
-                  isDisabled={isPending || !canToggleOwnSubmission}
+                  type="button"
+                  isDisabled={isToggling || !canToggleOwnSubmission}
+                  isPending={isToggling}
+                  onPress={handleToggleDone}
                 >
-                  <SelectItem id={TaskAssignmentStatus.Pending}>Pending</SelectItem>
-                  <SelectItem id={TaskAssignmentStatus.Submitted}>Submitted</SelectItem>
-                </Select>
+                  {assignmentStatuses[currentUserId] === TaskAssignmentStatus.Done
+                    ? "Undo"
+                    : "Mark done"}
+                </Button>
               </div>
             )}
 
-            {capabilities.canReview && (
+            {capabilities.isReviewer && (
               <div className={styles.section}>
-                <Select
-                  label="Decision"
-                  value={decision ?? null}
-                  onChange={(key) => {
-                    if (key != null) setDecision(key as "Accepted" | "Rejected");
-                  }}
-                  placeholder="Select a decision"
-                >
-                  <SelectItem id={ReviewDecision.Accepted}>Accept</SelectItem>
-                  <SelectItem id={ReviewDecision.Rejected}>Reject</SelectItem>
-                </Select>
+                <span className={styles.label}>Review</span>
+                <div className={styles.reviewActions}>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    isDisabled={isReviewing || hasReviewed || localStatus !== TaskStatus.InReview}
+                    isPending={isReviewing}
+                    onPress={() => handleReview("Approved")}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    isDisabled={isReviewing || hasReviewed || localStatus !== TaskStatus.InReview}
+                    isPending={isReviewing}
+                    onPress={() => handleReview("Rejected")}
+                  >
+                    Request changes
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -440,10 +486,19 @@ export function EditTaskModal({
         </div>
 
         <div className={styles.actions}>
-          <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
+          <Button
+            variant="secondary"
+            type="button"
+            onPress={handleCancel}
+            isDisabled={isPending || isToggling || isReviewing}
+          >
             Cancel
           </Button>
-          <Button type="submit" isDisabled={isPending} isPending={isPending}>
+          <Button
+            type="submit"
+            isDisabled={isPending || isToggling || isReviewing}
+            isPending={isPending}
+          >
             Save
           </Button>
         </div>

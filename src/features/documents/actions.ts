@@ -127,7 +127,7 @@ export async function getDocumentUploadUrlAction(
 
   if (task_id) {
     const task = await getTaskById(task_id);
-    if (task?.status === TaskStatus.Cancelled) {
+    if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
   }

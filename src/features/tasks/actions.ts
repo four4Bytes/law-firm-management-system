@@ -18,17 +18,15 @@ import {
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, TaskCancelledError, toActionResponse } from "@/lib/errors";
+import { ForbiddenError, toActionResponse } from "@/lib/errors";
 import { can } from "@/lib/rbac";
 
 import {
   addTaskReviewer,
   applyReviewDecision,
-  cancelTask,
   createTask,
   deleteTask,
   removeTaskReviewer,
-  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "./mutations";
@@ -47,7 +45,6 @@ import {
   TaskIdSchema,
   TaskRemoveReviewerSchema,
   TaskReviewSchema,
-  TaskStatusChangeSchema,
   TaskSubmitSchema,
   TaskUpdatePayloadSchema,
 } from "./schemas";
@@ -64,7 +61,6 @@ export interface TaskCapabilities {
   isReviewer: boolean;
   canSubmit: boolean;
   canReview: boolean;
-  canSetStatus: boolean;
   canManageReviewers: boolean;
   canEdit: boolean;
 }
@@ -102,7 +98,6 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
         isReviewer: false,
         canSubmit: false,
         canReview: false,
-        canSetStatus: false,
         canManageReviewers: false,
         canEdit: false,
       },
@@ -118,12 +113,10 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
   const capabilities: TaskCapabilities = {
     isCreator,
     isReviewer,
-    canSubmit:
-      isAssignee && (row.status === TaskStatus.Pending || row.status === TaskStatus.Submitted),
-    canReview: isReviewer && row.status === TaskStatus.Submitted && !reviewer?.reviewed_at,
-    canSetStatus: isCreator,
+    canSubmit: isAssignee && (row.status === TaskStatus.Todo || row.status === TaskStatus.InReview),
+    canReview: isReviewer && row.status === TaskStatus.InReview && !reviewer?.reviewed_at,
     canManageReviewers: isCreator || isReviewer,
-    canEdit: canUpdate && row.status !== TaskStatus.Cancelled,
+    canEdit: canUpdate && row.status !== TaskStatus.Done,
   };
 
   return { row, canUpdate, capabilities, currentUserId: session.id };
@@ -211,8 +204,8 @@ export async function updateTaskAction(
 
     const access = await getTaskAccessContext(session.id, taskId);
 
-    if (existing.status === TaskStatus.Cancelled) {
-      return actionConflict("Task locked", "A cancelled task is locked and cannot be edited.");
+    if (existing.status === TaskStatus.Done) {
+      // Done tasks remain editable for title/description but workflow is locked
     }
 
     if (!can(session.role, "task.update", access)) {
@@ -350,7 +343,7 @@ export async function submitTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return actionNotFound("Task");
 
-    if (existing.status !== TaskStatus.Pending && existing.status !== TaskStatus.Submitted) {
+    if (existing.status !== TaskStatus.Todo && existing.status !== TaskStatus.InReview) {
       return actionConflict("Task locked", "The task is locked and cannot be submitted.");
     }
 
@@ -372,7 +365,7 @@ export async function submitTaskAction(
         details: `Submitted task for review: "${existing.title}"`,
       });
 
-      if (taskStatus === TaskStatus.Submitted && before !== TaskStatus.Submitted) {
+      if (taskStatus === TaskStatus.InReview && before !== TaskStatus.InReview) {
         try {
           const reviewers = await getTaskReviewers(taskId);
           const reviewerIds = reviewers.map((r) => r.reviewer_user_id);
@@ -415,8 +408,8 @@ export async function reviewTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return actionNotFound("Task");
 
-    if (existing.status !== TaskStatus.Submitted) {
-      return actionConflict("Cannot review task", "Only submitted tasks can be reviewed.");
+    if (existing.status !== TaskStatus.InReview) {
+      return actionConflict("Cannot review task", "Only tasks in review can be reviewed.");
     }
 
     const access = await getTaskAccessContext(session.id, taskId);
@@ -437,7 +430,7 @@ export async function reviewTaskAction(
     const assigneeIds = existing.taskAssignments.map((a) => a.user_id);
 
     after(async () => {
-      const transition = `Submitted to ${taskStatus}`;
+      const transition = `InReview to ${taskStatus}`;
       await logAudit({
         actorUserId: session.id,
         action: "task.reviewed",
@@ -446,11 +439,11 @@ export async function reviewTaskAction(
         details: `Review ${decision} on task "${existing.title}"`,
       });
 
-      if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Completed) {
+      if (taskStatus === TaskStatus.Todo || taskStatus === TaskStatus.Done) {
         await notifyRecipients(session.id, {
           userIds: assigneeIds,
           type: NotificationType.TaskStatusChanged,
-          title: `Task ${taskStatus === TaskStatus.Completed ? "completed" : "returned for rework"}: ${existing.title}`,
+          title: `Task ${taskStatus === TaskStatus.Done ? "completed" : "returned for rework"}: ${existing.title}`,
           message: `Task "${existing.title}" transitioned from ${transition}`,
           actionUrl: `/case/${existing.case_id}`,
           caseId: existing.case_id,
@@ -480,10 +473,6 @@ export async function addTaskReviewerAction(
   try {
     const existing = await getTaskById(taskId);
     if (!existing) return actionNotFound("Task");
-
-    if (existing.status === TaskStatus.Cancelled) {
-      return actionConflict("Task cancelled", "Cannot add a reviewer to a cancelled task.");
-    }
 
     const access = await getTaskAccessContext(session.id, taskId);
     const isReviewer = existing.taskReviewers.some((r) => r.reviewer_user_id === session.id);
@@ -578,62 +567,5 @@ export async function removeTaskReviewerAction(
     return { success: true };
   } catch (error) {
     return toActionResponse(error, "remove reviewer");
-  }
-}
-
-export async function setTaskStatusAction(
-  payload: z.input<typeof TaskStatusChangeSchema>,
-): Promise<ActionStatusResponse> {
-  const session = await requireAuth();
-
-  const parsed = TaskStatusChangeSchema.safeParse(payload);
-  if (!parsed.success) return actionInvalid("task");
-
-  const { taskId, status } = parsed.data;
-
-  try {
-    const existing = await getTaskById(taskId);
-    if (!existing) return actionNotFound("Task");
-
-    const access = await getTaskAccessContext(session.id, taskId);
-    if (!can(session.role, "task.delete", access) || !access.own) {
-      return actionForbidden();
-    }
-
-    let changed = true;
-    if (status === TaskStatus.Cancelled) {
-      await cancelTask(taskId);
-    } else {
-      changed = (await reopenTask(taskId)).reopened;
-    }
-
-    if (changed) {
-      after(() =>
-        logAudit({
-          actorUserId: session.id,
-          action: "task.updated",
-          entityType: "Case",
-          entityId: existing.case_id,
-          details:
-            status === TaskStatus.Cancelled
-              ? `Cancelled task: "${existing.title}"`
-              : `Reopened task: "${existing.title}"`,
-        }),
-      );
-    }
-
-    revalidatePath(`/case/${existing.case_id}`);
-
-    return { success: true };
-  } catch (error) {
-    if (error instanceof TaskCancelledError) {
-      return actionConflict(
-        "Task cancelled",
-        status === TaskStatus.Cancelled
-          ? "This task has already been cancelled."
-          : "A cancelled task cannot be reopened.",
-      );
-    }
-    return toActionResponse(error, "update task status");
   }
 }

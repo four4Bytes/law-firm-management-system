@@ -8,6 +8,18 @@ interface UserListItem {
   status?: string;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  Todo: "Working",
+  Done: "Done",
+  Pending: "Awaiting review",
+  Approved: "Approved",
+  Rejected: "Changes requested",
+};
+
+function formatUserStatus(status: string): string {
+  return STATUS_LABELS[status] ?? status;
+}
+
 interface UserListProps {
   users: UserListItem[];
   emptyText?: string;
@@ -24,7 +36,7 @@ export function UserList({ users, emptyText = "—", className }: UserListProps)
           <span className={styles.name}>{name}</span>
           {status && (
             <span className={styles.status} data-status={status}>
-              — {status}
+              — {formatUserStatus(status)}
             </span>
           )}
         </li>

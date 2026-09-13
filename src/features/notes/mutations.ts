@@ -1,5 +1,5 @@
 import { lockTask } from "@/features/tasks/mutations";
-import { TaskStatus } from "@/generated/prisma/client";
+import { TaskStatus } from "@/generated/prisma/browser";
 import { TaskLockedError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 
@@ -25,7 +25,7 @@ export async function deleteNote(id: string): Promise<{ id: string }> {
 
 /**
  * Creates a note attached to a task atomically: locks the task, verifies it is not
- * cancelled, then creates the note. Throws TaskLockedError if the task is cancelled.
+ * done, then creates the note. Throws TaskLockedError if the task is done.
  */
 export async function createNoteForTask(
   taskId: string,
@@ -37,7 +37,7 @@ export async function createNoteForTask(
       where: { id: taskId },
       select: { status: true },
     });
-    if (task?.status === TaskStatus.Cancelled) {
+    if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
     return tx.note.create({ data: { ...data, task_id: taskId }, select: { id: true } });
@@ -46,7 +46,7 @@ export async function createNoteForTask(
 
 /**
  * Updates a note attached to a task atomically: locks the task, verifies it is not
- * cancelled, then updates the note. Throws TaskLockedError if the task is cancelled.
+ * done, then updates the note. Throws TaskLockedError if the task is done.
  */
 export async function updateNoteForTask(
   taskId: string,
@@ -59,7 +59,7 @@ export async function updateNoteForTask(
       where: { id: taskId },
       select: { status: true },
     });
-    if (task?.status === TaskStatus.Cancelled) {
+    if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
     // Verify the note belongs to this task (defense in depth)
@@ -73,7 +73,7 @@ export async function updateNoteForTask(
 
 /**
  * Deletes a note attached to a task atomically: locks the task, verifies it is not
- * cancelled, then deletes the note. Throws TaskLockedError if the task is cancelled.
+ * done, then deletes the note. Throws TaskLockedError if the task is done.
  */
 export async function deleteNoteForTask(taskId: string, noteId: string): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
@@ -82,7 +82,7 @@ export async function deleteNoteForTask(taskId: string, noteId: string): Promise
       where: { id: taskId },
       select: { status: true },
     });
-    if (task?.status === TaskStatus.Cancelled) {
+    if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
     // Verify the note belongs to this task (defense in depth)

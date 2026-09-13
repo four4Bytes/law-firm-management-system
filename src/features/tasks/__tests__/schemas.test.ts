@@ -5,7 +5,6 @@ import {
   TaskCreatePayloadSchema,
   TaskIdSchema,
   TaskReviewSchema,
-  TaskStatusChangeSchema,
   TaskSubmitSchema,
   TaskUpdatePayloadSchema,
 } from "../schemas";
@@ -125,7 +124,12 @@ describe("TaskUpdatePayloadSchema", () => {
 
 describe("TaskSubmitSchema", () => {
   it("accepts a valid task id and submission status", () => {
-    const result = TaskSubmitSchema.safeParse({ taskId: uuid, status: "Submitted" });
+    const result = TaskSubmitSchema.safeParse({ taskId: uuid, status: "Done" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts Todo status as well", () => {
+    const result = TaskSubmitSchema.safeParse({ taskId: uuid, status: "Todo" });
     expect(result.success).toBe(true);
   });
 
@@ -135,16 +139,21 @@ describe("TaskSubmitSchema", () => {
   });
 
   it("rejects a non-uuid task id", () => {
-    const result = TaskSubmitSchema.safeParse({ taskId: "abc", status: "Submitted" });
+    const result = TaskSubmitSchema.safeParse({ taskId: "abc", status: "Done" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects old Submitted status", () => {
+    const result = TaskSubmitSchema.safeParse({ taskId: uuid, status: "Submitted" as never });
     expect(result.success).toBe(false);
   });
 });
 
 describe("TaskReviewSchema", () => {
-  it("accepts accepted/rejected decisions", () => {
-    const accepted = TaskReviewSchema.safeParse({ taskId: uuid, decision: "Accepted" });
+  it("accepts approved/rejected decisions", () => {
+    const approved = TaskReviewSchema.safeParse({ taskId: uuid, decision: "Approved" });
     const rejected = TaskReviewSchema.safeParse({ taskId: uuid, decision: "Rejected" });
-    expect(accepted.success).toBe(true);
+    expect(approved.success).toBe(true);
     expect(rejected.success).toBe(true);
   });
 
@@ -153,6 +162,11 @@ describe("TaskReviewSchema", () => {
     const unknown = TaskReviewSchema.safeParse({ taskId: uuid, decision: "Maybe" });
     expect(pending.success).toBe(false);
     expect(unknown.success).toBe(false);
+  });
+
+  it("rejects old Accepted decision", () => {
+    const accepted = TaskReviewSchema.safeParse({ taskId: uuid, decision: "Accepted" as never });
+    expect(accepted.success).toBe(false);
   });
 });
 
@@ -164,28 +178,6 @@ describe("TaskAddReviewerSchema", () => {
 
   it("rejects an invalid reviewer id", () => {
     const result = TaskAddReviewerSchema.safeParse({ taskId: uuid, reviewerUserId: "abc" });
-    expect(result.success).toBe(false);
-  });
-});
-
-describe("TaskStatusChangeSchema", () => {
-  it("accepts a valid task id with Pending status", () => {
-    const result = TaskStatusChangeSchema.safeParse({ taskId: uuid, status: "Pending" });
-    expect(result.success).toBe(true);
-  });
-
-  it("accepts a valid task id with Cancelled status", () => {
-    const result = TaskStatusChangeSchema.safeParse({ taskId: uuid, status: "Cancelled" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects a non-uuid task id", () => {
-    const result = TaskStatusChangeSchema.safeParse({ taskId: "abc", status: "Pending" });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects an unsupported status", () => {
-    const result = TaskStatusChangeSchema.safeParse({ taskId: uuid, status: "Completed" });
     expect(result.success).toBe(false);
   });
 });

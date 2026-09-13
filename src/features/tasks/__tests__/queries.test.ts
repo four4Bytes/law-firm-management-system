@@ -23,12 +23,12 @@ const mockTaskData = (overrides: Record<string, unknown> = {}) => ({
   id: "t1",
   title: "Task title",
   description: "Task description",
-  status: "Pending" as const,
+  status: "Todo" as const,
   case_id: "c1",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-02"),
-  taskAssignments: [{ user_id: "u2", user: { name: "Jane Assignee" }, status: "Pending" as const }],
+  taskAssignments: [{ user_id: "u2", user: { name: "Jane Assignee" }, status: "Todo" as const }],
   taskReviewers: [{ id: "r1", reviewer_user_id: "u3", decision: "Pending", reviewed_at: null }],
   ...overrides,
 });
@@ -45,7 +45,7 @@ describe("getTaskById", () => {
       case_id: "c1",
       created_by_user_id: "u1",
       taskAssignments: [
-        { user_id: "u2", user: { name: "Jane Assignee" }, status: "Pending" as const },
+        { user_id: "u2", user: { name: "Jane Assignee" }, status: "Todo" as const },
       ],
       taskReviewers: [{ id: "r1", reviewer_user_id: "u3", decision: "Pending", reviewed_at: null }],
     });
@@ -99,7 +99,7 @@ describe("getTaskDetailRowById", () => {
           {
             id: "r1",
             reviewer_user_id: "u3",
-            decision: "Accepted",
+            decision: "Approved",
             reviewed_at: new Date("2024-06-03"),
             reviewer: { name: "Carol Reviewer" },
           },
@@ -113,15 +113,15 @@ describe("getTaskDetailRowById", () => {
       id: "t1",
       title: "Task title",
       description: "Task description",
-      status: "Pending",
-      assignTo: [{ id: "u2", name: "Jane Assignee", status: "Pending" }],
+      status: "Todo",
+      assignTo: [{ id: "u2", name: "Jane Assignee", status: "Todo" }],
       assignee_ids: ["u2"],
       reviewers: [
         {
           id: "r1",
           reviewer_user_id: "u3",
           name: "Carol Reviewer",
-          decision: "Accepted",
+          decision: "Approved",
           reviewed_at: new Date("2024-06-03"),
         },
       ],

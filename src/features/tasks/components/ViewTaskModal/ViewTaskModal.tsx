@@ -3,6 +3,7 @@
 import clsx from "clsx";
 
 import { Modal } from "@/components/ui/Modal/Modal";
+import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
@@ -65,7 +66,20 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Status</span>
-              <span className={styles.value}>{task.status}</span>
+              <StatusBadge
+                variant={
+                  task.status === "Todo" ? "pending" : task.status === "InReview" ? "info" : "done"
+                }
+              >
+                {task.status === "InReview" ? "In Review" : task.status}
+              </StatusBadge>
+              <span className={styles.helpText}>
+                {task.status === "Todo"
+                  ? `${task.assignTo.filter((a) => a.status === "Done").length}/${task.assignTo.length} done`
+                  : task.status === "InReview"
+                    ? `${task.reviewers.filter((r) => r.decision === "Approved").length}/${task.reviewers.length} approvals`
+                    : "All approvals complete"}
+              </span>
             </div>
           </div>
 

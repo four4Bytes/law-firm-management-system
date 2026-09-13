@@ -115,7 +115,7 @@ export function actionConflict(title: string, description: string): ActionStatus
 }
 
 /**
- * Failure preset for write-locked records (e.g. cancelled task attachments).
+ * Failure preset for write-locked records (e.g. done task attachments).
  *
  * @returns A locked response using the shared task-lock message.
  */

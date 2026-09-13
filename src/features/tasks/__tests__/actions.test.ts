@@ -4,7 +4,6 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, ReviewDecision, Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
-import { TaskCancelledError } from "@/lib/errors";
 
 import {
   addTaskReviewerAction,
@@ -13,18 +12,15 @@ import {
   getTaskDetailRowByIdAction,
   removeTaskReviewerAction,
   reviewTaskAction,
-  setTaskStatusAction,
   submitTaskAction,
   updateTaskAction,
 } from "../actions";
 import {
   addTaskReviewer,
   applyReviewDecision,
-  cancelTask,
   createTask,
   deleteTask,
   removeTaskReviewer,
-  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "../mutations";
@@ -88,8 +84,6 @@ vi.mock("../mutations", () => ({
   applyReviewDecision: vi.fn(),
   addTaskReviewer: vi.fn(),
   removeTaskReviewer: vi.fn(),
-  cancelTask: vi.fn(),
-  reopenTask: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -99,12 +93,12 @@ const taskRecord = {
   id: "t1",
   title: "Draft memo",
   description: null,
-  status: "Pending" as const,
+  status: "Todo" as const,
   case_id: uuid,
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
-  taskAssignments: [] as { user_id: string; user: { name: string }; status: "Pending" }[],
+  taskAssignments: [] as { user_id: string; user: { name: string }; status: "Todo" }[],
   taskReviewers: [] as {
     id: string;
     reviewer_user_id: string;
@@ -117,7 +111,7 @@ const taskRow = {
   id: "t1",
   title: "Draft memo",
   description: null,
-  status: "Pending" as const,
+  status: "Todo" as const,
   case_id: uuid,
   assignee_ids: [] as string[],
   reviewers: [] as {
@@ -182,7 +176,6 @@ describe("getTaskDetailRowByIdAction", () => {
         isReviewer: false,
         canSubmit: false,
         canReview: false,
-        canSetStatus: false,
         canManageReviewers: false,
         canEdit: false,
       },
@@ -213,7 +206,6 @@ describe("getTaskDetailRowByIdAction", () => {
         isReviewer: false,
         canSubmit: false,
         canReview: false,
-        canSetStatus: false,
         canManageReviewers: false,
         canEdit: true,
       },
@@ -339,7 +331,7 @@ describe("updateTaskAction notification split", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      taskAssignments: [{ user_id: assignee1, user: { name: "n2" }, status: "Pending" as const }],
+      taskAssignments: [{ user_id: assignee1, user: { name: "n2" }, status: "Todo" as const }],
     });
     vi.mocked(updateTask).mockResolvedValue({ id: uuid });
   });
@@ -376,7 +368,7 @@ describe("updateTaskAction notification split", () => {
   it("excludes a new assignee who is already a reviewer", async () => {
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      taskAssignments: [{ user_id: assignee1, user: { name: "n2" }, status: "Pending" as const }],
+      taskAssignments: [{ user_id: assignee1, user: { name: "n2" }, status: "Todo" as const }],
       taskReviewers: [
         { id: "tr2", reviewer_user_id: assignee2, decision: "Pending" as const, reviewed_at: null },
       ],
@@ -457,13 +449,13 @@ describe("deleteTaskAction", () => {
 
 const assigneeRecord = {
   ...taskRecord,
-  taskAssignments: [{ user_id: "u2", user: { name: "n2" }, status: "Pending" as const }],
+  taskAssignments: [{ user_id: "u2", user: { name: "n2" }, status: "Todo" as const }],
 };
 
 describe("submitTaskAction", () => {
   it("returns a forbidden envelope when the caller is not an assignee", async () => {
     vi.mocked(getTaskById).mockResolvedValue(taskRecord);
-    expect(await submitTaskAction({ taskId: uuid, status: "Submitted" })).toEqual({
+    expect(await submitTaskAction({ taskId: uuid, status: "Done" })).toEqual({
       success: false,
       error: {
         code: "forbidden",
@@ -473,7 +465,7 @@ describe("submitTaskAction", () => {
     });
   });
 
-  it("submits a pending task the caller is assigned to", async () => {
+  it("submits a todo task the caller is assigned to", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: true,
@@ -481,17 +473,17 @@ describe("submitTaskAction", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       ...assigneeRecord,
-      status: "Pending" as const,
+      status: "Todo" as const,
       taskReviewers: [
         { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
       ],
     });
-    vi.mocked(setAssignmentStatus).mockResolvedValue({ taskStatus: "Submitted" });
+    vi.mocked(setAssignmentStatus).mockResolvedValue({ taskStatus: "InReview" });
 
-    const result = await submitTaskAction({ taskId: uuid, status: "Submitted" });
+    const result = await submitTaskAction({ taskId: uuid, status: "Done" });
     expect(result).toEqual({ success: true });
     await flushAfterCallbacks();
-    expect(setAssignmentStatus).toHaveBeenCalledWith(uuid, "u2", "Submitted");
+    expect(setAssignmentStatus).toHaveBeenCalledWith(uuid, "u2", "Done");
   });
 });
 
@@ -499,10 +491,10 @@ describe("reviewTaskAction", () => {
   it("returns a forbidden envelope when the caller is not a reviewer", async () => {
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      status: "Submitted" as const,
+      status: "InReview" as const,
       taskReviewers: [],
     });
-    expect(await reviewTaskAction({ taskId: uuid, decision: "Accepted" })).toEqual({
+    expect(await reviewTaskAction({ taskId: uuid, decision: "Approved" })).toEqual({
       success: false,
       error: {
         code: "forbidden",
@@ -520,19 +512,19 @@ describe("reviewTaskAction", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      status: "Submitted" as const,
+      status: "InReview" as const,
       taskReviewers: [
         { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
       ],
     });
-    vi.mocked(applyReviewDecision).mockResolvedValue({ taskStatus: "Completed" });
+    vi.mocked(applyReviewDecision).mockResolvedValue({ taskStatus: "Done" });
 
-    const result = await reviewTaskAction({ taskId: uuid, decision: "Accepted" });
+    const result = await reviewTaskAction({ taskId: uuid, decision: "Approved" });
     expect(result).toEqual({ success: true });
     expect(applyReviewDecision).toHaveBeenCalledWith({
       taskId: uuid,
       reviewerUserId: "u2",
-      decision: "Accepted",
+      decision: "Approved",
     });
   });
 });
@@ -580,7 +572,7 @@ describe("addTaskReviewerAction", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Pending" as const }],
+      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Todo" as const }],
       taskReviewers: [],
     });
 
@@ -657,136 +649,14 @@ describe("removeTaskReviewerAction", () => {
   });
 });
 
-describe("setTaskStatusAction", () => {
-  const creatorAccess = { assigned: true, own: true, taskOnly: true };
-  const nonCreatorAccess = { assigned: true, own: false, taskOnly: true };
-
-  it("returns a forbidden envelope for a non-creator", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue(nonCreatorAccess);
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u1" });
-    expect(await setTaskStatusAction({ taskId: uuid, status: "Cancelled" })).toEqual({
-      success: false,
-      error: {
-        code: "forbidden",
-        title: "Access denied",
-        description: "You don't have permission to perform this action.",
-      },
-    });
-  });
-
-  it("cancels a task for its creator", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
-    vi.mocked(cancelTask).mockResolvedValue({ id: uuid });
-
-    const result = await setTaskStatusAction({ taskId: uuid, status: "Cancelled" });
-    expect(result).toEqual({ success: true });
-    expect(cancelTask).toHaveBeenCalledWith(uuid);
-    expect(reopenTask).not.toHaveBeenCalled();
-  });
-
-  it("allows the creator to cancel a Completed task", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
-    vi.mocked(getTaskById).mockResolvedValue({
-      ...taskRecord,
-      status: "Completed" as const,
-      created_by_user_id: "u2",
-    });
-    vi.mocked(cancelTask).mockResolvedValue({ id: uuid });
-
-    const result = await setTaskStatusAction({ taskId: uuid, status: "Cancelled" });
-    expect(result).toEqual({ success: true });
-    expect(cancelTask).toHaveBeenCalledWith(uuid);
-  });
-
-  it("reopens a Submitted task for its creator, resetting decisions and submissions", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
-    vi.mocked(getTaskById).mockResolvedValue({
-      ...taskRecord,
-      status: "Submitted" as const,
-      created_by_user_id: "u2",
-    });
-    vi.mocked(reopenTask).mockResolvedValue({ id: uuid, reopened: true });
-
-    const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
-    expect(result).toEqual({ success: true });
-    expect(reopenTask).toHaveBeenCalledWith(uuid);
-    expect(cancelTask).not.toHaveBeenCalled();
-  });
-
-  it("skips the audit entry when reopening is a server-side no-op", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, created_by_user_id: "u2" });
-    vi.mocked(reopenTask).mockResolvedValue({ id: uuid, reopened: false });
-
-    const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
-    expect(result).toEqual({ success: true });
-    expect(reopenTask).toHaveBeenCalledWith(uuid);
-    expect(cancelTask).not.toHaveBeenCalled();
-  });
-
-  it("returns a conflict envelope when cancelling an already-cancelled task", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
-    vi.mocked(getTaskById).mockResolvedValue({
-      ...taskRecord,
-      created_by_user_id: "u2",
-    });
-    vi.mocked(cancelTask).mockRejectedValue(new TaskCancelledError());
-
-    const result = await setTaskStatusAction({ taskId: uuid, status: "Cancelled" });
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "conflict",
-        title: "Task cancelled",
-        description: "This task has already been cancelled.",
-      },
-    });
-  });
-
-  it("returns a conflict envelope when reopening a cancelled task", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue(creatorAccess);
-    vi.mocked(getTaskById).mockResolvedValue({
-      ...taskRecord,
-      created_by_user_id: "u2",
-    });
-    vi.mocked(reopenTask).mockRejectedValue(new TaskCancelledError());
-
-    const result = await setTaskStatusAction({ taskId: uuid, status: "Pending" });
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "conflict",
-        title: "Task cancelled",
-        description: "A cancelled task cannot be reopened.",
-      },
-    });
-  });
-
-  it("returns a validation envelope for an unsupported status", async () => {
-    const result = await setTaskStatusAction({
-      taskId: uuid,
-      status: "Submitted" as never,
-    });
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "validation",
-        title: "Invalid task data",
-        description: "Some fields are missing or malformed. Review your input and try again.",
-      },
-    });
-  });
-});
-
 describe("updateTaskAction lifecycle lock", () => {
-  it("allows a non-creator with update access to edit a Completed task's details", async () => {
+  it("allows a non-creator with update access to edit a Done task's details", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
       taskOnly: true,
     });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
     vi.mocked(updateTask).mockResolvedValue({ id: uuid });
 
     expect(
@@ -804,7 +674,7 @@ describe("updateTaskAction lifecycle lock", () => {
       own: false,
       taskOnly: true,
     });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
 
     expect(
       await updateTaskAction({
@@ -831,8 +701,8 @@ describe("updateTaskAction lifecycle lock", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
-      status: "Completed" as const,
-      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Pending" as const }],
+      status: "Done" as const,
+      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Todo" as const }],
     });
     vi.mocked(updateTask).mockResolvedValue({ id: uuid });
 
@@ -848,13 +718,13 @@ describe("updateTaskAction lifecycle lock", () => {
     expect(vi.mocked(updateTask).mock.calls[0][1]).not.toHaveProperty("assignee_ids");
   });
 
-  it("allows the creator to edit and reopen a Completed task", async () => {
+  it("allows the creator to edit and reopen a Done task", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: true,
       taskOnly: true,
     });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Completed" as const });
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
     vi.mocked(updateTask).mockResolvedValue({ id: uuid });
 
     const result = await updateTaskAction({

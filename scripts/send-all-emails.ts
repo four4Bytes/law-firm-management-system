@@ -193,13 +193,13 @@ function fakeContext(type: NotificationType): { subject: string; ctx: TemplateCo
       };
     case NotificationType.TaskStatusChanged:
       return {
-        subject: "Task Status: Submitted → Completed — Draft Complaint",
+        subject: "Task Status: InReview → Done — Draft Complaint",
         ctx: {
           toName: "Atty. Kevin Garcia",
           actorName: "Atty. Nina Salvador",
           title: "Task status changed: Draft complaint — Reyes vs. San Miguel",
           message:
-            'Task "Draft complaint and annexes — Reyes vs. San Miguel Logistics" status changed from Submitted to Completed',
+            'Task "Draft complaint and annexes — Reyes vs. San Miguel Logistics" status changed from InReview to Done',
           actionUrl: "/case/debug-case-id",
         },
       };

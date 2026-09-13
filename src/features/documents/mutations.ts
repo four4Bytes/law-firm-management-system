@@ -1,5 +1,5 @@
 import { lockTask } from "@/features/tasks/mutations";
-import { TaskStatus } from "@/generated/prisma/client";
+import { TaskStatus } from "@/generated/prisma/browser";
 import { TaskLockedError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { deleteFile, listObjects } from "@/lib/s3";
@@ -25,7 +25,7 @@ export async function deleteDocument(id: string): Promise<{ id: string }> {
 
 /**
  * Creates a document attached to a task atomically: locks the task, verifies it is not
- * cancelled, then creates the document. Throws TaskLockedError if the task is cancelled.
+ * done, then creates the document. Throws TaskLockedError if the task is done.
  */
 export interface TaskDocumentPayload extends Omit<DocumentCreatePayload, "task_id"> {
   taskId: string;
@@ -39,7 +39,7 @@ export async function createDocumentForTask(payload: TaskDocumentPayload): Promi
       where: { id: taskId },
       select: { status: true },
     });
-    if (task?.status === TaskStatus.Cancelled) {
+    if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
     return tx.document.create({ data: { ...data, task_id: taskId }, select: { id: true } });
@@ -48,7 +48,7 @@ export async function createDocumentForTask(payload: TaskDocumentPayload): Promi
 
 /**
  * Deletes a document attached to a task atomically: locks the task, verifies it is not
- * cancelled, then deletes the document. Throws TaskLockedError if the task is cancelled.
+ * done, then deletes the document. Throws TaskLockedError if the task is done.
  */
 export async function deleteDocumentForTask(
   taskId: string,
@@ -60,7 +60,7 @@ export async function deleteDocumentForTask(
       where: { id: taskId },
       select: { status: true },
     });
-    if (task?.status === TaskStatus.Cancelled) {
+    if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
     // Verify the document belongs to this task (defense in depth)

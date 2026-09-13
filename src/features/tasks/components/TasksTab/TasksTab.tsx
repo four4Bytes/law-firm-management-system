@@ -38,10 +38,9 @@ interface Props {
 }
 
 const statusClassMap: Record<TaskStatus, StatusBadgeVariant> = {
-  Pending: "pending",
-  Submitted: "info",
-  Completed: "done",
-  Cancelled: "cancelled",
+  Todo: "pending",
+  InReview: "info",
+  Done: "done",
 };
 
 const columns: ColumnDef<TaskRow>[] = [
@@ -134,7 +133,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         return;
       }
       const c = data.capabilities;
-      if (c.canEdit || c.canReview || c.canManageReviewers || c.canSubmit || c.canSetStatus) {
+      if (c.canEdit || c.canReview || c.canManageReviewers || c.canSubmit) {
         setEditTask(data.row);
         setEditCapabilities(data.capabilities);
         setEditCurrentUserId(data.currentUserId);

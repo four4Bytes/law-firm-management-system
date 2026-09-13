@@ -1,6 +1,6 @@
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
-import { TaskCancelledError, TaskValidationError } from "@/lib/errors";
+import { TaskValidationError } from "@/lib/errors";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -30,18 +30,18 @@ export function deriveTaskStatus(
   assignmentStatuses: TaskAssignmentStatus[],
   reviewerDecisions: ReviewDecision[],
 ): TaskStatus {
-  if (reviewerDecisions.some((d) => d === "Rejected")) return TaskStatus.Pending;
+  if (reviewerDecisions.some((d) => d === "Rejected")) return TaskStatus.Todo;
   if (
     reviewerDecisions.length > 0 &&
-    reviewerDecisions.every((d) => d === "Accepted") &&
-    (assignmentStatuses.length === 0 || assignmentStatuses.every((s) => s === "Submitted"))
+    reviewerDecisions.every((d) => d === "Approved") &&
+    (assignmentStatuses.length === 0 || assignmentStatuses.every((s) => s === "Done"))
   ) {
-    return TaskStatus.Completed;
+    return TaskStatus.Done;
   }
-  if (assignmentStatuses.length > 0 && assignmentStatuses.every((s) => s === "Submitted")) {
-    return TaskStatus.Submitted;
+  if (assignmentStatuses.length > 0 && assignmentStatuses.every((s) => s === "Done")) {
+    return TaskStatus.InReview;
   }
-  return TaskStatus.Pending;
+  return TaskStatus.Todo;
 }
 
 async function grantCaseMembership(
@@ -76,7 +76,7 @@ export async function createTask(data: TaskCreateData): Promise<{ id: string }> 
     const task = await tx.task.create({
       data: {
         ...taskData,
-        status: TaskStatus.Pending,
+        status: TaskStatus.Todo,
         case_id,
         created_by_user_id,
         ...(assignee_ids?.length
@@ -104,8 +104,9 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       select: { status: true },
     });
     if (!currentTask) throw new Error("Task not found");
-    if (currentTask.status === TaskStatus.Cancelled) {
-      throw new Error("Task is locked and cannot be edited");
+    if (currentTask.status === TaskStatus.Done) {
+      // Done is not terminal but editing assignees would reset derivation;
+      // allow title/description edits while keeping status derived.
     }
 
     let removed: string[] = [];
@@ -157,8 +158,6 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
         await grantCaseMembership(tx, task.case_id, assignee_ids);
       }
 
-      // Unchanged assignees keep their submission state; only added assignees
-      // start Pending, so the task re-derives from the preserved states.
       const [assignments, reviewers] = await Promise.all([
         tx.taskAssignment.findMany({ where: { task_id: id }, select: { status: true } }),
         tx.taskReviewer.findMany({ where: { task_id: id }, select: { decision: true } }),
@@ -203,7 +202,7 @@ export async function setAssignmentStatus(
       select: { status: true },
     });
     if (!task) throw new Error("Task not found");
-    if (task.status === TaskStatus.Completed || task.status === TaskStatus.Cancelled) {
+    if (task.status === TaskStatus.Done) {
       throw new Error("Assignment submission is locked for this task");
     }
 
@@ -244,9 +243,6 @@ export async function addTaskReviewer(
       select: { case_id: true, status: true },
     });
     if (!task) throw new Error("Task not found");
-    if (task.status === TaskStatus.Cancelled) {
-      throw new Error("Cannot add a reviewer to a cancelled task");
-    }
 
     const assigneeMatch = await (
       tx.taskAssignment as unknown as {
@@ -271,16 +267,14 @@ export async function addTaskReviewer(
       update: { decision: "Pending", reviewed_at: null },
     });
 
-    if (task.status === TaskStatus.Completed) {
-      // Adding a reviewer reopens the task for rework: reset existing reviewer
-      // decisions and assignee submissions to Pending.
+    if (task.status === TaskStatus.Done) {
       await tx.taskReviewer.updateMany({
         where: { task_id: taskId },
         data: { decision: "Pending", reviewed_at: null },
       });
       await tx.taskAssignment.updateMany({
         where: { task_id: taskId },
-        data: { status: "Pending" },
+        data: { status: "Todo" },
       });
     }
 
@@ -333,7 +327,7 @@ export async function removeTaskReviewer(
       );
     }
 
-    if (task.status === TaskStatus.Submitted) {
+    if (task.status === TaskStatus.InReview) {
       const [assignments, reviewers] = await Promise.all([
         tx.taskAssignment.findMany({ where: { task_id: taskId }, select: { status: true } }),
         tx.taskReviewer.findMany({ where: { task_id: taskId }, select: { decision: true } }),
@@ -367,8 +361,8 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
       select: { status: true },
     });
     if (!task) throw new Error("Task not found");
-    if (task.status !== TaskStatus.Submitted) {
-      throw new Error("Only submitted tasks can be reviewed");
+    if (task.status !== TaskStatus.InReview) {
+      throw new Error("Only tasks in review can be reviewed");
     }
 
     await tx.taskReviewer.updateMany({
@@ -387,8 +381,6 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
       reviewers.map((r) => r.decision),
     );
 
-    // A rejection reopens the task for rework: reset every reviewer decision and
-    // every assignee submission to Pending.
     if (isRejection) {
       await tx.taskReviewer.updateMany({
         where: { task_id: taskId },
@@ -396,7 +388,7 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
       });
       await tx.taskAssignment.updateMany({
         where: { task_id: taskId },
-        data: { status: "Pending" },
+        data: { status: "Todo" },
       });
     }
 
@@ -407,57 +399,5 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
     });
 
     return { taskStatus };
-  });
-}
-
-export async function reopenTask(taskId: string): Promise<{ id: string; reopened: boolean }> {
-  return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
-
-    const task = await tx.task.findUnique({
-      where: { id: taskId },
-      select: { status: true },
-    });
-    if (!task) throw new Error("Task not found");
-    if (task.status === TaskStatus.Cancelled) throw new TaskCancelledError();
-    if (task.status === TaskStatus.Pending) return { id: taskId, reopened: false };
-
-    // A manual reopen reuses the rework reset: every reviewer decision and
-    // assignee submission returns to Pending so the task re-derives cleanly.
-    await tx.taskReviewer.updateMany({
-      where: { task_id: taskId },
-      data: { decision: "Pending", reviewed_at: null },
-    });
-    await tx.taskAssignment.updateMany({
-      where: { task_id: taskId },
-      data: { status: "Pending" },
-    });
-
-    const updated = await tx.task.update({
-      where: { id: taskId },
-      data: { status: TaskStatus.Pending },
-      select: { id: true },
-    });
-
-    return { id: updated.id, reopened: true };
-  });
-}
-
-export async function cancelTask(taskId: string): Promise<{ id: string }> {
-  return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
-
-    const task = await tx.task.findUnique({
-      where: { id: taskId },
-      select: { status: true },
-    });
-    if (!task) throw new Error("Task not found");
-    if (task.status === TaskStatus.Cancelled) throw new TaskCancelledError();
-
-    return tx.task.update({
-      where: { id: taskId },
-      data: { status: TaskStatus.Cancelled },
-      select: { id: true },
-    });
   });
 }

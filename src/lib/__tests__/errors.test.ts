@@ -33,7 +33,7 @@ describe("toActionResponse", () => {
       error: {
         code: "locked",
         title: "Task locked",
-        description: "This task is cancelled and its attachments are locked",
+        description: "This task is done and its attachments are locked",
       },
     });
     expect(errorSpy).not.toHaveBeenCalled();

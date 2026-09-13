@@ -67,6 +67,30 @@
     font-size: var(--font-size-xs);
   }
 
+  .reviewActions {
+    display: flex;
+    gap: var(--space-md);
+
+    > * {
+      flex: 1;
+    }
+  }
+
+  .banner {
+    background: var(--color-bg-info-subtle, #eef6ff);
+    border: 1px solid var(--color-border-info, #b6d4ff);
+    color: var(--color-text-info, #1a56db);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md, 8px);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-lg);
+  }
+
+  .helpText {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+  }
+
   .reviewers {
     list-style: none;
     margin: 0;

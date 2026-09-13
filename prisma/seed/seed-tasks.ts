@@ -17,7 +17,7 @@ const tasks: TaskData[] = [
     title: "Verify Property Title with Registry of Deeds",
     description:
       "Request certified true copy of TCT from Register of Deeds and verify no liens or encumbrances",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "catherine.diaz@aninolaw.com",
     assigneeEmails: ["jessica.lim@aninolaw.com"],
   },
@@ -26,7 +26,7 @@ const tasks: TaskData[] = [
     title: "Draft Deed of Absolute Sale",
     description:
       "Prepare notarized Deed of Absolute Sale between Dela Cruz and Nuvali Development Corp.",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "david.tan@aninolaw.com",
     assigneeEmails: ["david.tan@aninolaw.com"],
   },
@@ -44,7 +44,7 @@ const tasks: TaskData[] = [
     title: "Draft Petition for Legal Separation",
     description:
       "Draft verified petition citing grounds under Family Code, include custody and support requests",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["kevin.garcia@aninolaw.com"],
   },
@@ -63,7 +63,7 @@ const tasks: TaskData[] = [
     title: "Coordinate Service of Summons",
     description:
       "Serve summons and copy of petition to respondent at last known address in San Juan",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["ramon.flores@aninolaw.com"],
   },
@@ -72,7 +72,7 @@ const tasks: TaskData[] = [
     title: "File Complaint with Regional Trial Court",
     description:
       "Prepare and file verified complaint for breach of contract with RTC Makati, Branch 56",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "miguel.cruz@aninolaw.com",
     assigneeEmails: ["miguel.cruz@aninolaw.com"],
   },
@@ -80,7 +80,7 @@ const tasks: TaskData[] = [
     caseTitle: "Reyes vs. San Miguel Logistics",
     title: "Review and Organize Contract Evidence",
     description: "Compile all correspondence, delivery receipts, and the original supply agreement",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "miguel.cruz@aninolaw.com",
     assigneeEmails: ["jessica.lim@aninolaw.com"],
   },
@@ -88,7 +88,7 @@ const tasks: TaskData[] = [
     caseTitle: "Reyes vs. San Miguel Logistics",
     title: "Prepare Pre-Trial Brief",
     description: "Draft pre-trial brief with stipulation of facts, issues, and witness list",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "miguel.cruz@aninolaw.com",
     assigneeEmails: ["miguel.cruz@aninolaw.com"],
   },
@@ -97,7 +97,7 @@ const tasks: TaskData[] = [
     title: "Draft Petition for Annulment",
     description:
       "Draft verified petition for declaration of nullity of marriage based on psychological incapacity",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["kevin.garcia@aninolaw.com"],
   },
@@ -116,7 +116,7 @@ const tasks: TaskData[] = [
     title: "Coordinate Psychological Evaluation",
     description:
       "Schedule and coordinate with court-accredited psychologist for Article 36 evaluation",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["sofia.villanueva@aninolaw.com"],
   },
@@ -150,7 +150,7 @@ const tasks: TaskData[] = [
     caseTitle: "Santiago Zoning Compliance Appeal",
     title: "File Zoning Variance Application",
     description: "Prepare and submit application for zoning variance to Calamba City Zoning Board",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "robert.santos@aninolaw.com",
     assigneeEmails: ["nina.salvador@aninolaw.com"],
   },
@@ -159,7 +159,7 @@ const tasks: TaskData[] = [
     title: "Prepare Property Survey and Documentation",
     description:
       "Commission geodetic survey and prepare vicinity map highlighting commercial access",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "gina.reyes@aninolaw.com",
     assigneeEmails: ["gina.reyes@aninolaw.com"],
   },
@@ -167,7 +167,7 @@ const tasks: TaskData[] = [
     caseTitle: "Santiago Zoning Compliance Appeal",
     title: "Coordinate with City Planning Office",
     description: "Schedule meeting with city planner to discuss zoning reclassification merits",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "gina.reyes@aninolaw.com",
     assigneeEmails: ["nina.salvador@aninolaw.com"],
   },
@@ -176,7 +176,7 @@ const tasks: TaskData[] = [
     title: "Conduct Site Inspection and Survey",
     description:
       "Visit property with geodetic engineer to verify boundary markers and encroachment",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "marco.lopez@aninolaw.com",
     assigneeEmails: ["marco.lopez@aninolaw.com", "benito.cruz@aninolaw.com"],
   },
@@ -185,7 +185,7 @@ const tasks: TaskData[] = [
     title: "Draft Complaint for Recovery of Possession",
     description:
       "Prepare complaint for accion reivindicatoria with technical description of property",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "marco.lopez@aninolaw.com",
     assigneeEmails: ["marco.lopez@aninolaw.com"],
   },
@@ -194,7 +194,7 @@ const tasks: TaskData[] = [
     title: "Gather Witness Testimonies",
     description:
       "Interview neighboring property owners and secure sworn affidavits on boundary history",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "marco.lopez@aninolaw.com",
     assigneeEmails: ["paolo.guerrero@aninolaw.com"],
   },
@@ -229,7 +229,7 @@ const tasks: TaskData[] = [
     title: "File Motion to Dismiss",
     description:
       "Draft motion to quash information for lack of probable cause — construction payment dispute",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     assigneeEmails: ["ricardo.guevarra@aninolaw.com"],
   },
@@ -238,7 +238,7 @@ const tasks: TaskData[] = [
     title: "Review Prosecution Evidence",
     description:
       "Examine complaint affidavit, supporting documents, and counter-affidavit of complainant",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     assigneeEmails: ["nina.salvador@aninolaw.com"],
   },
@@ -247,7 +247,7 @@ const tasks: TaskData[] = [
     title: "Prepare Defense Strategy Memorandum",
     description:
       "Draft comprehensive defense memorandum highlighting payment records and lack of deceit",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     assigneeEmails: ["ricardo.guevarra@aninolaw.com"],
   },
@@ -256,7 +256,7 @@ const tasks: TaskData[] = [
     title: "Draft Complaint for Illegal Dismissal",
     description:
       "Prepare complaint for illegal dismissal with NLRC including prayer for reinstatement and back wages",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "miguel.cruz@aninolaw.com",
     assigneeEmails: ["miguel.cruz@aninolaw.com"],
   },
@@ -275,7 +275,7 @@ const tasks: TaskData[] = [
     title: "Calculate Back Wages and Separation Pay",
     description:
       "Compute back wages from date of dismissal plus 13th month pay and other monetary claims",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "miguel.cruz@aninolaw.com",
     assigneeEmails: ["jessica.lim@aninolaw.com"],
   },
@@ -284,7 +284,7 @@ const tasks: TaskData[] = [
     title: "File Appeal with Local Board of Assessment Appeals",
     description:
       "Prepare notice of appeal and supporting documents contesting the doubled assessed value",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "gina.reyes@aninolaw.com",
     assigneeEmails: ["paolo.guerrero@aninolaw.com"],
   },
@@ -293,7 +293,7 @@ const tasks: TaskData[] = [
     title: "Gather Comparable Property Valuations",
     description:
       "Research and document assessed values of similar neighboring properties as comparison evidence",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "gina.reyes@aninolaw.com",
     assigneeEmails: ["kevin.garcia@aninolaw.com"],
   },
@@ -302,7 +302,7 @@ const tasks: TaskData[] = [
     title: "Prepare Legal Memorandum",
     description:
       "Draft legal memo citing R.A. 7160 provisions on property assessment and valuation standards",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "gina.reyes@aninolaw.com",
     assigneeEmails: ["gina.reyes@aninolaw.com"],
   },
@@ -311,7 +311,7 @@ const tasks: TaskData[] = [
     title: "Draft Series A Investment Agreement",
     description:
       "Prepare investment agreement with anti-dilution, liquidation preference, and board seat provisions",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "angela.mercado@aninolaw.com",
     assigneeEmails: ["angela.mercado@aninolaw.com"],
   },
@@ -320,7 +320,7 @@ const tasks: TaskData[] = [
     title: "Review Term Sheet from VC Firm",
     description:
       "Review and negotiate 20-page term sheet including valuation, vesting schedule, and drag-along rights",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "angela.mercado@aninolaw.com",
     assigneeEmails: ["angela.mercado@aninolaw.com"],
   },
@@ -329,7 +329,7 @@ const tasks: TaskData[] = [
     title: "Conduct Legal Due Diligence on Company",
     description:
       "Verify incorporation documents, IP ownership, employment contracts, and cap table",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "angela.mercado@aninolaw.com",
     assigneeEmails: ["maya.fernandez@aninolaw.com"],
   },
@@ -338,7 +338,7 @@ const tasks: TaskData[] = [
     title: "Inventory Estate Assets and Liabilities",
     description:
       "Compile complete inventory of real properties, bank accounts, investments, and outstanding debts",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["kevin.garcia@aninolaw.com"],
   },
@@ -347,7 +347,7 @@ const tasks: TaskData[] = [
     title: "File Petition for Settlement of Estate",
     description:
       "Prepare and file petition for extrajudicial settlement or judicial administration as applicable",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["sofia.villanueva@aninolaw.com"],
   },
@@ -356,7 +356,7 @@ const tasks: TaskData[] = [
     title: "Coordinate with BIR for Estate Tax Payment",
     description:
       "Prepare estate tax return (BIR Form 1801) and process payment within the 6-month filing period",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["jessica.lim@aninolaw.com"],
   },
@@ -365,7 +365,7 @@ const tasks: TaskData[] = [
     title: "Review Loan Documents for Predatory Clauses",
     description:
       "Examine promissory note and mortgage contract for hidden fees, balloon payments, and usurious interest",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "marco.lopez@aninolaw.com",
     assigneeEmails: ["nina.salvador@aninolaw.com"],
   },
@@ -384,7 +384,7 @@ const tasks: TaskData[] = [
     title: "Negotiate Loan Restructuring with Bank",
     description:
       "Propose loan restructuring plan with reduced interest and extended amortization schedule",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "marco.lopez@aninolaw.com",
     assigneeEmails: ["marco.lopez@aninolaw.com"],
   },
@@ -393,7 +393,7 @@ const tasks: TaskData[] = [
     title: "Coordinate with Registry of Deeds for Title Transfer",
     description:
       "Process the transfer of TCT from seller to buyer once deed of sale is notarized and taxes are paid",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "david.tan@aninolaw.com",
     assigneeEmails: ["jessica.lim@aninolaw.com"],
   },
@@ -412,7 +412,7 @@ const tasks: TaskData[] = [
     title: "Revise Petition per Supervising Counsel Comments",
     description:
       "Revise the petition to strengthen Article 36 psychological incapacity argument — initial draft lacked specific factual basis",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["kevin.garcia@aninolaw.com"],
     reviewerEmail: "sofia.villanueva@aninolaw.com",
@@ -422,7 +422,7 @@ const tasks: TaskData[] = [
     title: "Attend NLRC Mandatory Conciliation and Mediation",
     description:
       "Represent client at NLRC mandatory conference with Jollibee Foods Corp. representatives and their counsel",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "miguel.cruz@aninolaw.com",
     assigneeEmails: ["miguel.cruz@aninolaw.com"],
   },
@@ -431,7 +431,7 @@ const tasks: TaskData[] = [
     title: "File Reply to Bank's Opposition to TRO Application",
     description:
       "Draft and file reply memorandum addressing BPI Family Bank's opposition to the 72-hour TRO",
-    status: "Todo",
+    status: "Pending",
     createdByEmail: "marco.lopez@aninolaw.com",
     assigneeEmails: ["marco.lopez@aninolaw.com"],
     reviewerEmail: "maria.anino@aninolaw.com",

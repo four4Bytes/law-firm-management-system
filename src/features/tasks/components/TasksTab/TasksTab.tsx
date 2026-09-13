@@ -38,7 +38,7 @@ interface Props {
 }
 
 const statusClassMap: Record<TaskStatus, StatusBadgeVariant> = {
-  Todo: "pending",
+  Pending: "pending",
   InReview: "info",
   Done: "done",
 };

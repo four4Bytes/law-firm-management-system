@@ -319,7 +319,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Todo" as const,
+      status: "Pending" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
     vi.mocked(getTaskAccessContext).mockResolvedValue({
@@ -350,7 +350,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Todo" as const,
+      status: "Pending" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
     vi.mocked(getTaskAccessContext).mockResolvedValue({
@@ -375,7 +375,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Todo" as const,
+      status: "Pending" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
     vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
@@ -408,7 +408,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Todo" as const,
+      status: "Pending" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
     vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
@@ -435,7 +435,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Todo" as const,
+      status: "Pending" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
     vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });

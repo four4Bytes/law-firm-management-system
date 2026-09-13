@@ -113,7 +113,8 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
   const capabilities: TaskCapabilities = {
     isCreator,
     isReviewer,
-    canSubmit: isAssignee && (row.status === TaskStatus.Todo || row.status === TaskStatus.InReview),
+    canSubmit:
+      isAssignee && (row.status === TaskStatus.Pending || row.status === TaskStatus.InReview),
     canReview: isReviewer && row.status === TaskStatus.InReview && !reviewer?.reviewed_at,
     canManageReviewers: isCreator || isReviewer,
     canEdit: canUpdate && row.status !== TaskStatus.Done,
@@ -343,7 +344,7 @@ export async function submitTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return actionNotFound("Task");
 
-    if (existing.status !== TaskStatus.Todo && existing.status !== TaskStatus.InReview) {
+    if (existing.status !== TaskStatus.Pending && existing.status !== TaskStatus.InReview) {
       return actionConflict("Task locked", "The task is locked and cannot be submitted.");
     }
 
@@ -439,7 +440,7 @@ export async function reviewTaskAction(
         details: `Review ${decision} on task "${existing.title}"`,
       });
 
-      if (taskStatus === TaskStatus.Todo || taskStatus === TaskStatus.Done) {
+      if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Done) {
         await notifyRecipients(session.id, {
           userIds: assigneeIds,
           type: NotificationType.TaskStatusChanged,

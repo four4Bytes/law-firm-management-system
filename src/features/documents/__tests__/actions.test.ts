@@ -237,7 +237,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     ...documentRecord,
     case_id: null,
     task_id: uuid,
-    task: { case_id: uuid, status: "Todo" as const },
+    task: { case_id: uuid, status: "Pending" as const },
   };
 
   it("denies a non-task-attached Paralegal case member an upload URL", async () => {
@@ -270,7 +270,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Todo" as const,
+      status: "Pending" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
 
@@ -288,7 +288,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
-      status: "Todo" as const,
+      status: "Pending" as const,
       case_id: uuid,
     } as Awaited<ReturnType<typeof getTaskById>>);
     vi.mocked(getTaskAccessContext).mockResolvedValue({

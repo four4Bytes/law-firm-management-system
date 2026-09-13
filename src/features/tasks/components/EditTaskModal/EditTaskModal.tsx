@@ -99,7 +99,7 @@ export function EditTaskModal({
   const approvedCount = task.reviewers.filter((r) => r.decision === "Approved").length;
   const totalReviewers = task.reviewers.length;
   const statusHint =
-    localStatus === TaskStatus.Todo
+    localStatus === TaskStatus.Pending
       ? totalAssignees
         ? `${doneCount}/${totalAssignees} assignees done`
         : "No assignees yet"
@@ -152,10 +152,10 @@ export function EditTaskModal({
       );
       // derive local status optimistically
       const newDone = next === TaskAssignmentStatus.Done ? doneCount + 1 : doneCount - 1;
-      if (newDone === totalAssignees && localStatus === TaskStatus.Todo)
+      if (newDone === totalAssignees && localStatus === TaskStatus.Pending)
         setLocalStatus(TaskStatus.InReview);
       else if (next === TaskAssignmentStatus.Todo && localStatus === TaskStatus.InReview)
-        setLocalStatus(TaskStatus.Todo);
+        setLocalStatus(TaskStatus.Pending);
       onSuccess();
     }
     setIsToggling(false);
@@ -178,7 +178,7 @@ export function EditTaskModal({
         decision === "Approved" ? "Approved" : "Changes requested",
         decision === "Approved" ? "You approved this task." : "You requested changes.",
       );
-      setLocalStatus(decision === "Rejected" ? TaskStatus.Todo : TaskStatus.Done);
+      setLocalStatus(decision === "Rejected" ? TaskStatus.Pending : TaskStatus.Done);
       onSuccess();
     }
     setIsReviewing(false);
@@ -313,7 +313,7 @@ export function EditTaskModal({
     <Modal title="Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
       {localStatus === TaskStatus.Done && (
         <div className={styles.banner}>
-          Completed — editing locked. To reopen, add a new reviewer (resets to To Do).
+          Completed — editing locked. To reopen, add a new reviewer (resets to Pending).
         </div>
       )}
       <Form onSubmit={handleSave} validationBehavior="native" className={styles.form}>
@@ -354,7 +354,7 @@ export function EditTaskModal({
               onChange={(next) => {
                 if (localStatus === TaskStatus.Done && next.size > reviewerIds.size) {
                   const confirmed = window.confirm(
-                    "This will reopen the completed task and reset all approvals to To Do. Continue?",
+                    "This will reopen the completed task and reset all approvals to Pending. Continue?",
                   );
                   if (!confirmed) return;
                 }
@@ -378,7 +378,7 @@ export function EditTaskModal({
               <span className={styles.label}>Status</span>
               <StatusBadge
                 variant={
-                  localStatus === TaskStatus.Todo
+                  localStatus === TaskStatus.Pending
                     ? "pending"
                     : localStatus === TaskStatus.InReview
                       ? "info"

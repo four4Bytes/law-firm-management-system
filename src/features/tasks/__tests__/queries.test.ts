@@ -23,7 +23,7 @@ const mockTaskData = (overrides: Record<string, unknown> = {}) => ({
   id: "t1",
   title: "Task title",
   description: "Task description",
-  status: "Todo" as const,
+  status: "Pending" as const,
   case_id: "c1",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
@@ -113,7 +113,7 @@ describe("getTaskDetailRowById", () => {
       id: "t1",
       title: "Task title",
       description: "Task description",
-      status: "Todo",
+      status: "Pending",
       assignTo: [{ id: "u2", name: "Jane Assignee", status: "Todo" }],
       assignee_ids: ["u2"],
       reviewers: [

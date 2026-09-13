@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Assignees do the work, reviewers approve it. A task moves `Todo → In Review → Done`. Rejection sends it back to `Todo` for rework. Task status is derived — no one sets it directly. Unwanted tasks are deleted, not cancelled.
+Assignees do the work, reviewers approve it. A task moves `Pending → In Review → Done`. Rejection sends it back to `Pending` for rework. Task status is derived — no one sets it directly. Unwanted tasks are deleted, not cancelled.
 
 ## 2. Roles
 
@@ -23,11 +23,11 @@ Assignees do the work, reviewers approve it. A task moves `Todo → In Review �
 
 ### Task (`Task.status`)
 
-| Status     | Meaning                                                            |
-| ---------- | ------------------------------------------------------------------ |
-| `Todo`     | Work not yet ready for review (default, or after rejection/rework) |
-| `InReview` | Every assignee marked done — awaiting reviewer decisions           |
-| `Done`     | Every reviewer approved                                            |
+| Status     | Meaning                                                     |
+| ---------- | ----------------------------------------------------------- |
+| `Pending`  | Work not yet ready for review (default, or after rejection) |
+| `InReview` | Every assignee marked done — awaiting reviewer decisions    |
+| `Done`     | Every reviewer approved                                     |
 
 No `Cancelled`. Delete the task if it is no longer needed.
 
@@ -38,7 +38,7 @@ No `Cancelled`. Delete the task if it is no longer needed.
 | `Todo` | Still working                           |
 | `Done` | Marked own work done (ready for review) |
 
-Only the assignee can flip `Todo ⇄ Done` while the task is `Todo` or `InReview` (undo an accidental submit). Locked once `Done` at the task level.
+Only the assignee can flip `Todo ⇄ Done` while the task is `Pending` or `InReview` (undo an accidental submit). Locked once `Done` at the task level.
 
 ### Per-Reviewer (`TaskReviewer.decision`)
 
@@ -54,23 +54,23 @@ Only reviewers can decide, and only while the task is `InReview`.
 
 Priority: rejection → approval → submission → todo.
 
-- Any `Rejected` → `Todo` (all decisions and all assignee states reset to `Todo`/`Pending`).
+- Any `Rejected` → `Pending` (all decisions and all assignee states reset to `Todo`/`Pending`).
 - Else if all reviewers `Approved` → `Done`.
 - Else if all assignees `Done` (and at least one assignee) → `InReview`.
-- Else → `Todo`.
+- Else → `Pending`.
 
-Adding a reviewer to a `Done` task resets everything to `Todo` (reopen for new review). Editing assignees (delta sync) preserves existing states; new assignees start `Todo`.
+Adding a reviewer to a `Done` task resets everything to `Pending` (reopen for new review). Editing assignees (delta sync) preserves existing states; new assignees start `Todo`.
 
 ```
  Creator creates task
         │
         ▼
-     ┌──────┐  all assignees Done   ┌──────────┐  all reviewers Approved  ┌──────┐
-     │ Todo │ ─────────────────────→ │ InReview │ ───────────────────────→ │ Done │
-     └──────┘                        └────┬─────┘                          └──────┘
-        ▲                                │  │
-        └──── any Rejected (reset) ───────┘  └─ assignee undoes Done ─────→ Todo
-                                              └─ reviewer added to Done ──→ Todo
+      ┌─────────┐  all assignees Done   ┌──────────┐  all reviewers Approved  ┌──────┐
+      │ Pending │ ─────────────────────→ │ InReview │ ───────────────────────→ │ Done │
+      └─────────┘                        └────┬─────┘                          └──────┘
+         ▲                                │  │
+         └──── any Rejected (reset) ───────┘  └─ assignee undoes Done ─────→ Pending
+                                               └─ reviewer added to Done ──→ Pending
 
 Delete (creator, any status) → hard delete + documents purged. No cancelled state.
 ```
@@ -91,7 +91,7 @@ No new RBAC permissions. Uses existing `task.*` matrix ([RBAC](./RBAC.md)):
 ## 5. Notifications
 
 - Assignee or reviewer added → `TaskAssigned`
-- `Todo → InReview`, `InReview → Done`, `InReview → Todo` (rejected) → `TaskStatusChanged`
+- `Pending → InReview`, `InReview → Done`, `InReview → Pending` (rejected) → `TaskStatusChanged`
 
 See [Notifications](./notifications.md).
 
@@ -123,7 +123,7 @@ Review comments are task `Note`s (`task_id`). `[+] Add Note` in edit opens `AddN
 
 ### Workflow Controls (buttons, not selects)
 
-- **Assignee:** `Mark done` / `Undo` toggle for own row (`Todo ⇄ Done`). Enabled only for own assignment while `Todo`/`InReview`.
+- **Assignee:** `Mark done` / `Undo` toggle for own row (`Todo ⇄ Done`). Enabled only for own assignment while `Pending`/`InReview`.
 - **Reviewer:** `Approve` / `Request changes` for own decision. Shown only when reviewer and `InReview`, and only until decided.
 - **Creator:** `Delete task` (confirm) at any status — replaces the old status select. No `Pending`/`Cancelled` options.
 
@@ -131,7 +131,7 @@ All controls call server actions that re-derive status inside a `FOR UPDATE` tra
 
 ## 7. Data Model
 
-`Task`, `TaskAssignment`, `TaskReviewer`, `Note`, `Document` plus enums `TaskStatus` (`Todo`/`InReview`/`Done`), `TaskAssignmentStatus` (`Todo`/`Done`), `ReviewDecision` (`Pending`/`Approved`/`Rejected`). See [Data Models](./models.md). `Task.status` is derived.
+`Task`, `TaskAssignment`, `TaskReviewer`, `Note`, `Document` plus enums `TaskStatus` (`Pending`/`InReview`/`Done`), `TaskAssignmentStatus` (`Todo`/`Done`), `ReviewDecision` (`Pending`/`Approved`/`Rejected`). See [Data Models](./models.md). `Task.status` is derived.
 
 ## 8. Audit
 

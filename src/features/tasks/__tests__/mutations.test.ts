@@ -44,7 +44,7 @@ const mockTask = (overrides: Record<string, unknown> = {}) => ({
   case_id: "c1",
   title: "Task title",
   description: null,
-  status: "Todo" as const,
+  status: "Pending" as const,
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
@@ -118,7 +118,7 @@ describe("createTask", () => {
     expect(prisma.task.create).toHaveBeenCalledWith({
       data: {
         title: "Task title",
-        status: "Todo",
+        status: "Pending",
         case_id: "c1",
         created_by_user_id: "u1",
         taskReviewers: { create: { reviewer_user_id: "u1" } },
@@ -156,7 +156,7 @@ describe("createTask", () => {
     expect(prisma.task.create).toHaveBeenCalledWith({
       data: {
         title: "Task with assignees",
-        status: "Todo",
+        status: "Pending",
         case_id: "c1",
         created_by_user_id: "u1",
         taskAssignments: { create: [{ user_id: "u2" }, { user_id: "u3" }] },
@@ -371,10 +371,10 @@ describe("setAssignmentStatus", () => {
 
     const result = await setAssignmentStatus("t1", "u2", "Todo");
 
-    expect(result).toEqual({ taskStatus: "Todo" });
+    expect(result).toEqual({ taskStatus: "Pending" });
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
-      data: { status: "Todo" },
+      data: { status: "Pending" },
       select: { id: true },
     });
   });
@@ -447,7 +447,7 @@ describe("addTaskReviewer (status transitions)", () => {
     });
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
-      data: { status: "Todo" },
+      data: { status: "Pending" },
       select: { id: true },
     });
   });
@@ -538,7 +538,7 @@ describe("applyReviewDecision", () => {
       decision: "Rejected",
     });
 
-    expect(result).toEqual({ taskStatus: "Todo" });
+    expect(result).toEqual({ taskStatus: "Pending" });
     expect(prisma.taskReviewer.updateMany).toHaveBeenCalledTimes(2);
     expect(prisma.taskReviewer.updateMany).toHaveBeenLastCalledWith({
       where: { task_id: "t1" },
@@ -550,7 +550,7 @@ describe("applyReviewDecision", () => {
     });
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: "t1" },
-      data: { status: "Todo" },
+      data: { status: "Pending" },
       select: { id: true },
     });
   });
@@ -582,7 +582,7 @@ describe("applyReviewDecision", () => {
   });
 
   it("rejects a decision on a task that is not InReview", async () => {
-    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Todo" }));
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Pending" }));
 
     await expect(
       applyReviewDecision({ taskId: "t1", reviewerUserId: "u1", decision: "Approved" }),
@@ -593,11 +593,11 @@ describe("applyReviewDecision", () => {
 
 describe("deriveTaskStatus", () => {
   it("derives status from assignee submissions and reviewer decisions", () => {
-    expect(deriveTaskStatus([], [])).toBe("Todo");
-    expect(deriveTaskStatus([], ["Pending"])).toBe("Todo");
+    expect(deriveTaskStatus([], [])).toBe("Pending");
+    expect(deriveTaskStatus([], ["Pending"])).toBe("Pending");
     expect(deriveTaskStatus(["Done", "Done"], ["Approved", "Approved"])).toBe("Done");
-    expect(deriveTaskStatus(["Done", "Done"], ["Approved", "Rejected"])).toBe("Todo");
+    expect(deriveTaskStatus(["Done", "Done"], ["Approved", "Rejected"])).toBe("Pending");
     expect(deriveTaskStatus(["Done", "Done"], ["Approved", "Pending"])).toBe("InReview");
-    expect(deriveTaskStatus(["Done", "Todo"], ["Approved", "Approved"])).toBe("Todo");
+    expect(deriveTaskStatus(["Done", "Todo"], ["Approved", "Approved"])).toBe("Pending");
   });
 });

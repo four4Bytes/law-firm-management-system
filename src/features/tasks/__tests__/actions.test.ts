@@ -93,7 +93,7 @@ const taskRecord = {
   id: "t1",
   title: "Draft memo",
   description: null,
-  status: "Todo" as const,
+  status: "Pending" as const,
   case_id: uuid,
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
@@ -111,7 +111,7 @@ const taskRow = {
   id: "t1",
   title: "Draft memo",
   description: null,
-  status: "Todo" as const,
+  status: "Pending" as const,
   case_id: uuid,
   assignee_ids: [] as string[],
   reviewers: [] as {
@@ -473,7 +473,7 @@ describe("submitTaskAction", () => {
     });
     vi.mocked(getTaskById).mockResolvedValue({
       ...assigneeRecord,
-      status: "Todo" as const,
+      status: "Pending" as const,
       taskReviewers: [
         { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
       ],

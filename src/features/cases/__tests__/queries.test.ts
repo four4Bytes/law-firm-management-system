@@ -344,7 +344,7 @@ describe("getCaseTasksPaginated", () => {
     id: "t1",
     title: "Draft complaint",
     description: null,
-    status: "Todo" as const,
+    status: "Pending" as const,
     case_id: "1",
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
@@ -375,7 +375,7 @@ describe("getCaseTasksPaginated", () => {
     expect(result.rows[0]).toEqual({
       id: "t1",
       title: "Draft complaint",
-      status: "Todo",
+      status: "Pending",
       assignTo: "Bob Lawyer",
       reviewers: "",
       updated_at: tasks[0].updated_at,
@@ -383,7 +383,7 @@ describe("getCaseTasksPaginated", () => {
     expect(result.rows[1]).toEqual({
       id: "t2",
       title: "Review evidence",
-      status: "Todo",
+      status: "Pending",
       assignTo: "Carol Paralegal",
       reviewers: "Alice Reviewer, Bob Reviewer",
       updated_at: tasks[1].updated_at,

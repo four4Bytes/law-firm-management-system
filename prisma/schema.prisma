@@ -32,7 +32,7 @@ enum CaseStatus {
 }
 
 enum TaskStatus {
-  Todo
+  Pending
   InReview
   Done
 }
@@ -266,7 +266,7 @@ model Task {
   case_id            String     @db.Uuid
   title              String
   description        String?
-  status             TaskStatus @default(Todo)
+  status             TaskStatus @default(Pending)
   created_by_user_id String     @db.Uuid
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt

@@ -343,7 +343,7 @@ Links a reviewer to a task for approval workflows.
 
 | Value    | Description                                             |
 | -------- | ------------------------------------------------------- |
-| Todo     | Not all assignees done, or a reviewer requested changes |
+| Pending  | Not all assignees done, or a reviewer requested changes |
 | InReview | All assignees done; awaiting reviewer decisions         |
 | Done     | All reviewers approved                                  |
 

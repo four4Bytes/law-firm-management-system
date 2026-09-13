@@ -74,9 +74,9 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 | Task updated - reviewer added | Newly added reviewer  | `TaskAssigned`      | Actor always excluded |
 | Task submitted (→ `InReview`) | All reviewers         | `TaskStatusChanged` | Actor always excluded |
 | Task completed (→ `Done`)     | All assignees         | `TaskStatusChanged` | Actor always excluded |
-| Task rejected (→ `Todo`)      | All assignees         | `TaskStatusChanged` | Actor always excluded |
+| Task rejected (→ `Pending`)   | All assignees         | `TaskStatusChanged` | Actor always excluded |
 
-> Task status changes fire only on the review transitions — → `InReview` (all assignees done), → `Done` (all reviewers approved), → `Todo` (any reviewer rejected); deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from InReview to Done`). Actor always excluded.
+> Task status changes fire only on the review transitions — → `InReview` (all assignees done), → `Done` (all reviewers approved), → `Pending` (any reviewer rejected); deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from InReview to Done`). Actor always excluded.
 >
 > A user who is **both** an assignee and a reviewer on the same task receives a single `TaskAssigned` notification — the reviewer-added notice is suppressed when the recipient is already an assignee (and vice-versa). No duplicate delivery.
 

@@ -68,13 +68,17 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
               <span className={styles.label}>Status</span>
               <StatusBadge
                 variant={
-                  task.status === "Todo" ? "pending" : task.status === "InReview" ? "info" : "done"
+                  task.status === "Pending"
+                    ? "pending"
+                    : task.status === "InReview"
+                      ? "info"
+                      : "done"
                 }
               >
                 {task.status === "InReview" ? "In Review" : task.status}
               </StatusBadge>
               <span className={styles.helpText}>
-                {task.status === "Todo"
+                {task.status === "Pending"
                   ? `${task.assignTo.filter((a) => a.status === "Done").length}/${task.assignTo.length} done`
                   : task.status === "InReview"
                     ? `${task.reviewers.filter((r) => r.decision === "Approved").length}/${task.reviewers.length} approvals`

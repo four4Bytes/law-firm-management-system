@@ -30,7 +30,7 @@ export function deriveTaskStatus(
   assignmentStatuses: TaskAssignmentStatus[],
   reviewerDecisions: ReviewDecision[],
 ): TaskStatus {
-  if (reviewerDecisions.some((d) => d === "Rejected")) return TaskStatus.Todo;
+  if (reviewerDecisions.some((d) => d === "Rejected")) return TaskStatus.Pending;
   if (
     reviewerDecisions.length > 0 &&
     reviewerDecisions.every((d) => d === "Approved") &&
@@ -41,7 +41,7 @@ export function deriveTaskStatus(
   if (assignmentStatuses.length > 0 && assignmentStatuses.every((s) => s === "Done")) {
     return TaskStatus.InReview;
   }
-  return TaskStatus.Todo;
+  return TaskStatus.Pending;
 }
 
 async function grantCaseMembership(
@@ -76,7 +76,7 @@ export async function createTask(data: TaskCreateData): Promise<{ id: string }> 
     const task = await tx.task.create({
       data: {
         ...taskData,
-        status: TaskStatus.Todo,
+        status: TaskStatus.Pending,
         case_id,
         created_by_user_id,
         ...(assignee_ids?.length

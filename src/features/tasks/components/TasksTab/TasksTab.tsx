@@ -62,7 +62,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editTask, setEditTask] = useState<TaskDetailRow | null>(null);
   const [editCapabilities, setEditCapabilities] = useState<TaskCapabilities | null>(null);
-  const [editCurrentUserId, setEditCurrentUserId] = useState<string | null>(null);
   const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
   const [pendingEditId, setPendingEditId] = useState<string | null>(null);
@@ -137,7 +136,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       if (c.canEdit || c.canReview || c.canManageReviewers || c.canSubmit || c.canSetStatus) {
         setEditTask(data.row);
         setEditCapabilities(data.capabilities);
-        setEditCurrentUserId(data.currentUserId);
       } else {
         toastDenied();
       }
@@ -243,7 +241,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           task={editTask}
           capabilities={editCapabilities}
           users={users}
-          currentUserId={editCurrentUserId ?? ""}
           canCreateSubtask={canCreate}
         />
       )}

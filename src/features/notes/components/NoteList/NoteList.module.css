@@ -11,43 +11,47 @@
 .noteRow {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
+  gap: var(--space-xs);
+  padding: 2px var(--space-xs);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
+  min-width: 0;
+  overflow-wrap: anywhere;
 
   .noteIcon {
     flex-shrink: 0;
     color: var(--color-text-muted);
-    font-size: var(--icon-size-ms);
+    font-size: var(--icon-size-sm);
   }
 
   .noteContent {
     flex: 1;
     min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    overflow-wrap: anywhere;
   }
 
   .viewButton {
     flex: 0 0 auto;
     padding: 2px;
-    font-size: var(--icon-size-ms);
+    font-size: var(--icon-size-sm);
     color: var(--color-text-muted);
   }
 
   .editButton {
     flex: 0 0 auto;
     padding: 2px;
-    font-size: var(--icon-size-ms);
+    font-size: var(--icon-size-sm);
     color: var(--color-text-muted);
   }
 
   .deleteButton {
     flex: 0 0 auto;
     padding: 2px;
-    font-size: var(--icon-size-ms);
+    font-size: var(--icon-size-sm);
     color: var(--color-text-muted);
   }
 }

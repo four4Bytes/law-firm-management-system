@@ -25,7 +25,6 @@ import {
   removeTaskReviewerAction,
   reviewTaskAction,
   setTaskStatusAction,
-  submitTaskAction,
   updateTaskAction,
   type TaskCapabilities,
 } from "@/features/tasks/actions";
@@ -34,7 +33,7 @@ import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries"
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
-import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
+import { ReviewDecision, TaskStatus } from "@/generated/prisma/browser";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
@@ -49,7 +48,6 @@ interface EditTaskModalProps {
   task: TaskDetailRow;
   capabilities: TaskCapabilities;
   users: ActiveUserSummary[];
-  currentUserId: string;
   canCreateSubtask: boolean;
 }
 
@@ -60,7 +58,6 @@ export function EditTaskModal({
   task,
   capabilities,
   users,
-  currentUserId,
   canCreateSubtask,
 }: EditTaskModalProps) {
   const [title, setTitle] = useState(task.title);
@@ -70,9 +67,6 @@ export function EditTaskModal({
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(
     new Set(task.reviewers.map((r) => r.reviewer_user_id)),
   );
-  const [assignmentStatuses, setAssignmentStatuses] = useState<
-    Record<string, TaskAssignmentStatus>
-  >(Object.fromEntries(task.assignTo.map((a) => [a.id, a.status])));
   const [decision, setDecision] = useState<"Accepted" | "Rejected" | null>(null);
   const [statusChoice, setStatusChoice] = useState<"Pending" | "Cancelled" | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -85,12 +79,6 @@ export function EditTaskModal({
   const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(new Set());
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
-
-  const isCurrentUserAssignee = task.assignee_ids.includes(currentUserId);
-  const canToggleOwnSubmission =
-    isCurrentUserAssignee &&
-    task.status !== TaskStatus.Completed &&
-    task.status !== TaskStatus.Cancelled;
 
   const { fileEntries, hasFiles, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload({
     taskId: task.id,
@@ -236,19 +224,6 @@ export function EditTaskModal({
         onOpenChange(false);
         onSuccess();
         return;
-      }
-
-      if (isCurrentUserAssignee) {
-        const chosen = assignmentStatuses[currentUserId];
-        const current = task.assignTo.find((a) => a.id === currentUserId)?.status;
-        if (chosen !== current) {
-          const result = await submitTaskAction({ taskId: task.id, status: chosen });
-          if (!result.success) {
-            toastActionError(result, "submit task");
-            setIsPending(false);
-            return;
-          }
-        }
       }
 
       if (capabilities.canReview && decision) {
@@ -426,27 +401,6 @@ export function EditTaskModal({
               </div>
             )}
 
-            {isCurrentUserAssignee && (
-              <div className={styles.section}>
-                <Select
-                  label="Submission status"
-                  aria-label="Your submission status"
-                  value={assignmentStatuses[currentUserId]}
-                  onChange={(key) =>
-                    key != null &&
-                    setAssignmentStatuses((prev) => ({
-                      ...prev,
-                      [currentUserId]: key as TaskAssignmentStatus,
-                    }))
-                  }
-                  isDisabled={isPending || !canToggleOwnSubmission}
-                >
-                  <SelectItem id={TaskAssignmentStatus.Pending}>Pending</SelectItem>
-                  <SelectItem id={TaskAssignmentStatus.Submitted}>Submitted</SelectItem>
-                </Select>
-              </div>
-            )}
-
             {capabilities.canReview && (
               <div className={styles.section}>
                 <Select
@@ -462,53 +416,57 @@ export function EditTaskModal({
                 </Select>
               </div>
             )}
-
-            <SubtaskList taskId={task.id} users={users} canCreate={canCreateSubtask} />
           </div>
 
           <div className={styles.divider} />
 
-          <div className={styles.column}>
-            <DropZone
-              allowsMultiple
-              onFileSelect={addFiles}
-              acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
-              isDisabled={isPending || !capabilities.canEdit}
-              label="Drop files or click to upload"
-              description="Supported: PDF, DOC, XLS, images, TXT, CSV"
-            />
-            <FileList
-              entries={fileEntries}
-              isBusy={isPending}
-              onRemove={removeFile}
-              existingDocuments={documents}
-              onView={setPreviewDocument}
-              onDownload={handleDownload}
-              onDelete={capabilities.canEdit ? handleRemoveDocument : undefined}
-              isLoading={isLoadingDocuments}
-              showSize={false}
-            />
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.column}>
-            <div className={styles.columnHeader}>
-              <span className={styles.label}>Notes</span>
-              <Button
-                className={styles.addNoteButton}
-                variant="secondary"
-                type="button"
-                onPress={() => setAddNoteOpen(true)}
-              >
-                <FaPlus /> Add Note
-              </Button>
+          <div className={styles.rightPane}>
+            <div className={styles.rightTop}>
+              <div className={styles.rightDropZone}>
+                <DropZone
+                  allowsMultiple
+                  onFileSelect={addFiles}
+                  acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
+                  isDisabled={isPending || !capabilities.canEdit}
+                  label="Drop files or click to upload"
+                  description="Supported: PDF, DOC, XLS, images, TXT, CSV"
+                />
+                <FileList
+                  entries={fileEntries}
+                  isBusy={isPending}
+                  onRemove={removeFile}
+                  existingDocuments={documents}
+                  onView={setPreviewDocument}
+                  onDownload={handleDownload}
+                  onDelete={capabilities.canEdit ? handleRemoveDocument : undefined}
+                  isLoading={isLoadingDocuments}
+                  showSize={false}
+                />
+              </div>
+              <div className={styles.notesCol}>
+                <div className={styles.columnHeader}>
+                  <span className={styles.label}>Notes</span>
+                  <Button
+                    className={styles.addNoteButton}
+                    variant="secondary"
+                    type="button"
+                    onPress={() => setAddNoteOpen(true)}
+                  >
+                    <FaPlus /> Add Note
+                  </Button>
+                </div>
+                <NoteList
+                  notes={notes}
+                  onEdit={capabilities.canEdit ? setEditNote : undefined}
+                  onDelete={capabilities.canEdit ? handleRemoveNote : undefined}
+                />
+              </div>
             </div>
-            <NoteList
-              notes={notes}
-              onEdit={capabilities.canEdit ? setEditNote : undefined}
-              onDelete={capabilities.canEdit ? handleRemoveNote : undefined}
-            />
+
+            <div className={styles.subtasksSection}>
+              <div className={styles.subtasksDivider} />
+              <SubtaskList taskId={task.id} users={users} canCreate={canCreateSubtask} />
+            </div>
           </div>
         </div>
 

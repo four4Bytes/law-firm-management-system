@@ -262,6 +262,11 @@ export function SubtaskList({ taskId, users, canCreate }: SubtaskListProps) {
                     </Button>
                   </div>
                 </div>
+                {subtask.description && (
+                  <p className={styles.description} title={subtask.description}>
+                    {subtask.description}
+                  </p>
+                )}
                 <div className={styles.metaRow}>
                   <span className={styles.metaItem}>
                     Assigned: {subtask.assignees.map((a) => a.name).join(", ") || "Unassigned"}

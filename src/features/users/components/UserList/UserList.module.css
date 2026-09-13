@@ -26,15 +26,19 @@
   .name {
     flex: 1;
     min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    overflow-wrap: anywhere;
   }
 
   .status {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+    max-width: 6rem;
 
     &[data-status="Accepted"] {
       color: var(--color-success);

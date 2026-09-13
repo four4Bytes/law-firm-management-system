@@ -5,8 +5,8 @@ import {
   getTaskStatusHint,
   getTaskStatusLabel,
   getTaskStatusVariant,
+  type TaskStatusHintInput,
 } from "@/features/tasks/display";
-import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
 
 import styles from "./TaskStatusBadge.module.css";
@@ -14,7 +14,7 @@ import styles from "./TaskStatusBadge.module.css";
 export interface TaskStatusBadgeProps {
   status: TaskStatus;
   hint?: string;
-  taskForHint?: Pick<TaskDetailRow, "status" | "assignTo" | "reviewers">;
+  taskForHint?: TaskStatusHintInput;
 }
 
 export function TaskStatusBadge({ status, hint, taskForHint }: TaskStatusBadgeProps) {

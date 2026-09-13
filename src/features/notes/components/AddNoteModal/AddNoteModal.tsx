@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -48,6 +47,7 @@ export function AddNoteModal({
 
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
+    event.stopPropagation();
     if (isPending) return;
 
     await submitForm({
@@ -60,7 +60,7 @@ export function AddNoteModal({
 
   return (
     <Modal title="Add Note" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
         <div className={styles.content}>
           <TextField
             label="Note"
@@ -81,7 +81,7 @@ export function AddNoteModal({
             </Button>
           </div>
         </div>
-      </Form>
+      </form>
     </Modal>
   );
 }

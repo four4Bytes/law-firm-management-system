@@ -718,7 +718,7 @@ describe("updateTaskAction lifecycle lock", () => {
     expect(vi.mocked(updateTask).mock.calls[0][1]).not.toHaveProperty("assignee_ids");
   });
 
-  it("allows the creator to edit and reopen a Done task", async () => {
+  it("allows the creator to edit details on a Done task", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: true,
@@ -731,7 +731,6 @@ describe("updateTaskAction lifecycle lock", () => {
       taskId: uuid,
       title: "Renamed",
       description: undefined,
-      assignee_ids: [uuid],
     });
 
     expect(result).toEqual({ success: true });

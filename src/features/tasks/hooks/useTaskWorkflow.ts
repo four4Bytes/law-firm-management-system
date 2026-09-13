@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { reviewTaskAction, submitTaskAction } from "@/features/tasks/actions";
+import { getTaskStatusHint } from "@/features/tasks/display";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 import { toastActionError, toastSuccess } from "@/lib/toast-utils";
@@ -34,25 +35,21 @@ export function useTaskWorkflow(payload: TaskWorkflowInput): TaskWorkflow {
   const [localStatus, setLocalStatus] = useState<TaskStatus>(task.status);
   const [isToggling, setIsToggling] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewedLocally, setReviewedLocally] = useState(false);
 
   const isCurrentUserAssignee = task.assignee_ids.includes(currentUserId);
   const canToggleOwnSubmission = isCurrentUserAssignee && localStatus !== TaskStatus.Done;
   const currentReviewer = task.reviewers.find((r) => r.reviewer_user_id === currentUserId);
-  const hasReviewed = !!currentReviewer?.reviewed_at;
+  const hasReviewed = !!currentReviewer?.reviewed_at || reviewedLocally;
   const doneCount = Object.values(assignmentStatuses).filter(
     (s) => s === TaskAssignmentStatus.Done,
   ).length;
   const totalAssignees = Object.keys(assignmentStatuses).length || task.assignTo.length;
-  const approvedCount = task.reviewers.filter((r) => r.decision === "Approved").length;
-  const totalReviewers = task.reviewers.length;
-  const statusHint =
-    localStatus === TaskStatus.Pending
-      ? totalAssignees
-        ? `${doneCount}/${totalAssignees} assignees done`
-        : "No assignees yet"
-      : localStatus === TaskStatus.InReview
-        ? `${approvedCount}/${totalReviewers} approvals`
-        : "All approvals complete";
+  const statusHint = getTaskStatusHint({
+    status: localStatus,
+    assignTo: Object.values(assignmentStatuses).map((status) => ({ status })),
+    reviewers: task.reviewers,
+  });
 
   async function handleToggleDone(): Promise<void> {
     if (!canToggleOwnSubmission || isToggling) return;
@@ -94,6 +91,7 @@ export function useTaskWorkflow(payload: TaskWorkflowInput): TaskWorkflow {
         decision === "Approved" ? "Approved" : "Changes requested",
         decision === "Approved" ? "You approved this task." : "You requested changes.",
       );
+      setReviewedLocally(true);
       setLocalStatus(decision === "Rejected" ? TaskStatus.Pending : TaskStatus.Done);
       onSuccess();
     }

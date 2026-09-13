@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -39,6 +38,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
 
   async function handleSave(event: React.SyntheticEvent) {
     event.preventDefault();
+    event.stopPropagation();
     if (isPending) return;
 
     await submitForm({ noteId: note.id, content: requiredString(content) });
@@ -46,7 +46,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
 
   return (
     <Modal title="Edit Note" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSave}>
+      <form onSubmit={handleSave}>
         <div className={styles.content}>
           <TextField
             label="Note"
@@ -67,7 +67,7 @@ export function EditNoteModal({ isOpen, onOpenChange, onSuccess, note }: EditNot
             </Button>
           </div>
         </div>
-      </Form>
+      </form>
     </Modal>
   );
 }

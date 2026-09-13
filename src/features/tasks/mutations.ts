@@ -104,10 +104,6 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       select: { status: true },
     });
     if (!currentTask) throw new Error("Task not found");
-    if (currentTask.status === TaskStatus.Done) {
-      // Done is not terminal but editing assignees would reset derivation;
-      // allow title/description edits while keeping status derived.
-    }
 
     let removed: string[] = [];
     let added: string[] = [];
@@ -244,11 +240,7 @@ export async function addTaskReviewer(
     });
     if (!task) throw new Error("Task not found");
 
-    const assigneeMatch = await (
-      tx.taskAssignment as unknown as {
-        findFirst: (args: unknown) => Promise<{ user_id: string } | null>;
-      }
-    ).findFirst({
+    const assigneeMatch = await tx.taskAssignment.findFirst({
       where: { task_id: taskId, user_id: reviewerUserId },
       select: { user_id: true },
     });

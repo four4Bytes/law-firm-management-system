@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
-import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import {
   deleteTaskAction,
@@ -18,6 +18,7 @@ import {
 import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
 import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTaskModal";
 import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTaskModal";
+import { getTaskStatusLabel, getTaskStatusVariant } from "@/features/tasks/display";
 import type { ActiveUserSummary, TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
@@ -37,21 +38,20 @@ interface Props {
   userRole: Role | null;
 }
 
-const statusClassMap: Record<TaskStatus, StatusBadgeVariant> = {
-  Pending: "pending",
-  InReview: "info",
-  Done: "done",
-};
-
 const columns: ColumnDef<TaskRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
   {
     id: "status",
     name: "Status",
     allowsSorting: true,
-    render: (value) => (
-      <StatusBadge variant={statusClassMap[value as TaskStatus]}>{value as string}</StatusBadge>
-    ),
+    render: (value) => {
+      const status = value as TaskStatus;
+      return (
+        <StatusBadge variant={getTaskStatusVariant(status)}>
+          {getTaskStatusLabel(status)}
+        </StatusBadge>
+      );
+    },
   },
   { id: "assignTo", name: "Assigned To" },
   { id: "reviewers", name: "Reviewers" },

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Form } from "react-aria-components";
 
 import { Button } from "@/components/ui/Button/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
 import {
   addTaskReviewerAction,
@@ -50,6 +51,7 @@ export function EditTaskModal({
     new Set(task.reviewers.map((r) => r.reviewer_user_id)),
   );
   const [isPending, setIsPending] = useState(false);
+  const [pendingReviewerIds, setPendingReviewerIds] = useState<Set<string> | null>(null);
 
   const workflow = useTaskWorkflow({
     task,
@@ -57,6 +59,14 @@ export function EditTaskModal({
     isReviewer: capabilities.isReviewer,
     onSuccess,
   });
+
+  function handleReviewerIdsChange(next: Set<string>): void {
+    if (workflow.localStatus === TaskStatus.Done && next.size > reviewerIds.size) {
+      setPendingReviewerIds(next);
+      return;
+    }
+    setReviewerIds(next);
+  }
 
   const initialAssigneeIds = new Set(task.assignee_ids);
   const initialReviewerIds = new Set(task.reviewers.map((r) => r.reviewer_user_id));
@@ -156,8 +166,7 @@ export function EditTaskModal({
               assigneeIds={assigneeIds}
               onAssigneeIdsChange={setAssigneeIds}
               reviewerIds={reviewerIds}
-              onReviewerIdsChange={setReviewerIds}
-              localStatus={workflow.localStatus}
+              onReviewerIdsChange={handleReviewerIdsChange}
               isPending={isPending}
             />
             <TaskWorkflowSection
@@ -198,6 +207,20 @@ export function EditTaskModal({
           </Button>
         </div>
       </Form>
+      <ConfirmDialog
+        isOpen={pendingReviewerIds !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingReviewerIds(null);
+        }}
+        title="Reopen task"
+        confirmLabel="Reopen"
+        onConfirm={() => {
+          if (pendingReviewerIds) setReviewerIds(pendingReviewerIds);
+          setPendingReviewerIds(null);
+        }}
+      >
+        This will reopen the completed task and reset all approvals to Pending. Continue?
+      </ConfirmDialog>
     </Modal>
   );
 }

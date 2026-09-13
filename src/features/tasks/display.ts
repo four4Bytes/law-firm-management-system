@@ -1,6 +1,12 @@
 import type { StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import type { TaskDetailRow } from "@/features/tasks/queries";
-import { TaskStatus } from "@/generated/prisma/browser";
+import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
+
+export interface TaskStatusHintInput {
+  status: TaskStatus;
+  assignTo: { status: TaskAssignmentStatus }[];
+  reviewers: { decision: ReviewDecision }[];
+}
 
 export function getTaskStatusVariant(status: TaskStatus): StatusBadgeVariant {
   if (status === TaskStatus.Pending) return "pending";
@@ -12,16 +18,14 @@ export function getTaskStatusLabel(status: TaskStatus): string {
   return status === TaskStatus.InReview ? "In Review" : status;
 }
 
-export function getTaskStatusHint(
-  task: Pick<TaskDetailRow, "status" | "assignTo" | "reviewers">,
-): string {
+export function getTaskStatusHint(task: TaskStatusHintInput): string {
   if (task.status === TaskStatus.Pending) {
     if (task.assignTo.length === 0) return "No assignees yet";
-    const done = task.assignTo.filter((a) => a.status === "Done").length;
+    const done = task.assignTo.filter((a) => a.status === TaskAssignmentStatus.Done).length;
     return `${done}/${task.assignTo.length} assignees done`;
   }
   if (task.status === TaskStatus.InReview) {
-    const approved = task.reviewers.filter((r) => r.decision === "Approved").length;
+    const approved = task.reviewers.filter((r) => r.decision === ReviewDecision.Approved).length;
     return `${approved}/${task.reviewers.length} approvals`;
   }
   return "All approvals complete";

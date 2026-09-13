@@ -19,8 +19,10 @@ import {
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError, toActionResponse } from "@/lib/errors";
+import { logError } from "@/lib/logger";
 import { can } from "@/lib/rbac";
 
+import { getTaskStatusLabel } from "./display";
 import {
   addTaskReviewer,
   applyReviewDecision,
@@ -205,10 +207,6 @@ export async function updateTaskAction(
 
     const access = await getTaskAccessContext(session.id, taskId);
 
-    if (existing.status === TaskStatus.Done) {
-      // Done tasks remain editable for title/description but workflow is locked
-    }
-
     if (!can(session.role, "task.update", access)) {
       return actionForbidden();
     }
@@ -221,6 +219,13 @@ export async function updateTaskAction(
 
     if (assigneesChanged && !access.own) {
       return actionConflict("Not allowed", "Only the task creator can change assignees.");
+    }
+
+    if (assigneesChanged && existing.status === TaskStatus.Done) {
+      return actionConflict(
+        "Task locked",
+        "A completed task is locked. Add a reviewer to reopen it before changing assignees.",
+      );
     }
 
     if (assignee_ids !== undefined) {
@@ -382,7 +387,7 @@ export async function submitTaskAction(
             });
           }
         } catch (err) {
-          console.error("Failed to dispatch notification:", err);
+          logError("submit task", err);
         }
       }
     });
@@ -431,7 +436,7 @@ export async function reviewTaskAction(
     const assigneeIds = existing.taskAssignments.map((a) => a.user_id);
 
     after(async () => {
-      const transition = `InReview to ${taskStatus}`;
+      const transition = `In Review to ${getTaskStatusLabel(taskStatus)}`;
       await logAudit({
         actorUserId: session.id,
         action: "task.reviewed",

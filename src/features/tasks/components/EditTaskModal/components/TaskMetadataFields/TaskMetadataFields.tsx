@@ -7,7 +7,6 @@ import { mapReviewersForDisplay } from "@/features/tasks/display";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import { UserList } from "@/features/users/components/UserList/UserList";
-import { TaskStatus } from "@/generated/prisma/browser";
 import { createFieldValidator } from "@/lib/form-utils";
 
 export interface TaskMetadataFieldsProps {
@@ -22,7 +21,6 @@ export interface TaskMetadataFieldsProps {
   onAssigneeIdsChange: (ids: Set<string>) => void;
   reviewerIds: Set<string>;
   onReviewerIdsChange: (ids: Set<string>) => void;
-  localStatus: TaskStatus;
   isPending: boolean;
 }
 
@@ -38,7 +36,6 @@ export function TaskMetadataFields({
   onAssigneeIdsChange,
   reviewerIds,
   onReviewerIdsChange,
-  localStatus,
   isPending,
 }: TaskMetadataFieldsProps) {
   return (
@@ -66,15 +63,7 @@ export function TaskMetadataFields({
         assigneeIds={assigneeIds}
         onAssigneeIdsChange={onAssigneeIdsChange}
         reviewerIds={reviewerIds}
-        onReviewerIdsChange={(next) => {
-          if (localStatus === TaskStatus.Done && next.size > reviewerIds.size) {
-            const confirmed = window.confirm(
-              "This will reopen the completed task and reset all approvals to Pending. Continue?",
-            );
-            if (!confirmed) return;
-          }
-          onReviewerIdsChange(next);
-        }}
+        onReviewerIdsChange={onReviewerIdsChange}
         isAssigneeDisabled={isPending || !capabilities.isCreator}
         isReviewerDisabled={isPending || !capabilities.canManageReviewers}
       />

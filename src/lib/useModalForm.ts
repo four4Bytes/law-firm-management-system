@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ZodType } from "zod";
 
 import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
+import { logError } from "@/lib/logger";
 import { toastError, toastSuccess } from "@/lib/toast-utils";
 
 /** Configuration for {@link useModalForm}. */
@@ -104,7 +105,7 @@ export function useModalForm<TArgs, TData = unknown>({
         );
       }
     } catch (error) {
-      console.error("useModalForm: submit failed", error);
+      logError("form submit", error);
       toastError(failureMessage, "Something went wrong. Please try again.");
     } finally {
       setIsPending(false);

@@ -13,6 +13,7 @@ import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
@@ -183,6 +184,9 @@ export function EditCaseModal({
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />
+            {assigneeIds.size > 0 && (
+              <UserChips users={users.filter((user) => assigneeIds.has(user.id))} />
+            )}
             <TextField
               label="Parties Involved"
               value={partiesInvolved}

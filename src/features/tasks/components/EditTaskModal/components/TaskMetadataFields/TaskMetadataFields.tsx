@@ -3,10 +3,8 @@
 import { TextField } from "@/components/ui/TextField/TextField";
 import type { TaskCapabilities } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
-import { mapReviewersForDisplay } from "@/features/tasks/display";
 import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
-import { UserList } from "@/features/users/components/UserList/UserList";
 import { createFieldValidator } from "@/lib/form-utils";
 
 export interface TaskMetadataFieldsProps {
@@ -66,12 +64,13 @@ export function TaskMetadataFields({
         onAssigneeIdsChange={onAssigneeIdsChange}
         reviewerIds={reviewerIds}
         onReviewerIdsChange={onReviewerIdsChange}
+        assigneeSnapshot={task.assignTo}
+        reviewerSnapshot={task.reviewers}
+        createdByUserId={task.created_by_user_id}
         isAssigneeDisabled={isPending || !capabilities.canEdit}
         isReviewerDisabled={isPending || !capabilities.canManageReviewers}
         validate={fieldValidator}
       />
-      <UserList users={task.assignTo} />
-      <UserList users={mapReviewersForDisplay(task)} />
     </>
   );
 }

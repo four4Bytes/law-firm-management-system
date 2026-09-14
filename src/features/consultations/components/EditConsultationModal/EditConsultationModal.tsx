@@ -22,6 +22,7 @@ import {
 } from "@/features/consultations/schemas";
 import { getActiveUsersAction } from "@/features/tasks/actions";
 import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
@@ -296,6 +297,9 @@ export function EditConsultationModal({
                 onChange={setAssigneeIds}
                 isDisabled={isPending || isSaving}
               />
+              {assigneeIds.size > 0 && (
+                <UserChips users={users.filter((user) => assigneeIds.has(user.id))} />
+              )}
             </div>
           </div>
           <div className={styles.actions}>

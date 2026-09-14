@@ -316,7 +316,7 @@ export type CaseEditData = Pick<
   | "status"
   | "parties_involved"
   | "source_consultation_id"
-> & { assignee_ids: string[] };
+> & { assignee_ids: string[]; assignees: { id: string; name: string }[] };
 
 export const getCaseBySourceConsultationId = cache(
   async (sourceConsultationId: string): Promise<{ id: string } | null> => {
@@ -339,7 +339,7 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       parties_involved: true,
       source_consultation_id: true,
       caseAssignments: {
-        select: { user_id: true },
+        select: { user_id: true, user: { select: { id: true, name: true } } },
       },
     },
   });
@@ -355,6 +355,7 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
     parties_involved: data.parties_involved,
     source_consultation_id: data.source_consultation_id,
     assignee_ids: data.caseAssignments.map((a) => a.user_id),
+    assignees: data.caseAssignments.map((a) => ({ id: a.user.id, name: a.user.name })),
   };
 });
 

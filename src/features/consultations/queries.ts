@@ -215,7 +215,7 @@ export const getConsultationsPaginated = cache(
 export type ConsultationEditData = Pick<
   Consultation,
   "id" | "client_id" | "concern" | "booking_datetime" | "status"
-> & { assignee_ids: string[] };
+> & { assignee_ids: string[]; assignees: { id: string; name: string }[] };
 
 export const getConsultationAssigneeIds = cache(
   async (consultationId: string): Promise<string[]> => {
@@ -238,7 +238,7 @@ export const getConsultationEditData = cache(
         booking_datetime: true,
         status: true,
         consultationAssignments: {
-          select: { user_id: true },
+          select: { user_id: true, user: { select: { id: true, name: true } } },
         },
       },
     });
@@ -252,6 +252,10 @@ export const getConsultationEditData = cache(
       booking_datetime: data.booking_datetime,
       status: data.status,
       assignee_ids: data.consultationAssignments.map((a) => a.user_id),
+      assignees: data.consultationAssignments.map((a) => ({
+        id: a.user.id,
+        name: a.user.name,
+      })),
     };
   },
 );

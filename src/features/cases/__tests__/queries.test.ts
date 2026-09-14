@@ -677,7 +677,9 @@ describe("getEntityActivityLogPaginated (Case)", () => {
   });
 });
 
-type CaseWithAssignments = Case & { caseAssignments: { user_id: string }[] };
+type CaseWithAssignments = Case & {
+  caseAssignments: { user_id: string; user: { id: string; name: string } }[];
+};
 
 describe("getCaseEditData", () => {
   const caseEditRecord: CaseWithAssignments = {
@@ -720,7 +722,7 @@ describe("getCaseEditData", () => {
         parties_involved: true,
         source_consultation_id: true,
         caseAssignments: {
-          select: { user_id: true },
+          select: { user_id: true, user: { select: { id: true, name: true } } },
         },
       },
     });
@@ -729,13 +731,22 @@ describe("getCaseEditData", () => {
   it("includes assignee ids of inactive users", async () => {
     const record: CaseWithAssignments = {
       ...caseEditRecord,
-      caseAssignments: [{ user_id: "u1" }, { user_id: "u9" }],
+      caseAssignments: [
+        { user_id: "u1", user: { id: "u1", name: "Active User" } },
+        { user_id: "u9", user: { id: "u9", name: "Inactive User" } },
+      ],
     };
     vi.mocked(prisma.case.findUnique).mockResolvedValue(record);
 
     const result = await getCaseEditData("1");
 
-    expect(result).toMatchObject({ assignee_ids: ["u1", "u9"] });
+    expect(result).toMatchObject({
+      assignee_ids: ["u1", "u9"],
+      assignees: [
+        { id: "u1", name: "Active User" },
+        { id: "u9", name: "Inactive User" },
+      ],
+    });
   });
 
   it("returns null when the case is not found", async () => {

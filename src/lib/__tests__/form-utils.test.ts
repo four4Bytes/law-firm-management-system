@@ -234,6 +234,20 @@ describe("firstIssueMessage", () => {
     expect(firstIssueMessage(result.error, "Fallback.")).toBe("Too short.");
   });
 
+  it("keeps a trailing exclamation mark when already present", () => {
+    const result = z.string().min(5, "Too short!").safeParse("abc");
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(firstIssueMessage(result.error, "Fallback.")).toBe("Too short!");
+  });
+
+  it("keeps a trailing question mark when already present", () => {
+    const result = z.string().min(5, "Too short?").safeParse("abc");
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(firstIssueMessage(result.error, "Fallback.")).toBe("Too short?");
+  });
+
   it("falls back when the error carries no issues", () => {
     const error = new z.ZodError([]);
     expect(firstIssueMessage(error, "Fallback.")).toBe("Fallback.");

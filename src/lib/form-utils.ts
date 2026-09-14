@@ -219,15 +219,16 @@ export function createFieldValidator<S extends ZodType>(schema: S) {
 
 /**
  * Returns the first Zod issue message as a toast-ready sentence. Schema
- * messages omit trailing periods, so one is appended to match the toast
- * description convention ("complete sentences ending with a period").
+ * messages omit trailing punctuation, so a period is appended to match the
+ * toast description convention ("complete sentences ending with a period"),
+ * unless the message already ends with ".", "!" or "?".
  *
  * @param error - The failed `safeParse` error.
  * @param fallback - Description used when the error carries no issues.
- * @returns The first issue message, terminated with a period.
+ * @returns The first issue message, terminated with sentence punctuation.
  */
 export function firstIssueMessage(error: z.ZodError, fallback: string): string {
   const [firstIssue] = error.issues;
   const message = firstIssue?.message ?? fallback;
-  return message.endsWith(".") ? message : `${message}.`;
+  return /[.!?]$/.test(message) ? message : `${message}.`;
 }

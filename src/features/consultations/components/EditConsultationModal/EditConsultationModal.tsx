@@ -2,7 +2,7 @@
 
 import { CalendarDate, Time } from "@internationalized/date";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
@@ -83,6 +83,14 @@ export function EditConsultationModal({
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const router = useRouter();
+
+  const assigneeOptions = useMemo(() => {
+    const directoryIds = new Set(users.map((user) => user.id));
+    const missing = consultation.assignees.filter(
+      (assignee) => assigneeIds.has(assignee.id) && !directoryIds.has(assignee.id),
+    );
+    return [...users, ...missing];
+  }, [users, assigneeIds, consultation.assignees]);
 
   const previousStatus = consultation.status as ConsultationStatus;
 
@@ -292,13 +300,13 @@ export function EditConsultationModal({
                 ))}
               </Select>
               <UserSelect
-                users={users}
+                users={assigneeOptions}
                 selectedIds={assigneeIds}
                 onChange={setAssigneeIds}
                 isDisabled={isPending || isSaving}
               />
               {assigneeIds.size > 0 && (
-                <UserChips users={users.filter((user) => assigneeIds.has(user.id))} />
+                <UserChips users={assigneeOptions.filter((user) => assigneeIds.has(user.id))} />
               )}
             </div>
           </div>

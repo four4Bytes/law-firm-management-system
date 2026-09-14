@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
@@ -56,6 +56,14 @@ export function EditCaseModal({
   const [status, setStatus] = useState<CaseStatus>(caseData.status as CaseStatus);
   const [partiesInvolved, setPartiesInvolved] = useState(caseData.parties_involved ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(caseData.assignee_ids));
+
+  const assigneeOptions = useMemo(() => {
+    const directoryIds = new Set(users.map((user) => user.id));
+    const missing = caseData.assignees.filter(
+      (assignee) => assigneeIds.has(assignee.id) && !directoryIds.has(assignee.id),
+    );
+    return [...users, ...missing];
+  }, [users, assigneeIds, caseData.assignees]);
 
   const { isPending, submitForm } = useModalForm<z.input<typeof CaseWithClientUpdatePayloadSchema>>(
     {
@@ -179,13 +187,13 @@ export function EditCaseModal({
               ))}
             </Select>
             <UserSelect
-              users={users}
+              users={assigneeOptions}
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />
             {assigneeIds.size > 0 && (
-              <UserChips users={users.filter((user) => assigneeIds.has(user.id))} />
+              <UserChips users={assigneeOptions.filter((user) => assigneeIds.has(user.id))} />
             )}
             <TextField
               label="Parties Involved"

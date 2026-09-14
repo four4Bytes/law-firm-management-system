@@ -1,10 +1,8 @@
 import { cache } from "react";
 
-import type { ReviewDecision, Task, TaskAssignmentStatus, User } from "@/generated/prisma/browser";
+import type { ReviewDecision, Task, TaskAssignmentStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
-
-export type ActiveUserSummary = Pick<User, "id" | "name">;
 
 export type TaskRow = Pick<Task, "id" | "title" | "status" | "updated_at"> & {
   assignTo: string;
@@ -25,14 +23,6 @@ export type TaskDetailRow = Omit<TaskRow, "assignTo" | "reviewers"> &
     assignee_ids: string[];
     reviewers: TaskReviewerRow[];
   };
-
-export const getActiveUsers = cache(async (): Promise<ActiveUserSummary[]> => {
-  return prisma.user.findMany({
-    where: { is_active: true },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
-});
 
 export const getTaskById = cache(async (id: string) => {
   return prisma.task.findUnique({

@@ -12,9 +12,9 @@ import { updateCaseWithClientAction } from "@/features/cases/actions";
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,

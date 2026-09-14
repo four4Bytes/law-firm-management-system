@@ -18,9 +18,9 @@ import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/A
 import { MilestonesTab } from "@/features/milestones/components/MilestonesTab/MilestonesTab";
 import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
 import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
-import { getActiveUsersAction } from "@/features/tasks/actions";
 import { TasksTab } from "@/features/tasks/components/TasksTab/TasksTab";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { getActiveUsersAction } from "@/features/users/actions";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import type { Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 import {

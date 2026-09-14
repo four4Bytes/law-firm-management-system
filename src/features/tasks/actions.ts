@@ -33,12 +33,10 @@ import {
   updateTask,
 } from "./mutations";
 import {
-  getActiveUsers,
   getTaskAccessContext,
   getTaskById,
   getTaskDetailRowById,
   getTaskReviewers,
-  type ActiveUserSummary,
   type TaskDetailRow,
 } from "./queries";
 import {
@@ -65,11 +63,6 @@ export interface TaskCapabilities {
   canReview: boolean;
   canManageReviewers: boolean;
   canEdit: boolean;
-}
-
-export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
-  await requireAuth();
-  return getActiveUsers();
 }
 
 export async function getTaskDetailRowByIdAction(taskId: string): Promise<{

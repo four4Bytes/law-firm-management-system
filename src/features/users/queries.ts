@@ -14,6 +14,16 @@ export const getActiveUserIds = cache(async (payload: { ids: string[] }): Promis
   return users.map((u) => u.id);
 });
 
+export type ActiveUserSummary = Pick<User, "id" | "name">;
+
+export const getActiveUsers = cache(async (): Promise<ActiveUserSummary[]> => {
+  return prisma.user.findMany({
+    where: { is_active: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+});
+
 const userSelect = {
   id: true,
   name: true,

@@ -69,7 +69,6 @@ vi.mock("next/server", () => {
 });
 
 vi.mock("../queries", () => ({
-  getActiveUsers: vi.fn(),
   getTaskAccessContext: vi.fn(),
   getTaskById: vi.fn(),
   getTaskDetailRowById: vi.fn(),

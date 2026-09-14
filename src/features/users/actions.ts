@@ -8,9 +8,11 @@ import { CREATABLE_ROLES } from "@/features/users/constants";
 import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
 import {
   countActiveAdminsAndDevs,
+  getActiveUsers,
   getUserByEmail,
   getUserById,
   getUsersPaginated,
+  type ActiveUserSummary,
   type UserRow,
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
@@ -21,7 +23,7 @@ import {
   type ActionDataResponse,
   type ActionStatusResponse,
 } from "@/lib/action-response";
-import { requirePermission } from "@/lib/auth-guards";
+import { requireAuth, requirePermission } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 import { toActionResponse } from "@/lib/errors";
 
@@ -31,6 +33,16 @@ import {
   UpdateUserSchema,
   UserPageQuerySchema,
 } from "./schemas";
+
+export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
+  await requireAuth();
+  return getActiveUsers();
+}
+
+export async function getSessionUserIdAction(): Promise<string> {
+  const session = await requireAuth();
+  return session.id;
+}
 
 export async function getUsersPaginatedAction(
   params: z.input<typeof UserPageQuerySchema>,

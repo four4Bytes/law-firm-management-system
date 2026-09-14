@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { ReviewDecision, TaskAssignmentStatus } from "@/generated/prisma/browser";
 
-import { resolveAssigneeDisplayRows, resolveReviewerDisplayRows } from "../display";
+import {
+  resolveAssigneeDisplayRows,
+  resolveReviewerDisplayRows,
+  withLockedReviewer,
+} from "../display";
 
 const users = [
   { id: "user-1", name: "Alice" },
@@ -150,5 +154,22 @@ describe("resolveReviewerDisplayRows", () => {
     });
 
     expect(rows).toEqual([]);
+  });
+});
+
+describe("withLockedReviewer", () => {
+  it("re-adds the creator when a toggle drops them", () => {
+    expect(withLockedReviewer(new Set(["user-2"]), "user-1")).toEqual(
+      new Set(["user-2", "user-1"]),
+    );
+  });
+
+  it("returns the same set when the creator is already present", () => {
+    const ids = new Set(["user-1", "user-2"]);
+    expect(withLockedReviewer(ids, "user-1")).toBe(ids);
+  });
+
+  it("locks the creator into an empty selection", () => {
+    expect(withLockedReviewer(new Set(), "user-1")).toEqual(new Set(["user-1"]));
   });
 });

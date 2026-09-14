@@ -11,8 +11,9 @@ import { updateTaskAction, type TaskCapabilities } from "@/features/tasks/action
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { useTaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
-import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
+import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";

@@ -3,8 +3,9 @@
 import { TextField } from "@/components/ui/TextField/TextField";
 import type { TaskCapabilities } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
-import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
+import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { createFieldValidator } from "@/lib/form-utils";
 
 export interface TaskMetadataFieldsProps {
@@ -66,7 +67,7 @@ export function TaskMetadataFields({
         onReviewerIdsChange={onReviewerIdsChange}
         assigneeSnapshot={task.assignTo}
         reviewerSnapshot={task.reviewers}
-        createdByUserId={task.created_by_user_id}
+        creatorUserId={task.created_by_user_id}
         isAssigneeDisabled={isPending || !capabilities.canEdit}
         isReviewerDisabled={isPending || !capabilities.canManageReviewers}
         validate={fieldValidator}

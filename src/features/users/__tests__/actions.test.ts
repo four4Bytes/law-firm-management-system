@@ -1,19 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
-import { countActiveAdminsAndDevs, getUserByEmail, getUserById } from "@/features/users/queries";
+import {
+  countActiveAdminsAndDevs,
+  getActiveUsers,
+  getUserByEmail,
+  getUserById,
+} from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
-import { requirePermission } from "@/lib/auth-guards";
+import { requireAuth, requirePermission } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 import { UnauthorizedError } from "@/lib/errors";
 
-import { createUserAction, deactivateUserAction, updateUserAction } from "../actions";
+import {
+  createUserAction,
+  deactivateUserAction,
+  getActiveUsersAction,
+  getSessionUserIdAction,
+  updateUserAction,
+} from "../actions";
 
 vi.mock("next/server", () => ({
   after: vi.fn(),
 }));
 
 vi.mock("@/lib/auth-guards", () => ({
+  requireAuth: vi.fn(),
   requirePermission: vi.fn(),
 }));
 
@@ -25,6 +37,7 @@ vi.mock("@/features/users/queries", () => ({
   getUserById: vi.fn(),
   getUserByEmail: vi.fn(),
   countActiveAdminsAndDevs: vi.fn(),
+  getActiveUsers: vi.fn(),
 }));
 
 vi.mock("@/features/users/mutations", () => ({
@@ -420,5 +433,23 @@ describe("deactivateUserAction", () => {
     const result = await deactivateUserAction({ userId: uuid });
 
     expect(result).toEqual({ success: true, data: { selfDeactivated: true } });
+  });
+});
+
+describe("getActiveUsersAction", () => {
+  it("returns the active user directory", async () => {
+    vi.mocked(requireAuth).mockResolvedValue(sessionAdmin);
+    vi.mocked(getActiveUsers).mockResolvedValue([{ id: "u1", name: "Alice" }]);
+
+    await expect(getActiveUsersAction()).resolves.toEqual([{ id: "u1", name: "Alice" }]);
+    expect(getActiveUsers).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getSessionUserIdAction", () => {
+  it("returns the session user id", async () => {
+    vi.mocked(requireAuth).mockResolvedValue(sessionAdmin);
+
+    await expect(getSessionUserIdAction()).resolves.toBe("admin-id");
   });
 });

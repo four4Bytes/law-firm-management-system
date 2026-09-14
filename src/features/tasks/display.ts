@@ -66,6 +66,11 @@ export interface ReviewerDisplayPayload {
   createdByUserId?: string;
 }
 
+export function withLockedReviewer(ids: Set<string>, creatorUserId: string): Set<string> {
+  if (ids.has(creatorUserId)) return ids;
+  return new Set([...ids, creatorUserId]);
+}
+
 export function resolveAssigneeDisplayRows(
   payload: AssigneeDisplayPayload,
 ): TaskMemberDisplayRow[] {

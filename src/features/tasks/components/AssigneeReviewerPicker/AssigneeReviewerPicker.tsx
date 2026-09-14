@@ -2,10 +2,15 @@
 
 import { useMemo } from "react";
 
-import { resolveAssigneeDisplayRows, resolveReviewerDisplayRows } from "@/features/tasks/display";
-import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
+import {
+  resolveAssigneeDisplayRows,
+  resolveReviewerDisplayRows,
+  withLockedReviewer,
+} from "@/features/tasks/display";
+import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import type { ActiveUserSummary } from "@/features/users/queries";
 
 import styles from "./AssigneeReviewerPicker.module.css";
 
@@ -18,9 +23,9 @@ export interface AssigneeReviewerPickerProps {
   onAssigneeIdsChange: (ids: Set<string>) => void;
   reviewerIds: Set<string>;
   onReviewerIdsChange: (ids: Set<string>) => void;
+  creatorUserId: string;
   assigneeSnapshot?: TaskDetailRow["assignTo"];
   reviewerSnapshot?: TaskDetailRow["reviewers"];
-  createdByUserId?: string;
   isAssigneeDisabled: boolean;
   isReviewerDisabled: boolean;
   assigneeLabel?: string;
@@ -34,9 +39,9 @@ export function AssigneeReviewerPicker({
   onAssigneeIdsChange,
   reviewerIds,
   onReviewerIdsChange,
+  creatorUserId,
   assigneeSnapshot = EMPTY_ASSIGNEE_SNAPSHOT,
   reviewerSnapshot = EMPTY_REVIEWER_SNAPSHOT,
-  createdByUserId,
   isAssigneeDisabled,
   isReviewerDisabled,
   assigneeLabel = "Assignees",
@@ -54,10 +59,22 @@ export function AssigneeReviewerPicker({
         users,
         selectedIds: reviewerIds,
         snapshot: reviewerSnapshot,
-        createdByUserId,
+        createdByUserId: creatorUserId,
       }),
-    [users, reviewerIds, reviewerSnapshot, createdByUserId],
+    [users, reviewerIds, reviewerSnapshot, creatorUserId],
   );
+  const assigneeDisabledKeys = useMemo(
+    () => new Set([...reviewerIds, creatorUserId]),
+    [reviewerIds, creatorUserId],
+  );
+  const reviewerDisabledKeys = useMemo(
+    () => new Set([...assigneeIds, creatorUserId]),
+    [assigneeIds, creatorUserId],
+  );
+
+  function handleReviewerIdsChange(next: Set<string>): void {
+    onReviewerIdsChange(withLockedReviewer(next, creatorUserId));
+  }
 
   return (
     <div className={styles.picker}>
@@ -68,7 +85,7 @@ export function AssigneeReviewerPicker({
           onChange={onAssigneeIdsChange}
           isDisabled={isAssigneeDisabled}
           label={assigneeLabel}
-          disabledKeys={reviewerIds}
+          disabledKeys={assigneeDisabledKeys}
           validate={validate}
         />
         <UserList users={assigneeRows} emptyText="No assignees" />
@@ -77,11 +94,11 @@ export function AssigneeReviewerPicker({
         <UserSelect
           users={users}
           selectedIds={reviewerIds}
-          onChange={onReviewerIdsChange}
+          onChange={handleReviewerIdsChange}
           isDisabled={isReviewerDisabled}
           label={reviewerLabel}
           placeholder="Select reviewers..."
-          disabledKeys={assigneeIds}
+          disabledKeys={reviewerDisabledKeys}
         />
         <UserList users={reviewerRows} emptyText="No reviewers" />
       </div>

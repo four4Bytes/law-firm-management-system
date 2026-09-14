@@ -20,10 +20,10 @@ import {
   ConsultationWithClientUpdatePayload,
   ConsultationWithClientUpdatePayloadSchema,
 } from "@/features/consultations/schemas";
-import { getActiveUsersAction } from "@/features/tasks/actions";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { getActiveUsersAction } from "@/features/users/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";

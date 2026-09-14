@@ -10,8 +10,8 @@ import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
 import type { ConsultationRow } from "@/features/consultations/queries";
-import { getActiveUsersAction } from "@/features/tasks/actions";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { getActiveUsersAction } from "@/features/users/actions";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/date";
 import { can } from "@/lib/rbac";

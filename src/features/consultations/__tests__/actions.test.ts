@@ -132,6 +132,7 @@ describe("getConsultationForEditAction", () => {
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled" as const,
       assignee_ids: [],
+      assignees: [],
     };
     vi.mocked(getConsultationEditData).mockResolvedValue(editData);
 
@@ -276,6 +277,7 @@ describe("updateConsultationAction", () => {
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
       assignee_ids: [],
+      assignees: [],
     });
 
     expect(await updateConsultationAction(validPayload)).toEqual({ success: true });
@@ -291,6 +293,7 @@ describe("updateConsultationAction", () => {
       booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
       status: "Scheduled",
       assignee_ids: [],
+      assignees: [],
     });
 
     expect(await updateConsultationAction(validPayload)).toEqual({ success: true });
@@ -313,6 +316,7 @@ describe("updateConsultationAction", () => {
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(prisma.consultation.update).mockRejectedValue(new Error("db error"));
 
@@ -360,6 +364,7 @@ describe("deleteConsultationAction", () => {
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
       assignee_ids: [],
+      assignees: [],
     });
 
     expect(await deleteConsultationAction({ consultationId: uuid })).toEqual({ success: true });
@@ -378,6 +383,7 @@ describe("deleteConsultationAction", () => {
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(deleteDocumentFiles).mockRejectedValue(new Error("S3 unavailable"));
 
@@ -399,6 +405,7 @@ describe("deleteConsultationAction", () => {
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(prisma.consultation.delete).mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError("Record not found", {
@@ -462,6 +469,7 @@ describe("authorization guards for non-Admin users", () => {
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
       assignee_ids: [],
+      assignees: [],
     });
   });
 
@@ -525,6 +533,7 @@ describe("updateConsultationAction notification split", () => {
     booking_datetime: consultationRecord.booking_datetime,
     status: "Scheduled" as const,
     assignee_ids: [assignee1, assignee2],
+    assignees: [],
   };
 
   beforeEach(() => {

@@ -10,8 +10,8 @@ import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
 import type { CaseRow } from "@/features/cases/queries";
-import { getActiveUsersAction } from "@/features/tasks/actions";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { getActiveUsersAction } from "@/features/users/actions";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus, type Role } from "@/generated/prisma/browser";
 import { can } from "@/lib/rbac";
 import { toastError } from "@/lib/toast-utils";

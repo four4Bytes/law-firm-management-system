@@ -1,16 +1,11 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import type { NoteRow } from "@/features/notes/queries";
 import type { TaskRow } from "@/features/tasks/queries";
 import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
-import type { PageQuery } from "@/lib/types";
-
-export interface CasePageQuery extends PageQuery {
-  caseId: string;
-}
+import type { CasePageQuery, PageQuery } from "@/lib/types";
 
 const caseSelect = {
   id: true,
@@ -242,92 +237,6 @@ export const getCaseTasksPaginated = cache(
   },
 );
 
-// ----- Notes -----
-
-export const getCaseNotesPaginated = cache(
-  async ({
-    caseId,
-    search = "",
-    cursor,
-    pageSize = 20,
-  }: CasePageQuery): Promise<{
-    rows: NoteRow[];
-    nextCursor: string | null;
-  }> => {
-    const where = {
-      case_id: caseId,
-      ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
-    };
-
-    const orderBy = { created_at: "desc" } as const;
-
-    const notes = await prisma.note.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy,
-      include: {
-        createdBy: { select: { name: true } },
-      },
-    });
-
-    const hasMore = notes.length > pageSize;
-    if (hasMore) notes.pop();
-
-    const rows: NoteRow[] = notes.map((n) => ({
-      id: n.id,
-      content: n.content,
-      author: n.createdBy.name,
-      created_at: n.created_at,
-    }));
-
-    return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
-  },
-);
-
-export const getCaseNotesWithTaskNotesPaginated = cache(
-  async ({
-    caseId,
-    search = "",
-    cursor,
-    pageSize = 20,
-  }: CasePageQuery): Promise<{
-    rows: NoteRow[];
-    nextCursor: string | null;
-  }> => {
-    const where = {
-      OR: [{ case_id: caseId }, { task: { case_id: caseId } }],
-      ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
-    };
-
-    const orderBy = [{ created_at: "desc" as const }, { id: "asc" as const }];
-
-    const notes = await prisma.note.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy,
-      include: {
-        createdBy: { select: { name: true } },
-      },
-    });
-
-    const hasMore = notes.length > pageSize;
-    if (hasMore) notes.pop();
-
-    const rows: NoteRow[] = notes.map((n) => ({
-      id: n.id,
-      content: n.content,
-      author: n.createdBy.name,
-      created_at: n.created_at,
-    }));
-
-    return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
-  },
-);
-
 // ----- Milestones -----
 
 export type CaseMilestoneListRow = Pick<
@@ -407,7 +316,7 @@ export type CaseEditData = Pick<
   | "status"
   | "parties_involved"
   | "source_consultation_id"
-> & { assignee_ids: string[] };
+> & { assignee_ids: string[]; assignees: { id: string; name: string }[] };
 
 export const getCaseBySourceConsultationId = cache(
   async (sourceConsultationId: string): Promise<{ id: string } | null> => {
@@ -430,7 +339,7 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
       parties_involved: true,
       source_consultation_id: true,
       caseAssignments: {
-        select: { user_id: true },
+        select: { user_id: true, user: { select: { id: true, name: true } } },
       },
     },
   });
@@ -446,6 +355,7 @@ export const getCaseEditData = cache(async (id: string): Promise<CaseEditData | 
     parties_involved: data.parties_involved,
     source_consultation_id: data.source_consultation_id,
     assignee_ids: data.caseAssignments.map((a) => a.user_id),
+    assignees: data.caseAssignments.map((a) => ({ id: a.user.id, name: a.user.name })),
   };
 });
 

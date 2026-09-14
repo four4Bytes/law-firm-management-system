@@ -13,8 +13,9 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createConsultationWithClientAction } from "@/features/consultations/actions";
 import { ConsultationWithClientCreatePayloadSchema } from "@/features/consultations/schemas";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { combineDateTime } from "@/lib/date";
 import {
@@ -222,6 +223,9 @@ export function AddConsultationModal({
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />
+            {assigneeIds.size > 0 && (
+              <UserChips users={users.filter((user) => assigneeIds.has(user.id))} />
+            )}
           </div>
         </div>
         <div className={styles.actions}>

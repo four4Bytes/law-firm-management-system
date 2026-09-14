@@ -33,20 +33,19 @@ enum CaseStatus {
 
 enum TaskStatus {
   Pending
-  Submitted
-  Completed
-  Cancelled
+  InReview
+  Done
 }
 
 enum ReviewDecision {
   Pending
-  Accepted
+  Approved
   Rejected
 }
 
 enum TaskAssignmentStatus {
-  Pending
-  Submitted
+  Todo
+  Done
 }
 
 enum CaseMilestoneStatus {
@@ -251,7 +250,7 @@ model TaskAssignment {
   id         String               @id @default(uuid()) @db.Uuid
   task_id    String               @db.Uuid
   user_id    String               @db.Uuid
-  status     TaskAssignmentStatus @default(Pending)
+  status     TaskAssignmentStatus @default(Todo)
   created_at DateTime             @default(now())
   updated_at DateTime             @updatedAt
 

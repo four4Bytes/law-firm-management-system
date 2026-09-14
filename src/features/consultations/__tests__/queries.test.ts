@@ -513,7 +513,7 @@ describe("getConsultationEditData", () => {
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
     last_reminded_at: null,
-    consultationAssignments: [{ user_id: "u1" }],
+    consultationAssignments: [{ user_id: "u1", user: { id: "u1", name: "Active User" } }],
   };
 
   it("returns the mapped consultation edit data", async () => {
@@ -527,6 +527,7 @@ describe("getConsultationEditData", () => {
       concern: "Legal advice",
       status: "Scheduled",
       assignee_ids: ["u1"],
+      assignees: [{ id: "u1", name: "Active User" }],
     });
     expect(prisma.consultation.findUnique).toHaveBeenCalledWith({
       where: { id: "1" },
@@ -537,7 +538,7 @@ describe("getConsultationEditData", () => {
         booking_datetime: true,
         status: true,
         consultationAssignments: {
-          select: { user_id: true },
+          select: { user_id: true, user: { select: { id: true, name: true } } },
         },
       },
     });
@@ -546,13 +547,22 @@ describe("getConsultationEditData", () => {
   it("includes assignee ids of inactive users", async () => {
     const record = {
       ...consultationEditRecord,
-      consultationAssignments: [{ user_id: "u1" }, { user_id: "u9" }],
+      consultationAssignments: [
+        { user_id: "u1", user: { id: "u1", name: "Active User" } },
+        { user_id: "u9", user: { id: "u9", name: "Inactive User" } },
+      ],
     };
     vi.mocked(prisma.consultation.findUnique).mockResolvedValue(record);
 
     const result = await getConsultationEditData("1");
 
-    expect(result).toMatchObject({ assignee_ids: ["u1", "u9"] });
+    expect(result).toMatchObject({
+      assignee_ids: ["u1", "u9"],
+      assignees: [
+        { id: "u1", name: "Active User" },
+        { id: "u9", name: "Inactive User" },
+      ],
+    });
   });
 
   it("returns null when the consultation is not found", async () => {

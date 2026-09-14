@@ -1,5 +1,7 @@
 "use client";
 
+import clsx from "clsx";
+
 import { Button } from "@/components/ui/Button/Button";
 import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/TaskStatusBadge";
 import type { TaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
@@ -35,7 +37,7 @@ export function TaskWorkflowSection({
 
   return (
     <>
-      <div className={styles.section}>
+      <div className={clsx(styles.section, styles.sectionInline)}>
         <span className={styles.label}>Status</span>
         <TaskStatusBadge status={localStatus} hint={statusHint} />
       </div>

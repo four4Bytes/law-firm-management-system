@@ -64,7 +64,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             <span className={styles.label}>Reviewers</span>
             <UserList users={reviewerRows} />
           </div>
-          <div className={styles.field}>
+          <div className={clsx(styles.field, styles.fieldInline)}>
             <span className={styles.label}>Status</span>
             <TaskStatusBadge status={task.status} taskForHint={task} />
           </div>

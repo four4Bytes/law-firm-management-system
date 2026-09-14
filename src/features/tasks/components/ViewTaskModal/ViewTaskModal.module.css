@@ -30,6 +30,13 @@
     gap: var(--space-xs);
   }
 
+  .fieldInline {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
   .fillField {
     flex: 1;
     min-height: 0;

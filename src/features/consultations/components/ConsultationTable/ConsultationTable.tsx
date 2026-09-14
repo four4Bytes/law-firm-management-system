@@ -3,41 +3,43 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
-import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
+import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
-import { getCasesPaginatedAction } from "@/features/cases/actions";
-import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
-import type { CaseRow } from "@/features/cases/queries";
+import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
+import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
+import type { ConsultationRow } from "@/features/consultations/queries";
 import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { CaseStatus, type Role } from "@/generated/prisma/browser";
+import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
+import { formatDateTime } from "@/lib/date";
 import { can } from "@/lib/rbac";
 import { toastError } from "@/lib/toast-utils";
 
-const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
-  Open: "info",
-  Closed: "done",
-  Terminated: "danger",
-  Settled: "info",
+const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
+  Scheduled: "info",
+  Completed: "done",
+  Accepted: "accent",
+  Rejected: "danger",
+  Cancelled: "cancelled",
 };
 
-const columns: ColumnDef<CaseRow>[] = [
+const columns: ColumnDef<ConsultationRow>[] = [
   {
-    id: "case_title",
-    name: "Case Title",
+    id: "clientName",
+    name: "Client Name",
     isRowHeader: true,
     allowsSorting: true,
   },
   {
-    id: "clientName",
-    name: "Client Name",
+    id: "concern",
+    name: "Concern",
     allowsSorting: true,
   },
   {
-    id: "case_type",
-    name: "Type",
+    id: "createdByName",
+    name: "Created By",
     allowsSorting: true,
   },
   {
@@ -45,8 +47,13 @@ const columns: ColumnDef<CaseRow>[] = [
     name: "Assign To",
   },
   {
-    id: "latestMilestone",
-    name: "Latest Milestone",
+    id: "booking_datetime",
+    name: "Date & Time",
+    allowsSorting: true,
+    render: (value) => {
+      const date = value as Date;
+      return formatDateTime(date);
+    },
   },
   {
     id: "status",
@@ -55,24 +62,30 @@ const columns: ColumnDef<CaseRow>[] = [
     render: (value) => {
       const status = value as string | null;
       if (!status) return null;
-      return <StatusBadge variant={statusClassMap[status as CaseStatus]}>{status}</StatusBadge>;
+      return (
+        <StatusBadge variant={statusClassMap[status as ConsultationStatus]}>{status}</StatusBadge>
+      );
     },
   },
 ];
 
-interface CaseTableProps {
-  initialCases?: CaseRow[];
+interface ConsultationTableProps {
+  initialConsultations?: ConsultationRow[];
   initialCursor?: string | null;
   userRole: Role | null;
 }
 
-export function CaseTable({ initialCases, initialCursor, userRole }: CaseTableProps) {
+export function ConsultationTable({
+  initialConsultations,
+  initialCursor,
+  userRole,
+}: ConsultationTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
-  const canCreate = can(userRole, "case.create");
+  const canCreate = can(userRole, "consultation.create");
 
   const openAddModal = useCallback(async () => {
     try {
@@ -91,35 +104,35 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
     <>
       <ServerDataTable
         fetchAction={async (p) => {
-          const result = await getCasesPaginatedAction(p);
-          return { rows: result.cases, nextCursor: result.nextCursor };
+          const result = await getConsultationsPaginatedAction(p);
+          return { rows: result.consultations, nextCursor: result.nextCursor };
         }}
         columns={columns}
-        initialRows={initialCases}
+        initialRows={initialConsultations}
         initialCursor={initialCursor}
-        searchPlaceholder="Search cases..."
-        emptyContent="No cases yet"
-        loadingMessage="Loading cases..."
-        searchLabel="Search cases"
+        searchPlaceholder="Search consultations..."
+        emptyContent="No consultations yet"
+        loadingMessage="Loading consultations..."
+        searchLabel="Search consultations"
         selectionMode="single"
         selectionBehavior="replace"
         onRowAction={(id) => {
           startLoading();
-          router.push(`/case/${id}`);
+          router.push(`/consultation/${id}`);
         }}
         renderAddButton={canCreate}
-        addButtonLabel="Add Case"
+        addButtonLabel="Add Consultation"
         onAddButtonPress={openAddModal}
       />
 
       {isAddOpen && (
-        <AddCaseModal
+        <AddConsultationModal
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
-          onSuccess={(caseId) => {
+          onSuccess={(consultationId) => {
             setIsAddOpen(false);
             startLoading();
-            router.push(`/case/${caseId}`);
+            router.push(`/consultation/${consultationId}`);
           }}
           users={users}
         />

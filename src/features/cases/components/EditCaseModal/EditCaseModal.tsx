@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
@@ -12,8 +12,9 @@ import { updateCaseWithClientAction } from "@/features/cases/actions";
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
   createFieldValidator,
@@ -55,6 +56,14 @@ export function EditCaseModal({
   const [status, setStatus] = useState<CaseStatus>(caseData.status as CaseStatus);
   const [partiesInvolved, setPartiesInvolved] = useState(caseData.parties_involved ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(caseData.assignee_ids));
+
+  const assigneeOptions = useMemo(() => {
+    const directoryIds = new Set(users.map((user) => user.id));
+    const missing = caseData.assignees.filter(
+      (assignee) => assigneeIds.has(assignee.id) && !directoryIds.has(assignee.id),
+    );
+    return [...users, ...missing];
+  }, [users, assigneeIds, caseData.assignees]);
 
   const { isPending, submitForm } = useModalForm<z.input<typeof CaseWithClientUpdatePayloadSchema>>(
     {
@@ -178,11 +187,14 @@ export function EditCaseModal({
               ))}
             </Select>
             <UserSelect
-              users={users}
+              users={assigneeOptions}
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={isPending}
             />
+            {assigneeIds.size > 0 && (
+              <UserChips users={assigneeOptions.filter((user) => assigneeIds.has(user.id))} />
+            )}
             <TextField
               label="Parties Involved"
               value={partiesInvolved}

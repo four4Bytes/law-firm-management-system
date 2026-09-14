@@ -127,6 +127,7 @@ beforeEach(() => {
     parties_involved: null,
     source_consultation_id: null,
     assignee_ids: [],
+    assignees: [],
   });
 });
 
@@ -143,6 +144,7 @@ describe("getCaseForEditAction", () => {
       parties_involved: null,
       source_consultation_id: null,
       assignee_ids: [],
+      assignees: [],
     });
     expect(getCaseEditData).toHaveBeenCalledWith(uuid);
   });
@@ -367,6 +369,7 @@ describe("deleteCaseAction", () => {
       parties_involved: null,
       status: "Open",
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(deleteCase).mockRejectedValue(new Error("S3 unavailable"));
 
@@ -452,6 +455,7 @@ describe("authorization guards for non-Admin users", () => {
       parties_involved: null,
       source_consultation_id: null,
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(updateCase).mockResolvedValue({ id: uuid });
 
@@ -471,6 +475,7 @@ describe("authorization guards for non-Admin users", () => {
       parties_involved: null,
       source_consultation_id: null,
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(updateCaseWithClient).mockResolvedValue({ id: uuid });
 
@@ -490,6 +495,7 @@ describe("authorization guards for non-Admin users", () => {
       parties_involved: null,
       source_consultation_id: null,
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(deleteCase).mockResolvedValue({ id: uuid });
 
@@ -523,6 +529,7 @@ describe("updateCaseAction notification split", () => {
       parties_involved: null,
       source_consultation_id: null,
       assignee_ids: [assignee1, assignee2],
+      assignees: [],
     });
     vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee1, assignee2, assignee3]);
     vi.mocked(updateCase).mockResolvedValue({ id: uuid });
@@ -558,6 +565,7 @@ describe("updateCaseAction notification split", () => {
       parties_involved: null,
       source_consultation_id: null,
       assignee_ids: [],
+      assignees: [],
     });
     vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee3]);
 

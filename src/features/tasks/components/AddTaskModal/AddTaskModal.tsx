@@ -10,10 +10,15 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
+import {
+  createFieldValidator,
+  firstIssueMessage,
+  optionalString,
+  requiredString,
+} from "@/lib/form-utils";
 import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/toast-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
@@ -25,6 +30,7 @@ interface AddTaskModalProps {
   onSuccess: () => void;
   caseId: string;
   users: ActiveUserSummary[];
+  currentUserId: string;
 }
 
 export function AddTaskModal({
@@ -33,11 +39,12 @@ export function AddTaskModal({
   onSuccess,
   caseId,
   users,
+  currentUserId,
 }: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
-  const [reviewerIds, setReviewerIds] = useState<Set<string>>(new Set());
+  const [reviewerIds, setReviewerIds] = useState<Set<string>>(() => new Set([currentUserId]));
   const [isPending, setIsPending] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
   const [addedReviewerIds, setAddedReviewerIds] = useState<Set<string>>(new Set());
@@ -49,7 +56,7 @@ export function AddTaskModal({
     setTitle("");
     setDescription("");
     setAssigneeIds(new Set());
-    setReviewerIds(new Set());
+    setReviewerIds(new Set([currentUserId]));
     setCreatedTaskId(null);
     setAddedReviewerIds(new Set());
     resetFiles();
@@ -75,7 +82,7 @@ export function AddTaskModal({
     if (!parsed.success) {
       toastError(
         "Failed to create task",
-        "Please review the highlighted form fields and try again.",
+        firstIssueMessage(parsed.error, "Please review the highlighted form fields and try again."),
       );
       return;
     }
@@ -101,7 +108,7 @@ export function AddTaskModal({
       if (reviewerIds.size > 0) {
         let reviewerFailed = false;
         for (const id of reviewerIds) {
-          if (addedReviewerIds.has(id)) continue;
+          if (id === currentUserId || addedReviewerIds.has(id)) continue;
           const result = await addTaskReviewerAction({ taskId, reviewerUserId: id });
           if (!result.success) {
             reviewerFailed = true;
@@ -178,6 +185,7 @@ export function AddTaskModal({
               onAssigneeIdsChange={setAssigneeIds}
               reviewerIds={reviewerIds}
               onReviewerIdsChange={setReviewerIds}
+              creatorUserId={currentUserId}
               isAssigneeDisabled={isPending}
               isReviewerDisabled={isPending}
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.assignee_ids)}

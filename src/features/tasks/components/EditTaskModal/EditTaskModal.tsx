@@ -10,11 +10,18 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { updateTaskAction, type TaskCapabilities } from "@/features/tasks/actions";
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
+import { withLockedReviewer } from "@/features/tasks/display";
 import { useTaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
-import type { ActiveUserSummary, TaskDetailRow } from "@/features/tasks/queries";
+import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
+import {
+  createFieldValidator,
+  firstIssueMessage,
+  optionalString,
+  requiredString,
+} from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
 import { TaskMetadataFields } from "./components/TaskMetadataFields/TaskMetadataFields";
@@ -43,8 +50,11 @@ export function EditTaskModal({
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
-  const [reviewerIds, setReviewerIds] = useState<Set<string>>(
-    new Set(task.reviewers.map((r) => r.reviewer_user_id)),
+  const [reviewerIds, setReviewerIds] = useState<Set<string>>(() =>
+    withLockedReviewer(
+      new Set(task.reviewers.map((r) => r.reviewer_user_id)),
+      task.created_by_user_id,
+    ),
   );
   const [isPending, setIsPending] = useState(false);
   const [pendingReviewerIds, setPendingReviewerIds] = useState<Set<string> | null>(null);
@@ -65,7 +75,10 @@ export function EditTaskModal({
   }
 
   const initialAssigneeIds = new Set(task.assignee_ids);
-  const initialReviewerIds = new Set(task.reviewers.map((r) => r.reviewer_user_id));
+  const initialReviewerIds = withLockedReviewer(
+    new Set(task.reviewers.map((r) => r.reviewer_user_id)),
+    task.created_by_user_id,
+  );
   const isDirty =
     title !== task.title ||
     description !== (task.description ?? "") ||
@@ -101,7 +114,10 @@ export function EditTaskModal({
         if (!parsed.success) {
           toastError(
             "Failed to update task",
-            "Please review the highlighted form fields and try again.",
+            firstIssueMessage(
+              parsed.error,
+              "Please review the highlighted form fields and try again.",
+            ),
           );
           return;
         }

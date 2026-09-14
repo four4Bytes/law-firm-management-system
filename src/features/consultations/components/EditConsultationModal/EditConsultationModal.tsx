@@ -2,7 +2,7 @@
 
 import { CalendarDate, Time } from "@internationalized/date";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
@@ -20,9 +20,10 @@ import {
   ConsultationWithClientUpdatePayload,
   ConsultationWithClientUpdatePayloadSchema,
 } from "@/features/consultations/schemas";
-import { getActiveUsersAction } from "@/features/tasks/actions";
-import type { ActiveUserSummary } from "@/features/tasks/queries";
+import { getActiveUsersAction } from "@/features/users/actions";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
+import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
@@ -82,6 +83,14 @@ export function EditConsultationModal({
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const router = useRouter();
+
+  const assigneeOptions = useMemo(() => {
+    const directoryIds = new Set(users.map((user) => user.id));
+    const missing = consultation.assignees.filter(
+      (assignee) => assigneeIds.has(assignee.id) && !directoryIds.has(assignee.id),
+    );
+    return [...users, ...missing];
+  }, [users, assigneeIds, consultation.assignees]);
 
   const previousStatus = consultation.status as ConsultationStatus;
 
@@ -291,11 +300,14 @@ export function EditConsultationModal({
                 ))}
               </Select>
               <UserSelect
-                users={users}
+                users={assigneeOptions}
                 selectedIds={assigneeIds}
                 onChange={setAssigneeIds}
                 isDisabled={isPending || isSaving}
               />
+              {assigneeIds.size > 0 && (
+                <UserChips users={assigneeOptions.filter((user) => assigneeIds.has(user.id))} />
+              )}
             </div>
           </div>
           <div className={styles.actions}>

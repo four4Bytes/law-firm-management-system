@@ -1,5 +1,4 @@
 import type { StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
-import type { TaskDetailRow } from "@/features/tasks/queries";
 import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 
 export interface TaskStatusHintInput {
@@ -31,18 +30,94 @@ export function getTaskStatusHint(task: TaskStatusHintInput): string {
   return "All approvals complete";
 }
 
-export interface ReviewerDisplayRow {
+export interface DirectoryUser {
+  id: string;
+  name: string;
+}
+
+export interface TaskMemberDisplayRow {
   id: string;
   name: string;
   status: string;
 }
 
-export function mapReviewersForDisplay(
-  task: Pick<TaskDetailRow, "created_by_user_id" | "reviewers">,
-): ReviewerDisplayRow[] {
-  return task.reviewers.map((r) => ({
-    id: r.id,
-    name: r.reviewer_user_id === task.created_by_user_id ? `${r.name} (creator)` : r.name,
-    status: r.decision,
-  }));
+export interface AssigneeSnapshot {
+  id: string;
+  name: string;
+  status: TaskAssignmentStatus;
+}
+
+export interface ReviewerSnapshot {
+  reviewer_user_id: string;
+  name: string;
+  decision: ReviewDecision;
+}
+
+export interface AssigneeDisplayPayload {
+  users: DirectoryUser[];
+  selectedIds: Set<string>;
+  snapshot: AssigneeSnapshot[];
+}
+
+export interface ReviewerDisplayPayload {
+  users: DirectoryUser[];
+  selectedIds: Set<string>;
+  snapshot: ReviewerSnapshot[];
+  createdByUserId?: string;
+}
+
+export function withLockedReviewer(ids: Set<string>, creatorUserId: string): Set<string> {
+  if (ids.has(creatorUserId)) return ids;
+  return new Set([...ids, creatorUserId]);
+}
+
+export function resolveAssigneeDisplayRows(
+  payload: AssigneeDisplayPayload,
+): TaskMemberDisplayRow[] {
+  const { users, selectedIds, snapshot } = payload;
+  const snapshotById = new Map(snapshot.map((entry) => [entry.id, entry]));
+  const directoryIds = new Set(users.map((user) => user.id));
+  const rows = users
+    .filter((user) => selectedIds.has(user.id))
+    .map((user) => {
+      const saved = snapshotById.get(user.id);
+      return {
+        id: user.id,
+        name: user.name,
+        status: saved?.status ?? TaskAssignmentStatus.Todo,
+      };
+    });
+  for (const id of selectedIds) {
+    if (!directoryIds.has(id)) {
+      const saved = snapshotById.get(id);
+      if (saved) rows.push({ id: saved.id, name: saved.name, status: saved.status });
+    }
+  }
+  return rows;
+}
+
+export function resolveReviewerDisplayRows(
+  payload: ReviewerDisplayPayload,
+): TaskMemberDisplayRow[] {
+  const { users, selectedIds, snapshot, createdByUserId } = payload;
+  const snapshotByUserId = new Map(snapshot.map((entry) => [entry.reviewer_user_id, entry]));
+  const directoryIds = new Set(users.map((user) => user.id));
+  const toRow = (id: string, name: string): TaskMemberDisplayRow => {
+    const saved = snapshotByUserId.get(id);
+    return {
+      id,
+      name: id === createdByUserId ? `${name} (creator)` : name,
+      status: saved?.decision ?? ReviewDecision.Pending,
+    };
+  };
+  const rows = users
+    .filter((user) => selectedIds.has(user.id))
+    .map((user) => toRow(user.id, user.name));
+  for (const id of selectedIds) {
+    if (!directoryIds.has(id)) {
+      const saved = snapshotByUserId.get(id);
+      if (saved) rows.push(toRow(id, saved.name));
+    }
+  }
+  return rows;
 }

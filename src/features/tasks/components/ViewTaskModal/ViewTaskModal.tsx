@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/TaskStatusBadge";
-import { mapReviewersForDisplay } from "@/features/tasks/display";
+import { resolveAssigneeDisplayRows, resolveReviewerDisplayRows } from "@/features/tasks/display";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
 
@@ -22,6 +22,20 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
   const hasFiles = true;
   const hasNotes = true;
   const noop = () => {};
+  const assigneeRows = resolveAssigneeDisplayRows({
+    users: task.assignTo,
+    selectedIds: new Set(task.assignTo.map((assignee) => assignee.id)),
+    snapshot: task.assignTo,
+  });
+  const reviewerRows = resolveReviewerDisplayRows({
+    users: task.reviewers.map((reviewer) => ({
+      id: reviewer.reviewer_user_id,
+      name: reviewer.name,
+    })),
+    selectedIds: new Set(task.reviewers.map((reviewer) => reviewer.reviewer_user_id)),
+    snapshot: task.reviewers,
+    createdByUserId: task.created_by_user_id,
+  });
 
   return (
     <Modal
@@ -44,13 +58,13 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
           )}
           <div className={styles.field}>
             <span className={styles.label}>Assignees</span>
-            <UserList users={task.assignTo} />
+            <UserList users={assigneeRows} />
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Reviewers</span>
-            <UserList users={mapReviewersForDisplay(task)} />
+            <UserList users={reviewerRows} />
           </div>
-          <div className={styles.field}>
+          <div className={clsx(styles.field, styles.fieldInline)}>
             <span className={styles.label}>Status</span>
             <TaskStatusBadge status={task.status} taskForHint={task} />
           </div>

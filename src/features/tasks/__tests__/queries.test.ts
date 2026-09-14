@@ -4,7 +4,6 @@ import type { TaskReviewer } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 import {
-  getActiveUsers,
   getTaskById,
   getTaskDetailRowById,
   getTaskReviewers,
@@ -15,7 +14,6 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     task: { findUnique: vi.fn() },
     taskReviewer: { findMany: vi.fn() },
-    user: { findMany: vi.fn() },
   },
 }));
 
@@ -189,35 +187,5 @@ describe("getTaskReviewers", () => {
     vi.mocked(prisma.taskReviewer.findMany).mockRejectedValue(error);
 
     await expect(getTaskReviewers("t1")).rejects.toThrow(error);
-  });
-});
-
-describe("getActiveUsers", () => {
-  it("returns active users", async () => {
-    vi.mocked(prisma.user.findMany).mockResolvedValue([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { id: "u1", name: "Alice" } as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { id: "u2", name: "Bob" } as any,
-    ]);
-
-    const result = await getActiveUsers();
-
-    expect(result).toEqual([
-      { id: "u1", name: "Alice" },
-      { id: "u2", name: "Bob" },
-    ]);
-    expect(prisma.user.findMany).toHaveBeenCalledWith({
-      where: { is_active: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
-  });
-
-  it("propagates database errors", async () => {
-    const error = new Error("connection failed");
-    vi.mocked(prisma.user.findMany).mockRejectedValue(error);
-
-    await expect(getActiveUsers()).rejects.toThrow(error);
   });
 });

@@ -60,11 +60,22 @@ export async function getNoteRowByIdAction(
     throw new ForbiddenError();
   }
 
+  const existing = await getNoteById(parsed.data.noteId);
+  const taskAccess = existing?.task_id
+    ? await getTaskAccessContext(session.id, existing.task_id)
+    : null;
+  if (taskAccess && !can(session.role, "task.read", taskAccess)) {
+    throw new ForbiddenError();
+  }
+
   const row = await getNoteRowById(parsed.data.noteId);
 
   return {
     row,
-    canUpdate: row !== null && can(session.role, "note.update", access),
+    canUpdate:
+      row !== null &&
+      can(session.role, "note.update", access) &&
+      (taskAccess === null || can(session.role, "task.update", taskAccess)),
   };
 }
 

@@ -138,6 +138,42 @@ describe("getNoteRowByIdAction", () => {
 
     expect(result).toEqual({ row: noteRow, canUpdate: true });
   });
+
+  it("throws Forbidden when task read is denied on a task note", async () => {
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid, case_id: null });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({ assigned: false, own: false });
+
+    await expect(getNoteRowByIdAction(uuid)).rejects.toThrow("Forbidden");
+  });
+
+  it("returns canUpdate=false when task update is denied on a task note", async () => {
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid, case_id: null });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await getNoteRowByIdAction(uuid);
+
+    expect(result).toEqual({ row: noteRow, canUpdate: false });
+  });
+
+  it("returns canUpdate=true when note and task update are both allowed", async () => {
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid, case_id: null });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+
+    const result = await getNoteRowByIdAction(uuid);
+
+    expect(result).toEqual({ row: noteRow, canUpdate: true });
+  });
 });
 
 describe("createNoteAction", () => {

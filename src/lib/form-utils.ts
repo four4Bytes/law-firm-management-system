@@ -216,3 +216,18 @@ export function createFieldValidator<S extends ZodType>(schema: S) {
     return result.error.issues[0]?.message ?? "Invalid value";
   };
 }
+
+/**
+ * Returns the first Zod issue message as a toast-ready sentence. Schema
+ * messages omit trailing periods, so one is appended to match the toast
+ * description convention ("complete sentences ending with a period").
+ *
+ * @param error - The failed `safeParse` error.
+ * @param fallback - Description used when the error carries no issues.
+ * @returns The first issue message, terminated with a period.
+ */
+export function firstIssueMessage(error: z.ZodError, fallback: string): string {
+  const [firstIssue] = error.issues;
+  const message = firstIssue?.message ?? fallback;
+  return message.endsWith(".") ? message : `${message}.`;
+}

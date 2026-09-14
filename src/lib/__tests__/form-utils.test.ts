@@ -6,6 +6,7 @@ import {
   coerceEnum,
   createFieldValidator,
   emailText,
+  firstIssueMessage,
   keysToSet,
   optionalString,
   optionalText,
@@ -213,5 +214,28 @@ describe("Zod message builders", () => {
       const validate = createFieldValidator(requiredText(5, "Title"));
       expect(validate("")).toBe("Title is required");
     });
+  });
+});
+
+describe("firstIssueMessage", () => {
+  it("returns the first issue message terminated with a period", () => {
+    const result = uniqueUuidArray("Assignee")
+      .min(1, "At least one assignee is required")
+      .safeParse([]);
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(firstIssueMessage(result.error, "Fallback.")).toBe("At least one assignee is required.");
+  });
+
+  it("keeps a trailing period when already present", () => {
+    const result = z.string().min(5, "Too short.").safeParse("abc");
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(firstIssueMessage(result.error, "Fallback.")).toBe("Too short.");
+  });
+
+  it("falls back when the error carries no issues", () => {
+    const error = new z.ZodError([]);
+    expect(firstIssueMessage(error, "Fallback.")).toBe("Fallback.");
   });
 });

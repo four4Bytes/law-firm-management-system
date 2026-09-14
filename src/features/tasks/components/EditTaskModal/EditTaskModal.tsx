@@ -15,7 +15,12 @@ import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
+import {
+  createFieldValidator,
+  firstIssueMessage,
+  optionalString,
+  requiredString,
+} from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
 import { TaskMetadataFields } from "./components/TaskMetadataFields/TaskMetadataFields";
@@ -102,7 +107,10 @@ export function EditTaskModal({
         if (!parsed.success) {
           toastError(
             "Failed to update task",
-            "Please review the highlighted form fields and try again.",
+            firstIssueMessage(
+              parsed.error,
+              "Please review the highlighted form fields and try again.",
+            ),
           );
           return;
         }

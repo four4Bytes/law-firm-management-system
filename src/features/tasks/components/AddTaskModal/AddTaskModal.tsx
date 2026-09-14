@@ -13,7 +13,12 @@ import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeRevi
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
+import {
+  createFieldValidator,
+  firstIssueMessage,
+  optionalString,
+  requiredString,
+} from "@/lib/form-utils";
 import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/toast-utils";
 import { useFileUpload } from "@/lib/useFileUpload";
 
@@ -77,7 +82,7 @@ export function AddTaskModal({
     if (!parsed.success) {
       toastError(
         "Failed to create task",
-        "Please review the highlighted form fields and try again.",
+        firstIssueMessage(parsed.error, "Please review the highlighted form fields and try again."),
       );
       return;
     }

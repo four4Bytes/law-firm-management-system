@@ -25,7 +25,11 @@ export const LimitSchema = z.coerce.number().int().min(1).max(100).optional();
 export const ClientDataSchema = z.object({
   name: requiredText(255, "Client name"),
   email: emailText("Email").optional(),
-  phone_number: requiredText(50, "Phone number"),
+  phone_number: z
+    .string()
+    .trim()
+    .min(1, "Phone number is required")
+    .regex(/^\d{11}$/, "Phone number must be exactly 11 digits"),
   address: optionalText(500, "Address"),
 });
 

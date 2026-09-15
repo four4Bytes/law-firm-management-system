@@ -39,15 +39,23 @@ const ConsultationDataSchema = z.object({
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
+const ConsultationClientDataSchema = ClientDataSchema.extend({
+  phone_number: z
+    .string()
+    .trim()
+    .min(1, "Phone number is required")
+    .regex(/^09\d{9}$/, "Phone number must be 11 digits starting with 09"),
+});
+
 export const ConsultationWithClientCreatePayloadSchema = z.object({
-  client: ClientDataSchema,
+  client: ConsultationClientDataSchema,
   consultation: ConsultationDataSchema,
 });
 
 export const ConsultationWithClientUpdatePayloadSchema = z.object({
   consultation_id: z.uuid(),
   client_id: z.uuid(),
-  client: ClientDataSchema,
+  client: ConsultationClientDataSchema,
   consultation: ConsultationDataSchema,
 });
 

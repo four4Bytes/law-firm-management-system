@@ -29,7 +29,8 @@ export const ClientDataSchema = z.object({
     .string()
     .trim()
     .min(1, "Phone number is required")
-    .regex(/^\d{11}$/, "Phone number must be exactly 11 digits"),
+    .regex(/^\d{11}$/, "Invalid input: it requires 11 digits")
+    .regex(/^09/, "Invalid input: first numbers must be 09"),
   address: optionalText(500, "Address"),
 });
 

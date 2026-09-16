@@ -28,8 +28,14 @@ describe("ClientDataSchema", () => {
     expect(field.safeParse("").error?.issues[0]?.message).toBe("Phone number is required");
     for (const value of ["12345", "123456789012", "abcdefghijk", "0917-000-001", "0917 000001"]) {
       expect(field.safeParse(value).error?.issues[0]?.message).toBe(
-        "Phone number must be exactly 11 digits",
+        "Invalid input: it requires 11 digits",
       );
     }
+  });
+
+  it("rejects 11-digit numbers not starting with 09", () => {
+    expect(
+      ClientDataSchema.shape.phone_number.safeParse("08170000001").error?.issues[0]?.message,
+    ).toBe("Invalid input: first numbers must be 09");
   });
 });

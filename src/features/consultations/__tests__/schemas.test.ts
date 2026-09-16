@@ -134,9 +134,18 @@ describe("ConsultationWithClientCreatePayloadSchema phone number", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe(
-        "Phone number must be 11 digits starting with 09",
-      );
+      expect(result.error.issues[0]?.message).toBe("Invalid input: first numbers must be 09");
+    }
+  });
+
+  it("rejects numbers that are not 11 digits", () => {
+    const result = ConsultationWithClientCreatePayloadSchema.safeParse({
+      ...base,
+      client: { ...base.client, phone_number: "12345" },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Invalid input: it requires 11 digits");
     }
   });
 });

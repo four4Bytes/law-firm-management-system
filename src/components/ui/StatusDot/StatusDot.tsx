@@ -7,10 +7,5 @@ interface StatusDotProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 export function StatusDot({ isOnline, className, ...props }: StatusDotProps) {
-  return (
-    <span
-      className={clsx(styles.dot, isOnline && styles.online, className)}
-      {...props}
-    />
-  );
+  return <span className={clsx(styles.dot, isOnline && styles.online, className)} {...props} />;
 }

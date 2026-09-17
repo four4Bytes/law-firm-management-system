@@ -69,8 +69,8 @@ export function Header({ userImage, userName, userRole, initialUnreadCount }: He
               ) : (
                 <FaUser className={styles.userIcon} />
               )}
-              <StatusDot isOnline={isOnline} />
             </span>
+            <StatusDot isOnline={isOnline} className={styles.badge} />
           </div>
           <div className={styles.nameRoleContainer}>
             {userName && <span className={styles.userName}>{userName}</span>}

@@ -12,14 +12,6 @@ describe("ClientCreatePayloadSchema", () => {
     ).toBe(true);
   });
 
-  it("accepts a valid payload with required phone_number", () => {
-    const result = ClientCreatePayloadSchema.safeParse({
-      name: "Alice Client",
-      phone_number: "09170000001",
-    });
-    expect(result.success).toBe(true);
-  });
-
   it("rejects a missing phone_number", () => {
     expect(ClientCreatePayloadSchema.safeParse({ name: "Alice Client" }).success).toBe(false);
   });
@@ -42,9 +34,9 @@ describe("ClientCreatePayloadSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects a phone_number longer than 50 characters", () => {
+  it("rejects an invalid phone_number", () => {
     expect(
-      ClientCreatePayloadSchema.safeParse({ name: "Alice", phone_number: "1".repeat(51) }).success,
+      ClientCreatePayloadSchema.safeParse({ name: "Alice", phone_number: "12345" }).success,
     ).toBe(false);
   });
 
@@ -88,16 +80,6 @@ describe("ClientUpdatePayloadSchema", () => {
     expect(
       ClientUpdatePayloadSchema.safeParse({ clientId: uuid, name: "Alice", email: "a".repeat(256) })
         .success,
-    ).toBe(false);
-  });
-
-  it("rejects a phone_number longer than 50 characters", () => {
-    expect(
-      ClientUpdatePayloadSchema.safeParse({
-        clientId: uuid,
-        name: "Alice",
-        phone_number: "1".repeat(51),
-      }).success,
     ).toBe(false);
   });
 

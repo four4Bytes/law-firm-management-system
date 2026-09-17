@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { emailText, optionalText, requiredText } from "@/lib/form-utils";
+import { emailText, optionalText, phoneNumberText, requiredText } from "@/lib/form-utils";
 
 /** Reusable Zod schemas for pagination, sorting, and embedded client data. */
 
@@ -25,12 +25,7 @@ export const LimitSchema = z.coerce.number().int().min(1).max(100).optional();
 export const ClientDataSchema = z.object({
   name: requiredText(255, "Client name"),
   email: emailText("Email").optional(),
-  phone_number: z
-    .string()
-    .trim()
-    .min(1, "Phone number is required")
-    .regex(/^\d{11}$/, "Invalid input: it requires 11 digits")
-    .regex(/^09/, "Invalid input: first numbers must be 09"),
+  phone_number: phoneNumberText(),
   address: optionalText(500, "Address"),
 });
 

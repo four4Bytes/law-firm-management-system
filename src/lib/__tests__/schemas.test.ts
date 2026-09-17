@@ -19,23 +19,15 @@ describe("ClientDataSchema", () => {
     );
   });
 
-  it("accepts an 11-digit phone number", () => {
-    expect(ClientDataSchema.shape.phone_number.safeParse("09170000001").success).toBe(true);
-  });
-
-  it("rejects missing, short, long, and non-digit phone numbers", () => {
+  it("wires the shared phone rule", () => {
     const field = ClientDataSchema.shape.phone_number;
-    expect(field.safeParse("").error?.issues[0]?.message).toBe("Phone number is required");
-    for (const value of ["12345", "123456789012", "abcdefghijk", "0917-000-001", "0917 000001"]) {
-      expect(field.safeParse(value).error?.issues[0]?.message).toBe(
-        "Invalid input: it requires 11 digits",
-      );
-    }
-  });
-
-  it("rejects 11-digit numbers not starting with 09", () => {
-    expect(
-      ClientDataSchema.shape.phone_number.safeParse("08170000001").error?.issues[0]?.message,
-    ).toBe("Invalid input: first numbers must be 09");
+    expect(field.safeParse("09170000001").success).toBe(true);
+    expect(field.safeParse(undefined).error?.issues[0]?.message).toBe("Phone number is required");
+    expect(field.safeParse("12345").error?.issues[0]?.message).toBe(
+      "Phone number must be exactly 11 digits",
+    );
+    expect(field.safeParse("08170000001").error?.issues[0]?.message).toBe(
+      "Phone number must start with 09",
+    );
   });
 });

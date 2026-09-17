@@ -10,6 +10,7 @@ import {
   keysToSet,
   optionalString,
   optionalText,
+  phoneNumberText,
   positiveNumber,
   requiredEnum,
   requiredString,
@@ -181,6 +182,40 @@ describe("Zod message builders", () => {
     it("reports an invalid-format message", () => {
       expect(schema.safeParse("not-an-email").error?.issues[0]?.message).toBe(
         "Enter a valid email",
+      );
+    });
+  });
+
+  describe("phoneNumberText", () => {
+    const schema = phoneNumberText();
+
+    it("accepts an 11-digit number starting with 09", () => {
+      expect(schema.safeParse("09170000001").success).toBe(true);
+    });
+
+    it("reports a required message for missing input", () => {
+      expect(schema.safeParse(undefined).error?.issues[0]?.message).toBe(
+        "Phone number is required",
+      );
+      expect(schema.safeParse("   ").error?.issues[0]?.message).toBe("Phone number is required");
+    });
+
+    it("reports a length message for non-11-digit input", () => {
+      expect(schema.safeParse("12345").error?.issues[0]?.message).toBe(
+        "Phone number must be exactly 11 digits",
+      );
+    });
+
+    it("reports a prefix message for 11 digits not starting with 09", () => {
+      expect(schema.safeParse("08170000001").error?.issues[0]?.message).toBe(
+        "Phone number must start with 09",
+      );
+    });
+
+    it("uses a custom label in messages", () => {
+      const labeled = phoneNumberText("Contact number");
+      expect(labeled.safeParse(undefined).error?.issues[0]?.message).toBe(
+        "Contact number is required",
       );
     });
   });

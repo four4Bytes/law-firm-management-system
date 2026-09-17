@@ -4,7 +4,6 @@ import {
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
   ConsultationUpdatePayloadSchema,
-  ConsultationWithClientCreatePayloadSchema,
 } from "../schemas";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -110,42 +109,5 @@ describe("ConsultationDeletePayloadSchema", () => {
     expect(ConsultationDeletePayloadSchema.safeParse({ consultationId: "abc" }).success).toBe(
       false,
     );
-  });
-});
-
-describe("ConsultationWithClientCreatePayloadSchema phone number", () => {
-  const base = {
-    client: { name: "John Doe", phone_number: "09170000001" },
-    consultation: {
-      concern: "Breach of contract",
-      booking_datetime: "2024-07-15T10:00:00.000Z",
-      status: "Scheduled",
-    },
-  };
-
-  it("accepts an 11-digit number starting with 09", () => {
-    expect(ConsultationWithClientCreatePayloadSchema.safeParse(base).success).toBe(true);
-  });
-
-  it("rejects numbers not starting with 09", () => {
-    const result = ConsultationWithClientCreatePayloadSchema.safeParse({
-      ...base,
-      client: { ...base.client, phone_number: "08170000001" },
-    });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Invalid input: first numbers must be 09");
-    }
-  });
-
-  it("rejects numbers that are not 11 digits", () => {
-    const result = ConsultationWithClientCreatePayloadSchema.safeParse({
-      ...base,
-      client: { ...base.client, phone_number: "12345" },
-    });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Invalid input: it requires 11 digits");
-    }
   });
 });

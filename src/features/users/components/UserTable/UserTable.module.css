@@ -71,3 +71,9 @@
 .roleProcessServer {
   background-color: var(--role-process-server);
 }
+
+.statusDotRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}

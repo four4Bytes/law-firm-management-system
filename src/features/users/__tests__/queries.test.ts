@@ -7,6 +7,7 @@ import {
   getUsers,
   getUsersPaginated,
 } from "@/features/users/queries";
+import { Role } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 
 vi.mock("@/lib/prisma", () => ({
@@ -20,6 +21,7 @@ const userSelect = {
   role: true,
   is_active: true,
   created_at: true,
+  last_seen_at: true,
 } as const;
 
 const mockUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -31,6 +33,7 @@ const mockUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
   is_active: true,
   created_at: new Date("2024-01-01"),
   updated_at: new Date("2024-01-01"),
+  last_seen_at: null,
   emailVerified: null,
   image: null,
   ...overrides,
@@ -49,7 +52,7 @@ describe("getUserByEmail", () => {
     });
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { email: "a@b.com" },
-      select: { id: true, role: true, is_active: true },
+      select: { id: true, role: true, is_active: true, last_seen_at: true },
     });
   });
 
@@ -240,22 +243,72 @@ describe("getActiveUserIds", () => {
 
 describe("getActiveUsers", () => {
   it("returns active users", async () => {
+    const fixedDate = new Date("2026-09-16T12:00:00.000Z");
+    const fixedDate2 = new Date("2026-09-16T12:00:01.000Z");
     vi.mocked(prisma.user.findMany).mockResolvedValue([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { id: "u1", name: "Alice" } as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { id: "u2", name: "Bob" } as any,
+      {
+        id: "u1",
+        name: "Alice",
+        email: "alice@test.com",
+        google_sub: null,
+        role: Role.Dev,
+        is_active: true,
+        created_at: fixedDate,
+        updated_at: fixedDate,
+        last_seen_at: null,
+        emailVerified: null,
+        image: null,
+      },
+      {
+        id: "u2",
+        name: "Bob",
+        email: "bob@test.com",
+        google_sub: null,
+        role: Role.Dev,
+        is_active: true,
+        created_at: fixedDate2,
+        updated_at: fixedDate2,
+        last_seen_at: null,
+        emailVerified: null,
+        image: null,
+      },
     ]);
 
     const result = await getActiveUsers();
 
     expect(result).toEqual([
-      { id: "u1", name: "Alice" },
-      { id: "u2", name: "Bob" },
+      {
+        id: "u1",
+        name: "Alice",
+        email: "alice@test.com",
+        google_sub: null,
+        role: Role.Dev,
+        is_active: true,
+        created_at: fixedDate,
+        updated_at: fixedDate,
+        last_seen_at: null,
+        emailVerified: null,
+        image: null,
+        is_online: false,
+      },
+      {
+        id: "u2",
+        name: "Bob",
+        email: "bob@test.com",
+        google_sub: null,
+        role: Role.Dev,
+        is_active: true,
+        created_at: fixedDate2,
+        updated_at: fixedDate2,
+        last_seen_at: null,
+        emailVerified: null,
+        image: null,
+        is_online: false,
+      },
     ]);
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: { is_active: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, last_seen_at: true },
       orderBy: { name: "asc" },
     });
   });

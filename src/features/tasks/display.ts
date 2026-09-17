@@ -33,12 +33,14 @@ export function getTaskStatusHint(task: TaskStatusHintInput): string {
 export interface DirectoryUser {
   id: string;
   name: string;
+  is_online?: boolean;
 }
 
 export interface TaskMemberDisplayRow {
   id: string;
   name: string;
   status: string;
+  is_online?: boolean;
 }
 
 export interface AssigneeSnapshot {
@@ -85,12 +87,14 @@ export function resolveAssigneeDisplayRows(
         id: user.id,
         name: user.name,
         status: saved?.status ?? TaskAssignmentStatus.Todo,
+        is_online: user.is_online,
       };
     });
   for (const id of selectedIds) {
     if (!directoryIds.has(id)) {
       const saved = snapshotById.get(id);
-      if (saved) rows.push({ id: saved.id, name: saved.name, status: saved.status });
+      if (saved)
+        rows.push({ id: saved.id, name: saved.name, status: saved.status, is_online: undefined });
     }
   }
   return rows;
@@ -102,21 +106,27 @@ export function resolveReviewerDisplayRows(
   const { users, selectedIds, snapshot, createdByUserId } = payload;
   const snapshotByUserId = new Map(snapshot.map((entry) => [entry.reviewer_user_id, entry]));
   const directoryIds = new Set(users.map((user) => user.id));
-  const toRow = (id: string, name: string): TaskMemberDisplayRow => {
-    const saved = snapshotByUserId.get(id);
+  const toRow = (user: DirectoryUser): TaskMemberDisplayRow => {
+    const saved = snapshotByUserId.get(user.id);
     return {
-      id,
-      name: id === createdByUserId ? `${name} (creator)` : name,
+      id: user.id,
+      name: user.id === createdByUserId ? `${user.name} (creator)` : user.name,
       status: saved?.decision ?? ReviewDecision.Pending,
+      is_online: user.is_online,
     };
   };
-  const rows = users
-    .filter((user) => selectedIds.has(user.id))
-    .map((user) => toRow(user.id, user.name));
+  const rows = users.filter((user) => selectedIds.has(user.id)).map(toRow);
   for (const id of selectedIds) {
     if (!directoryIds.has(id)) {
       const saved = snapshotByUserId.get(id);
-      if (saved) rows.push(toRow(id, saved.name));
+      if (saved) {
+        rows.push({
+          id: saved.reviewer_user_id,
+          name: id === createdByUserId ? `${saved.name} (creator)` : saved.name,
+          status: saved.decision,
+          is_online: undefined,
+        });
+      }
     }
   }
   return rows;

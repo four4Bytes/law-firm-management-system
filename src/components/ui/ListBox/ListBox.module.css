@@ -144,3 +144,27 @@
     flex-shrink: 0;
   }
 }
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+  flex-shrink: 0;
+  margin-right: var(--space-xs);
+}
+
+.online {
+  background-color: #22c55e;
+}
+
+.offline {
+  background-color: #9ca3af;
+}
+
+.dotRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}

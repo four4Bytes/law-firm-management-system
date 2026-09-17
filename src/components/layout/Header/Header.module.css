@@ -73,6 +73,12 @@
         line-height: var(--line-height-tight);
         gap: 0px;
 
+        .statusDotWrapper {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+        }
+
         .userName {
           font-size: var(--font-size-sm);
           font-weight: var(--font-weight-medium);

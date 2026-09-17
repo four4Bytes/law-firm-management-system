@@ -68,7 +68,11 @@ export function DropdownListBox<T extends object>({
   );
 }
 
-export function DropdownItem({ className, ...props }: AriaListBoxItemProps) {
+export function DropdownItem({
+  className,
+  isOnline,
+  ...props
+}: AriaListBoxItemProps & { isOnline?: boolean }) {
   const textValue =
     props.textValue || (typeof props.children === "string" ? props.children : undefined);
   return (
@@ -79,8 +83,16 @@ export function DropdownItem({ className, ...props }: AriaListBoxItemProps) {
     >
       {composeRenderProps(props.children, (children, { isSelected }) => (
         <>
+          <span className={styles.dotRow}>
+            {isOnline !== undefined && (
+              <span
+                className={clsx(styles.dot, isOnline ? styles.online : styles.offline)}
+                aria-hidden="true"
+              />
+            )}
+            {typeof children === "string" ? <Text slot="label">{children}</Text> : children}
+          </span>
           {isSelected && <FaCheck className={styles.checkIcon} />}
-          {typeof children === "string" ? <Text slot="label">{children}</Text> : children}
         </>
       ))}
     </AriaListBoxItem>

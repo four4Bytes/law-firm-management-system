@@ -186,6 +186,23 @@ export function emailText(label: string) {
 }
 
 /**
+ * Builds a required Philippine mobile number schema (11 digits starting with
+ * `09`) with user-facing messages for missing, malformed, and mistyped values.
+ *
+ * @param label - Human-readable field name (capitalized, e.g. "Phone number").
+ * @returns A Zod string schema.
+ */
+export function phoneNumberText(label = "Phone number"): z.ZodString {
+  return z
+    .string({ error: `${label} is required` })
+    .trim()
+    .min(1, `${label} is required`)
+    .max(11, `${label} must be exactly 11 digits`)
+    .regex(/^\d{11}$/, `${label} must be exactly 11 digits`)
+    .regex(/^09/, `${label} must start with 09`);
+}
+
+/**
  * Builds an array of UUIDs that rejects duplicate entries with a user-facing
  * message. Assignment payloads map onto unique database constraints, so
  * duplicates are rejected before any write.

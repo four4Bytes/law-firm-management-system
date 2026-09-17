@@ -6,6 +6,7 @@ import { keysToSet } from "@/lib/form-utils";
 export interface UserOption {
   id: string;
   name: string;
+  is_online?: boolean;
 }
 
 export interface UserSelectProps {
@@ -51,7 +52,11 @@ export function UserSelect({
       }
       alwaysPlaceholder
     >
-      {(user) => <SelectItem id={user.id}>{user.name}</SelectItem>}
+      {(user) => (
+        <SelectItem id={user.id} isOnline={user.is_online}>
+          {user.name}
+        </SelectItem>
+      )}
     </Select>
   );
 }

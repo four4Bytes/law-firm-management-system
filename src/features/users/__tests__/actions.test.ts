@@ -128,6 +128,7 @@ describe("createUserAction", () => {
       id: "existing-id",
       role: "Lawyer",
       is_active: true,
+      last_seen_at: null,
     });
 
     const result = await createUserAction(validPayload);
@@ -149,6 +150,7 @@ describe("createUserAction", () => {
       id: "inactive-id",
       role: "Lawyer",
       is_active: false,
+      last_seen_at: null,
     });
     vi.mocked(updateUser).mockResolvedValue(undefined);
 
@@ -165,6 +167,7 @@ describe("createUserAction", () => {
       id: "inactive-id",
       role: "Lawyer",
       is_active: false,
+      last_seen_at: null,
     });
     vi.mocked(updateUser).mockRejectedValue(new Error("db error"));
 
@@ -247,7 +250,12 @@ describe("updateUserAction", () => {
 
   it("returns an error when the target is a Dev account", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: Role.Dev, is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: Role.Dev,
+      is_active: true,
+      last_seen_at: null,
+    });
 
     const result = await updateUserAction(validPayload);
 
@@ -263,11 +271,17 @@ describe("updateUserAction", () => {
 
   it("returns an error on duplicate email", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: "Paralegal",
+      is_active: true,
+      last_seen_at: null,
+    });
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: "other-id",
       role: "Lawyer",
       is_active: true,
+      last_seen_at: null,
     });
 
     const result = await updateUserAction(validPayload);
@@ -284,8 +298,18 @@ describe("updateUserAction", () => {
 
   it("updates a user successfully", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
-    vi.mocked(getUserByEmail).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: "Paralegal",
+      is_active: true,
+      last_seen_at: null,
+    });
+    vi.mocked(getUserByEmail).mockResolvedValue({
+      id: uuid,
+      role: "Paralegal",
+      is_active: true,
+      last_seen_at: null,
+    });
     vi.mocked(updateUser).mockResolvedValue(undefined);
 
     const result = await updateUserAction(validPayload);
@@ -296,8 +320,18 @@ describe("updateUserAction", () => {
 
   it("returns an error when the update fails", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
-    vi.mocked(getUserByEmail).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: "Paralegal",
+      is_active: true,
+      last_seen_at: null,
+    });
+    vi.mocked(getUserByEmail).mockResolvedValue({
+      id: uuid,
+      role: "Paralegal",
+      is_active: true,
+      last_seen_at: null,
+    });
     vi.mocked(updateUser).mockRejectedValue(new Error("db error"));
 
     const result = await updateUserAction(validPayload);
@@ -360,7 +394,12 @@ describe("deactivateUserAction", () => {
 
   it("returns an error when deactivating the last active Admin/Dev", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: Role.Admin, is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: Role.Admin,
+      is_active: true,
+      last_seen_at: null,
+    });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(0);
 
     const result = await deactivateUserAction(validPayload);
@@ -377,7 +416,12 @@ describe("deactivateUserAction", () => {
 
   it("deactivates a regular user successfully", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: "Paralegal",
+      is_active: true,
+      last_seen_at: null,
+    });
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
 
     const result = await deactivateUserAction(validPayload);
@@ -388,7 +432,12 @@ describe("deactivateUserAction", () => {
 
   it("deactivates an Admin when other admins remain", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: Role.Admin, is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: Role.Admin,
+      is_active: true,
+      last_seen_at: null,
+    });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(1);
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
 
@@ -400,7 +449,12 @@ describe("deactivateUserAction", () => {
 
   it("returns an error when deactivation fails", async () => {
     vi.mocked(requirePermission).mockResolvedValue(sessionAdmin);
-    vi.mocked(getUserById).mockResolvedValue({ id: uuid, role: "Paralegal", is_active: true });
+    vi.mocked(getUserById).mockResolvedValue({
+      id: uuid,
+      role: "Paralegal",
+      is_active: true,
+      last_seen_at: null,
+    });
     vi.mocked(setUserActiveStatus).mockRejectedValue(new Error("db error"));
 
     const result = await deactivateUserAction(validPayload);
@@ -426,6 +480,7 @@ describe("deactivateUserAction", () => {
       id: uuid,
       role: "Admin",
       is_active: true,
+      last_seen_at: null,
     });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(1);
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
@@ -439,9 +494,11 @@ describe("deactivateUserAction", () => {
 describe("getActiveUsersAction", () => {
   it("returns the active user directory", async () => {
     vi.mocked(requireAuth).mockResolvedValue(sessionAdmin);
-    vi.mocked(getActiveUsers).mockResolvedValue([{ id: "u1", name: "Alice" }]);
+    vi.mocked(getActiveUsers).mockResolvedValue([{ id: "u1", name: "Alice", is_online: false }]);
 
-    await expect(getActiveUsersAction()).resolves.toEqual([{ id: "u1", name: "Alice" }]);
+    await expect(getActiveUsersAction()).resolves.toEqual([
+      { id: "u1", name: "Alice", is_online: false },
+    ]);
     expect(getActiveUsers).toHaveBeenCalledTimes(1);
   });
 });

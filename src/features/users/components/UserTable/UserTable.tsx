@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
 import { logoutUser } from "@/features/auth/actions";
 import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
 import { UserFormModal } from "@/features/users/components/UserFormModal/UserFormModal";
@@ -49,6 +50,15 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
       name: "Name",
       isRowHeader: true,
       allowsSorting: true,
+      render: (value: unknown, row: unknown) => {
+        const user = row as UserRow;
+        return (
+          <span className={styles.statusDotRow}>
+            <StatusDot isOnline={user.is_online} />
+            {String(value)}
+          </span>
+        );
+      },
     },
     {
       id: "email",

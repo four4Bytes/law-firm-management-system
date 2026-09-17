@@ -28,7 +28,7 @@ import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddConsultationModal.module.css";
 
-const STATUS_OPTIONS = Object.values(ConsultationStatus);
+const CREATION_STATUS_OPTIONS = [ConsultationStatus.Scheduled, ConsultationStatus.Completed];
 
 interface AddConsultationModalProps {
   isOpen: boolean;
@@ -48,11 +48,14 @@ function resetClient(): ClientFields {
   return { name: "", email: "", phone: "", address: "" };
 }
 
+type ConsultationCreateStatus =
+  typeof ConsultationStatus.Scheduled | typeof ConsultationStatus.Completed;
+
 interface ConsultationFields {
   concern: string;
   date: CalendarDate;
   time: Time;
-  status: ConsultationStatus;
+  status: ConsultationCreateStatus;
 }
 
 function resetConsultation(): ConsultationFields {
@@ -206,12 +209,17 @@ export function AddConsultationModal({
             <Select
               label="Status"
               value={status}
-              onChange={selectEnumHandler(ConsultationStatus, (value) =>
-                setConsultation((p) => ({ ...p, status: value })),
-              )}
+              onChange={selectEnumHandler(ConsultationStatus, (value) => {
+                if (
+                  value === ConsultationStatus.Scheduled ||
+                  value === ConsultationStatus.Completed
+                ) {
+                  setConsultation((p) => ({ ...p, status: value }));
+                }
+              })}
               isDisabled={isPending}
             >
-              {STATUS_OPTIONS.map((s) => (
+              {CREATION_STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s} id={s}>
                   {s}
                 </SelectItem>

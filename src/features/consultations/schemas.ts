@@ -16,39 +16,59 @@ export const ConsultationOverviewIdSchema = z.object({
   consultationId: z.uuid(),
 });
 
+const ConsultationCreateStatusSchema = z.enum([
+  ConsultationStatus.Scheduled,
+  ConsultationStatus.Completed,
+]);
+
 export const ConsultationCreatePayloadSchema = z.object({
   client_id: z.uuid(),
   concern: requiredText(500, "Concern"),
   booking_datetime: z.coerce.date(),
-  status: requiredEnum(ConsultationStatus, "Status"),
+  status: ConsultationCreateStatusSchema,
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
-export const ConsultationUpdatePayloadSchema = ConsultationCreatePayloadSchema.extend({
+export const ConsultationUpdatePayloadSchema = z.object({
   consultationId: z.uuid(),
+  client_id: z.uuid(),
+  concern: requiredText(500, "Concern"),
+  booking_datetime: z.coerce.date(),
+  assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
 export const ConsultationDeletePayloadSchema = z.object({
   consultationId: z.uuid(),
 });
 
-const ConsultationDataSchema = z.object({
+const ConsultationCreateDataSchema = z.object({
   concern: requiredText(500, "Concern"),
   booking_datetime: z.coerce.date(),
-  status: requiredEnum(ConsultationStatus, "Status"),
+  status: ConsultationCreateStatusSchema,
   assignee_ids: uniqueUuidArray("Assignee").optional(),
+});
+
+const ConsultationUpdateDataSchema = z.object({
+  concern: requiredText(500, "Concern"),
+  booking_datetime: z.coerce.date(),
+  assignee_ids: uniqueUuidArray("Assignee").optional(),
+});
+
+export const ConsultationStatusChangePayloadSchema = z.object({
+  consultationId: z.uuid(),
+  status: requiredEnum(ConsultationStatus, "Status"),
 });
 
 export const ConsultationWithClientCreatePayloadSchema = z.object({
   client: ClientDataSchema,
-  consultation: ConsultationDataSchema,
+  consultation: ConsultationCreateDataSchema,
 });
 
 export const ConsultationWithClientUpdatePayloadSchema = z.object({
   consultation_id: z.uuid(),
   client_id: z.uuid(),
   client: ClientDataSchema,
-  consultation: ConsultationDataSchema,
+  consultation: ConsultationUpdateDataSchema,
 });
 
 export type ConsultationCreatePayload = z.infer<typeof ConsultationCreatePayloadSchema>;

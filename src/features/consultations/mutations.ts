@@ -1,4 +1,5 @@
 import { getDocumentFilePathsByConsultationId } from "@/features/documents/queries";
+import { ConsultationStatus } from "@/generated/prisma/browser";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -51,6 +52,19 @@ export async function updateConsultation(
           }
         : {}),
     },
+    select: { id: true },
+  });
+}
+
+export async function updateConsultationStatus(
+  id: string,
+  status: ConsultationStatus,
+  tx?: TransactionClient,
+): Promise<{ id: string }> {
+  const client = tx || prisma;
+  return client.consultation.update({
+    where: { id },
+    data: { status },
     select: { id: true },
   });
 }
@@ -123,7 +137,6 @@ export async function updateConsultationWithClient(
         client_id: data.client_id,
         concern: data.consultation.concern,
         booking_datetime: data.consultation.booking_datetime,
-        status: data.consultation.status,
         assignee_ids: data.consultation.assignee_ids,
         resetReminderTiming: data.resetReminderTiming,
       },

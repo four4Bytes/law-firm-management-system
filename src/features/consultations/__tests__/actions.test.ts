@@ -15,6 +15,7 @@ import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import {
+  changeConsultationStatusAction,
   createConsultationAction,
   createConsultationWithClientAction,
   deleteConsultationAction,
@@ -241,7 +242,6 @@ describe("updateConsultationAction", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
@@ -441,7 +441,6 @@ describe("authorization guards for non-Admin users", () => {
     consultation: {
       concern: "Legal advice",
       booking_datetime: "2024-06-01T10:00:00.000Z",
-      status: "Scheduled" as const,
     },
   };
 
@@ -519,7 +518,6 @@ describe("updateConsultationAction notification split", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled" as const,
   };
 
   const assignee1 = uuid;
@@ -530,7 +528,7 @@ describe("updateConsultationAction notification split", () => {
     id: "1",
     client_id: uuid,
     concern: "Legal advice",
-    booking_datetime: consultationRecord.booking_datetime,
+    booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
     status: "Scheduled" as const,
     assignee_ids: [assignee1, assignee2],
     assignees: [],
@@ -576,7 +574,6 @@ describe("updateConsultationAction notification split", () => {
       consultation: {
         concern: "Legal advice",
         booking_datetime: "2024-06-01T10:00:00.000Z",
-        status: "Scheduled" as const,
         assignee_ids: [assignee1, assignee2, assignee3],
       },
     });
@@ -590,37 +587,71 @@ describe("updateConsultationAction notification split", () => {
     expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee3]);
   });
+});
 
-  it("dispatches ConsultationStatusChanged on status change for updateConsultationAction", async () => {
-    await updateConsultationAction({
-      ...validPayload,
-      status: "Accepted" as const,
-    });
-    await flushAfterCallbacks();
+describe("changeConsultationStatusAction", () => {
+  const assignee1 = uuid;
+  const assignee2 = "550e8400-e29b-41d4-a716-446655440001";
 
-    const calls = vi.mocked(dispatchNotifications).mock.calls;
-    const statusChange = calls.find(
-      ([payload]) => payload.type === NotificationType.ConsultationStatusChanged,
-    );
+  const existingEditData = {
+    id: "1",
+    client_id: uuid,
+    concern: "Legal advice",
+    booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
+    status: "Scheduled" as const,
+    assignee_ids: [assignee1, assignee2],
+    assignees: [],
+  };
 
-    expect(calls).toHaveLength(1);
-    expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2, assignee3]);
-    expect(statusChange?.[0].message).toContain("Scheduled");
-    expect(statusChange?.[0].message).toContain("Accepted");
+  beforeEach(() => {
+    vi.mocked(getConsultationEditData).mockResolvedValue(existingEditData);
+    vi.mocked(getConsultationAssigneeIds).mockResolvedValue([assignee1, assignee2]);
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
+    vi.mocked(prisma.consultation.update).mockResolvedValue(consultationRecord);
   });
 
-  it("dispatches ConsultationStatusChanged on status change for updateConsultationWithClientAction", async () => {
-    await updateConsultationWithClientAction({
-      consultation_id: uuid,
-      client_id: uuid,
-      client: { name: "John Doe", phone_number: "09170000001" },
-      consultation: {
-        concern: "Legal advice",
-        booking_datetime: "2024-06-01T10:00:00.000Z",
-        status: "Accepted" as const,
-        assignee_ids: [assignee1, assignee2],
+  it("returns an error for an invalid payload", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await changeConsultationStatusAction({ consultationId: uuid } as any)).toEqual({
+      success: false,
+      error: {
+        code: "validation",
+        title: "Invalid consultation data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
       },
     });
+  });
+
+  it("returns an error when the consultation is not found", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue(null);
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Completed" }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "not_found",
+        title: "Consultation not found",
+        description: "The consultation may have been deleted by another user.",
+      },
+    });
+  });
+
+  it("returns an error for an invalid transition", async () => {
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Accepted" }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Invalid status change",
+        description: "Cannot change a consultation from Scheduled to Accepted.",
+      },
+    });
+  });
+
+  it("dispatches ConsultationStatusChanged on status change", async () => {
+    await changeConsultationStatusAction({ consultationId: uuid, status: "Completed" });
     await flushAfterCallbacks();
 
     const calls = vi.mocked(dispatchNotifications).mock.calls;
@@ -629,8 +660,8 @@ describe("updateConsultationAction notification split", () => {
     );
 
     expect(calls).toHaveLength(1);
-    expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2, assignee3]);
+    expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2]);
     expect(statusChange?.[0].message).toContain("Scheduled");
-    expect(statusChange?.[0].message).toContain("Accepted");
+    expect(statusChange?.[0].message).toContain("Completed");
   });
 });

@@ -20,7 +20,7 @@ import {
 import type { NoteRow } from "@/features/notes/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
-import { NotificationType } from "@/generated/prisma/browser";
+import { ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
 import {
   actionConflict,
@@ -45,6 +45,7 @@ import {
   createConsultationWithClient,
   deleteConsultation,
   updateConsultation,
+  updateConsultationStatus,
   updateConsultationWithClient,
 } from "./mutations";
 import {
@@ -52,10 +53,12 @@ import {
   ConsultationDeletePayloadSchema,
   ConsultationOverviewIdSchema,
   ConsultationPageQuerySchema,
+  ConsultationStatusChangePayloadSchema,
   ConsultationUpdatePayloadSchema,
   ConsultationWithClientCreatePayloadSchema,
   ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
+import { isValidConsultationStatusTransition } from "./status";
 
 async function requireConsultationPermission(
   session: AuthenticatedUser,
@@ -252,8 +255,7 @@ export async function updateConsultationAction(
     return actionInvalid("consultation");
   }
 
-  const { consultationId, client_id, concern, booking_datetime, status, assignee_ids } =
-    parsed.data;
+  const { consultationId, client_id, concern, booking_datetime, assignee_ids } = parsed.data;
 
   try {
     const existing = await getConsultationEditData(consultationId);
@@ -263,15 +265,6 @@ export async function updateConsultationAction(
       return actionForbidden();
     }
 
-    if (existing.status === "Accepted" && status !== "Accepted") {
-      if (await hasLinkedCase(consultationId)) {
-        return actionConflict(
-          "Consultation already accepted",
-          "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
-        );
-      }
-    }
-
     const resetReminderTiming = existing.booking_datetime.getTime() !== booking_datetime.getTime();
 
     await updateConsultation({
@@ -279,7 +272,6 @@ export async function updateConsultationAction(
       client_id,
       concern,
       booking_datetime,
-      status,
       assignee_ids,
       resetReminderTiming,
     });
@@ -310,7 +302,7 @@ export async function updateConsultationAction(
       }
 
       try {
-        if (existing.status !== status) {
+        if (resetReminderTiming) {
           const assigneeIds = await getConsultationAssigneeIds(consultationId);
           if (assigneeIds.length > 0) {
             await notifyRecipients(
@@ -318,17 +310,17 @@ export async function updateConsultationAction(
               {
                 userIds: assigneeIds,
                 type: NotificationType.ConsultationStatusChanged,
-                title: `Consultation status changed: ${concern.substring(0, 100)}`,
-                message: `Consultation "${concern.substring(0, 100)}" status changed from ${existing.status} to ${status}`,
+                title: `Consultation rescheduled: ${concern.substring(0, 100)}`,
+                message: `Consultation "${concern.substring(0, 100)}" has been rescheduled.`,
                 actionUrl: `/consultation/${consultationId}`,
                 consultationId,
               },
-              "status change",
+              "reschedule",
             );
           }
         }
       } catch (err) {
-        console.error("Failed to dispatch status change notification:", err);
+        console.error("Failed to dispatch reschedule notification:", err);
       }
     });
 
@@ -359,15 +351,6 @@ export async function updateConsultationWithClientAction(
 
     if (!(await hasConsultationPermission(session, consultation_id, "consultation.update"))) {
       return actionForbidden();
-    }
-
-    if (existing.status === "Accepted" && consultation.status !== "Accepted") {
-      if (await hasLinkedCase(consultation_id)) {
-        return actionConflict(
-          "Consultation already accepted",
-          "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
-        );
-      }
     }
 
     const resetReminderTiming =
@@ -407,7 +390,7 @@ export async function updateConsultationWithClientAction(
       }
 
       try {
-        if (existing.status !== consultation.status) {
+        if (resetReminderTiming) {
           const assigneeIds = await getConsultationAssigneeIds(consultation_id);
           if (assigneeIds.length > 0) {
             await notifyRecipients(
@@ -415,17 +398,17 @@ export async function updateConsultationWithClientAction(
               {
                 userIds: assigneeIds,
                 type: NotificationType.ConsultationStatusChanged,
-                title: `Consultation status changed: ${consultation.concern.substring(0, 100)}`,
-                message: `Consultation "${consultation.concern.substring(0, 100)}" status changed from ${existing.status} to ${consultation.status}`,
+                title: `Consultation rescheduled: ${consultation.concern.substring(0, 100)}`,
+                message: `Consultation "${consultation.concern.substring(0, 100)}" has been rescheduled.`,
                 actionUrl: `/consultation/${consultation_id}`,
                 consultationId: consultation_id,
               },
-              "status change",
+              "reschedule",
             );
           }
         }
       } catch (err) {
-        console.error("Failed to dispatch status change notification:", err);
+        console.error("Failed to dispatch reschedule notification:", err);
       }
     });
 
@@ -435,6 +418,81 @@ export async function updateConsultationWithClientAction(
     return { success: true };
   } catch (error) {
     return toActionResponse(error, "update consultation");
+  }
+}
+
+export async function changeConsultationStatusAction(
+  payload: z.input<typeof ConsultationStatusChangePayloadSchema>,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = ConsultationStatusChangePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return actionInvalid("consultation");
+  }
+
+  const { consultationId, status } = parsed.data;
+
+  try {
+    const existing = await getConsultationEditData(consultationId);
+    if (!existing) return actionNotFound("Consultation");
+
+    if (!(await hasConsultationPermission(session, consultationId, "consultation.update"))) {
+      return actionForbidden();
+    }
+
+    if (!isValidConsultationStatusTransition(existing.status as ConsultationStatus, status)) {
+      return actionConflict(
+        "Invalid status change",
+        `Cannot change a consultation from ${existing.status} to ${status}.`,
+      );
+    }
+
+    if (status !== ConsultationStatus.Accepted && (await hasLinkedCase(consultationId))) {
+      return actionConflict(
+        "Consultation already accepted",
+        "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
+      );
+    }
+
+    await updateConsultationStatus(consultationId, status);
+
+    after(async () => {
+      await logAudit({
+        actorUserId: session.id,
+        action: "consultation.status_changed",
+        entityType: "Consultation",
+        entityId: consultationId,
+        details: `Changed consultation status from ${existing.status} to ${status}`,
+      });
+
+      try {
+        const assigneeIds = await getConsultationAssigneeIds(consultationId);
+        if (assigneeIds.length > 0) {
+          await notifyRecipients(
+            session.id,
+            {
+              userIds: assigneeIds,
+              type: NotificationType.ConsultationStatusChanged,
+              title: `Consultation status changed: ${existing.concern.substring(0, 100)}`,
+              message: `Consultation "${existing.concern.substring(0, 100)}" status changed from ${existing.status} to ${status}.`,
+              actionUrl: `/consultation/${consultationId}`,
+              consultationId,
+            },
+            "status change",
+          );
+        }
+      } catch (err) {
+        console.error("Failed to dispatch status change notification:", err);
+      }
+    });
+
+    revalidatePath(`/consultation/${consultationId}`);
+    revalidatePath("/consultation");
+
+    return { success: true };
+  } catch (error) {
+    return toActionResponse(error, "change consultation status");
   }
 }
 

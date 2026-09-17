@@ -4,7 +4,12 @@ import { getDocumentFilePathsByConsultationId } from "@/features/documents/queri
 import { prisma } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
-import { createConsultation, deleteConsultation, updateConsultation } from "../mutations";
+import {
+  createConsultation,
+  deleteConsultation,
+  updateConsultation,
+  updateConsultationStatus,
+} from "../mutations";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -54,7 +59,6 @@ it("updateConsultation strips id from the update data", async () => {
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
   });
 
   expect(prisma.consultation.update).toHaveBeenCalledWith({
@@ -63,7 +67,6 @@ it("updateConsultation strips id from the update data", async () => {
       client_id: uuid,
       concern: "Breach of contract",
       booking_datetime: booking,
-      status: "Scheduled",
     },
     select: { id: true },
   });
@@ -123,7 +126,6 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
     assignee_ids: ["u2"],
   });
 
@@ -133,7 +135,6 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
       client_id: uuid,
       concern: "Breach of contract",
       booking_datetime: booking,
-      status: "Scheduled",
       consultationAssignments: {
         deleteMany: {},
         create: [{ user_id: "u2" }],
@@ -149,7 +150,6 @@ it("updateConsultation clears last_reminded_at when resetReminderTiming is set",
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
     resetReminderTiming: true,
   });
 
@@ -168,7 +168,6 @@ it("updateConsultation omits last_reminded_at when resetReminderTiming is not se
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
   });
 
   expect(prisma.consultation.update).toHaveBeenCalledWith({
@@ -179,4 +178,14 @@ it("updateConsultation omits last_reminded_at when resetReminderTiming is not se
   expect(vi.mocked(prisma.consultation.update).mock.calls[0][0].data).not.toHaveProperty(
     "last_reminded_at",
   );
+});
+
+it("updateConsultationStatus updates only the status", async () => {
+  await updateConsultationStatus(uuid, "Accepted");
+
+  expect(prisma.consultation.update).toHaveBeenCalledWith({
+    where: { id: uuid },
+    data: { status: "Accepted" },
+    select: { id: true },
+  });
 });

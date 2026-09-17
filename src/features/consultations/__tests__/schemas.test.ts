@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
+  ConsultationStatusChangePayloadSchema,
   ConsultationUpdatePayloadSchema,
 } from "../schemas";
 
@@ -13,7 +14,7 @@ describe("ConsultationCreatePayloadSchema", () => {
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: "2024-07-15T10:00:00.000Z",
-    status: "Scheduled",
+    status: "Scheduled" as const,
   };
 
   it("accepts a valid payload", () => {
@@ -86,7 +87,6 @@ describe("ConsultationUpdatePayloadSchema", () => {
       client_id: uuid,
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
-      status: "Scheduled",
     });
     expect(result.success).toBe(false);
   });
@@ -97,9 +97,33 @@ describe("ConsultationUpdatePayloadSchema", () => {
       client_id: uuid,
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
-      status: "Scheduled",
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("ConsultationStatusChangePayloadSchema", () => {
+  it("accepts a valid status change", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Accepted",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Invalid",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing consultationId", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      status: "Accepted",
+    });
+    expect(result.success).toBe(false);
   });
 });
 

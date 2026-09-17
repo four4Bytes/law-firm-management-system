@@ -17,6 +17,7 @@ interface Props {
   onEdit?: () => void;
   onDelete?: () => void;
   isEditPending?: boolean;
+  workflowActions?: React.ReactNode;
 }
 
 const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
@@ -27,7 +28,13 @@ const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
   Cancelled: "cancelled",
 };
 
-export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: Props) {
+export function ConsultationOverview({
+  data,
+  onEdit,
+  onDelete,
+  isEditPending,
+  workflowActions,
+}: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
@@ -36,8 +43,9 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
           <StatusBadge variant={statusClassMap[data.status as ConsultationStatus]}>
             {data.status}
           </StatusBadge>
-          {(onEdit || onDelete) && (
+          {(workflowActions || onEdit || onDelete) && (
             <div className={styles.headerActions}>
+              {workflowActions}
               {onEdit && (
                 <Button
                   variant="ghost"

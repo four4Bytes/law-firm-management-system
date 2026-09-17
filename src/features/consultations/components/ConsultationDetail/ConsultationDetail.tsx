@@ -9,12 +9,15 @@ import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
+import { CreateCaseFromConsultationModal } from "@/features/cases/components/CreateCaseFromConsultationModal/CreateCaseFromConsultationModal";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import {
+  changeConsultationStatusAction,
   deleteConsultationAction,
   getConsultationForEditAction,
 } from "@/features/consultations/actions";
+import { ConsultationWorkflowActions } from "@/features/consultations/components/ConsultationWorkflowActions/ConsultationWorkflowActions";
 import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
 import type {
   ConsultationEditData,
@@ -23,7 +26,9 @@ import type {
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
 import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
 import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
-import type { Role } from "@/generated/prisma/browser";
+import { getActiveUsersAction } from "@/features/users/actions";
+import type { ActiveUserSummary } from "@/features/users/queries";
+import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
@@ -54,6 +59,11 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
+
+  const [showCaseModal, setShowCaseModal] = useState(false);
+  const [isWorkflowPending, setIsWorkflowPending] = useState(false);
+  const [workflowUsers, setWorkflowUsers] = useState<ActiveUserSummary[]>([]);
+  const previousStatusRef = useRef<ConsultationStatus | null>(null);
 
   const canViewPayments = can(userRole, "payment.read");
 
@@ -141,6 +151,64 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
     }
   }
 
+  async function revertAcceptedStatus(): Promise<boolean> {
+    const targetStatus = previousStatusRef.current ?? ConsultationStatus.Scheduled;
+    const result = await changeConsultationStatusAction({
+      consultationId: overview.id,
+      status: targetStatus,
+    });
+    if (!result.success) {
+      toastActionError(result, "revert consultation status");
+      return false;
+    }
+    router.refresh();
+    return true;
+  }
+
+  async function handleChangeStatus(status: ConsultationStatus) {
+    if (status === ConsultationStatus.Accepted) {
+      setIsWorkflowPending(true);
+      try {
+        previousStatusRef.current = overview.status as ConsultationStatus;
+        const result = await changeConsultationStatusAction({
+          consultationId: overview.id,
+          status: ConsultationStatus.Accepted,
+        });
+        if (!result.success) {
+          previousStatusRef.current = null;
+          toastActionError(result, "accept consultation");
+          return;
+        }
+        const users = await getActiveUsersAction();
+        setWorkflowUsers(users);
+        setShowCaseModal(true);
+      } catch {
+        toastError("Failed to accept consultation", "Please try again.");
+      } finally {
+        setIsWorkflowPending(false);
+      }
+      return;
+    }
+
+    setIsWorkflowPending(true);
+    try {
+      const result = await changeConsultationStatusAction({
+        consultationId: overview.id,
+        status,
+      });
+      if (result.success) {
+        toastSuccess("Status updated", `The consultation has been marked as ${status}.`);
+        router.refresh();
+      } else {
+        toastActionError(result, "change consultation status");
+      }
+    } catch {
+      toastError("Failed to update status", "Please try again.");
+    } finally {
+      setIsWorkflowPending(false);
+    }
+  }
+
   return (
     <div className={styles.detail}>
       <Link href="/consultation" className={styles.backLink}>
@@ -152,6 +220,13 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         onEdit={handleEdit}
         onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
+        workflowActions={
+          <ConsultationWorkflowActions
+            status={overview.status as ConsultationStatus}
+            onChangeStatus={handleChangeStatus}
+            isPending={isWorkflowPending}
+          />
+        }
       />
 
       {selectedKey ? (
@@ -216,6 +291,21 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         This permanently deletes the consultation and ALL its notes, documents, and payments. Linked
         cases are kept (unlinked). This action cannot be undone.
       </ConfirmDialog>
+
+      <CreateCaseFromConsultationModal
+        isOpen={showCaseModal}
+        onOpenChange={setShowCaseModal}
+        onSuccess={(caseId) => {
+          setShowCaseModal(false);
+          startLoading();
+          router.push(`/case/${caseId}`);
+        }}
+        onCancel={revertAcceptedStatus}
+        consultationId={overview.id}
+        clientId={overview.client.id}
+        defaultTitle={overview.concern}
+        users={workflowUsers}
+      />
     </div>
   );
 }

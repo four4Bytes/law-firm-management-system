@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getCaseEditData } from "@/features/cases/queries";
+import { getConsultationEditData } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
@@ -23,10 +25,12 @@ vi.mock("@/lib/auth-guards", () => ({
 
 vi.mock("@/features/cases/queries", () => ({
   getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+  getCaseEditData: vi.fn(),
 }));
 
 vi.mock("@/features/consultations/queries", () => ({
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+  getConsultationEditData: vi.fn(),
 }));
 
 vi.mock("@/features/tasks/queries", () => ({
@@ -141,6 +145,68 @@ describe("deleteDocumentAction", () => {
     expect(result).toEqual({ success: true });
     expect(deleteDocument).toHaveBeenCalledWith(uuid);
     expect(deleteDocumentFiles).toHaveBeenCalledWith([documentRecord.file_path]);
+  });
+});
+
+describe("terminal record lock", () => {
+  beforeEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getCaseEditData).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue(null);
+  });
+
+  it("refuses to delete a file on a cancelled consultation", async () => {
+    vi.mocked(getDocumentById).mockResolvedValue({
+      ...documentRecord,
+      case_id: null,
+      consultation_id: uuid,
+    });
+    vi.mocked(getConsultationEditData).mockResolvedValue({ status: "Cancelled" } as never);
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Consultation locked",
+        description:
+          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
+      },
+    });
+    expect(deleteDocument).not.toHaveBeenCalled();
+    expect(deleteDocumentFiles).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete a file on a settled case", async () => {
+    vi.mocked(getCaseEditData).mockResolvedValue({ status: "Settled" } as never);
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Case locked",
+        description:
+          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
+      },
+    });
+    expect(deleteDocument).not.toHaveBeenCalled();
+  });
+
+  it("allows deleting a file on a live consultation", async () => {
+    vi.mocked(getDocumentById).mockResolvedValue({
+      ...documentRecord,
+      case_id: null,
+      consultation_id: uuid,
+    });
+    vi.mocked(getConsultationEditData).mockResolvedValue({ status: "Scheduled" } as never);
+    vi.mocked(deleteDocument).mockResolvedValue({ id: uuid });
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
   });
 });
 

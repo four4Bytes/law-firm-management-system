@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getCaseAccessContext } from "@/features/cases/queries";
+import { getCaseAccessContext, getCaseEditData } from "@/features/cases/queries";
+import { getConsultationEditData } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
@@ -29,10 +30,12 @@ vi.mock("@/lib/auth-guards", () => ({
 
 vi.mock("@/features/cases/queries", () => ({
   getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+  getCaseEditData: vi.fn(),
 }));
 
 vi.mock("@/features/consultations/queries", () => ({
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+  getConsultationEditData: vi.fn(),
 }));
 
 vi.mock("@/features/tasks/queries", () => ({
@@ -335,6 +338,62 @@ describe("task subdata lock", () => {
       },
     });
     expect(deleteNoteForTask).toHaveBeenCalledWith(uuid, uuid);
+  });
+});
+
+describe("terminal record lock", () => {
+  const lockedEnvelope = {
+    success: false,
+    error: {
+      code: "locked",
+      title: "Consultation locked",
+      description:
+        "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
+    },
+  };
+
+  beforeEach(() => {
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getCaseEditData).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue(null);
+  });
+
+  it("refuses to update a note on a rejected consultation", async () => {
+    vi.mocked(getNoteById).mockResolvedValue({
+      ...noteRecord,
+      case_id: null,
+      consultation_id: uuid,
+    });
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      status: "Rejected",
+    } as never);
+
+    expect(await updateNoteAction({ noteId: uuid, content: "Edited" })).toEqual(lockedEnvelope);
+    expect(updateNote).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete a note on a closed case", async () => {
+    vi.mocked(getCaseEditData).mockResolvedValue({ status: "Closed" } as never);
+
+    expect(await deleteNoteAction({ noteId: uuid })).toEqual({
+      ...lockedEnvelope,
+      error: { ...lockedEnvelope.error, title: "Case locked" },
+    });
+    expect(deleteNote).not.toHaveBeenCalled();
+  });
+
+  it("allows editing a note on a live consultation", async () => {
+    vi.mocked(getNoteById).mockResolvedValue({
+      ...noteRecord,
+      case_id: null,
+      consultation_id: uuid,
+    });
+    vi.mocked(getConsultationEditData).mockResolvedValue({ status: "Scheduled" } as never);
+    vi.mocked(updateNote).mockResolvedValue(noteRecord);
+
+    expect(await updateNoteAction({ noteId: uuid, content: "Edited" })).toEqual({
+      success: true,
+    });
   });
 });
 

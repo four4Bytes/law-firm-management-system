@@ -66,6 +66,7 @@ New consultation (Scheduled | Completed*)
 - **Status change** (`ConsultationStatusChangePayloadSchema`): accepts any enum value plus an optional `reason`; legality is enforced server-side by `isValidConsultationStatusTransition()`. A direct `Accepted` target is always refused — accepting only happens through the atomic accept action (§5). Illegal moves return `conflict / Invalid status change` naming the legal next steps from the current status (`describeStatusNextSteps()`).
 - **Accepted + linked case lock**: once a consultation is `Accepted` **and** has a linked case, status changes AND field edits are refused (`conflict / Consultation already accepted` — "Update the case instead"). The consultation is archival; the case owns the record. An `Accepted` consultation _without_ a case stays editable so it can be healed via the accept flow.
 - **Booking lock**: `booking_datetime` can only change while `Scheduled`. The Edit modal disables the date/time fields otherwise (with guidance), and rescheduling while `Scheduled` asks for explicit confirmation showing old → new. Any booking change re-arms reminders (`resetReminderTiming`) and notifies assignees ("rescheduled"). Rebooking a `Cancelled` consultation is a status flip first, then a date edit.
+- **Append-only lock**: on `Accepted`/`Rejected`/`Cancelled`, existing notes/files refuse update/delete (`RecordLockedError` → `locked` envelope); creation, reads, and payments stay open. See [Lifecycle](./lifecycle.md).
 
 ## 4. Server actions (`src/features/consultations/actions.ts`)
 

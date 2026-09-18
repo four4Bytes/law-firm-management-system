@@ -72,6 +72,10 @@ RBAC is enforced from the declarative matrix in `src/lib/rbac.ts`, which mirrors
 
 The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManager`, `Lawyer`, `Paralegal`, `ProcessServer`.
 
+### Lifecycle Guards (the _when_ axis)
+
+RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules live in `src/lib/lifecycle.ts` (transition tables + `canTransition` / `isTerminalStatus` / `isSubdataLocked`) and are enforced in Server Actions and mutations next to the state machine — never in the RBAC matrix. Terminal records (done tasks, closed consultations/cases) are append-only: notes and files can be added but existing ones refuse update/delete (`RecordLockedError` → `locked` envelope). See [Lifecycle](./lifecycle.md).
+
 ## Input Validation
 
 ### Zod Schemas

@@ -256,7 +256,7 @@ export async function setAssignmentStatus(
     });
     if (!task) throw new Error("Task not found");
     if (task.status === TaskStatus.Done) {
-      throw new Error("Assignment submission is locked for this task");
+      throw new TaskLockedError();
     }
 
     await tx.taskAssignment.updateMany({

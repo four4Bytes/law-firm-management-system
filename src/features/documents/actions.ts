@@ -5,8 +5,11 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
-import { getCaseAccessContext } from "@/features/cases/queries";
-import { getConsultationAccessContext } from "@/features/consultations/queries";
+import { getCaseAccessContext, getCaseEditData } from "@/features/cases/queries";
+import {
+  getConsultationAccessContext,
+  getConsultationEditData,
+} from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
 import {
@@ -17,7 +20,8 @@ import {
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, TaskLockedError, toActionResponse } from "@/lib/errors";
+import { ForbiddenError, RecordLockedError, TaskLockedError, toActionResponse } from "@/lib/errors";
+import { isSubdataLocked } from "@/lib/lifecycle";
 import { getParentPath } from "@/lib/path";
 import { can, type AccessContext } from "@/lib/rbac";
 import {
@@ -277,6 +281,18 @@ export async function deleteDocumentAction(
 
       await deleteDocumentForTask(doc.task_id, documentId);
     } else {
+      if (doc.consultation_id) {
+        const consultation = await getConsultationEditData(doc.consultation_id);
+        if (consultation && isSubdataLocked("consultation", consultation.status)) {
+          throw new RecordLockedError("Consultation");
+        }
+      }
+      if (parentCaseId) {
+        const record = await getCaseEditData(parentCaseId);
+        if (record && isSubdataLocked("case", record.status)) {
+          throw new RecordLockedError("Case");
+        }
+      }
       await deleteDocumentRecord(documentId);
     }
 

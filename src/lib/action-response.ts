@@ -123,6 +123,21 @@ export function actionLocked(): ActionStatusResponse {
   return actionError("locked", "Task locked", TASK_LOCKED_MESSAGE);
 }
 
+/**
+ * Failure preset for terminal consultation/case records. New notes and files
+ * can still be added, but existing ones can no longer be edited or deleted.
+ *
+ * @param entity - Human-readable entity name (e.g. `"Consultation"`).
+ * @returns A locked response naming the entity.
+ */
+export function actionRecordLocked(entity: string): ActionStatusResponse {
+  return actionError(
+    "locked",
+    `${entity} locked`,
+    "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
+  );
+}
+
 const UNAUTHORIZED_TITLE = "Session expired";
 const UNAUTHORIZED_DESCRIPTION = "Please sign in again to continue.";
 

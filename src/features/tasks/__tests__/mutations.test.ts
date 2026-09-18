@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
+import { TaskLockedError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -379,12 +380,10 @@ describe("setAssignmentStatus", () => {
     });
   });
 
-  it("throws when the task is Done", async () => {
+  it("throws TaskLockedError when the task is Done", async () => {
     vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Done" }));
 
-    await expect(setAssignmentStatus("t1", "u2", "Done")).rejects.toThrow(
-      "Assignment submission is locked for this task",
-    );
+    await expect(setAssignmentStatus("t1", "u2", "Done")).rejects.toThrow(TaskLockedError);
   });
 });
 

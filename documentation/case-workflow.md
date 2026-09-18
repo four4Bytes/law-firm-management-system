@@ -46,6 +46,7 @@ New case (always Open)
 - **Create** (`CaseCreatePayloadSchema` / WithClient variant): status is accepted but the UI always submits `Open`. There is no status select on creation.
 - **Edit** (`CaseUpdatePayloadSchema` / `CaseDataSchema` update variant): carries **no status field**. Field edits can never change status.
 - **Status change** (`CaseStatusChangePayloadSchema`): accepts any enum value plus an optional `reason`; legality is enforced server-side by `isValidCaseStatusTransition()`. Illegal moves return `conflict / Invalid status change` naming the legal next steps (`describeCaseNextSteps()`).
+- **Append-only lock**: on `Closed`/`Settled`/`Terminated`, existing notes/files refuse update/delete (`RecordLockedError` → `locked` envelope); creation, reads, and payments stay open. Reopening restores editing. See [Lifecycle](./lifecycle.md).
 
 ## 4. Server actions (`src/features/cases/actions.ts`)
 

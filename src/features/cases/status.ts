@@ -1,12 +1,8 @@
 import { CaseStatus } from "@/generated/prisma/browser";
+import { canTransition, CASE_TRANSITIONS } from "@/lib/lifecycle";
 
 /** Allowed transitions for each case status. */
-export const CASE_STATUS_TRANSITIONS: Readonly<Record<CaseStatus, CaseStatus[]>> = {
-  [CaseStatus.Open]: [CaseStatus.Closed, CaseStatus.Settled, CaseStatus.Terminated],
-  [CaseStatus.Closed]: [CaseStatus.Open],
-  [CaseStatus.Settled]: [CaseStatus.Open],
-  [CaseStatus.Terminated]: [CaseStatus.Open],
-};
+export const CASE_STATUS_TRANSITIONS = CASE_TRANSITIONS;
 
 /**
  * Determines whether a status transition is valid according to the case
@@ -14,13 +10,13 @@ export const CASE_STATUS_TRANSITIONS: Readonly<Record<CaseStatus, CaseStatus[]>>
  * explicit status-change actions.
  */
 export function isValidCaseStatusTransition(from: CaseStatus, to: CaseStatus): boolean {
-  return from !== to && CASE_STATUS_TRANSITIONS[from]?.includes(to) === true;
+  return canTransition(CASE_TRANSITIONS, from, to);
 }
 
 /**
- * Terminal statuses have no forward transitions. They can only be reopened
- * back to Open — resumed litigation stays on the same matter record (same
- * court, docket, client, fees, documents) instead of fragmenting across two
+ * Terminal outcomes have no forward transitions — only the reopen edge back
+ * to Open. Resumed litigation stays on the same matter record (same court,
+ * docket, client, fees, documents) instead of fragmenting across two
  * records. Every reopen is an explicit, confirmed, audited transition.
  */
 export function isTerminalCaseStatus(status: CaseStatus): boolean {

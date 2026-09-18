@@ -30,6 +30,7 @@ const consultationSelect = {
   concern: true,
   booking_datetime: true,
   status: true,
+  type: true,
   client: { select: { name: true } },
   createdBy: { select: { name: true } },
   consultationAssignments: {
@@ -44,6 +45,7 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   concern: "Legal advice",
   booking_datetime: new Date("2024-06-01T10:00:00"),
   status: "Scheduled" as const,
+  type: "Scheduled" as const,
   client_id: "c1",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
@@ -79,6 +81,7 @@ describe("getConsultationsPaginated", () => {
       assignTo: "",
       booking_datetime: consultations[0].booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
     });
     expect(result.consultations[1]).toEqual({
       id: "2",
@@ -88,6 +91,7 @@ describe("getConsultationsPaginated", () => {
       assignTo: "",
       booking_datetime: consultations[1].booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
     });
     expect(prisma.consultation.findMany).toHaveBeenCalledWith({
       take: 11,
@@ -238,6 +242,7 @@ describe("getConsultationOverviewById", () => {
     concern: "Legal advice",
     booking_datetime: new Date("2024-06-01T10:00:00"),
     status: "Scheduled" as const,
+    type: "Scheduled" as const,
     client_id: "c1",
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
@@ -272,6 +277,7 @@ describe("getConsultationOverviewById", () => {
       concern: "Legal advice",
       booking_datetime: data.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       created_at: data.created_at,
       updated_at: data.updated_at,
       client: {
@@ -509,6 +515,7 @@ describe("getConsultationEditData", () => {
     concern: "Legal advice",
     booking_datetime: new Date("2024-06-01T10:00:00"),
     status: "Scheduled" as const,
+    type: "Scheduled" as const,
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
@@ -526,6 +533,7 @@ describe("getConsultationEditData", () => {
       client_id: "c1",
       concern: "Legal advice",
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: ["u1"],
       assignees: [{ id: "u1", name: "Active User" }],
     });
@@ -537,6 +545,7 @@ describe("getConsultationEditData", () => {
         concern: true,
         booking_datetime: true,
         status: true,
+        type: true,
         consultationAssignments: {
           select: { user_id: true, user: { select: { id: true, name: true } } },
         },

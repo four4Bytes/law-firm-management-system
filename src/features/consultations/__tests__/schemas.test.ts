@@ -14,6 +14,7 @@ describe("ConsultationCreatePayloadSchema", () => {
     concern: "Breach of contract",
     booking_datetime: "2024-07-15T10:00:00.000Z",
     status: "Scheduled",
+    type: "Scheduled",
   };
 
   it("accepts a valid payload", () => {
@@ -87,6 +88,7 @@ describe("ConsultationUpdatePayloadSchema", () => {
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
       status: "Scheduled",
+      type: "Scheduled",
     });
     expect(result.success).toBe(false);
   });
@@ -98,6 +100,7 @@ describe("ConsultationUpdatePayloadSchema", () => {
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
       status: "Scheduled",
+      type: "Scheduled",
     });
     expect(result.success).toBe(true);
   });

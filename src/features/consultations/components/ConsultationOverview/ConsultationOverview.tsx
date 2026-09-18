@@ -80,6 +80,10 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
               <span className={styles.value}>{formatDateTime(data.booking_datetime)}</span>
             </div>
             <div className={styles.field}>
+              <span className={styles.label}>Type</span>
+              <span className={styles.value}>{data.type === "WalkIn" ? "Walk-In" : data.type}</span>
+            </div>
+            <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>
               <UserChips users={data.assignTo} />
             </div>

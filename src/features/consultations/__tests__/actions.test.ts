@@ -108,8 +108,9 @@ const consultationRecord: ConsultationWithAssignments = {
   id: "1",
   client_id: uuid,
   concern: "Legal advice",
-  booking_datetime: new Date("2024-06-01T10:00:00"),
+  booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
   status: "Scheduled",
+  type: "Scheduled",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
   updated_at: new Date("2024-06-01"),
@@ -131,6 +132,7 @@ describe("getConsultationForEditAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled" as const,
+      type: "Scheduled" as const,
       assignee_ids: [],
       assignees: [],
     };
@@ -153,6 +155,7 @@ describe("createConsultationAction", () => {
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
     status: "Scheduled" as const,
+    type: "Scheduled" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
@@ -242,6 +245,7 @@ describe("updateConsultationAction", () => {
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
     status: "Scheduled" as const,
+    type: "Scheduled" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
@@ -276,6 +280,7 @@ describe("updateConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: [],
       assignees: [],
     });
@@ -287,11 +292,12 @@ describe("updateConsultationAction", () => {
 
   it("does not clear last_reminded_at when booking is unchanged", async () => {
     vi.mocked(getConsultationEditData).mockResolvedValue({
-      id: uuid,
+      id: "1",
       client_id: uuid,
       concern: "Legal advice",
-      booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
+      booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: [],
       assignees: [],
     });
@@ -315,6 +321,7 @@ describe("updateConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: [],
       assignees: [],
     });
@@ -363,6 +370,7 @@ describe("deleteConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: [],
       assignees: [],
     });
@@ -382,6 +390,7 @@ describe("deleteConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: [],
       assignees: [],
     });
@@ -404,6 +413,7 @@ describe("deleteConsultationAction", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: [],
       assignees: [],
     });
@@ -432,6 +442,7 @@ describe("authorization guards for non-Admin users", () => {
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
     status: "Scheduled" as const,
+    type: "Scheduled" as const,
   };
 
   const updateWithClientPayload = {
@@ -442,6 +453,7 @@ describe("authorization guards for non-Admin users", () => {
       concern: "Legal advice",
       booking_datetime: "2024-06-01T10:00:00.000Z",
       status: "Scheduled" as const,
+      type: "Scheduled" as const,
     },
   };
 
@@ -452,6 +464,7 @@ describe("authorization guards for non-Admin users", () => {
       concern: "Legal advice",
       booking_datetime: "2024-06-01T10:00:00.000Z",
       status: "Scheduled" as const,
+      type: "Scheduled" as const,
     },
   };
 
@@ -468,6 +481,7 @@ describe("authorization guards for non-Admin users", () => {
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
       status: "Scheduled",
+      type: "Scheduled",
       assignee_ids: [],
       assignees: [],
     });
@@ -520,6 +534,7 @@ describe("updateConsultationAction notification split", () => {
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
     status: "Scheduled" as const,
+    type: "Scheduled" as const,
   };
 
   const assignee1 = uuid;
@@ -532,6 +547,7 @@ describe("updateConsultationAction notification split", () => {
     concern: "Legal advice",
     booking_datetime: consultationRecord.booking_datetime,
     status: "Scheduled" as const,
+    type: "Scheduled" as const,
     assignee_ids: [assignee1, assignee2],
     assignees: [],
   };
@@ -577,6 +593,7 @@ describe("updateConsultationAction notification split", () => {
         concern: "Legal advice",
         booking_datetime: "2024-06-01T10:00:00.000Z",
         status: "Scheduled" as const,
+        type: "Scheduled" as const,
         assignee_ids: [assignee1, assignee2, assignee3],
       },
     });
@@ -618,6 +635,7 @@ describe("updateConsultationAction notification split", () => {
         concern: "Legal advice",
         booking_datetime: "2024-06-01T10:00:00.000Z",
         status: "Accepted" as const,
+        type: "Scheduled" as const,
         assignee_ids: [assignee1, assignee2],
       },
     });

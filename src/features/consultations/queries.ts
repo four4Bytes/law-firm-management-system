@@ -16,6 +16,7 @@ const consultationSelect = {
   concern: true,
   booking_datetime: true,
   status: true,
+  type: true,
   client: { select: { name: true } },
   createdBy: { select: { name: true } },
   consultationAssignments: {
@@ -37,6 +38,7 @@ export type ConsultationRow = {
   assignTo: string;
   booking_datetime: Date;
   status: string;
+  type: string;
 };
 
 // ----- Consultation Detail -----
@@ -46,6 +48,7 @@ export type ConsultationOverviewData = {
   concern: string;
   booking_datetime: Date;
   status: string;
+  type: string;
   created_at: Date;
   updated_at: Date;
   client: {
@@ -86,6 +89,7 @@ export const getConsultationOverviewById = cache(
       concern: data.concern,
       booking_datetime: data.booking_datetime,
       status: data.status,
+      type: data.type,
       created_at: data.created_at,
       updated_at: data.updated_at,
       client: {
@@ -201,6 +205,7 @@ export const getConsultationsPaginated = cache(
       assignTo: c.consultationAssignments.map((a) => a.user.name).join(", "),
       booking_datetime: c.booking_datetime,
       status: c.status,
+      type: c.type,
     }));
 
     return {
@@ -214,7 +219,7 @@ export const getConsultationsPaginated = cache(
 
 export type ConsultationEditData = Pick<
   Consultation,
-  "id" | "client_id" | "concern" | "booking_datetime" | "status"
+  "id" | "client_id" | "concern" | "booking_datetime" | "status" | "type"
 > & { assignee_ids: string[]; assignees: { id: string; name: string }[] };
 
 export const getConsultationAssigneeIds = cache(
@@ -237,6 +242,7 @@ export const getConsultationEditData = cache(
         concern: true,
         booking_datetime: true,
         status: true,
+        type: true,
         consultationAssignments: {
           select: { user_id: true, user: { select: { id: true, name: true } } },
         },
@@ -251,6 +257,7 @@ export const getConsultationEditData = cache(
       concern: data.concern,
       booking_datetime: data.booking_datetime,
       status: data.status,
+      type: data.type,
       assignee_ids: data.consultationAssignments.map((a) => a.user_id),
       assignees: data.consultationAssignments.map((a) => ({
         id: a.user.id,

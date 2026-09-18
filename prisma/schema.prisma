@@ -16,6 +16,11 @@ enum Role {
   ProcessServer
 }
 
+enum ConsultationType {
+  Scheduled
+  WalkIn
+}
+
 enum ConsultationStatus {
   Scheduled
   Completed
@@ -176,6 +181,7 @@ model Consultation {
   booking_datetime   DateTime
   concern            String
   status             ConsultationStatus
+  type               ConsultationType   @default(Scheduled)
   created_at         DateTime           @default(now())
   updated_at         DateTime           @updatedAt
   last_reminded_at   DateTime?

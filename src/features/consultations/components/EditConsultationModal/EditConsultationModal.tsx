@@ -24,7 +24,7 @@ import { getActiveUsersAction } from "@/features/users/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { ConsultationStatus } from "@/generated/prisma/browser";
+import { ConsultationStatus, ConsultationType } from "@/generated/prisma/browser";
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
 import {
@@ -39,6 +39,7 @@ import { useModalForm } from "@/lib/useModalForm";
 import styles from "./EditConsultationModal.module.css";
 
 const STATUS_OPTIONS = Object.values(ConsultationStatus);
+const TYPE_OPTIONS = [ConsultationType.Scheduled, ConsultationType.WalkIn];
 
 interface EditConsultationModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ interface ConsultationFields {
   date: CalendarDate;
   time: Time;
   status: ConsultationStatus;
+  type: ConsultationType;
 }
 
 export function EditConsultationModal({
@@ -73,6 +75,7 @@ export function EditConsultationModal({
     date: toCalendarDate(consultation.booking_datetime),
     time: toTimeValue(consultation.booking_datetime),
     status: consultation.status as ConsultationStatus,
+    type: consultation.type as ConsultationType,
   });
 
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(
@@ -93,6 +96,7 @@ export function EditConsultationModal({
   }, [users, assigneeIds, consultation.assignees]);
 
   const previousStatus = consultation.status as ConsultationStatus;
+  const previousType = consultation.type as ConsultationType;
 
   async function revertConsultationStatus(): Promise<boolean> {
     if (previousStatus === fields.status) return true;
@@ -110,6 +114,7 @@ export function EditConsultationModal({
           concern: requiredString(fields.concern),
           booking_datetime: combineDateTime(fields.date, fields.time),
           status: previousStatus,
+          type: previousType,
           assignee_ids: Array.from(assigneeIds),
         },
       });
@@ -165,6 +170,7 @@ export function EditConsultationModal({
         concern: requiredString(fields.concern),
         booking_datetime: combineDateTime(fields.date, fields.time),
         status: fields.status,
+        type: fields.type,
         assignee_ids: Array.from(assigneeIds),
       },
     } satisfies ConsultationWithClientUpdatePayload;
@@ -296,6 +302,20 @@ export function EditConsultationModal({
                 {STATUS_OPTIONS.map((s) => (
                   <SelectItem key={s} id={s}>
                     {s}
+                  </SelectItem>
+                ))}
+              </Select>
+              <Select
+                label="Type"
+                value={fields.type}
+                onChange={selectEnumHandler(ConsultationType, (value) =>
+                  setFields((p) => ({ ...p, type: value })),
+                )}
+                isDisabled={isPending || isSaving}
+              >
+                {TYPE_OPTIONS.map((t) => (
+                  <SelectItem key={t} id={t}>
+                    {t === ConsultationType.WalkIn ? "Walk-In" : t}
                   </SelectItem>
                 ))}
               </Select>

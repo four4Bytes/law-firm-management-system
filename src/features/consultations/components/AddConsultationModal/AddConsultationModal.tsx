@@ -16,7 +16,7 @@ import { ConsultationWithClientCreatePayloadSchema } from "@/features/consultati
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { ConsultationStatus } from "@/generated/prisma/browser";
+import { ConsultationStatus, ConsultationType } from "@/generated/prisma/browser";
 import { combineDateTime } from "@/lib/date";
 import {
   createFieldValidator,
@@ -29,6 +29,7 @@ import { useModalForm } from "@/lib/useModalForm";
 import styles from "./AddConsultationModal.module.css";
 
 const STATUS_OPTIONS = Object.values(ConsultationStatus);
+const TYPE_OPTIONS = [ConsultationType.Scheduled, ConsultationType.WalkIn];
 
 interface AddConsultationModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ interface ConsultationFields {
   date: CalendarDate;
   time: Time;
   status: ConsultationStatus;
+  type: ConsultationType;
 }
 
 function resetConsultation(): ConsultationFields {
@@ -61,6 +63,7 @@ function resetConsultation(): ConsultationFields {
     date: today(getLocalTimeZone()),
     time: new Time(9, 0),
     status: ConsultationStatus.Scheduled,
+    type: ConsultationType.Scheduled,
   };
 }
 
@@ -75,7 +78,7 @@ export function AddConsultationModal({
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
 
   const { name, email, phone, address } = client;
-  const { concern, date, time, status } = consultation;
+  const { concern, date, time, status, type } = consultation;
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof ConsultationWithClientCreatePayloadSchema>,
@@ -116,6 +119,7 @@ export function AddConsultationModal({
         concern: requiredString(concern),
         booking_datetime: combineDateTime(date, time),
         status,
+        type,
         assignee_ids: Array.from(assigneeIds),
       },
     });
@@ -214,6 +218,20 @@ export function AddConsultationModal({
               {STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s} id={s}>
                   {s}
+                </SelectItem>
+              ))}
+            </Select>
+            <Select
+              label="Type"
+              value={type}
+              onChange={selectEnumHandler(ConsultationType, (value) =>
+                setConsultation((p) => ({ ...p, type: value })),
+              )}
+              isDisabled={isPending}
+            >
+              {TYPE_OPTIONS.map((t) => (
+                <SelectItem key={t} id={t}>
+                  {t === ConsultationType.WalkIn ? "Walk-In" : t}
                 </SelectItem>
               ))}
             </Select>

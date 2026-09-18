@@ -155,13 +155,14 @@ export async function createConsultationAction(
       return actionInvalid("consultation");
     }
 
-    const { client_id, concern, booking_datetime, status, assignee_ids } = parsed.data;
+    const { client_id, concern, booking_datetime, status, type, assignee_ids } = parsed.data;
 
     const createdConsultation = await createConsultation({
       client_id,
       concern,
       booking_datetime,
       status,
+      type,
       created_by_user_id: session.id,
       assignee_ids,
     });
@@ -252,7 +253,7 @@ export async function updateConsultationAction(
     return actionInvalid("consultation");
   }
 
-  const { consultationId, client_id, concern, booking_datetime, status, assignee_ids } =
+  const { consultationId, client_id, concern, booking_datetime, status, type, assignee_ids } =
     parsed.data;
 
   try {
@@ -280,6 +281,7 @@ export async function updateConsultationAction(
       concern,
       booking_datetime,
       status,
+      type,
       assignee_ids,
       resetReminderTiming,
     });

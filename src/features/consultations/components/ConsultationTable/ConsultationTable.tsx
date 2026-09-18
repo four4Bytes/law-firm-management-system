@@ -67,6 +67,15 @@ const columns: ColumnDef<ConsultationRow>[] = [
       );
     },
   },
+  {
+    id: "type",
+    name: "Type",
+    render: (value) => {
+      const type = value as string | null;
+      if (!type) return null;
+      return <span>{type === "WalkIn" ? "Walk-In" : type}</span>;
+    },
+  },
 ];
 
 interface ConsultationTableProps {

@@ -33,6 +33,7 @@ it("createConsultation merges created_by_user_id into the create payload", async
     concern: "Breach of contract",
     booking_datetime: booking,
     status: "Scheduled",
+    type: "Scheduled",
     created_by_user_id: "u1",
   });
 
@@ -42,6 +43,7 @@ it("createConsultation merges created_by_user_id into the create payload", async
       concern: "Breach of contract",
       booking_datetime: booking,
       status: "Scheduled",
+      type: "Scheduled",
       created_by_user_id: "u1",
     },
     select: { id: true },
@@ -55,6 +57,7 @@ it("updateConsultation strips id from the update data", async () => {
     concern: "Breach of contract",
     booking_datetime: booking,
     status: "Scheduled",
+    type: "Scheduled",
   });
 
   expect(prisma.consultation.update).toHaveBeenCalledWith({
@@ -64,6 +67,7 @@ it("updateConsultation strips id from the update data", async () => {
       concern: "Breach of contract",
       booking_datetime: booking,
       status: "Scheduled",
+      type: "Scheduled",
     },
     select: { id: true },
   });
@@ -98,6 +102,7 @@ it("createConsultation nests consultationAssignments when assignee_ids are provi
     concern: "Breach of contract",
     booking_datetime: booking,
     status: "Scheduled",
+    type: "Scheduled",
     assignee_ids: ["u1", "u2"],
     created_by_user_id: "u1",
   });
@@ -108,6 +113,7 @@ it("createConsultation nests consultationAssignments when assignee_ids are provi
       concern: "Breach of contract",
       booking_datetime: booking,
       status: "Scheduled",
+      type: "Scheduled",
       created_by_user_id: "u1",
       consultationAssignments: {
         create: [{ user_id: "u1" }, { user_id: "u2" }],
@@ -124,6 +130,7 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
     concern: "Breach of contract",
     booking_datetime: booking,
     status: "Scheduled",
+    type: "Scheduled",
     assignee_ids: ["u2"],
   });
 
@@ -134,6 +141,7 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
       concern: "Breach of contract",
       booking_datetime: booking,
       status: "Scheduled",
+      type: "Scheduled",
       consultationAssignments: {
         deleteMany: {},
         create: [{ user_id: "u2" }],
@@ -150,6 +158,7 @@ it("updateConsultation clears last_reminded_at when resetReminderTiming is set",
     concern: "Breach of contract",
     booking_datetime: booking,
     status: "Scheduled",
+    type: "Scheduled",
     resetReminderTiming: true,
   });
 
@@ -169,6 +178,7 @@ it("updateConsultation omits last_reminded_at when resetReminderTiming is not se
     concern: "Breach of contract",
     booking_datetime: booking,
     status: "Scheduled",
+    type: "Scheduled",
   });
 
   expect(prisma.consultation.update).toHaveBeenCalledWith({

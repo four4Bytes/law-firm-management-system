@@ -38,6 +38,7 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   concern: "Legal advice",
   booking_datetime: new Date("2024-06-01T10:00:00"),
   status: "Scheduled" as const,
+  type: "Scheduled" as const,
   client_id: "c1",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),

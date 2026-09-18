@@ -45,6 +45,8 @@ export function AddMilestoneModal({
   const [dueDate, setDueDate] = useState<CalendarDate>(today(getLocalTimeZone()));
   const [dueTime, setDueTime] = useState<Time>(new Time(9, 0));
   const [status, setStatus] = useState<CaseMilestoneStatus>(CaseMilestoneStatus.Pending);
+  const [now] = useState(() => Date.now());
+  const dueInPast = combineDateTime(dueDate, dueTime).getTime() < now;
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof MilestoneCreatePayloadSchema>
@@ -110,6 +112,11 @@ export function AddMilestoneModal({
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
             isDisabled={isPending}
+            description={
+              dueInPast
+                ? "This date is in the past — the milestone will show as overdue."
+                : undefined
+            }
           />
           <TimeField
             label="Due Time"

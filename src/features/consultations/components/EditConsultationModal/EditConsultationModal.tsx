@@ -77,11 +77,16 @@ export function EditConsultationModal({
 
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
-
-  const bookingChanged =
-    combineDateTime(fields.date, fields.time).getTime() !== consultation.booking_datetime.getTime();
+  const [now] = useState(() => Date.now());
+  const newBooking = combineDateTime(fields.date, fields.time);
+  const bookingChanged = newBooking.getTime() !== consultation.booking_datetime.getTime();
   const needsRescheduleConfirm = !isLocked && isScheduled && bookingChanged;
 
+  function validateBookingDate(): string | null {
+    if (!bookingChanged) return null;
+    if (newBooking.getTime() < now) return "Booking date cannot be in the past";
+    return null;
+  }
   const assigneeOptions = useMemo(() => {
     const directoryIds = new Set(users.map((user) => user.id));
     const missing = consultation.assignees.filter(
@@ -173,7 +178,7 @@ export function EditConsultationModal({
         confirmLabel="Reschedule"
         onConfirm={handleRescheduleConfirm}
       >
-        {`Move the booking from ${formatDateTime(consultation.booking_datetime)} to ${formatDateTime(combineDateTime(fields.date, fields.time))}? Assigned staff will be notified and reminders will restart.`}
+        {`Move the booking from ${formatDateTime(consultation.booking_datetime)} to ${formatDateTime(newBooking)}? Assigned staff will be notified and reminders will restart.`}
       </ConfirmDialog>
       <Form onSubmit={handleSave}>
         {isLocked && (
@@ -247,6 +252,7 @@ export function EditConsultationModal({
               onChange={(v) => v && setFields((p) => ({ ...p, date: v }))}
               isDisabled={bookingDisabled}
               description={bookingLockedDescription}
+              validate={validateBookingDate}
             />
             <TimeField
               label="Booking Time"

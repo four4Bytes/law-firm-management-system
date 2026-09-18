@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { FaGavel, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -35,6 +36,7 @@ export function ConsultationOverview({
   isEditPending,
   workflowActions,
 }: Props) {
+  const [now] = useState(() => Date.now());
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
@@ -91,7 +93,13 @@ export function ConsultationOverview({
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Booking Date & Time</span>
-              <span className={styles.value}>{formatDateTime(data.booking_datetime)}</span>
+              <span className={styles.bookingValue}>
+                {formatDateTime(data.booking_datetime)}
+                {data.status === ConsultationStatus.Scheduled &&
+                  data.booking_datetime.getTime() < now && (
+                    <span className={styles.overdue}>Overdue</span>
+                  )}
+              </span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>

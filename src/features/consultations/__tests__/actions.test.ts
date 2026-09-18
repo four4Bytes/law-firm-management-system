@@ -160,7 +160,7 @@ describe("createConsultationAction", () => {
   const validPayload = {
     client_id: uuid,
     concern: "Legal advice",
-    booking_datetime: "2024-06-01T10:00:00.000Z",
+    booking_datetime: "2099-06-01T10:00:00.000Z",
     status: "Scheduled" as const,
   };
 
@@ -200,6 +200,75 @@ describe("createConsultationAction", () => {
         code: "unknown",
         title: "Failed to create consultation",
         description: "Something went wrong on our end. Please try again.",
+      },
+    });
+  });
+
+  it("refuses a scheduled booking in the past", async () => {
+    expect(
+      await createConsultationAction({
+        ...validPayload,
+        booking_datetime: "2024-06-01T10:00:00.000Z",
+      }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Booking date is in the past",
+        description:
+          "A scheduled consultation cannot be booked in the past. If the meeting already happened, create it as Completed instead.",
+      },
+    });
+    expect(prisma.consultation.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a completed booking in the future", async () => {
+    expect(
+      await createConsultationAction({
+        ...validPayload,
+        status: "Completed" as const,
+      }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Booking date is in the future",
+        description:
+          "A completed consultation cannot be booked in the future. If the meeting has not happened yet, create it as Scheduled instead.",
+      },
+    });
+    expect(prisma.consultation.create).not.toHaveBeenCalled();
+  });
+
+  it("allows a completed booking in the past", async () => {
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
+
+    expect(
+      await createConsultationAction({
+        ...validPayload,
+        status: "Completed" as const,
+        booking_datetime: "2024-06-01T10:00:00.000Z",
+      }),
+    ).toEqual({ success: true });
+  });
+
+  it("refuses a scheduled booking in the past with a client", async () => {
+    expect(
+      await createConsultationWithClientAction({
+        client: { name: "John Doe", phone_number: "09170000001" },
+        consultation: {
+          concern: "Legal advice",
+          booking_datetime: "2024-06-01T10:00:00.000Z",
+          status: "Scheduled" as const,
+        },
+      }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Booking date is in the past",
+        description:
+          "A scheduled consultation cannot be booked in the past. If the meeting already happened, create it as Completed instead.",
       },
     });
   });
@@ -282,7 +351,7 @@ describe("updateConsultationAction", () => {
       id: uuid,
       client_id: uuid,
       concern: "Legal advice",
-      booking_datetime: consultationRecord.booking_datetime,
+      booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
       status: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -321,7 +390,7 @@ describe("updateConsultationAction", () => {
       id: uuid,
       client_id: uuid,
       concern: "Legal advice",
-      booking_datetime: consultationRecord.booking_datetime,
+      booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
       status: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -356,6 +425,29 @@ describe("updateConsultationAction", () => {
         title: "Booking date is locked",
         description:
           "The booking date can only change while a consultation is scheduled. This consultation is Completed.",
+      },
+    });
+    expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses rescheduling to a past date", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-05-01T10:00:00.000Z"),
+      status: "Scheduled",
+      assignee_ids: [],
+      assignees: [],
+    });
+
+    expect(await updateConsultationAction(validPayload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Booking date is in the past",
+        description:
+          "The booking date cannot be in the past. Choose a future date, or mark the consultation as Completed if the meeting already happened.",
       },
     });
     expect(prisma.consultation.update).not.toHaveBeenCalled();
@@ -640,7 +732,7 @@ describe("updateConsultationAction notification split", () => {
   it("dispatches ConsultationRescheduled when the booking changes", async () => {
     await updateConsultationAction({
       ...validPayload,
-      booking_datetime: "2024-06-05T10:00:00.000Z",
+      booking_datetime: "2099-06-05T10:00:00.000Z",
     });
     await flushAfterCallbacks();
 
@@ -907,6 +999,40 @@ describe("updateConsultationWithClientAction booking lock", () => {
         title: "Booking date is locked",
         description:
           "The booking date can only change while a consultation is scheduled. This consultation is Completed.",
+      },
+    });
+    expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses rescheduling to a past date", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-05-01T10:00:00.000Z"),
+      status: "Scheduled",
+      assignee_ids: [],
+      assignees: [],
+    });
+
+    expect(
+      await updateConsultationWithClientAction({
+        consultation_id: uuid,
+        client_id: uuid,
+        client: { name: "John Doe", phone_number: "09170000001" },
+        consultation: {
+          concern: "Legal advice",
+          booking_datetime: "2024-06-01T10:00:00.000Z",
+          assignee_ids: [],
+        },
+      }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Booking date is in the past",
+        description:
+          "The booking date cannot be in the past. Choose a future date, or mark the consultation as Completed if the meeting already happened.",
       },
     });
     expect(prisma.consultation.update).not.toHaveBeenCalled();

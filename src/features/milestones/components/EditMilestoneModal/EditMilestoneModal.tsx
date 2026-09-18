@@ -44,6 +44,8 @@ export function EditMilestoneModal({
   const [description, setDescription] = useState(milestone.description ?? "");
   const [dueDate, setDueDate] = useState<CalendarDate>(toCalendarDate(milestone.due_date));
   const [dueTime, setDueTime] = useState<Time>(toTimeValue(milestone.due_date));
+  const [now] = useState(() => Date.now());
+  const dueInPast = combineDateTime(dueDate, dueTime).getTime() < now;
   const [status, setStatus] = useState<CaseMilestoneStatus>(
     milestone.status as CaseMilestoneStatus,
   );
@@ -105,6 +107,11 @@ export function EditMilestoneModal({
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
             isDisabled={isPending}
+            description={
+              dueInPast
+                ? "This date is in the past — the milestone will show as overdue."
+                : undefined
+            }
           />
           <TimeField
             label="Due Time"

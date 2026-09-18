@@ -91,6 +91,25 @@ const CASE_ALREADY_EXISTS_COPY = {
     "A case already exists for this consultation. Open the linked case from the consultation page instead.",
 } as const;
 
+function checkBookingTiming(
+  status: ConsultationStatus,
+  booking: Date,
+): ActionStatusResponse | null {
+  if (status === ConsultationStatus.Scheduled && booking.getTime() < Date.now()) {
+    return actionConflict(
+      "Booking date is in the past",
+      "A scheduled consultation cannot be booked in the past. If the meeting already happened, create it as Completed instead.",
+    );
+  }
+  if (status === ConsultationStatus.Completed && booking.getTime() > Date.now()) {
+    return actionConflict(
+      "Booking date is in the future",
+      "A completed consultation cannot be booked in the future. If the meeting has not happened yet, create it as Scheduled instead.",
+    );
+  }
+  return null;
+}
+
 function caseAlreadyExistsConflict(): ActionStatusResponse {
   return actionConflict(CASE_ALREADY_EXISTS_COPY.title, CASE_ALREADY_EXISTS_COPY.description);
 }
@@ -194,6 +213,9 @@ export async function createConsultationAction(
 
     const { client_id, concern, booking_datetime, status, assignee_ids } = parsed.data;
 
+    const timingError = checkBookingTiming(status, booking_datetime);
+    if (timingError) return timingError;
+
     const createdConsultation = await createConsultation({
       client_id,
       concern,
@@ -243,6 +265,12 @@ export async function createConsultationWithClientAction(
     if (!parsed.success) {
       return actionInvalid("consultation");
     }
+
+    const timingError = checkBookingTiming(
+      parsed.data.consultation.status,
+      parsed.data.consultation.booking_datetime,
+    );
+    if (timingError) return timingError;
 
     const createdWithClient = await createConsultationWithClient({
       ...parsed.data,
@@ -311,6 +339,12 @@ export async function updateConsultationAction(
       return actionConflict(
         "Booking date is locked",
         `The booking date can only change while a consultation is scheduled. This consultation is ${existing.status}.`,
+      );
+    }
+    if (bookingChanged && booking_datetime.getTime() < Date.now()) {
+      return actionConflict(
+        "Booking date is in the past",
+        "The booking date cannot be in the past. Choose a future date, or mark the consultation as Completed if the meeting already happened.",
       );
     }
 
@@ -415,6 +449,12 @@ export async function updateConsultationWithClientAction(
       return actionConflict(
         "Booking date is locked",
         `The booking date can only change while a consultation is scheduled. This consultation is ${existing.status}.`,
+      );
+    }
+    if (bookingChanged && consultation.booking_datetime.getTime() < Date.now()) {
+      return actionConflict(
+        "Booking date is in the past",
+        "The booking date cannot be in the past. Choose a future date, or mark the consultation as Completed if the meeting already happened.",
       );
     }
 

@@ -79,6 +79,18 @@ export function AddConsultationModal({
 
   const { name, email, phone, address } = client;
   const { concern, date, time, status } = consultation;
+  const [now] = useState(() => Date.now());
+
+  function validateBookingDate(): string | null {
+    const booking = combineDateTime(date, time);
+    if (status === ConsultationStatus.Scheduled && booking.getTime() < now) {
+      return "Booking date cannot be in the past";
+    }
+    if (status === ConsultationStatus.Completed && booking.getTime() > now) {
+      return "Booking date cannot be in the future";
+    }
+    return null;
+  }
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof ConsultationWithClientCreatePayloadSchema>,
@@ -197,6 +209,7 @@ export function AddConsultationModal({
               value={date}
               onChange={(v) => v && setConsultation((p) => ({ ...p, date: v }))}
               isDisabled={isPending}
+              validate={validateBookingDate}
             />
             <TimeField
               label="Booking Time"

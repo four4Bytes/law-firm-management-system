@@ -64,6 +64,19 @@
             font-weight: var(--font-weight-normal);
             color: var(--color-text-primary);
           }
+
+          .bookingValue {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-normal);
+            color: var(--color-text-primary);
+          }
+
+          .overdue {
+            color: var(--color-danger);
+          }
         }
       }
     }

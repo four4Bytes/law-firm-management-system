@@ -241,56 +241,56 @@ describe("getActiveUserIds", () => {
 });
 
 describe("getActiveUsers", () => {
-   it("returns active users", async () => {
-     vi.mocked(prisma.user.findMany).mockResolvedValue([
-       mockUser({ id: "u1", name: "Alice", last_seen_at: null }),
-       mockUser({ id: "u2", name: "Bob", last_seen_at: null }),
-     ]);
+  it("returns active users", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      mockUser({ id: "u1", name: "Alice", last_seen_at: null }),
+      mockUser({ id: "u2", name: "Bob", last_seen_at: null }),
+    ]);
 
-     const result = await getActiveUsers();
+    const result = await getActiveUsers();
 
-     expect(result).toEqual([
-       { ...mockUser({ id: "u1", name: "Alice", last_seen_at: null }), is_online: false },
-       { ...mockUser({ id: "u2", name: "Bob", last_seen_at: null }), is_online: false },
-     ]);
-     expect(prisma.user.findMany).toHaveBeenCalledWith({
-       where: { is_active: true },
-       select: { id: true, name: true, last_seen_at: true },
-       orderBy: { name: "asc" },
-     });
-   });
+    expect(result).toEqual([
+      { ...mockUser({ id: "u1", name: "Alice", last_seen_at: null }), is_online: false },
+      { ...mockUser({ id: "u2", name: "Bob", last_seen_at: null }), is_online: false },
+    ]);
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: { is_active: true },
+      select: { id: true, name: true, last_seen_at: true },
+      orderBy: { name: "asc" },
+    });
+  });
 
-   it("returns online users", async () => {
-     const recentDate = new Date(Date.now() - 30000);
-     const oldDate = new Date(Date.now() - 300000);
-     vi.mocked(prisma.user.findMany).mockResolvedValue([
-       mockUser({ id: "u1", name: "Alice", last_seen_at: recentDate }),
-       mockUser({ id: "u2", name: "Bob", last_seen_at: oldDate }),
-     ]);
+  it("returns online users", async () => {
+    const recentDate = new Date(Date.now() - 30000);
+    const oldDate = new Date(Date.now() - 300000);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      mockUser({ id: "u1", name: "Alice", last_seen_at: recentDate }),
+      mockUser({ id: "u2", name: "Bob", last_seen_at: oldDate }),
+    ]);
 
-     const result = await getActiveUsers();
+    const result = await getActiveUsers();
 
-     expect(result).toEqual([
-       { ...mockUser({ id: "u1", name: "Alice", last_seen_at: recentDate }), is_online: true },
-       { ...mockUser({ id: "u2", name: "Bob", last_seen_at: oldDate }), is_online: false },
-     ]);
-   });
+    expect(result).toEqual([
+      { ...mockUser({ id: "u1", name: "Alice", last_seen_at: recentDate }), is_online: true },
+      { ...mockUser({ id: "u2", name: "Bob", last_seen_at: oldDate }), is_online: false },
+    ]);
+  });
 
-   it("isOnline boundary is offline", async () => {
-     const thresholdDate = new Date(Date.now() - 120000);
-     vi.mocked(prisma.user.findMany).mockResolvedValue([
-       mockUser({ id: "u1", name: "Alice", last_seen_at: thresholdDate }),
-     ]);
+  it("isOnline boundary is offline", async () => {
+    const thresholdDate = new Date(Date.now() - 120000);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      mockUser({ id: "u1", name: "Alice", last_seen_at: thresholdDate }),
+    ]);
 
-     const result = await getActiveUsers();
+    const result = await getActiveUsers();
 
-     expect(result[0].is_online).toBe(false);
-   });
+    expect(result[0].is_online).toBe(false);
+  });
 
-   it("propagates database errors", async () => {
-     const error = new Error("connection failed");
-     vi.mocked(prisma.user.findMany).mockRejectedValue(error);
+  it("propagates database errors", async () => {
+    const error = new Error("connection failed");
+    vi.mocked(prisma.user.findMany).mockRejectedValue(error);
 
-     await expect(getActiveUsers()).rejects.toThrow(error);
-   });
- });
+    await expect(getActiveUsers()).rejects.toThrow(error);
+  });
+});

@@ -90,9 +90,7 @@ export function DropdownItem({
                   className={clsx(styles.dot, isOnline ? styles.online : styles.offline)}
                   aria-hidden="true"
                 />
-                <span className={styles.visuallyHidden}>
-                  {isOnline ? "Online" : "Offline"}
-                </span>
+                <span className={styles.visuallyHidden}>{isOnline ? "Online" : "Offline"}</span>
               </>
             )}
             {typeof children === "string" ? <Text slot="label">{children}</Text> : children}

@@ -5,33 +5,24 @@ import { Form } from "react-aria-components";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { createCaseAction } from "@/features/cases/actions";
 import { CaseCreatePayloadSchema } from "@/features/cases/schemas";
+import { acceptConsultationWithCaseAction } from "@/features/consultations/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
-import {
-  createFieldValidator,
-  optionalString,
-  requiredString,
-  selectEnumHandler,
-} from "@/lib/form-utils";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
 
 import styles from "./CreateCaseFromConsultationModal.module.css";
-
-const STATUS_OPTIONS = Object.values(CaseStatus);
 
 interface CreateCaseFromConsultationModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: (caseId: string) => void;
-  onCancel?: () => Promise<boolean>;
+  onCancel?: () => void;
   consultationId: string;
-  clientId: string;
   defaultTitle: string;
   users: ActiveUserSummary[];
 }
@@ -39,7 +30,6 @@ interface CreateCaseFromConsultationModalProps {
 interface Fields {
   caseTitle: string;
   caseType: string;
-  status: CaseStatus;
   partiesInvolved: string;
 }
 
@@ -47,7 +37,6 @@ function resetFields(defaultTitle: string): Fields {
   return {
     caseTitle: defaultTitle,
     caseType: "",
-    status: CaseStatus.Open,
     partiesInvolved: "",
   };
 }
@@ -58,7 +47,6 @@ export function CreateCaseFromConsultationModal({
   onSuccess,
   onCancel,
   consultationId,
-  clientId,
   defaultTitle,
   users,
 }: CreateCaseFromConsultationModalProps) {
@@ -66,31 +54,13 @@ export function CreateCaseFromConsultationModal({
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
   const [isPending, setIsPending] = useState(false);
 
-  const { caseTitle, caseType, status, partiesInvolved } = fields;
+  const { caseTitle, caseType, partiesInvolved } = fields;
 
-  async function handleCancel() {
+  function handleCancel() {
     if (isPending) return;
     setFields(resetFields(defaultTitle));
     setAssigneeIds(new Set());
-    if (onCancel) {
-      let reverted: boolean;
-      try {
-        reverted = await onCancel();
-      } catch {
-        toastError(
-          "Failed to revert consultation status",
-          "The consultation status could not be restored. Please review it before trying again.",
-        );
-        return;
-      }
-      if (!reverted) {
-        toastError(
-          "Failed to revert consultation status",
-          "The consultation status could not be restored. Please review it before trying again.",
-        );
-        return;
-      }
-    }
+    onCancel?.();
     onOpenChange(false);
   }
 
@@ -105,22 +75,21 @@ export function CreateCaseFromConsultationModal({
     setIsPending(true);
 
     try {
-      const result = await createCaseAction({
-        client_id: clientId,
+      const result = await acceptConsultationWithCaseAction({
+        consultationId,
         case_title: requiredString(caseTitle),
         case_type: requiredString(caseType),
-        status,
+        status: CaseStatus.Open,
         parties_involved: optionalString(partiesInvolved),
-        source_consultation_id: consultationId,
         assignee_ids: Array.from(assigneeIds),
       });
 
       if (result.success && result.data) {
-        toastSuccess("Case created", "The case has been created.");
+        toastSuccess("Case created", "The consultation has been accepted and the case created.");
         setFields(resetFields(defaultTitle));
         setAssigneeIds(new Set());
         onOpenChange(false);
-        onSuccess(result.data.id);
+        onSuccess(result.data.caseId);
       } else {
         toastActionError(result, "create case");
       }
@@ -138,7 +107,7 @@ export function CreateCaseFromConsultationModal({
       onOpenChange={handleCancel}
       className={styles.modal}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.column}>
           <TextField
             label="Case Title"
@@ -156,18 +125,6 @@ export function CreateCaseFromConsultationModal({
             validate={createFieldValidator(CaseCreatePayloadSchema.shape.case_type)}
             isDisabled={isPending}
           />
-          <Select
-            label="Status"
-            value={status}
-            onChange={selectEnumHandler(CaseStatus, (value) => setField("status", value))}
-            isDisabled={isPending}
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} id={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </Select>
           <UserSelect
             users={users}
             selectedIds={assigneeIds}

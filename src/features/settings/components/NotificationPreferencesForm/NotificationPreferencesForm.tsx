@@ -15,8 +15,10 @@ interface NotificationPreferencesFormProps {
     notify_email_task_assigned: boolean;
     notify_email_case_status_changed: boolean;
     notify_email_consultation_status_changed: boolean;
+    notify_email_consultation_rescheduled: boolean;
     notify_email_task_status_changed: boolean;
     notify_email_milestone_status_changed: boolean;
+    notify_email_milestone_rescheduled: boolean;
   };
 }
 
@@ -100,6 +102,15 @@ export function NotificationPreferencesForm({
         </Checkbox>
 
         <Checkbox
+          isSelected={preferences.notify_email_consultation_rescheduled}
+          onChange={(v) => handleToggle("notify_email_consultation_rescheduled", v)}
+          isDisabled={isPending}
+          description="Receive a notification when a consultation you are assigned to is rescheduled"
+        >
+          Notify me when a consultation is rescheduled
+        </Checkbox>
+
+        <Checkbox
           isSelected={preferences.notify_email_task_status_changed}
           onChange={(v) => handleToggle("notify_email_task_status_changed", v)}
           isDisabled={isPending}
@@ -115,6 +126,15 @@ export function NotificationPreferencesForm({
           description="Receive a notification when a milestone in your case changes status"
         >
           Notify me when a milestone status changes
+        </Checkbox>
+
+        <Checkbox
+          isSelected={preferences.notify_email_milestone_rescheduled}
+          onChange={(v) => handleToggle("notify_email_milestone_rescheduled", v)}
+          isDisabled={isPending}
+          description="Receive a notification when a milestone in your case is rescheduled"
+        >
+          Notify me when a milestone is rescheduled
         </Checkbox>
       </div>
     </section>

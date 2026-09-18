@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AcceptConsultationWithCasePayloadSchema,
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
+  ConsultationStatusChangePayloadSchema,
   ConsultationUpdatePayloadSchema,
 } from "../schemas";
 
@@ -13,7 +15,7 @@ describe("ConsultationCreatePayloadSchema", () => {
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: "2024-07-15T10:00:00.000Z",
-    status: "Scheduled",
+    status: "Scheduled" as const,
   };
 
   it("accepts a valid payload", () => {
@@ -86,7 +88,6 @@ describe("ConsultationUpdatePayloadSchema", () => {
       client_id: uuid,
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
-      status: "Scheduled",
     });
     expect(result.success).toBe(false);
   });
@@ -97,9 +98,87 @@ describe("ConsultationUpdatePayloadSchema", () => {
       client_id: uuid,
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
-      status: "Scheduled",
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("ConsultationStatusChangePayloadSchema", () => {
+  it("accepts a valid status change", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Accepted",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Invalid",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing consultationId", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      status: "Accepted",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts an optional reason", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Rejected",
+      reason: "No merit",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.reason).toBe("No merit");
+  });
+
+  it("trims the reason", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Rejected",
+      reason: "  No merit  ",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.reason).toBe("No merit");
+  });
+});
+
+describe("AcceptConsultationWithCasePayloadSchema", () => {
+  const base = {
+    consultationId: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open" as const,
+  };
+
+  it("accepts a valid payload", () => {
+    expect(AcceptConsultationWithCasePayloadSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("accepts optional parties and assignees", () => {
+    const result = AcceptConsultationWithCasePayloadSchema.safeParse({
+      ...base,
+      parties_involved: "Jane Smith",
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a missing case title", () => {
+    expect(
+      AcceptConsultationWithCasePayloadSchema.safeParse({ ...base, case_title: "  " }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an invalid status", () => {
+    expect(
+      AcceptConsultationWithCasePayloadSchema.safeParse({ ...base, status: "Invalid" }).success,
+    ).toBe(false);
   });
 });
 

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
-import { TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
+import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -14,7 +14,11 @@ import {
   getDocumentsPaginatedAction,
   getDocumentUploadUrlAction,
 } from "../actions";
-import { createDocumentForTask, deleteDocument, deleteDocumentForTask } from "../mutations";
+import {
+  createDocumentForTask,
+  deleteDocumentForTask,
+  deleteDocumentWithParentCheck,
+} from "../mutations";
 import { getDocumentAccessContext, getDocumentById } from "../queries";
 
 vi.mock("@/lib/auth-guards", () => ({
@@ -69,7 +73,7 @@ vi.mock("../queries", () => ({
 
 vi.mock("../mutations", () => ({
   createDocument: vi.fn(),
-  deleteDocument: vi.fn(),
+  deleteDocumentWithParentCheck: vi.fn(),
   createDocumentForTask: vi.fn(),
   deleteDocumentForTask: vi.fn(),
 }));
@@ -139,8 +143,92 @@ describe("deleteDocumentAction", () => {
     const result = await deleteDocumentAction({ documentId: uuid });
 
     expect(result).toEqual({ success: true });
-    expect(deleteDocument).toHaveBeenCalledWith(uuid);
+    expect(deleteDocumentWithParentCheck).toHaveBeenCalledWith(uuid, expect.any(Object));
     expect(deleteDocumentFiles).toHaveBeenCalledWith([documentRecord.file_path]);
+  });
+});
+
+describe("terminal record lock", () => {
+  beforeEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u2",
+      email: "e2",
+      role: Role.Lawyer,
+      name: "n2",
+    });
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(deleteDocumentWithParentCheck).mockResolvedValue({ id: uuid });
+  });
+
+  it("refuses to delete a file on a cancelled consultation", async () => {
+    vi.mocked(getDocumentById).mockResolvedValue({
+      ...documentRecord,
+      case_id: null,
+      consultation_id: uuid,
+    });
+    vi.mocked(deleteDocumentWithParentCheck).mockRejectedValue(
+      new RecordLockedError("Consultation"),
+    );
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Consultation locked",
+        description:
+          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
+      },
+    });
+    expect(deleteDocumentFiles).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete a file on a settled case", async () => {
+    vi.mocked(deleteDocumentWithParentCheck).mockRejectedValue(new RecordLockedError("Case"));
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Case locked",
+        description:
+          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
+      },
+    });
+  });
+
+  it("allows deleting a file on a live consultation", async () => {
+    vi.mocked(getDocumentById).mockResolvedValue({
+      ...documentRecord,
+      case_id: null,
+      consultation_id: uuid,
+    });
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
+  });
+
+  it("refuses to delete a task file when the parent case is locked", async () => {
+    vi.mocked(getDocumentById).mockResolvedValue({
+      ...documentRecord,
+      task_id: uuid,
+      task: { case_id: uuid, status: "Pending" as const },
+    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(deleteDocumentForTask).mockRejectedValue(new RecordLockedError("Case"));
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Case locked",
+        description:
+          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
+      },
+    });
+    expect(deleteDocumentFiles).not.toHaveBeenCalled();
   });
 });
 

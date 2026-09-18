@@ -17,7 +17,7 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { combineDateTime } from "@/lib/date";
+import { combineDateTime, isAfterToday, isBeforeToday } from "@/lib/date";
 import {
   createFieldValidator,
   optionalString,
@@ -28,7 +28,7 @@ import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddConsultationModal.module.css";
 
-const STATUS_OPTIONS = Object.values(ConsultationStatus);
+const CREATION_STATUS_OPTIONS = [ConsultationStatus.Scheduled, ConsultationStatus.Completed];
 
 interface AddConsultationModalProps {
   isOpen: boolean;
@@ -48,11 +48,14 @@ function resetClient(): ClientFields {
   return { name: "", email: "", phone: "", address: "" };
 }
 
+type ConsultationCreateStatus =
+  typeof ConsultationStatus.Scheduled | typeof ConsultationStatus.Completed;
+
 interface ConsultationFields {
   concern: string;
   date: CalendarDate;
   time: Time;
-  status: ConsultationStatus;
+  status: ConsultationCreateStatus;
 }
 
 function resetConsultation(): ConsultationFields {
@@ -76,6 +79,17 @@ export function AddConsultationModal({
 
   const { name, email, phone, address } = client;
   const { concern, date, time, status } = consultation;
+
+  function validateBookingDate(): string | null {
+    const booking = combineDateTime(date, time);
+    if (status === ConsultationStatus.Scheduled && isBeforeToday(booking)) {
+      return "Booking date cannot be in the past";
+    }
+    if (status === ConsultationStatus.Completed && isAfterToday(booking)) {
+      return "Booking date cannot be in the future";
+    }
+    return null;
+  }
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof ConsultationWithClientCreatePayloadSchema>,
@@ -128,7 +142,7 @@ export function AddConsultationModal({
       onOpenChange={handleCancel}
       className={styles.modal}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField
@@ -194,6 +208,7 @@ export function AddConsultationModal({
               value={date}
               onChange={(v) => v && setConsultation((p) => ({ ...p, date: v }))}
               isDisabled={isPending}
+              validate={validateBookingDate}
             />
             <TimeField
               label="Booking Time"
@@ -206,12 +221,17 @@ export function AddConsultationModal({
             <Select
               label="Status"
               value={status}
-              onChange={selectEnumHandler(ConsultationStatus, (value) =>
-                setConsultation((p) => ({ ...p, status: value })),
-              )}
+              onChange={selectEnumHandler(ConsultationStatus, (value) => {
+                if (
+                  value === ConsultationStatus.Scheduled ||
+                  value === ConsultationStatus.Completed
+                ) {
+                  setConsultation((p) => ({ ...p, status: value }));
+                }
+              })}
               isDisabled={isPending}
             >
-              {STATUS_OPTIONS.map((s) => (
+              {CREATION_STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s} id={s}>
                   {s}
                 </SelectItem>

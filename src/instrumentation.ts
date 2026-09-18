@@ -1,0 +1,36 @@
+export async function register(): Promise<void> {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  const { parseDeveloperEmails } = await import("@/lib/developer-emails");
+  const { getUserByEmail } = await import("@/features/users/queries");
+  const { createUser } = await import("@/features/users/mutations");
+  const { Role } = await import("@/generated/prisma/client");
+
+  const emails = parseDeveloperEmails();
+
+  for (const email of emails) {
+    const existing = await getUserByEmail(email);
+    if (!existing) {
+      await createUser(email, Role.Dev);
+    }
+  }
+
+  if (!process.env.VERCEL) {
+    const cron = await import("node-cron");
+    const { getAppTimeZone } = await import("@/lib/date");
+
+    const REMINDER_CRON_SCHEDULE = "0 0 * * *";
+    const { runReminderCheck } = await import("@/features/reminders/scheduler");
+    cron.schedule(REMINDER_CRON_SCHEDULE, runReminderCheck, {
+      noOverlap: true,
+      timezone: getAppTimeZone(),
+    });
+
+    const STORAGE_GC_CRON_SCHEDULE = process.env.STORAGE_GC_CRON_SCHEDULE ?? "0 3 * * 0";
+    const { runStorageGc } = await import("@/features/documents/mutations");
+    cron.schedule(STORAGE_GC_CRON_SCHEDULE, runStorageGc, {
+      noOverlap: true,
+      timezone: getAppTimeZone(),
+    });
+  }
+}

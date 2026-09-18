@@ -32,7 +32,7 @@ import {
   createDocument,
   createDocumentForTask,
   deleteDocumentForTask,
-  deleteDocument as deleteDocumentRecord,
+  deleteDocumentWithParentCheck,
 } from "./mutations";
 import {
   getDocumentAccessContext,
@@ -277,7 +277,10 @@ export async function deleteDocumentAction(
 
       await deleteDocumentForTask(doc.task_id, documentId);
     } else {
-      await deleteDocumentRecord(documentId);
+      await deleteDocumentWithParentCheck(documentId, {
+        consultation_id: doc.consultation_id,
+        case_id: parentCaseId,
+      });
     }
 
     await deleteDocumentFiles([doc.file_path]);

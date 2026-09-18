@@ -79,7 +79,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadAssignees() {
       try {
         const [usersData, sessionUserId] = await Promise.all([
           getActiveUsersAction(),
@@ -94,7 +94,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       }
     }
 
-    void load();
+    void loadAssignees();
 
     return () => {
       cancelled = true;

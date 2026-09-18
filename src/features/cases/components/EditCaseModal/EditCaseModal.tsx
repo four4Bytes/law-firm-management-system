@@ -6,7 +6,6 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { updateCaseWithClientAction } from "@/features/cases/actions";
 import type { CaseEditData } from "@/features/cases/queries";
@@ -15,18 +14,10 @@ import type { ClientEditData } from "@/features/clients/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { CaseStatus } from "@/generated/prisma/browser";
-import {
-  createFieldValidator,
-  optionalString,
-  requiredString,
-  selectEnumHandler,
-} from "@/lib/form-utils";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditCaseModal.module.css";
-
-const STATUS_OPTIONS = Object.values(CaseStatus);
 
 interface EditCaseModalProps {
   isOpen: boolean;
@@ -53,7 +44,6 @@ export function EditCaseModal({
 
   const [caseTitle, setCaseTitle] = useState(caseData.case_title);
   const [caseType, setCaseType] = useState(caseData.case_type);
-  const [status, setStatus] = useState<CaseStatus>(caseData.status as CaseStatus);
   const [partiesInvolved, setPartiesInvolved] = useState(caseData.parties_involved ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(caseData.assignee_ids));
 
@@ -98,7 +88,6 @@ export function EditCaseModal({
       case: {
         case_title: requiredString(caseTitle),
         case_type: requiredString(caseType),
-        status,
         parties_involved: optionalString(partiesInvolved),
         assignee_ids: Array.from(assigneeIds),
       },
@@ -107,7 +96,7 @@ export function EditCaseModal({
 
   return (
     <Modal title="Edit Case" isOpen={isOpen} onOpenChange={handleDismiss} className={styles.modal}>
-      <Form onSubmit={handleSave}>
+      <Form validationBehavior="native" onSubmit={handleSave}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField
@@ -174,18 +163,6 @@ export function EditCaseModal({
               )}
               isDisabled={isPending}
             />
-            <Select
-              label="Status"
-              value={status}
-              onChange={selectEnumHandler(CaseStatus, setStatus)}
-              isDisabled={isPending}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
             <UserSelect
               users={assigneeOptions}
               selectedIds={assigneeIds}

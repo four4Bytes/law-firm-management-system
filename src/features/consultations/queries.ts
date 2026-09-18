@@ -49,6 +49,7 @@ export type ConsultationOverviewData = {
   created_at: Date;
   updated_at: Date;
   client: {
+    id: string;
     name: string;
     phone_number: string;
     email: string | null;
@@ -89,6 +90,7 @@ export const getConsultationOverviewById = cache(
       created_at: data.created_at,
       updated_at: data.updated_at,
       client: {
+        id: data.client.id,
         name: data.client.name,
         phone_number: data.client.phone_number,
         email: data.client.email,

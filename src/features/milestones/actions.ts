@@ -7,8 +7,9 @@ import { z } from "zod";
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
-import { NotificationType } from "@/generated/prisma/browser";
+import { CaseMilestoneStatus, NotificationType } from "@/generated/prisma/browser";
 import {
+  actionConflict,
   actionForbidden,
   actionInvalid,
   actionNotFound,
@@ -16,6 +17,7 @@ import {
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { isAfterToday, isBeforeToday } from "@/lib/date";
 import { ForbiddenError, toActionResponse } from "@/lib/errors";
 import { can } from "@/lib/rbac";
 
@@ -31,6 +33,7 @@ import {
   MilestoneIdSchema,
   MilestoneUpdatePayloadSchema,
 } from "./schemas";
+import { describeMilestoneNextSteps, isValidMilestoneStatusTransition } from "./status";
 
 export async function getMilestoneRowByIdAction(
   milestoneId: string,
@@ -72,6 +75,19 @@ export async function createMilestoneAction(
     const caseAccess = await getCaseAccessContext(session.id, case_id);
     if (!can(session.role, "milestone.create", caseAccess)) {
       return actionForbidden();
+    }
+
+    if (status !== CaseMilestoneStatus.Pending) {
+      return actionConflict(
+        "Milestones are created as Pending",
+        "A new milestone always starts as Pending. Mark it as Done or Cancelled from the case page after creation.",
+      );
+    }
+    if (isBeforeToday(due_date)) {
+      return actionConflict(
+        "Due date is in the past",
+        "A new milestone cannot be due in the past. Choose today or a future date.",
+      );
     }
 
     const milestone = await createMilestone({
@@ -129,7 +145,40 @@ export async function updateMilestoneAction(
       return { success: true };
     }
 
-    const resetReminderTiming = existing.due_date.getTime() !== due_date.getTime();
+    const dueDateChanged = existing.due_date.getTime() !== due_date.getTime();
+    const statusChanged = existing.status !== status;
+    if (
+      (dueDateChanged || statusChanged) &&
+      status === CaseMilestoneStatus.Pending &&
+      isBeforeToday(due_date)
+    ) {
+      return actionConflict(
+        "Due date is in the past",
+        "A pending milestone cannot be due in the past. Choose today or a future date.",
+      );
+    }
+    if (
+      (dueDateChanged || statusChanged) &&
+      status === CaseMilestoneStatus.Done &&
+      isAfterToday(due_date)
+    ) {
+      return actionConflict(
+        "Due date is in the future",
+        "A completed milestone cannot be due in the future. Choose today or a past date.",
+      );
+    }
+
+    if (
+      statusChanged &&
+      !isValidMilestoneStatusTransition(existing.status as CaseMilestoneStatus, status)
+    ) {
+      return actionConflict(
+        "Invalid status change",
+        `Cannot change a milestone from ${existing.status} to ${status}. From ${existing.status}, you can: ${describeMilestoneNextSteps(existing.status as CaseMilestoneStatus)}.`,
+      );
+    }
+    const reopened = statusChanged && status === CaseMilestoneStatus.Pending;
+    const resetReminderTiming = dueDateChanged || reopened;
 
     await updateMilestone(milestoneId, {
       title,
@@ -145,14 +194,15 @@ export async function updateMilestoneAction(
         action: "milestone.updated",
         entityType: "Case",
         entityId: existing.case_id,
-        details: `Updated milestone: "${title}"`,
+        details: statusChanged
+          ? `Changed milestone status from ${existing.status} to ${status}`
+          : `Updated milestone: "${title}"`,
       });
 
-      try {
-        const assigneeIds = await getCaseAssigneeIds(existing.case_id);
-        if (assigneeIds.length === 0) return;
-        if (existing.status === status) return;
+      const assigneeIds = await getCaseAssigneeIds(existing.case_id);
+      if (assigneeIds.length === 0) return;
 
+      if (existing.status !== status) {
         await notifyRecipients(session.id, {
           userIds: assigneeIds,
           type: NotificationType.MilestoneStatusChanged,
@@ -162,8 +212,22 @@ export async function updateMilestoneAction(
           caseId: existing.case_id,
           milestoneId: existing.id,
         });
-      } catch (err) {
-        console.error("Failed to dispatch notification:", err);
+      }
+
+      if (dueDateChanged) {
+        await notifyRecipients(
+          session.id,
+          {
+            userIds: assigneeIds,
+            type: NotificationType.MilestoneDueDateChanged,
+            title: `Milestone rescheduled: ${title}`,
+            message: `Milestone "${title}" has been rescheduled.`,
+            actionUrl: `/case/${existing.case_id}`,
+            caseId: existing.case_id,
+            milestoneId: existing.id,
+          },
+          "reschedule",
+        );
       }
     });
 

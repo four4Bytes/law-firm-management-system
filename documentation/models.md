@@ -44,8 +44,10 @@ Per-user preferences attached 1:1 to `User`. Defaults to all email toggles **on*
 | Notify Email Task Assigned               | Boolean   | Yes      | Email when assigned to a task (`@default(true)`)                                 |
 | Notify Email Case Status Changed         | Boolean   | Yes      | Email when a case you’re assigned to changes status (`@default(true)`)           |
 | Notify Email Consultation Status Changed | Boolean   | Yes      | Email when a consultation you’re assigned to changes status (`@default(true)`)   |
+| Notify Email Consultation Rescheduled    | Boolean   | Yes      | Email when a consultation you’re assigned to is rescheduled (`@default(true)`)   |
 | Notify Email Task Status Changed         | Boolean   | Yes      | Email when a task you’re assigned to/reviewing changes status (`@default(true)`) |
 | Notify Email Milestone Status Changed    | Boolean   | Yes      | Email when a milestone in your case changes status (`@default(true)`)            |
+| Notify Email Milestone Rescheduled       | Boolean   | Yes      | Email when a milestone in your case is rescheduled (`@default(true)`)            |
 | Created                                  | Timestamp | Yes      | When the settings row was created                                                |
 | Updated                                  | Timestamp | Yes      | When the settings row was last modified                                          |
 
@@ -329,13 +331,14 @@ Links a reviewer to a task for approval workflows.
 
 ### Case Status
 
-| Value      | Description                      |
-| ---------- | -------------------------------- |
-| Open       | Case created but not yet active  |
-| Ongoing    | Case is actively being worked on |
-| Closed     | Case concluded successfully      |
-| Terminated | Case ended without completion    |
-| Settled    | Case settled out of court        |
+`Open` covers the whole live matter, from intake through active work — there is no separate "ongoing" state. The three endings are siblings distinguished by exit paperwork:
+
+| Value      | Description                                                      |
+| ---------- | ---------------------------------------------------------------- |
+| Open       | Matter is live (intake through active work)                      |
+| Closed     | Concluded by decision or completion (judgment, matter fulfilled) |
+| Settled    | Concluded by compromise (settlement / compromise agreement)      |
+| Terminated | Ended without resolution (withdrawn, dismissed, disengaged)      |
 
 ---
 
@@ -372,11 +375,13 @@ Links a reviewer to a task for approval workflows.
 
 ### Milestone Status
 
-| Value     | Description                    |
-| --------- | ------------------------------ |
-| Pending   | Milestone not yet reached      |
-| Done      | Milestone completed            |
-| Cancelled | Milestone no longer applicable |
+`Pending` covers both upcoming and overdue-not-done work (overdue items keep `Pending`; the scheduler sends `MilestoneOverdue` for them). There is deliberately no separate "upcoming" state. Creation always starts at `Pending` (no status select; non-`Pending` refused by `createMilestoneAction`).
+
+| Value     | Description                                     |
+| --------- | ----------------------------------------------- |
+| Pending   | Milestone not yet reached (upcoming or overdue) |
+| Done      | Milestone completed                             |
+| Cancelled | Milestone no longer applicable                  |
 
 ---
 
@@ -388,6 +393,7 @@ Links a reviewer to a task for approval workflows.
 | ConsultationOverdue       | Consultation booking date has passed               |
 | MilestoneDueSoon          | Milestone due within reminder window               |
 | MilestoneStatusChanged    | Any milestone status change                        |
+| MilestoneDueDateChanged   | Milestone due date/time changed                    |
 | MilestoneOverdue          | Milestone due date has passed                      |
 | TaskAssigned              | User assigned to a task                            |
 | TaskStatusChanged         | Any task status change (review workflow)           |
@@ -395,6 +401,7 @@ Links a reviewer to a task for approval workflows.
 | CaseStatusChanged         | Any case status change                             |
 | ConsultationAssigned      | Consultation assignee added                        |
 | ConsultationStatusChanged | Any consultation status change                     |
+| ConsultationRescheduled   | Consultation booking date/time changed             |
 
 > See [Notifications & Reminders](./notifications.md) for the full delivery rules.
 

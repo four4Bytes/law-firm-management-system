@@ -15,12 +15,12 @@ Never add status conditions to the RBAC matrix — it would multiply every cell 
 
 Single source of truth in `src/lib/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`); feature `status.ts` modules re-export them plus entity copy. Tasks have no transition table — status is derived (`deriveTaskStatus`), never set.
 
-| Entity       | Table                                                                                       | Terminal meaning                                                                                 |
-| ------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Consultation | `Scheduled → Completed/Cancelled`; `Completed → Accepted/Rejected`; `Cancelled → Scheduled` | `Accepted`/`Rejected`: no outgoing edges (terminal). `Cancelled` rebooks.                        |
-| Case         | `Open → Closed/Settled/Terminated`; each terminal → `Open` (reopen)                         | No _outcome_ change; reopen is an explicit audited edge, never a rewrite.                        |
-| Task         | Derived (`Pending ⇄ InReview ⇄ Done`)                                                       | `Done`: terminal via derivation; reopened by adding a reviewer.                                  |
-| Milestone    | `Pending → Done/Cancelled`; each terminal → `Pending` (reopen)                              | Single writer (edit-form save); the select offers only legal targets. Reopen restarts reminders. |
+| Entity       | Table                                                                                       | Terminal meaning                                                                                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consultation | `Scheduled → Completed/Cancelled`; `Completed → Accepted/Rejected`; `Cancelled → Scheduled` | `Accepted`/`Rejected`: no outgoing edges (terminal). `Cancelled` rebooks.                                                                                                  |
+| Case         | `Open → Closed/Settled/Terminated`; each terminal → `Open` (reopen)                         | No _outcome_ change; reopen is an explicit audited edge, never a rewrite.                                                                                                  |
+| Task         | Derived (`Pending ⇄ InReview ⇄ Done`)                                                       | `Done`: terminal via derivation; reopened by adding a reviewer.                                                                                                            |
+| Milestone    | `Pending → Done/Cancelled`; each terminal → `Pending` (reopen)                              | Creation always `Pending` (no select; non-`Pending` refused server-side). Single writer (edit-form save); the select offers only legal targets. Reopen restarts reminders. |
 
 Evaluators: `canTransition(table, from, to)` (same-status moves are never valid), `isTerminalStatus(table, status)` (derived — no outgoing edges).
 

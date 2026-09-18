@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { FaGavel, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -9,7 +8,7 @@ import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadg
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime, isBeforeToday } from "@/lib/date";
 
 import styles from "./ConsultationOverview.module.css";
 
@@ -36,7 +35,6 @@ export function ConsultationOverview({
   isEditPending,
   workflowActions,
 }: Props) {
-  const [now] = useState(() => Date.now());
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
@@ -96,7 +94,7 @@ export function ConsultationOverview({
               <span className={styles.bookingValue}>
                 {formatDateTime(data.booking_datetime)}
                 {data.status === ConsultationStatus.Scheduled &&
-                  data.booking_datetime.getTime() < now && (
+                  isBeforeToday(data.booking_datetime) && (
                     <span className={styles.overdue}>Overdue</span>
                   )}
               </span>

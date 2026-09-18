@@ -375,7 +375,7 @@ Links a reviewer to a task for approval workflows.
 
 ### Milestone Status
 
-`Pending` covers both upcoming and overdue-not-done work (overdue items keep `Pending`; the scheduler sends `MilestoneOverdue` for them). There is deliberately no separate "upcoming" state.
+`Pending` covers both upcoming and overdue-not-done work (overdue items keep `Pending`; the scheduler sends `MilestoneOverdue` for them). There is deliberately no separate "upcoming" state. Creation always starts at `Pending` (no status select; non-`Pending` refused by `createMilestoneAction`).
 
 | Value     | Description                                     |
 | --------- | ----------------------------------------------- |

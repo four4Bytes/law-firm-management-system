@@ -8,24 +8,16 @@ import { z } from "zod";
 import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createMilestoneAction } from "@/features/milestones/actions";
 import { MilestoneCreatePayloadSchema } from "@/features/milestones/schemas";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
-import { combineDateTime } from "@/lib/date";
-import {
-  createFieldValidator,
-  optionalString,
-  requiredString,
-  selectEnumHandler,
-} from "@/lib/form-utils";
+import { combineDateTime, isBeforeToday } from "@/lib/date";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddMilestoneModal.module.css";
-
-const STATUS_OPTIONS = Object.values(CaseMilestoneStatus);
 
 interface AddMilestoneModalProps {
   isOpen: boolean;
@@ -44,9 +36,13 @@ export function AddMilestoneModal({
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<CalendarDate>(today(getLocalTimeZone()));
   const [dueTime, setDueTime] = useState<Time>(new Time(9, 0));
-  const [status, setStatus] = useState<CaseMilestoneStatus>(CaseMilestoneStatus.Pending);
-  const [now] = useState(() => Date.now());
-  const dueInPast = combineDateTime(dueDate, dueTime).getTime() < now;
+
+  function validateDueDate(): string | null {
+    if (isBeforeToday(combineDateTime(dueDate, dueTime))) {
+      return "Due date cannot be in the past";
+    }
+    return null;
+  }
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof MilestoneCreatePayloadSchema>
@@ -63,7 +59,6 @@ export function AddMilestoneModal({
       setDescription("");
       setDueDate(today(getLocalTimeZone()));
       setDueTime(new Time(9, 0));
-      setStatus(CaseMilestoneStatus.Pending);
     },
   });
 
@@ -75,7 +70,7 @@ export function AddMilestoneModal({
       title: requiredString(title),
       description: optionalString(description),
       due_date: combineDateTime(dueDate, dueTime),
-      status,
+      status: CaseMilestoneStatus.Pending,
       case_id: caseId,
     });
   }
@@ -112,11 +107,7 @@ export function AddMilestoneModal({
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
             isDisabled={isPending}
-            description={
-              dueInPast
-                ? "This date is in the past — the milestone will show as overdue."
-                : undefined
-            }
+            validate={validateDueDate}
           />
           <TimeField
             label="Due Time"
@@ -124,18 +115,6 @@ export function AddMilestoneModal({
             onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
             isDisabled={isPending}
           />
-          <Select
-            label="Status"
-            value={status}
-            onChange={selectEnumHandler(CaseMilestoneStatus, setStatus)}
-            isDisabled={isPending}
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} id={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </Select>
           <div className={styles.actions}>
             <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
               Cancel

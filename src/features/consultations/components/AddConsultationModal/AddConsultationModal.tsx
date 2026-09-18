@@ -17,7 +17,7 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { combineDateTime } from "@/lib/date";
+import { combineDateTime, isAfterToday, isBeforeToday } from "@/lib/date";
 import {
   createFieldValidator,
   optionalString,
@@ -79,14 +79,13 @@ export function AddConsultationModal({
 
   const { name, email, phone, address } = client;
   const { concern, date, time, status } = consultation;
-  const [now] = useState(() => Date.now());
 
   function validateBookingDate(): string | null {
     const booking = combineDateTime(date, time);
-    if (status === ConsultationStatus.Scheduled && booking.getTime() < now) {
+    if (status === ConsultationStatus.Scheduled && isBeforeToday(booking)) {
       return "Booking date cannot be in the past";
     }
-    if (status === ConsultationStatus.Completed && booking.getTime() > now) {
+    if (status === ConsultationStatus.Completed && isAfterToday(booking)) {
       return "Booking date cannot be in the future";
     }
     return null;

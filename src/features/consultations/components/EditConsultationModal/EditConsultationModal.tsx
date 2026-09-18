@@ -21,7 +21,13 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { combineDateTime, formatDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
+import {
+  combineDateTime,
+  formatDateTime,
+  isBeforeToday,
+  toCalendarDate,
+  toTimeValue,
+} from "@/lib/date";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { toastError } from "@/lib/toast-utils";
 import { useModalForm } from "@/lib/useModalForm";
@@ -77,14 +83,13 @@ export function EditConsultationModal({
 
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
-  const [now] = useState(() => Date.now());
   const newBooking = combineDateTime(fields.date, fields.time);
   const bookingChanged = newBooking.getTime() !== consultation.booking_datetime.getTime();
   const needsRescheduleConfirm = !isLocked && isScheduled && bookingChanged;
 
   function validateBookingDate(): string | null {
     if (!bookingChanged) return null;
-    if (newBooking.getTime() < now) return "Booking date cannot be in the past";
+    if (isBeforeToday(newBooking)) return "Booking date cannot be in the past";
     return null;
   }
   const assigneeOptions = useMemo(() => {

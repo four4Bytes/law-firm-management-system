@@ -7,7 +7,13 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
 import { getDeadlineReminderPreferencesByUserIds } from "@/features/settings/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import { formatDate, formatDateTime, getAppTimeZone, getStartOfDay } from "@/lib/date";
+import {
+  formatDate,
+  formatDateTime,
+  getAppTimeZone,
+  getStartOfDay,
+  isBeforeToday,
+} from "@/lib/date";
 import { getOptionalInteger } from "@/lib/env";
 
 import {
@@ -72,7 +78,7 @@ async function processMilestones(now: Date): Promise<void> {
   for (const m of milestones) {
     if (m.assigneeIds.length === 0) continue;
 
-    const isOverdue = m.due_date < now;
+    const isOverdue = isBeforeToday(m.due_date);
 
     let prefsMap: Awaited<ReturnType<typeof getDeadlineReminderPreferencesByUserIds>>;
     try {
@@ -161,7 +167,7 @@ async function processConsultations(now: Date): Promise<void> {
   for (const c of consultations) {
     if (c.assigneeIds.length === 0) continue;
 
-    const isOverdue = c.booking_datetime < now;
+    const isOverdue = isBeforeToday(c.booking_datetime);
 
     let prefsMap: Awaited<ReturnType<typeof getDeadlineReminderPreferencesByUserIds>>;
     try {

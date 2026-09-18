@@ -10,6 +10,7 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Consultation } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
 import { requireAuth, requirePermission } from "@/lib/auth-guards";
+import { getStartOfDay } from "@/lib/date";
 import { ForbiddenError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
@@ -252,6 +253,31 @@ describe("createConsultationAction", () => {
     ).toEqual({ success: true });
   });
 
+  it("allows a scheduled booking earlier today", async () => {
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
+
+    expect(
+      await createConsultationAction({
+        ...validPayload,
+        booking_datetime: getStartOfDay(new Date()),
+      }),
+    ).toEqual({ success: true });
+  });
+
+  it("allows a completed booking later today", async () => {
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
+
+    const laterToday = new Date(getStartOfDay(new Date()).getTime() + 12 * 60 * 60 * 1000);
+
+    expect(
+      await createConsultationAction({
+        ...validPayload,
+        status: "Completed" as const,
+        booking_datetime: laterToday,
+      }),
+    ).toEqual({ success: true });
+  });
+
   it("refuses a scheduled booking in the past with a client", async () => {
     expect(
       await createConsultationWithClientAction({
@@ -451,6 +477,26 @@ describe("updateConsultationAction", () => {
       },
     });
     expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+
+  it("allows rescheduling to earlier today", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-05-01T10:00:00.000Z"),
+      status: "Scheduled",
+      assignee_ids: [],
+      assignees: [],
+    });
+    vi.mocked(prisma.consultation.update).mockResolvedValue(consultationRecord);
+
+    expect(
+      await updateConsultationAction({
+        ...validPayload,
+        booking_datetime: getStartOfDay(new Date()),
+      }),
+    ).toEqual({ success: true });
   });
 
   it("refuses field edits on an accepted consultation with a linked case", async () => {

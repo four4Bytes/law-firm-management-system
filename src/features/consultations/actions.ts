@@ -36,6 +36,7 @@ import {
   requirePermission,
   type AuthenticatedUser,
 } from "@/lib/auth-guards";
+import { isAfterToday, isBeforeToday } from "@/lib/date";
 import { toActionResponse } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
@@ -95,13 +96,13 @@ function checkBookingTiming(
   status: ConsultationStatus,
   booking: Date,
 ): ActionStatusResponse | null {
-  if (status === ConsultationStatus.Scheduled && booking.getTime() < Date.now()) {
+  if (status === ConsultationStatus.Scheduled && isBeforeToday(booking)) {
     return actionConflict(
       "Booking date is in the past",
       "A scheduled consultation cannot be booked in the past. If the meeting already happened, create it as Completed instead.",
     );
   }
-  if (status === ConsultationStatus.Completed && booking.getTime() > Date.now()) {
+  if (status === ConsultationStatus.Completed && isAfterToday(booking)) {
     return actionConflict(
       "Booking date is in the future",
       "A completed consultation cannot be booked in the future. If the meeting has not happened yet, create it as Scheduled instead.",
@@ -341,7 +342,7 @@ export async function updateConsultationAction(
         `The booking date can only change while a consultation is scheduled. This consultation is ${existing.status}.`,
       );
     }
-    if (bookingChanged && booking_datetime.getTime() < Date.now()) {
+    if (bookingChanged && isBeforeToday(booking_datetime)) {
       return actionConflict(
         "Booking date is in the past",
         "The booking date cannot be in the past. Choose a future date, or mark the consultation as Completed if the meeting already happened.",
@@ -451,7 +452,7 @@ export async function updateConsultationWithClientAction(
         `The booking date can only change while a consultation is scheduled. This consultation is ${existing.status}.`,
       );
     }
-    if (bookingChanged && consultation.booking_datetime.getTime() < Date.now()) {
+    if (bookingChanged && isBeforeToday(consultation.booking_datetime)) {
       return actionConflict(
         "Booking date is in the past",
         "The booking date cannot be in the past. Choose a future date, or mark the consultation as Completed if the meeting already happened.",

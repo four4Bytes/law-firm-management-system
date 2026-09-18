@@ -16,7 +16,13 @@ import type { MilestoneRow } from "@/features/milestones/queries";
 import { MilestoneUpdatePayloadSchema } from "@/features/milestones/schemas";
 import { milestoneStatusOptions } from "@/features/milestones/status";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
-import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
+import {
+  combineDateTime,
+  isAfterToday,
+  isBeforeToday,
+  toCalendarDate,
+  toTimeValue,
+} from "@/lib/date";
 import {
   createFieldValidator,
   optionalString,
@@ -44,11 +50,22 @@ export function EditMilestoneModal({
   const [description, setDescription] = useState(milestone.description ?? "");
   const [dueDate, setDueDate] = useState<CalendarDate>(toCalendarDate(milestone.due_date));
   const [dueTime, setDueTime] = useState<Time>(toTimeValue(milestone.due_date));
-  const [now] = useState(() => Date.now());
-  const dueInPast = combineDateTime(dueDate, dueTime).getTime() < now;
   const [status, setStatus] = useState<CaseMilestoneStatus>(
     milestone.status as CaseMilestoneStatus,
   );
+  const newDueDate = combineDateTime(dueDate, dueTime);
+  const dueDateChanged = newDueDate.getTime() !== milestone.due_date.getTime();
+
+  function validateDueDate(): string | null {
+    if (!dueDateChanged) return null;
+    if (status === CaseMilestoneStatus.Pending && isBeforeToday(newDueDate)) {
+      return "Due date cannot be in the past";
+    }
+    if (status === CaseMilestoneStatus.Done && isAfterToday(newDueDate)) {
+      return "Due date cannot be in the future";
+    }
+    return null;
+  }
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof MilestoneUpdatePayloadSchema>
@@ -70,7 +87,7 @@ export function EditMilestoneModal({
       milestoneId: milestone.id,
       title: requiredString(title),
       description: optionalString(description),
-      due_date: combineDateTime(dueDate, dueTime),
+      due_date: newDueDate,
       status,
     });
   }
@@ -107,11 +124,7 @@ export function EditMilestoneModal({
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
             isDisabled={isPending}
-            description={
-              dueInPast
-                ? "This date is in the past — the milestone will show as overdue."
-                : undefined
-            }
+            validate={validateDueDate}
           />
           <TimeField
             label="Due Time"

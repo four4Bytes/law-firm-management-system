@@ -17,6 +17,7 @@ import {
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
+import { isAfterToday, isBeforeToday } from "@/lib/date";
 import { ForbiddenError, toActionResponse } from "@/lib/errors";
 import { can } from "@/lib/rbac";
 
@@ -76,6 +77,19 @@ export async function createMilestoneAction(
       return actionForbidden();
     }
 
+    if (status !== CaseMilestoneStatus.Pending) {
+      return actionConflict(
+        "Milestones are created as Pending",
+        "A new milestone always starts as Pending. Mark it as Done or Cancelled from the case page after creation.",
+      );
+    }
+    if (isBeforeToday(due_date)) {
+      return actionConflict(
+        "Due date is in the past",
+        "A new milestone cannot be due in the past. Choose today or a future date.",
+      );
+    }
+
     const milestone = await createMilestone({
       title,
       description: description || undefined,
@@ -131,6 +145,20 @@ export async function updateMilestoneAction(
       return { success: true };
     }
 
+    const dueDateChanged = existing.due_date.getTime() !== due_date.getTime();
+    if (dueDateChanged && status === CaseMilestoneStatus.Pending && isBeforeToday(due_date)) {
+      return actionConflict(
+        "Due date is in the past",
+        "A pending milestone cannot be due in the past. Choose today or a future date.",
+      );
+    }
+    if (dueDateChanged && status === CaseMilestoneStatus.Done && isAfterToday(due_date)) {
+      return actionConflict(
+        "Due date is in the future",
+        "A completed milestone cannot be due in the future. Choose today or a past date.",
+      );
+    }
+
     const statusChanged = existing.status !== status;
     if (
       statusChanged &&
@@ -142,7 +170,6 @@ export async function updateMilestoneAction(
       );
     }
     const reopened = statusChanged && status === CaseMilestoneStatus.Pending;
-    const dueDateChanged = existing.due_date.getTime() !== due_date.getTime();
     const resetReminderTiming = dueDateChanged || reopened;
 
     await updateMilestone(milestoneId, {

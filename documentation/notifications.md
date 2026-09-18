@@ -123,7 +123,7 @@ Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, r
 
 ### Candidate & window
 
-A milestone/consultation is a candidate when its status is `Pending`/`Scheduled` **and** `last_reminded_at` is `null` or before today (qualifies once per day). Window is **per-user** from `UserSettings` (`consultation_reminder_days` default 3, `milestone_reminder_days` default 5, edited at `/settings`); `threshold = now + user_reminder_days * 24h`; `due soon` = due within the user's threshold (future), `overdue` = due before now; outside both → skipped for that user. Recipients are then filtered per-user by `ReminderFrequency` and `notify_overdue` (both channels in sync). Message dates use `formatDate`/`formatDateTime`.
+A milestone/consultation is a candidate when its status is `Pending`/`Scheduled` **and** `last_reminded_at` is `null` or before today (qualifies once per day). Window is **per-user** from `UserSettings` (`consultation_reminder_days` default 3, `milestone_reminder_days` default 5, edited at `/settings`); `threshold = now + user_reminder_days * 24h`; `due soon` = due within the user's threshold (future), `overdue` = due on a calendar day before today (`isBeforeToday`, so same-day items are never overdue); outside both → skipped for that user. Recipients are then filtered per-user by `ReminderFrequency` and `notify_overdue` (both channels in sync). Message dates use `formatDate`/`formatDateTime`.
 
 ### Milestones
 

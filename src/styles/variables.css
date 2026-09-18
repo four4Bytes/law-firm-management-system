@@ -1,0 +1,198 @@
+/*
+
+Plan: add more than one theme later
+
+
+*/
+
+:root {
+  /* --------------------------------------------- */
+  /* Primitives (raw values) */
+  --raw-black-100: #333333;
+  --raw-black-300: #1a1a1a;
+  --raw-black-500: #0b0b0b;
+  --raw-black-700: #000000;
+
+  --raw-gold-100: #f2e2a0;
+  --raw-gold-300: #e5c556;
+  --raw-gold-500: #d4af37;
+  --raw-gold-700: #bd9422;
+
+  --raw-white: #ffffff;
+  --raw-cream: #f7f5ef;
+  --raw-sand: #f1ece0;
+
+  --raw-gray-50: #f9fafb;
+  --raw-gray-100: #f3f4f6;
+  --raw-gray-200: #e5e7eb;
+  --raw-gray-300: #d1d5db;
+  --raw-gray-400: #9ca3af;
+  --raw-gray-500: #6b7280;
+  --raw-gray-600: #4b5563;
+  --raw-gray-700: #374151;
+  --raw-gray-800: #1f2937;
+  --raw-gray-900: #111827;
+
+  --raw-sage: #5a7c58;
+  --raw-green: #22c55e;
+  --raw-amber: #b7791f;
+  --raw-brick: #9e4747;
+  --raw-steel: #4a6e85;
+  --raw-violet: #7a5ea7;
+  --raw-teal: #3d7a89;
+
+  /* --------------------------------------------- */
+  /* Semantic tokens - Light mode */
+
+  /* Background and surface colors */
+  --color-app-bg: var(--raw-cream);
+  --color-surface-bg: var(--raw-white);
+  --color-surface-bg-alt: var(--raw-sand);
+  --color-surface-hover: var(--raw-gray-100);
+  --color-bg-inverse: var(--raw-black-500);
+  --color-modal-overlay: rgba(28, 26, 23, var(--opacity-overlay));
+
+  /* Text colors */
+  --color-text-primary: #1c1a17;
+  --color-text-secondary: #5f5a4b;
+  --color-text-muted: #8b8270;
+  --color-text-inverse: var(--raw-white);
+
+  /* Brand colors */
+  --color-brand-primary: var(--raw-black-500);
+  --color-brand-primary--hover: var(--raw-black-100);
+  --color-brand-primary--active: var(--raw-black-700);
+
+  --color-brand-accent: var(--raw-gold-500);
+  --color-brand-accent--hover: var(--raw-gold-300);
+  --color-brand-accent--active: var(--raw-gold-700);
+  --color-brand-accent--focus: var(--raw-gold-100);
+
+  /* Border colors */
+  --color-border-subtle: var(--raw-gray-200);
+  --color-border-default: var(--raw-gray-300);
+  --color-border-strong: var(--raw-gray-400);
+
+  --color-success: var(--raw-sage);
+  --color-online: var(--raw-green);
+  --color-warning: var(--raw-amber);
+  --color-danger: var(--raw-brick);
+  --color-info: var(--raw-steel);
+
+  --color-neutral: var(--raw-gray-500);
+
+  /* Role colors */
+  --role-dev: var(--raw-violet);
+  --role-admin: var(--raw-brick);
+  --role-branch-manager: var(--raw-teal);
+  --role-lawyer: var(--raw-sage);
+  --role-paralegal: var(--raw-amber);
+  --role-process-server: var(--raw-steel);
+
+  /* --------------------------------------------- */
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Spacing */
+  --space-xs: 0.25rem; /* 4px */
+  --space-sm: 0.5rem; /* 8px */
+  --space-md: 0.75rem; /* 12px */
+  --space-lg: 1rem; /* 16px */
+  --space-xl: 1.25rem; /* 20px */
+  --space-2xl: 1.5rem; /* 24px */
+  --space-3xl: 2rem; /* 32px */
+  --space-4xl: 2.5rem; /* 40px */
+  --space-5xl: 3rem; /* 48px */
+
+  /* Line heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Typography */
+  --font-family-sans:
+    var(--font-roboto), Roboto, "Segoe UI", -apple-system, system-ui, BlinkMacSystemFont, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+
+  /* Font sizes */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.375rem;
+  --font-size-2xl: 1.75rem;
+  --font-size-3xl: 2rem;
+
+  /* Font Weights */
+  --font-weight-thin: 100;
+  --font-weight-extra-light: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semi-bold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extra-bold: 800;
+  --font-weight-black: 900;
+
+  /* Layout */
+  --layout-header-height: 60px;
+  --layout-sidebar-width: 320px;
+  --layout-sidebar-width-collapsed: 80px;
+
+  --auth-content-max-width: 480px;
+
+  /* Z index */
+  --z-dropdown: 1000;
+  --z-sidebar: 1050;
+  --z-modal: 1100;
+  --z-toast: 1200;
+  --z-progress-bar: 9999;
+
+  /* Hover lift transforms */
+  --hover-lift-sm: translateY(-1px);
+  --hover-lift-md: translateY(-2px);
+  --hover-lift-lg: translateY(-4px);
+
+  /* Icon sizes */
+  --icon-size-xs: var(--space-md);
+  --icon-size-sm: var(--space-lg);
+  --icon-size-md: var(--space-xl);
+  --icon-size-lg: var(--space-2xl);
+  --icon-size-xl: var(--space-3xl);
+  --icon-size-2xl: var(--space-4xl);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(28, 26, 23, 0.06);
+  --shadow-md: 0 4px 12px rgba(28, 26, 23, 0.1);
+  --shadow-lg: 0 10px 28px rgba(28, 26, 23, 0.14);
+
+  /* Transitions */
+  --transition-base: 180ms ease-in-out;
+  --transition-fast: 120ms ease-in-out;
+  --transition-slow: 260ms ease-in-out;
+
+  /* Progress bar */
+  --progress-bar-height: 3px;
+  --progress-bar-animation-duration: 1.5s;
+
+  /* Opacity  */
+  --opacity-overlay: 0.5;
+  --opacity-subtle: 0.2;
+
+  /* Responsive */
+  --page-padding: var(--space-lg);
+  --modal-max-width: 90vw;
+  --modal-wide-width: 1040px;
+}
+
+/* Desktop */
+@media (min-width: 48rem) {
+  :root {
+    --page-padding: var(--space-3xl);
+    --modal-max-width: 700px;
+  }
+}

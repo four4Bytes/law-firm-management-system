@@ -18,6 +18,8 @@ export function HeartbeatProvider({ children }: { children: React.ReactNode }) {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    let disposed = false;
+
     async function heartbeat() {
       abortRef.current = new AbortController();
       try {
@@ -25,20 +27,19 @@ export function HeartbeatProvider({ children }: { children: React.ReactNode }) {
           method: "POST",
           signal: abortRef.current.signal,
         });
-        setIsOnline(response.ok);
+        if (!disposed) setIsOnline(response.ok);
       } catch {
-        setIsOnline(false);
+        if (!disposed) setIsOnline(false);
       } finally {
-        timeoutRef.current = setTimeout(heartbeat, 30000);
+        if (!disposed) timeoutRef.current = setTimeout(heartbeat, 30000);
       }
     }
 
     heartbeat();
 
     return () => {
-      if (abortRef.current) {
-        abortRef.current.abort();
-      }
+      disposed = true;
+      abortRef.current?.abort();
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }

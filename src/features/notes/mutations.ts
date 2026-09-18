@@ -55,6 +55,7 @@ async function assertTaskParentCaseUnlocked(tx: TransactionClient, taskId: strin
     select: { case_id: true },
   });
   if (!task?.case_id) return;
+  await lockCaseRow(tx, task.case_id);
   const parent = await tx.case.findUnique({
     where: { id: task.case_id },
     select: { status: true },

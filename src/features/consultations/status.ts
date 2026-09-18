@@ -30,7 +30,7 @@ export function isTerminalConsultationStatus(status: ConsultationStatus): boolea
  * Terminal statuses (per the matrix) have no moves; of the live statuses,
  * Scheduled and Completed have named moves and Cancelled rebooks.
  */
-export function describeStatusNextSteps(from: ConsultationStatus): string {
+export function describeConsultationNextSteps(from: ConsultationStatus): string {
   if (isTerminalConsultationStatus(from)) {
     return "nothing — this consultation is closed";
   }

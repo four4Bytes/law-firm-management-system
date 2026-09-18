@@ -2,11 +2,10 @@
 
 import { FaBan, FaCalendarCheck, FaCalendarDays, FaCheck, FaXmark } from "react-icons/fa6";
 
-import { Button } from "@/components/ui/Button/Button";
+import { WorkflowButton, WorkflowButtons } from "@/components/ui/WorkflowButtons/WorkflowButtons";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 
 import { CONSULTATION_STATUS_TRANSITIONS } from "../../status";
-import styles from "./ConsultationWorkflowActions.module.css";
 
 interface ConsultationWorkflowActionsProps {
   status: ConsultationStatus;
@@ -49,6 +48,17 @@ const WORKFLOW_ACTIONS: Record<ConsultationStatus, WorkflowAction> = {
   },
 };
 
+function toButton(
+  status: ConsultationStatus,
+  target: ConsultationStatus,
+): WorkflowButton<ConsultationStatus> {
+  if (status === ConsultationStatus.Cancelled && target === ConsultationStatus.Scheduled) {
+    return { value: target, label: "Rebook consultation", icon: <FaCalendarDays /> };
+  }
+  const action = WORKFLOW_ACTIONS[target];
+  return { value: action.target, label: action.label, icon: action.icon };
+}
+
 export function ConsultationWorkflowActions({
   status,
   hasLinkedCase,
@@ -59,39 +69,12 @@ export function ConsultationWorkflowActions({
   if (status === ConsultationStatus.Accepted && !hasLinkedCase) {
     allowedTargets.push(ConsultationStatus.Accepted);
   }
-  if (allowedTargets.length === 0) {
-    return null;
-  }
 
   return (
-    <div className={styles.actions}>
-      {allowedTargets.map((targetStatus) => {
-        const rebook = status === ConsultationStatus.Cancelled;
-        const label =
-          rebook && targetStatus === ConsultationStatus.Scheduled
-            ? "Rebook consultation"
-            : WORKFLOW_ACTIONS[targetStatus].label;
-        const icon =
-          rebook && targetStatus === ConsultationStatus.Scheduled ? (
-            <FaCalendarDays />
-          ) : (
-            WORKFLOW_ACTIONS[targetStatus].icon
-          );
-        return (
-          <Button
-            key={targetStatus}
-            variant="ghost"
-            type="button"
-            aria-label={label}
-            title={label}
-            onPress={() => onChangeStatus(targetStatus)}
-            isPending={isPending}
-            isDisabled={isPending}
-          >
-            {icon}
-          </Button>
-        );
-      })}
-    </div>
+    <WorkflowButtons
+      buttons={allowedTargets.map((target) => toButton(status, target))}
+      onSelect={onChangeStatus}
+      isPending={isPending}
+    />
   );
 }

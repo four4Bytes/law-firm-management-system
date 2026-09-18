@@ -252,6 +252,29 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   return { url, file_name: doc.file_name };
 }
 
+interface DocumentParent {
+  consultation_id: string | null;
+  case_id: string | null;
+}
+
+async function assertDocumentParentUnlocked(
+  doc: DocumentParent,
+  parentCaseId: string | null,
+): Promise<void> {
+  if (doc.consultation_id) {
+    const consultation = await getConsultationEditData(doc.consultation_id);
+    if (consultation && isSubdataLocked("consultation", consultation.status)) {
+      throw new RecordLockedError("Consultation");
+    }
+  }
+  if (parentCaseId) {
+    const record = await getCaseEditData(parentCaseId);
+    if (record && isSubdataLocked("case", record.status)) {
+      throw new RecordLockedError("Case");
+    }
+  }
+}
+
 export async function deleteDocumentAction(
   payload: z.input<typeof DocumentIdSchema>,
 ): Promise<ActionStatusResponse> {
@@ -281,18 +304,7 @@ export async function deleteDocumentAction(
 
       await deleteDocumentForTask(doc.task_id, documentId);
     } else {
-      if (doc.consultation_id) {
-        const consultation = await getConsultationEditData(doc.consultation_id);
-        if (consultation && isSubdataLocked("consultation", consultation.status)) {
-          throw new RecordLockedError("Consultation");
-        }
-      }
-      if (parentCaseId) {
-        const record = await getCaseEditData(parentCaseId);
-        if (record && isSubdataLocked("case", record.status)) {
-          throw new RecordLockedError("Case");
-        }
-      }
+      await assertDocumentParentUnlocked(doc, parentCaseId);
       await deleteDocumentRecord(documentId);
     }
 

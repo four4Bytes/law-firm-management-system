@@ -37,6 +37,7 @@ import {
   toastNotFound,
   toastSuccess,
 } from "@/lib/toast-utils";
+import { useStatusWorkflow } from "@/lib/useStatusWorkflow";
 
 import { CaseOverview } from "../CaseOverview/CaseOverview";
 import styles from "./CaseDetail.module.css";
@@ -60,7 +61,6 @@ export function CaseDetail({ overview, access, userRole }: Props) {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
-  const [isWorkflowPending, setIsWorkflowPending] = useState(false);
   const [decisionModal, setDecisionModal] = useState<Extract<
     CaseStatus,
     "Closed" | "Settled" | "Terminated"
@@ -157,50 +157,37 @@ export function CaseDetail({ overview, access, userRole }: Props) {
     }
   }
 
-  async function runWorkflowTask(task: () => Promise<void>, failureTitle: string) {
-    setIsWorkflowPending(true);
-    try {
-      await task();
-    } catch {
-      toastError(
-        failureTitle,
-        "Please try again. If this keeps happening, refresh the page and try again.",
-      );
-    } finally {
-      setIsWorkflowPending(false);
-    }
-  }
+  const { isWorkflowPending, applyChange } = useStatusWorkflow({
+    operation: "change case status",
+  });
 
   async function applyStatusChange(status: CaseStatus, reason?: string): Promise<boolean> {
-    const result = await changeCaseStatusAction({
-      caseId: overview.id,
-      status,
-      ...(reason ? { reason } : {}),
-    });
-    if (result.success) {
-      toastSuccess("Status updated", `The case has been marked as ${status}.`);
+    const succeeded = await applyChange(
+      () =>
+        changeCaseStatusAction({
+          caseId: overview.id,
+          status,
+          ...(reason ? { reason } : {}),
+        }),
+      `The case has been marked as ${status}.`,
+    );
+    if (succeeded) {
       router.refresh();
-      return true;
     }
-    toastActionError(result, "change case status");
-    return false;
+    return succeeded;
   }
 
   async function handleDecisionConfirm(reason?: string) {
     if (!decisionModal) return;
     const target = decisionModal;
-    await runWorkflowTask(async () => {
-      if (await applyStatusChange(target, reason)) {
-        setDecisionModal(null);
-      }
-    }, "Failed to update status");
+    if (await applyStatusChange(target, reason)) {
+      setDecisionModal(null);
+    }
   }
 
   async function handleReopenConfirm() {
     setShowReopenConfirm(false);
-    await runWorkflowTask(async () => {
-      await applyStatusChange(CaseStatus.Open);
-    }, "Failed to update status");
+    await applyStatusChange(CaseStatus.Open);
   }
 
   async function handleChangeStatus(status: CaseStatus) {

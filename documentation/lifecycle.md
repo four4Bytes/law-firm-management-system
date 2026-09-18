@@ -43,7 +43,15 @@ Violations throw `RecordLockedError(entity)` (tasks keep `TaskLockedError`), map
 - Case: no field locks (status travels only through `changeCaseStatusAction`).
 - Task: metadata frozen when `Done` (except reopening via reviewer add).
 
-## 5. Per-entity details
+## 5. Shared UI
+
+Status workflows share three primitives so every record behaves the same:
+
+- `src/components/ui/WorkflowButtons/` — presentational icon buttons (`title` + `aria-label`, disabled while pending, renders `null` when empty). Features compute the button list from their matrix.
+- `src/components/ui/DecisionModal/` — confirm dialog with optional reason field; takes a `reasonSchema` for validation. One component for consultation reject/cancel and case close/settle/terminate.
+- `src/lib/useStatusWorkflow.ts` — pending flag plus `runWorkflowTask` / `applyChange` toast lifecycle for detail pages. Callers own routing and modal state.
+
+## 6. Per-entity details
 
 - [Consultation workflow](./consultation-workflow.md) (matrix, accept flow, reschedule rules, decision reasons)
 - [Case workflow](./case-workflow.md) (matrix, closing flow, reopen rules)

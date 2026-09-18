@@ -39,6 +39,7 @@ import {
   toastNotFound,
   toastSuccess,
 } from "@/lib/toast-utils";
+import { useStatusWorkflow } from "@/lib/useStatusWorkflow";
 
 import { ConsultationOverview } from "../ConsultationOverview/ConsultationOverview";
 import styles from "./ConsultationDetail.module.css";
@@ -63,7 +64,6 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   const [isEditPending, setIsEditPending] = useState(false);
 
   const [showCaseModal, setShowCaseModal] = useState(false);
-  const [isWorkflowPending, setIsWorkflowPending] = useState(false);
   const [workflowUsers, setWorkflowUsers] = useState<ActiveUserSummary[]>([]);
   const [decisionModal, setDecisionModal] = useState<Extract<
     ConsultationStatus,
@@ -157,33 +157,24 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
     }
   }
 
-  async function runWorkflowTask(task: () => Promise<void>, failureTitle: string) {
-    setIsWorkflowPending(true);
-    try {
-      await task();
-    } catch {
-      toastError(
-        failureTitle,
-        "Please try again. If this keeps happening, refresh the page and try again.",
-      );
-    } finally {
-      setIsWorkflowPending(false);
-    }
-  }
+  const { isWorkflowPending, runWorkflowTask, applyChange } = useStatusWorkflow({
+    operation: "change consultation status",
+  });
 
   async function applyStatusChange(status: ConsultationStatus, reason?: string): Promise<boolean> {
-    const result = await changeConsultationStatusAction({
-      consultationId: overview.id,
-      status,
-      ...(reason ? { reason } : {}),
-    });
-    if (result.success) {
-      toastSuccess("Status updated", `The consultation has been marked as ${status}.`);
+    const succeeded = await applyChange(
+      () =>
+        changeConsultationStatusAction({
+          consultationId: overview.id,
+          status,
+          ...(reason ? { reason } : {}),
+        }),
+      `The consultation has been marked as ${status}.`,
+    );
+    if (succeeded) {
       router.refresh();
-      return true;
     }
-    toastActionError(result, "change consultation status");
-    return false;
+    return succeeded;
   }
 
   async function handleAcceptOpen() {
@@ -197,18 +188,14 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   async function handleDecisionConfirm(reason?: string) {
     if (!decisionModal) return;
     const target = decisionModal;
-    await runWorkflowTask(async () => {
-      if (await applyStatusChange(target, reason)) {
-        setDecisionModal(null);
-      }
-    }, "Failed to update status");
+    if (await applyStatusChange(target, reason)) {
+      setDecisionModal(null);
+    }
   }
 
   async function handleCompleteConfirm() {
     setShowCompleteConfirm(false);
-    await runWorkflowTask(async () => {
-      await applyStatusChange(ConsultationStatus.Completed);
-    }, "Failed to update status");
+    await applyStatusChange(ConsultationStatus.Completed);
   }
 
   async function handleChangeStatus(status: ConsultationStatus) {
@@ -225,9 +212,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
       return;
     }
 
-    await runWorkflowTask(async () => {
-      await applyStatusChange(status);
-    }, "Failed to update status");
+    await applyStatusChange(status);
   }
 
   return (

@@ -77,6 +77,22 @@ export interface ConsultationDecisionData {
   decidedByUserId: string;
 }
 
+const CONSULTATION_DECISION_NOTE_LABELS: Record<
+  Exclude<ConsultationStatus, "Scheduled" | "Completed" | "Accepted">,
+  string
+> = {
+  Rejected: "Rejection reason",
+  Cancelled: "Cancellation reason",
+};
+
+function consultationDecisionNoteLabel(status: ConsultationStatus): string {
+  return (
+    CONSULTATION_DECISION_NOTE_LABELS[
+      status as Exclude<ConsultationStatus, "Scheduled" | "Completed" | "Accepted">
+    ] ?? "Decision reason"
+  );
+}
+
 export async function transitionConsultationWithNote(
   data: ConsultationDecisionData,
 ): Promise<{ id: string }> {
@@ -88,8 +104,7 @@ export async function transitionConsultationWithNote(
       select: { id: true },
     });
     if (reason) {
-      const label =
-        status === ConsultationStatus.Rejected ? "Rejection reason" : "Cancellation reason";
+      const label = consultationDecisionNoteLabel(status);
       await tx.note.create({
         data: {
           content: `${label}: ${reason}`,

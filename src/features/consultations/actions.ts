@@ -61,7 +61,7 @@ import {
   ConsultationWithClientCreatePayloadSchema,
   ConsultationWithClientUpdatePayloadSchema,
 } from "./schemas";
-import { describeStatusNextSteps, isValidConsultationStatusTransition } from "./status";
+import { describeConsultationNextSteps, isValidConsultationStatusTransition } from "./status";
 
 async function requireConsultationPermission(
   session: AuthenticatedUser,
@@ -515,7 +515,7 @@ export async function changeConsultationStatusAction(
     if (!isValidConsultationStatusTransition(existing.status as ConsultationStatus, status)) {
       return actionConflict(
         "Invalid status change",
-        `Cannot change a consultation from ${existing.status} to ${status}. From ${existing.status}, you can: ${describeStatusNextSteps(existing.status as ConsultationStatus)}.`,
+        `Cannot change a consultation from ${existing.status} to ${status}. From ${existing.status}, you can: ${describeConsultationNextSteps(existing.status as ConsultationStatus)}.`,
       );
     }
 

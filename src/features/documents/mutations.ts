@@ -1,7 +1,10 @@
+import { lockCase } from "@/features/cases/mutations";
+import { lockConsultation } from "@/features/consultations/mutations";
 import { lockTask } from "@/features/tasks/mutations";
 import { TaskStatus } from "@/generated/prisma/browser";
-import { TaskLockedError } from "@/lib/errors";
-import { prisma } from "@/lib/prisma";
+import { RecordLockedError, TaskLockedError } from "@/lib/errors";
+import { isSubdataLocked } from "@/lib/lifecycle";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteFile, listObjects } from "@/lib/s3";
 
 export interface DocumentCreatePayload {
@@ -46,9 +49,25 @@ export async function createDocumentForTask(payload: TaskDocumentPayload): Promi
   });
 }
 
+async function assertTaskParentCaseUnlocked(tx: TransactionClient, taskId: string): Promise<void> {
+  const task = await tx.task.findUnique({
+    where: { id: taskId },
+    select: { case_id: true },
+  });
+  if (!task?.case_id) return;
+  const parent = await tx.case.findUnique({
+    where: { id: task.case_id },
+    select: { status: true },
+  });
+  if (parent && isSubdataLocked("case", parent.status)) {
+    throw new RecordLockedError("Case");
+  }
+}
+
 /**
  * Deletes a document attached to a task atomically: locks the task, verifies it is not
- * done, then deletes the document. Throws TaskLockedError if the task is done.
+ * done, verifies the parent case is unlocked, then deletes the document.
+ * Throws TaskLockedError if the task is done, RecordLockedError if the case is locked.
  */
 export async function deleteDocumentForTask(
   taskId: string,
@@ -63,6 +82,7 @@ export async function deleteDocumentForTask(
     if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
+    await assertTaskParentCaseUnlocked(tx, taskId);
     // Verify the document belongs to this task (defense in depth)
     const doc = await tx.document.findUnique({
       where: { id: documentId },
@@ -70,6 +90,39 @@ export async function deleteDocumentForTask(
     });
     if (doc?.task_id !== taskId) {
       throw new Error("Document does not belong to the specified task");
+    }
+    return tx.document.delete({ where: { id: documentId }, select: { id: true } });
+  });
+}
+
+/**
+ * Deletes a consultation/case document atomically with its parent lock check:
+ * locks the parent row, refuses when locked, then deletes.
+ */
+export async function deleteDocumentWithParentCheck(
+  documentId: string,
+  parent: { consultation_id: string | null; case_id: string | null },
+): Promise<{ id: string }> {
+  return prisma.$transaction(async (tx) => {
+    if (parent.consultation_id) {
+      await lockConsultation(tx, parent.consultation_id);
+      const consultation = await tx.consultation.findUnique({
+        where: { id: parent.consultation_id },
+        select: { status: true },
+      });
+      if (consultation && isSubdataLocked("consultation", consultation.status)) {
+        throw new RecordLockedError("Consultation");
+      }
+    }
+    if (parent.case_id) {
+      await lockCase(tx, parent.case_id);
+      const record = await tx.case.findUnique({
+        where: { id: parent.case_id },
+        select: { status: true },
+      });
+      if (record && isSubdataLocked("case", record.status)) {
+        throw new RecordLockedError("Case");
+      }
     }
     return tx.document.delete({ where: { id: documentId }, select: { id: true } });
   });

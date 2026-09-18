@@ -5,11 +5,8 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
-import { getCaseAccessContext, getCaseEditData } from "@/features/cases/queries";
-import {
-  getConsultationAccessContext,
-  getConsultationEditData,
-} from "@/features/consultations/queries";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import {
   actionForbidden,
@@ -19,18 +16,17 @@ import {
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, RecordLockedError, toActionResponse } from "@/lib/errors";
-import { isSubdataLocked } from "@/lib/lifecycle";
+import { ForbiddenError, toActionResponse } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can } from "@/lib/rbac";
 
 import {
   createNote,
   createNoteForTask,
-  deleteNote,
   deleteNoteForTask,
-  updateNote,
+  deleteNoteWithParentCheck,
   updateNoteForTask,
+  updateNoteWithParentCheck,
 } from "./mutations";
 import {
   getCaseNotesPaginated,
@@ -223,26 +219,6 @@ export async function createNoteAction(
   return { success: true, data: { id: note.id } };
 }
 
-interface NoteParent {
-  consultation_id: string | null;
-  case_id: string | null;
-}
-
-async function assertNoteParentUnlocked(note: NoteParent): Promise<void> {
-  if (note.consultation_id) {
-    const consultation = await getConsultationEditData(note.consultation_id);
-    if (consultation && isSubdataLocked("consultation", consultation.status)) {
-      throw new RecordLockedError("Consultation");
-    }
-  }
-  if (note.case_id) {
-    const record = await getCaseEditData(note.case_id);
-    if (record && isSubdataLocked("case", record.status)) {
-      throw new RecordLockedError("Case");
-    }
-  }
-}
-
 export async function updateNoteAction(
   payload: z.input<typeof NoteUpdatePayloadSchema>,
 ): Promise<ActionStatusResponse> {
@@ -269,8 +245,6 @@ export async function updateNoteAction(
       }
     }
 
-    await assertNoteParentUnlocked(existing);
-
     if (existing.content === content) {
       return { success: true };
     }
@@ -278,7 +252,7 @@ export async function updateNoteAction(
     if (existing.task_id) {
       await updateNoteForTask(existing.task_id, noteId, content);
     } else {
-      await updateNote(noteId, content);
+      await updateNoteWithParentCheck(noteId, content, existing);
     }
 
     after(() =>
@@ -325,12 +299,10 @@ export async function deleteNoteAction(
       }
     }
 
-    await assertNoteParentUnlocked(existing);
-
     if (existing.task_id) {
       await deleteNoteForTask(existing.task_id, noteId);
     } else {
-      await deleteNote(noteId);
+      await deleteNoteWithParentCheck(noteId, existing);
     }
 
     after(() =>

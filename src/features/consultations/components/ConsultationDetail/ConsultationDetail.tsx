@@ -185,12 +185,12 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
     }, "Failed to accept consultation");
   }
 
-  async function handleDecisionConfirm(reason?: string) {
-    if (!decisionModal) return;
+  async function handleDecisionConfirm(reason?: string): Promise<boolean> {
+    if (!decisionModal) return false;
     const target = decisionModal;
-    if (await applyStatusChange(target, reason)) {
-      setDecisionModal(null);
-    }
+    const succeeded = await applyStatusChange(target, reason);
+    if (succeeded) setDecisionModal(null);
+    return succeeded;
   }
 
   async function handleCompleteConfirm() {

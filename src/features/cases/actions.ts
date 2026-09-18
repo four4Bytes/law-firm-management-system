@@ -492,9 +492,10 @@ export async function changeCaseStatusAction(
         status,
         reason,
         decidedByUserId: session.id,
+        expectedStatus: existing.status as CaseStatus,
       });
     } else {
-      await updateCaseStatus(caseId, status);
+      await updateCaseStatus(caseId, status, existing.status as CaseStatus);
     }
 
     after(async () => {

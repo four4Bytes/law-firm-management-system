@@ -13,15 +13,34 @@ import {
   updateConsultationStatus,
 } from "../mutations";
 
+interface MockConsultationPrisma {
+  consultation: {
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+  };
+  case: { findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
+  note: { create: ReturnType<typeof vi.fn> };
+  $transaction: ReturnType<typeof vi.fn>;
+}
+
 vi.mock("@/lib/prisma", () => {
-  const consultation = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() };
+  const consultation = {
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    delete: vi.fn(),
+    findUnique: vi.fn(),
+  };
   const caseModel = { findUnique: vi.fn(), create: vi.fn() };
   const note = { create: vi.fn() };
-  const prisma = {
+  const prisma: MockConsultationPrisma = {
     consultation,
     case: caseModel,
     note,
-    $transaction: vi.fn((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
+    $transaction: vi.fn((fn: (tx: MockConsultationPrisma) => Promise<unknown>) => fn(prisma)),
   };
   return { prisma };
 });
@@ -196,6 +215,18 @@ it("updateConsultationStatus updates only the status", async () => {
     where: { id: uuid },
     data: { status: "Accepted" },
     select: { id: true },
+  });
+});
+
+it("updateConsultationStatus with expectedStatus rejects when another transition won the race", async () => {
+  vi.mocked(prisma.consultation.updateMany).mockResolvedValue({ count: 0 });
+
+  await expect(updateConsultationStatus(uuid, "Completed", "Scheduled")).rejects.toThrow(
+    "Record changed by another user",
+  );
+  expect(prisma.consultation.updateMany).toHaveBeenCalledWith({
+    where: { id: uuid, status: "Scheduled" },
+    data: { status: "Completed" },
   });
 });
 

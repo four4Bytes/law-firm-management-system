@@ -26,6 +26,7 @@ import {
   formatDateTime,
   isBeforeToday,
   toCalendarDate,
+  toMinuteEpoch,
   toTimeValue,
 } from "@/lib/date";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
@@ -84,7 +85,7 @@ export function EditConsultationModal({
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
   const newBooking = combineDateTime(fields.date, fields.time);
-  const bookingChanged = newBooking.getTime() !== consultation.booking_datetime.getTime();
+  const bookingChanged = toMinuteEpoch(newBooking) !== toMinuteEpoch(consultation.booking_datetime);
   const needsRescheduleConfirm = !isLocked && isScheduled && bookingChanged;
 
   function validateBookingDate(): string | null {

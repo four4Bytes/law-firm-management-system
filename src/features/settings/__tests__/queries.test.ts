@@ -57,8 +57,10 @@ describe("getNotificationPreferences", () => {
       notify_email_task_assigned: false,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: false,
+      notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: false,
+      notify_email_milestone_rescheduled: true,
     } as unknown as never);
 
     const result = await getNotificationPreferences("user-1");
@@ -69,8 +71,10 @@ describe("getNotificationPreferences", () => {
       notify_email_task_assigned: false,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: false,
+      notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: false,
+      notify_email_milestone_rescheduled: true,
     });
   });
 

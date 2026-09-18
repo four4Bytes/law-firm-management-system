@@ -80,8 +80,33 @@ vi.mock("@/features/notifications/dispatch", () => ({
   dispatchNotifications: vi.fn().mockResolvedValue({ count: 0 }),
 }));
 
+interface MockConsultationActionPrisma {
+  consultation: {
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+  };
+  consultationAssignment: { findFirst: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  client: { create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  case: {
+    findFirst: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
+  note: { create: ReturnType<typeof vi.fn> };
+  $transaction: ReturnType<typeof vi.fn>;
+}
+
 vi.mock("@/lib/prisma", () => {
-  const consultation = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() };
+  const consultation = {
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    delete: vi.fn(),
+    findUnique: vi.fn(),
+  };
   const consultationAssignment = { findFirst: vi.fn(), findMany: vi.fn() };
   const client = { create: vi.fn(), update: vi.fn() };
   const caseModel = {
@@ -90,13 +115,13 @@ vi.mock("@/lib/prisma", () => {
     create: vi.fn(),
   };
   const note = { create: vi.fn() };
-  const prisma = {
+  const prisma: MockConsultationActionPrisma = {
     consultation,
     consultationAssignment,
     client,
     case: caseModel,
     note,
-    $transaction: vi.fn((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
+    $transaction: vi.fn((fn: (tx: MockConsultationActionPrisma) => Promise<unknown>) => fn(prisma)),
   };
   return { prisma };
 });
@@ -822,7 +847,7 @@ describe("changeConsultationStatusAction", () => {
     id: "1",
     client_id: uuid,
     concern: "Legal advice",
-    booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
+    booking_datetime: new Date(),
     status: "Scheduled" as const,
     assignee_ids: [assignee1, assignee2],
     assignees: [],
@@ -833,6 +858,7 @@ describe("changeConsultationStatusAction", () => {
     vi.mocked(getConsultationAssigneeIds).mockResolvedValue([assignee1, assignee2]);
     vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
     vi.mocked(prisma.consultation.update).mockResolvedValue(consultationRecord);
+    vi.mocked(prisma.consultation.updateMany).mockResolvedValue({ count: 1 });
   });
 
   it("returns an error for an invalid payload", async () => {
@@ -900,15 +926,15 @@ describe("changeConsultationStatusAction", () => {
     vi.mocked(getConsultationEditData).mockResolvedValue({
       ...existingEditData,
       status: "Cancelled",
+      booking_datetime: new Date(Date.now() + 86400000),
     });
 
     expect(
       await changeConsultationStatusAction({ consultationId: uuid, status: "Scheduled" }),
     ).toEqual({ success: true });
-    expect(prisma.consultation.update).toHaveBeenCalledWith({
-      where: { id: uuid },
+    expect(prisma.consultation.updateMany).toHaveBeenCalledWith({
+      where: { id: uuid, status: "Cancelled" },
       data: { status: "Scheduled" },
-      select: { id: true },
     });
   });
 
@@ -1258,10 +1284,9 @@ describe("acceptConsultationWithCaseAction", () => {
       success: true,
       data: { caseId: "case-1" },
     });
-    expect(prisma.consultation.update).toHaveBeenCalledWith({
-      where: { id: uuid },
+    expect(prisma.consultation.updateMany).toHaveBeenCalledWith({
+      where: { id: uuid, status: "Completed" },
       data: { status: "Accepted" },
-      select: { id: true },
     });
     expect(prisma.case.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

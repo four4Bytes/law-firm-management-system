@@ -1,5 +1,6 @@
 import { getDocumentFilePathsForCaseDeletion } from "@/features/documents/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
+import { StatusConflictError } from "@/lib/errors";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -52,17 +53,36 @@ export async function updateCase(
   });
 }
 
+export interface CaseStatusChange {
+  id: string;
+  status: CaseStatus;
+  expectedStatus?: CaseStatus;
+}
+
 export async function updateCaseStatus(
   id: string,
   status: CaseStatus,
+  expectedStatus?: CaseStatus,
   tx?: TransactionClient,
 ): Promise<{ id: string }> {
   const client = tx || prisma;
-  return client.case.update({
-    where: { id },
+  if (!expectedStatus) {
+    return client.case.update({
+      where: { id },
+      data: { status },
+      select: { id: true },
+    });
+  }
+  const result = await client.case.updateMany({
+    where: { id, status: expectedStatus },
     data: { status },
-    select: { id: true },
   });
+  if (result.count !== 1) throw new StatusConflictError();
+  return { id };
+}
+
+export async function lockCase(tx: TransactionClient, caseId: string): Promise<void> {
+  await tx.$queryRaw`SELECT 1 FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
 }
 
 export interface CaseDecisionData {
@@ -70,6 +90,7 @@ export interface CaseDecisionData {
   status: CaseStatus;
   reason?: string;
   decidedByUserId: string;
+  expectedStatus?: CaseStatus;
 }
 
 const CASE_DECISION_NOTE_LABELS: Record<Exclude<CaseStatus, "Open">, string> = {
@@ -83,13 +104,21 @@ function caseDecisionNoteLabel(status: CaseStatus): string {
 }
 
 export async function transitionCaseWithNote(data: CaseDecisionData): Promise<{ id: string }> {
-  const { caseId, status, reason, decidedByUserId } = data;
+  const { caseId, status, reason, decidedByUserId, expectedStatus } = data;
   return prisma.$transaction(async (tx) => {
-    await tx.case.update({
-      where: { id: caseId },
-      data: { status },
-      select: { id: true },
-    });
+    if (expectedStatus) {
+      const result = await tx.case.updateMany({
+        where: { id: caseId, status: expectedStatus },
+        data: { status },
+      });
+      if (result.count !== 1) throw new StatusConflictError();
+    } else {
+      await tx.case.update({
+        where: { id: caseId },
+        data: { status },
+        select: { id: true },
+      });
+    }
     if (reason) {
       const label = caseDecisionNoteLabel(status);
       await tx.note.create({

@@ -5,11 +5,8 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
-import { getCaseAccessContext, getCaseEditData } from "@/features/cases/queries";
-import {
-  getConsultationAccessContext,
-  getConsultationEditData,
-} from "@/features/consultations/queries";
+import { getCaseAccessContext } from "@/features/cases/queries";
+import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
 import {
@@ -20,8 +17,7 @@ import {
   type ActionStatusResponse,
 } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, RecordLockedError, TaskLockedError, toActionResponse } from "@/lib/errors";
-import { isSubdataLocked } from "@/lib/lifecycle";
+import { ForbiddenError, TaskLockedError, toActionResponse } from "@/lib/errors";
 import { getParentPath } from "@/lib/path";
 import { can, type AccessContext } from "@/lib/rbac";
 import {
@@ -36,7 +32,7 @@ import {
   createDocument,
   createDocumentForTask,
   deleteDocumentForTask,
-  deleteDocument as deleteDocumentRecord,
+  deleteDocumentWithParentCheck,
 } from "./mutations";
 import {
   getDocumentAccessContext,
@@ -252,29 +248,6 @@ export async function getDocumentDownloadUrlAction(documentId: string): Promise<
   return { url, file_name: doc.file_name };
 }
 
-interface DocumentParent {
-  consultation_id: string | null;
-  case_id: string | null;
-}
-
-async function assertDocumentParentUnlocked(
-  doc: DocumentParent,
-  parentCaseId: string | null,
-): Promise<void> {
-  if (doc.consultation_id) {
-    const consultation = await getConsultationEditData(doc.consultation_id);
-    if (consultation && isSubdataLocked("consultation", consultation.status)) {
-      throw new RecordLockedError("Consultation");
-    }
-  }
-  if (parentCaseId) {
-    const record = await getCaseEditData(parentCaseId);
-    if (record && isSubdataLocked("case", record.status)) {
-      throw new RecordLockedError("Case");
-    }
-  }
-}
-
 export async function deleteDocumentAction(
   payload: z.input<typeof DocumentIdSchema>,
 ): Promise<ActionStatusResponse> {
@@ -304,8 +277,10 @@ export async function deleteDocumentAction(
 
       await deleteDocumentForTask(doc.task_id, documentId);
     } else {
-      await assertDocumentParentUnlocked(doc, parentCaseId);
-      await deleteDocumentRecord(documentId);
+      await deleteDocumentWithParentCheck(documentId, {
+        consultation_id: doc.consultation_id,
+        case_id: parentCaseId,
+      });
     }
 
     await deleteDocumentFiles([doc.file_path]);

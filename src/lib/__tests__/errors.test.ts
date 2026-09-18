@@ -4,6 +4,7 @@ import { actionForbidden, actionRecordLocked } from "@/lib/action-response";
 import {
   ForbiddenError,
   RecordLockedError,
+  StatusConflictError,
   TaskLockedError,
   toActionResponse,
   UnauthorizedError,
@@ -49,6 +50,18 @@ describe("toActionResponse", () => {
     expect(toActionResponse(new RecordLockedError("Consultation"), "update note")).toEqual(
       actionRecordLocked("Consultation"),
     );
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("maps StatusConflictError to a refresh-and-retry conflict", () => {
+    expect(toActionResponse(new StatusConflictError(), "change case status")).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Record changed",
+        description: "Another user changed this record just now. Refresh the page and try again.",
+      },
+    });
     expect(errorSpy).not.toHaveBeenCalled();
   });
 

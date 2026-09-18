@@ -815,7 +815,7 @@ describe("changeCaseStatusAction", () => {
     expect(await changeCaseStatusAction({ caseId: uuid, status: "Closed" })).toEqual({
       success: true,
     });
-    expect(updateCaseStatus).toHaveBeenCalledWith(uuid, "Closed");
+    expect(updateCaseStatus).toHaveBeenCalledWith(uuid, "Closed", "Open");
     await flushAfterCallbacks();
 
     const calls = vi.mocked(dispatchNotifications).mock.calls;
@@ -841,6 +841,7 @@ describe("changeCaseStatusAction", () => {
       status: "Settled",
       reason: "Compromise agreement signed",
       decidedByUserId: "u1",
+      expectedStatus: "Open",
     });
     expect(updateCaseStatus).not.toHaveBeenCalled();
   });
@@ -851,6 +852,6 @@ describe("changeCaseStatusAction", () => {
     expect(await changeCaseStatusAction({ caseId: uuid, status: "Open" })).toEqual({
       success: true,
     });
-    expect(updateCaseStatus).toHaveBeenCalledWith(uuid, "Open");
+    expect(updateCaseStatus).toHaveBeenCalledWith(uuid, "Open", "Terminated");
   });
 });

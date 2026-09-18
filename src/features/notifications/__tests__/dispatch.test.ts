@@ -540,6 +540,98 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
+  it("delivers MilestoneDueDateChanged when status-change is off but reschedule is on", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: false,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: false,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications(
+      { ...payload, type: NotificationType.MilestoneDueDateChanged },
+      "u9",
+    );
+
+    expect(createNotifications).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: ["u1", "u2"] }),
+    );
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it("delivers ConsultationRescheduled when status-change is off but reschedule is on", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: false,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: false,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications(
+      { ...payload, type: NotificationType.ConsultationRescheduled },
+      "u9",
+    );
+
+    expect(createNotifications).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: ["u1", "u2"] }),
+    );
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+  });
+
   it("falls back to sending to all when preference lookup fails (in-app + email)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockRejectedValue(new Error("db down"));
 

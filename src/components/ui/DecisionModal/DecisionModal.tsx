@@ -21,7 +21,7 @@ interface DecisionModalProps {
   reasonPlaceholder: string;
   confirmLabel: string;
   reasonSchema: ZodType;
-  onConfirm: (reason?: string) => Promise<void>;
+  onConfirm: (reason?: string) => Promise<boolean | void>;
 }
 
 export function DecisionModal({
@@ -50,8 +50,8 @@ export function DecisionModal({
 
     setIsPending(true);
     try {
-      await onConfirm(optionalString(reason));
-      setReason("");
+      const succeeded = await onConfirm(optionalString(reason));
+      if (succeeded !== false) setReason("");
     } catch {
       toastError(
         "Something went wrong",

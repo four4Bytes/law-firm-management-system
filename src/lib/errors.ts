@@ -104,6 +104,21 @@ export class RecordLockedError extends Error {
   }
 }
 
+/**
+ * Error thrown when a compare-and-set status update affects zero rows because
+ * another transition won the race. Mapped to a conflict envelope telling the
+ * user to refresh and retry.
+ */
+export class StatusConflictError extends Error {
+  /** Stable identifier for error boundary detection. */
+  readonly digest = "STATUS_CONFLICT";
+
+  constructor() {
+    super("Record changed by another user");
+    this.name = "StatusConflictError";
+  }
+}
+
 /** Conflict copy supplied by the caller when a P2002 violation is domain-specific. */
 interface ConflictCopy {
   /** Short headline (e.g. `"Case already exists"`). */
@@ -138,6 +153,12 @@ export function toActionResponse(
   if (error instanceof RecordLockedError) return actionRecordLocked(error.entity);
   if (error instanceof TaskValidationError) {
     return actionConflict(error.title, error.description);
+  }
+  if (error instanceof StatusConflictError) {
+    return actionConflict(
+      "Record changed",
+      "Another user changed this record just now. Refresh the page and try again.",
+    );
   }
   if ((error as { code?: string } | null)?.code === "P2002" && conflict) {
     return actionConflict(conflict.title, conflict.description);

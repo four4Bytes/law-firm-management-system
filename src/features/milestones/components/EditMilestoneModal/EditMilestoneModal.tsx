@@ -55,9 +55,10 @@ export function EditMilestoneModal({
   );
   const newDueDate = combineDateTime(dueDate, dueTime);
   const dueDateChanged = newDueDate.getTime() !== milestone.due_date.getTime();
+  const statusChanged = status !== milestone.status;
 
   function validateDueDate(): string | null {
-    if (!dueDateChanged) return null;
+    if (!dueDateChanged && !statusChanged) return null;
     if (status === CaseMilestoneStatus.Pending && isBeforeToday(newDueDate)) {
       return "Due date cannot be in the past";
     }

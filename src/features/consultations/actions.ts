@@ -37,7 +37,7 @@ import {
   type AuthenticatedUser,
 } from "@/lib/auth-guards";
 import { isAfterToday, isBeforeToday } from "@/lib/date";
-import { toActionResponse } from "@/lib/errors";
+import { StatusConflictError, toActionResponse } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
 import { PageQuerySchema } from "@/lib/schemas";
 
@@ -116,6 +116,12 @@ function caseAlreadyExistsConflict(): ActionStatusResponse {
 }
 
 function mapAcceptMutationError(error: unknown): ActionStatusResponse | null {
+  if (error instanceof StatusConflictError) {
+    return actionConflict(
+      "Record changed",
+      "Another user changed this consultation just now. Refresh the page and try again.",
+    );
+  }
   if (!(error instanceof Error)) return null;
   switch (error.message) {
     case "A case already exists for this consultation":
@@ -560,6 +566,9 @@ export async function changeConsultationStatusAction(
       );
     }
 
+    const timingError = checkBookingTiming(status, existing.booking_datetime);
+    if (timingError) return timingError;
+
     if (await isAcceptedWithCase(consultationId, existing.status)) {
       return actionConflict(
         "Consultation already accepted",
@@ -576,9 +585,10 @@ export async function changeConsultationStatusAction(
         status,
         reason,
         decidedByUserId: session.id,
+        expectedStatus: existing.status as ConsultationStatus,
       });
     } else {
-      await updateConsultationStatus(consultationId, status);
+      await updateConsultationStatus(consultationId, status, existing.status as ConsultationStatus);
     }
 
     after(async () => {
@@ -707,6 +717,7 @@ export async function acceptConsultationWithCaseAction(
         partiesInvolved: parties_involved || undefined,
         assigneeIds: assignee_ids,
         createdByUserId: session.id,
+        expectedStatus: existing.status as ConsultationStatus,
       }));
     } catch (error) {
       const mapped = mapAcceptMutationError(error);

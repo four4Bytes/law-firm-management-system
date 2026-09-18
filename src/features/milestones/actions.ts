@@ -146,20 +146,28 @@ export async function updateMilestoneAction(
     }
 
     const dueDateChanged = existing.due_date.getTime() !== due_date.getTime();
-    if (dueDateChanged && status === CaseMilestoneStatus.Pending && isBeforeToday(due_date)) {
+    const statusChanged = existing.status !== status;
+    if (
+      (dueDateChanged || statusChanged) &&
+      status === CaseMilestoneStatus.Pending &&
+      isBeforeToday(due_date)
+    ) {
       return actionConflict(
         "Due date is in the past",
         "A pending milestone cannot be due in the past. Choose today or a future date.",
       );
     }
-    if (dueDateChanged && status === CaseMilestoneStatus.Done && isAfterToday(due_date)) {
+    if (
+      (dueDateChanged || statusChanged) &&
+      status === CaseMilestoneStatus.Done &&
+      isAfterToday(due_date)
+    ) {
       return actionConflict(
         "Due date is in the future",
         "A completed milestone cannot be due in the future. Choose today or a past date.",
       );
     }
 
-    const statusChanged = existing.status !== status;
     if (
       statusChanged &&
       !isValidMilestoneStatusTransition(existing.status as CaseMilestoneStatus, status)

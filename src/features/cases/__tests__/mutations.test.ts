@@ -12,13 +12,24 @@ import {
   updateCaseStatus,
 } from "../mutations";
 
+interface MockCasePrisma {
+  case: {
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+  };
+  note: { create: ReturnType<typeof vi.fn> };
+  $transaction: ReturnType<typeof vi.fn>;
+}
+
 vi.mock("@/lib/prisma", () => {
-  const caseModel = { create: vi.fn(), update: vi.fn(), delete: vi.fn() };
+  const caseModel = { create: vi.fn(), update: vi.fn(), updateMany: vi.fn(), delete: vi.fn() };
   const note = { create: vi.fn() };
-  const prisma = {
+  const prisma: MockCasePrisma = {
     case: caseModel,
     note,
-    $transaction: vi.fn((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
+    $transaction: vi.fn((fn: (tx: MockCasePrisma) => Promise<unknown>) => fn(prisma)),
   };
   return { prisma };
 });
@@ -154,6 +165,18 @@ it("updateCaseStatus updates only the status", async () => {
     where: { id: uuid },
     data: { status: "Closed" },
     select: { id: true },
+  });
+});
+
+it("updateCaseStatus with expectedStatus rejects when another transition won the race", async () => {
+  vi.mocked(prisma.case.updateMany).mockResolvedValue({ count: 0 });
+
+  await expect(updateCaseStatus(uuid, "Closed", "Open")).rejects.toThrow(
+    "Record changed by another user",
+  );
+  expect(prisma.case.updateMany).toHaveBeenCalledWith({
+    where: { id: uuid, status: "Open" },
+    data: { status: "Closed" },
   });
 });
 

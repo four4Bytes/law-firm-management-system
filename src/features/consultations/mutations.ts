@@ -1,6 +1,7 @@
 import { createCase } from "@/features/cases/mutations";
 import { getDocumentFilePathsByConsultationId } from "@/features/documents/queries";
 import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
+import { StatusConflictError } from "@/lib/errors";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -60,14 +61,30 @@ export async function updateConsultation(
 export async function updateConsultationStatus(
   id: string,
   status: ConsultationStatus,
+  expectedStatus?: ConsultationStatus,
   tx?: TransactionClient,
 ): Promise<{ id: string }> {
   const client = tx || prisma;
-  return client.consultation.update({
-    where: { id },
+  if (!expectedStatus) {
+    return client.consultation.update({
+      where: { id },
+      data: { status },
+      select: { id: true },
+    });
+  }
+  const result = await client.consultation.updateMany({
+    where: { id, status: expectedStatus },
     data: { status },
-    select: { id: true },
   });
+  if (result.count !== 1) throw new StatusConflictError();
+  return { id };
+}
+
+export async function lockConsultation(
+  tx: TransactionClient,
+  consultationId: string,
+): Promise<void> {
+  await tx.$queryRaw`SELECT 1 FROM "Consultation" WHERE id = ${consultationId} FOR UPDATE`;
 }
 
 export interface ConsultationDecisionData {
@@ -75,6 +92,7 @@ export interface ConsultationDecisionData {
   status: ConsultationStatus;
   reason?: string;
   decidedByUserId: string;
+  expectedStatus?: ConsultationStatus;
 }
 
 const CONSULTATION_DECISION_NOTE_LABELS: Record<
@@ -96,13 +114,21 @@ function consultationDecisionNoteLabel(status: ConsultationStatus): string {
 export async function transitionConsultationWithNote(
   data: ConsultationDecisionData,
 ): Promise<{ id: string }> {
-  const { consultationId, status, reason, decidedByUserId } = data;
+  const { consultationId, status, reason, decidedByUserId, expectedStatus } = data;
   return prisma.$transaction(async (tx) => {
-    await tx.consultation.update({
-      where: { id: consultationId },
-      data: { status },
-      select: { id: true },
-    });
+    if (expectedStatus) {
+      const result = await tx.consultation.updateMany({
+        where: { id: consultationId, status: expectedStatus },
+        data: { status },
+      });
+      if (result.count !== 1) throw new StatusConflictError();
+    } else {
+      await tx.consultation.update({
+        where: { id: consultationId },
+        data: { status },
+        select: { id: true },
+      });
+    }
     if (reason) {
       const label = consultationDecisionNoteLabel(status);
       await tx.note.create({
@@ -126,6 +152,7 @@ export interface AcceptConsultationWithCaseData {
   partiesInvolved?: string;
   assigneeIds?: string[];
   createdByUserId: string;
+  expectedStatus?: ConsultationStatus;
 }
 
 export async function acceptConsultationWithCase(
@@ -153,11 +180,19 @@ export async function acceptConsultationWithCase(
     ) {
       throw new Error("Consultation cannot be accepted");
     }
-    await tx.consultation.update({
-      where: { id: consultationId },
-      data: { status: ConsultationStatus.Accepted },
-      select: { id: true },
-    });
+    if (data.expectedStatus) {
+      const accepted = await tx.consultation.updateMany({
+        where: { id: consultationId, status: data.expectedStatus },
+        data: { status: ConsultationStatus.Accepted },
+      });
+      if (accepted.count !== 1) throw new StatusConflictError();
+    } else {
+      await tx.consultation.update({
+        where: { id: consultationId },
+        data: { status: ConsultationStatus.Accepted },
+        select: { id: true },
+      });
+    }
     const created = await createCase(
       {
         client_id: consultation.client_id,

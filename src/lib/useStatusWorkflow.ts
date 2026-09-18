@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { ActionStatusResponse } from "@/lib/action-response";
 import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
@@ -46,8 +46,11 @@ interface UseStatusWorkflowReturn {
 export function useStatusWorkflow(options: UseStatusWorkflowOptions): UseStatusWorkflowReturn {
   const { operation } = options;
   const [isWorkflowPending, setIsWorkflowPending] = useState(false);
+  const activeRef = useRef(false);
 
   async function runWorkflowTask(task: () => Promise<void>, failureTitle: string): Promise<void> {
+    if (activeRef.current) return;
+    activeRef.current = true;
     setIsWorkflowPending(true);
     try {
       await task();
@@ -57,6 +60,7 @@ export function useStatusWorkflow(options: UseStatusWorkflowOptions): UseStatusW
         "Please try again. If this keeps happening, refresh the page and try again.",
       );
     } finally {
+      activeRef.current = false;
       setIsWorkflowPending(false);
     }
   }

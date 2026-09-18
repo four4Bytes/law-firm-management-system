@@ -130,6 +130,18 @@ export function combineDateTime(date: CalendarDate, time: Time): Date {
 }
 
 /**
+ * Normalizes a `Date` to minute precision by zeroing seconds and milliseconds.
+ * Date/time pickers only capture hour and minute, so persisted timestamps with
+ * seconds would otherwise read as changed on every edit.
+ *
+ * @param date - The instant to normalize.
+ * @returns Epoch millis truncated to the minute.
+ */
+export function toMinuteEpoch(date: Date): number {
+  return Math.floor(date.getTime() / 60000) * 60000;
+}
+
+/**
  * Formats a `Date` or ISO string as e.g. "Jul 14, 2026".
  *
  * @param date - A Date object or ISO 8601 string.

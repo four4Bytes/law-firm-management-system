@@ -88,7 +88,10 @@ interface MockConsultationActionPrisma {
     delete: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
   };
-  consultationAssignment: { findFirst: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  consultationAssignment: {
+    findFirst: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
   client: { create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   case: {
     findFirst: ReturnType<typeof vi.fn>;

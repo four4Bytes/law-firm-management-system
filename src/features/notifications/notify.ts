@@ -1,3 +1,5 @@
+import { logError } from "@/lib/logger";
+
 import { dispatchNotifications } from "./dispatch";
 import type { NotificationDispatchPayload } from "./schemas";
 
@@ -10,6 +12,6 @@ export async function notifyRecipients(
   try {
     await dispatchNotifications(payload, actorUserId);
   } catch (err) {
-    console.error(`Failed to dispatch${label ? ` ${label}` : ""} notification:`, err);
+    logError(`notifications.dispatch.${label ?? "default"}`, err);
   }
 }

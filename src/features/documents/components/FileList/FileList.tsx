@@ -7,15 +7,10 @@ import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import type { DocumentRow } from "@/features/documents/queries";
 import { formatFileSize, truncateFilename } from "@/lib/file-format";
+import { toastError } from "@/lib/toast-utils";
+import type { FileEntry } from "@/lib/useFileUpload";
 
 import styles from "./FileList.module.css";
-
-export interface FileEntry {
-  id: number;
-  file: File;
-  status: "pending" | "uploading" | "done" | "failed";
-  error?: string;
-}
 
 interface FileListProps {
   entries: FileEntry[];
@@ -47,6 +42,11 @@ export function FileList({
     setDownloadingIds((prev) => new Set(prev).add(doc.id));
     try {
       await onDownload(doc);
+    } catch {
+      toastError(
+        "Failed to download file",
+        `Could not download "${doc.file_name}". Please try again.`,
+      );
     } finally {
       setDownloadingIds((prev) => {
         const next = new Set(prev);

@@ -391,26 +391,22 @@ export async function updateConsultationAction(
         });
       }
 
-      try {
-        if (resetReminderTiming) {
-          const assigneeIds = await getConsultationAssigneeIds(consultationId);
-          if (assigneeIds.length > 0) {
-            await notifyRecipients(
-              session.id,
-              {
-                userIds: assigneeIds,
-                type: NotificationType.ConsultationRescheduled,
-                title: `Consultation rescheduled: ${concern.substring(0, 100)}`,
-                message: `Consultation "${concern.substring(0, 100)}" has been rescheduled.`,
-                actionUrl: `/consultation/${consultationId}`,
-                consultationId,
-              },
-              "reschedule",
-            );
-          }
+      if (resetReminderTiming) {
+        const assigneeIds = await getConsultationAssigneeIds(consultationId);
+        if (assigneeIds.length > 0) {
+          await notifyRecipients(
+            session.id,
+            {
+              userIds: assigneeIds,
+              type: NotificationType.ConsultationRescheduled,
+              title: `Consultation rescheduled: ${concern.substring(0, 100)}`,
+              message: `Consultation "${concern.substring(0, 100)}" has been rescheduled.`,
+              actionUrl: `/consultation/${consultationId}`,
+              consultationId,
+            },
+            "reschedule",
+          );
         }
-      } catch (err) {
-        console.error("Failed to dispatch reschedule notification:", err);
       }
     });
 
@@ -500,26 +496,22 @@ export async function updateConsultationWithClientAction(
         });
       }
 
-      try {
-        if (resetReminderTiming) {
-          const assigneeIds = await getConsultationAssigneeIds(consultation_id);
-          if (assigneeIds.length > 0) {
-            await notifyRecipients(
-              session.id,
-              {
-                userIds: assigneeIds,
-                type: NotificationType.ConsultationRescheduled,
-                title: `Consultation rescheduled: ${consultation.concern.substring(0, 100)}`,
-                message: `Consultation "${consultation.concern.substring(0, 100)}" has been rescheduled.`,
-                actionUrl: `/consultation/${consultation_id}`,
-                consultationId: consultation_id,
-              },
-              "reschedule",
-            );
-          }
+      if (resetReminderTiming) {
+        const assigneeIds = await getConsultationAssigneeIds(consultation_id);
+        if (assigneeIds.length > 0) {
+          await notifyRecipients(
+            session.id,
+            {
+              userIds: assigneeIds,
+              type: NotificationType.ConsultationRescheduled,
+              title: `Consultation rescheduled: ${consultation.concern.substring(0, 100)}`,
+              message: `Consultation "${consultation.concern.substring(0, 100)}" has been rescheduled.`,
+              actionUrl: `/consultation/${consultation_id}`,
+              consultationId: consultation_id,
+            },
+            "reschedule",
+          );
         }
-      } catch (err) {
-        console.error("Failed to dispatch reschedule notification:", err);
       }
     });
 
@@ -600,24 +592,20 @@ export async function changeConsultationStatusAction(
         details: `Changed consultation status from ${existing.status} to ${status}`,
       });
 
-      try {
-        const assigneeIds = await getConsultationAssigneeIds(consultationId);
-        if (assigneeIds.length > 0) {
-          await notifyRecipients(
-            session.id,
-            {
-              userIds: assigneeIds,
-              type: NotificationType.ConsultationStatusChanged,
-              title: `Consultation status changed: ${existing.concern.substring(0, 100)}`,
-              message: `Consultation "${existing.concern.substring(0, 100)}" status changed from ${existing.status} to ${status}.`,
-              actionUrl: `/consultation/${consultationId}`,
-              consultationId,
-            },
-            "status change",
-          );
-        }
-      } catch (err) {
-        console.error("Failed to dispatch status change notification:", err);
+      const assigneeIds = await getConsultationAssigneeIds(consultationId);
+      if (assigneeIds.length > 0) {
+        await notifyRecipients(
+          session.id,
+          {
+            userIds: assigneeIds,
+            type: NotificationType.ConsultationStatusChanged,
+            title: `Consultation status changed: ${existing.concern.substring(0, 100)}`,
+            message: `Consultation "${existing.concern.substring(0, 100)}" status changed from ${existing.status} to ${status}.`,
+            actionUrl: `/consultation/${consultationId}`,
+            consultationId,
+          },
+          "status change",
+        );
       }
     });
 
@@ -741,24 +729,20 @@ export async function acceptConsultationWithCaseAction(
         details: `Created case from consultation: "${case_title}"`,
       });
 
-      try {
-        const assigneeIds = await getConsultationAssigneeIds(consultationId);
-        if (assigneeIds.length > 0) {
-          await notifyRecipients(
-            session.id,
-            {
-              userIds: assigneeIds,
-              type: NotificationType.ConsultationStatusChanged,
-              title: `Consultation status changed: ${existing.concern.substring(0, 100)}`,
-              message: `Consultation "${existing.concern.substring(0, 100)}" status changed from ${existing.status} to Accepted.`,
-              actionUrl: `/consultation/${consultationId}`,
-              consultationId,
-            },
-            "status change",
-          );
-        }
-      } catch (err) {
-        console.error("Failed to dispatch status change notification:", err);
+      const assigneeIds = await getConsultationAssigneeIds(consultationId);
+      if (assigneeIds.length > 0) {
+        await notifyRecipients(
+          session.id,
+          {
+            userIds: assigneeIds,
+            type: NotificationType.ConsultationStatusChanged,
+            title: `Consultation status changed: ${existing.concern.substring(0, 100)}`,
+            message: `Consultation "${existing.concern.substring(0, 100)}" status changed from ${existing.status} to Accepted.`,
+            actionUrl: `/consultation/${consultationId}`,
+            consultationId,
+          },
+          "status change",
+        );
       }
 
       const notifyIds = assignee_ids ?? [];

@@ -12,7 +12,11 @@ import { auth } from "@/lib/auth";
 
 import styles from "./layout.module.css";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+interface DashboardLayoutProps {
+  children: React.ReactNode;
+}
+
+export default async function DashboardLayout({ children }: DashboardLayoutProps) {
   const session = await auth();
   if (!session?.user) {
     redirect("/");

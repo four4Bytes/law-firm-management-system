@@ -109,7 +109,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
 
   return (
     <Modal title="New Case" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField

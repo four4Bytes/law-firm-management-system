@@ -85,7 +85,7 @@ export function generateKey(parentType: string, parentId: string, fileName: stri
  *
  * @param key - The S3 object key to delete.
  */
-export async function deleteFile(key: string) {
+export async function deleteFile(key: string): Promise<void> {
   await s3().send(
     new DeleteObjectCommand({
       Bucket: bucket(),

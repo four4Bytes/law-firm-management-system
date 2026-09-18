@@ -96,7 +96,7 @@ export function EditCaseModal({
 
   return (
     <Modal title="Edit Case" isOpen={isOpen} onOpenChange={handleDismiss} className={styles.modal}>
-      <Form onSubmit={handleSave}>
+      <Form validationBehavior="native" onSubmit={handleSave}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField

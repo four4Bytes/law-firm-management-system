@@ -80,13 +80,6 @@ export async function updateConsultationStatus(
   return { id };
 }
 
-export async function lockConsultation(
-  tx: TransactionClient,
-  consultationId: string,
-): Promise<void> {
-  await tx.$queryRaw`SELECT 1 FROM "Consultation" WHERE id = ${consultationId} FOR UPDATE`;
-}
-
 export interface ConsultationDecisionData {
   consultationId: string;
   status: ConsultationStatus;

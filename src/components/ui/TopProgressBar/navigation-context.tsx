@@ -32,7 +32,11 @@ export function useNavigationProgress(): NavigationContextValue {
   return ctx;
 }
 
-export function NavigationProvider({ children }: { children: ReactNode }) {
+interface NavigationProviderProps {
+  children: ReactNode;
+}
+
+export function NavigationProvider({ children }: NavigationProviderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [state, setState] = useState<LoadingState>("idle");

@@ -87,6 +87,9 @@ export async function sendEmail(payload: SendEmailPayload): Promise<void> {
 /**
  * Checks whether the SMTP connection is reachable and authenticated.
  *
+ * Used by the `send-all-emails` debug script to fail fast when Mailpit/SMTP
+ * is misconfigured.
+ *
  * @returns `true` if the transport verifies successfully, `false` otherwise.
  */
 export async function verifyEmailConnection(): Promise<boolean> {

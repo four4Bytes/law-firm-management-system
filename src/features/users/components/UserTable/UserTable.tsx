@@ -119,6 +119,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
 
       {modalTarget && (
         <UserFormModal
+          key={modalTarget.type === "edit" ? modalTarget.user.id : "new"}
           mode={modalTarget.type}
           user={modalTarget.type === "edit" ? modalTarget.user : undefined}
           isOpen

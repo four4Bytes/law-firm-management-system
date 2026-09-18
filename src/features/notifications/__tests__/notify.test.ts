@@ -3,9 +3,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { NotificationType } from "@/generated/prisma/browser";
+import { logError } from "@/lib/logger";
 
 vi.mock("@/features/notifications/dispatch", () => ({
   dispatchNotifications: vi.fn().mockResolvedValue({ count: 0 }),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logError: vi.fn(),
 }));
 
 const basePayload = {
@@ -36,21 +41,19 @@ describe("notifyRecipients", () => {
   });
 
   it("swallows dispatch failures and does not throw", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(dispatchNotifications).mockRejectedValueOnce(new Error("boom"));
 
     await expect(notifyRecipients("actor", basePayload)).resolves.toBeUndefined();
-    expect(errorSpy).toHaveBeenCalled();
+    expect(logError).toHaveBeenCalled();
   });
 
   it("includes the label in the logged message", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(dispatchNotifications).mockRejectedValueOnce(new Error("boom"));
 
     await notifyRecipients("actor", basePayload, "status change");
 
-    expect(errorSpy).toHaveBeenCalledWith(
-      "Failed to dispatch status change notification:",
+    expect(logError).toHaveBeenCalledWith(
+      "notifications.dispatch.status change",
       expect.any(Error),
     );
   });

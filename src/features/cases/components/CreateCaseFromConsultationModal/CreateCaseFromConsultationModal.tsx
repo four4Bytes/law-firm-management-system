@@ -107,7 +107,7 @@ export function CreateCaseFromConsultationModal({
       onOpenChange={handleCancel}
       className={styles.modal}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.column}>
           <TextField
             label="Case Title"

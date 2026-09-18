@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import type { ReactNode } from "react";
 import { FaArrowRight } from "react-icons/fa6";
 
@@ -12,11 +13,12 @@ interface RelatedLinkCardProps {
   label: string;
   title: string;
   icon?: ReactNode;
+  className?: string;
 }
 
-export function RelatedLinkCard({ href, label, title, icon }: RelatedLinkCardProps) {
+export function RelatedLinkCard({ href, label, title, icon, className }: RelatedLinkCardProps) {
   return (
-    <Link href={href} className={styles.card}>
+    <Link href={href} className={clsx(styles.card, className)}>
       {icon && <span className={styles.icon}>{icon}</span>}
       <span className={styles.label}>{label}</span>
       <span className={styles.title}>{title}</span>

@@ -230,8 +230,8 @@ export function CaseDetail({ overview, access, userRole }: Props) {
             {validTabs.includes("tasks") && <Tab id="tasks">Tasks</Tab>}
             {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
-            {validTabs.includes("milestones") && <Tab id="milestones">Milestone</Tab>}
-            {validTabs.includes("payments") && <Tab id="payments">Payment</Tab>}
+            {validTabs.includes("milestones") && <Tab id="milestones">Milestones</Tab>}
+            {validTabs.includes("payments") && <Tab id="payments">Payments</Tab>}
             {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
           </TabList>
           <TabPanels>

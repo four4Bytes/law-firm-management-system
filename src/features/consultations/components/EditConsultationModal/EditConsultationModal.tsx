@@ -186,7 +186,7 @@ export function EditConsultationModal({
       >
         {`Move the booking from ${formatDateTime(consultation.booking_datetime)} to ${formatDateTime(newBooking)}? Assigned staff will be notified and reminders will restart.`}
       </ConfirmDialog>
-      <Form onSubmit={handleSave}>
+      <Form validationBehavior="native" onSubmit={handleSave}>
         {isLocked && (
           <p className={styles.lockedNotice}>
             This consultation has been accepted and linked to a case. Update the{" "}

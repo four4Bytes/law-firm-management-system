@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import {
   FaRegFile,
   FaRegFileExcel,
@@ -50,6 +51,7 @@ interface FilePreviewCardProps {
   created_at: Date;
   linkedTaskTitle?: string;
   linkedTaskCaseId?: string;
+  className?: string;
 }
 
 export function FilePreviewCard({
@@ -60,6 +62,7 @@ export function FilePreviewCard({
   created_at,
   linkedTaskTitle,
   linkedTaskCaseId,
+  className,
 }: FilePreviewCardProps) {
   const { icon: Icon, label } = getFileTypeConfig(file_type);
   const fileCategory = classifyFileType(file_type);
@@ -71,7 +74,7 @@ export function FilePreviewCard({
   }).format(created_at);
 
   return (
-    <div className={styles.card}>
+    <div className={clsx(styles.card, className)}>
       <div className={styles.header}>
         <div className={styles.iconContainer} data-category={fileCategory}>
           <Icon className={styles.icon} />

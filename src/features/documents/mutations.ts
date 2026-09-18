@@ -1,10 +1,8 @@
-import { lockCase } from "@/features/cases/mutations";
-import { lockConsultation } from "@/features/consultations/mutations";
-import { lockTask } from "@/features/tasks/mutations";
 import { TaskStatus } from "@/generated/prisma/browser";
 import { RecordLockedError, TaskLockedError } from "@/lib/errors";
 import { isSubdataLocked } from "@/lib/lifecycle";
 import { prisma, type TransactionClient } from "@/lib/prisma";
+import { lockCaseRow, lockConsultationRow, lockTaskRow } from "@/lib/row-locks";
 import { deleteFile, listObjects } from "@/lib/s3";
 
 export interface DocumentCreatePayload {
@@ -37,7 +35,7 @@ export interface TaskDocumentPayload extends Omit<DocumentCreatePayload, "task_i
 export async function createDocumentForTask(payload: TaskDocumentPayload): Promise<{ id: string }> {
   const { taskId, ...data } = payload;
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { status: true },
@@ -74,7 +72,7 @@ export async function deleteDocumentForTask(
   documentId: string,
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { status: true },
@@ -105,7 +103,7 @@ export async function deleteDocumentWithParentCheck(
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
     if (parent.consultation_id) {
-      await lockConsultation(tx, parent.consultation_id);
+      await lockConsultationRow(tx, parent.consultation_id);
       const consultation = await tx.consultation.findUnique({
         where: { id: parent.consultation_id },
         select: { status: true },
@@ -115,7 +113,7 @@ export async function deleteDocumentWithParentCheck(
       }
     }
     if (parent.case_id) {
-      await lockCase(tx, parent.case_id);
+      await lockCaseRow(tx, parent.case_id);
       const record = await tx.case.findUnique({
         where: { id: parent.case_id },
         select: { status: true },

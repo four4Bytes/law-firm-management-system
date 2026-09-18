@@ -77,7 +77,7 @@ export function UploadDocumentModal({
         onSuccess();
       }
     } catch {
-      toastError("Upload failed", "An unexpected error occurred. Please try again.");
+      toastError("Failed to upload files", "The files could not be uploaded. Please try again.");
     }
   }
 

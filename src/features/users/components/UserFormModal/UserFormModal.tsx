@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Form } from "react-aria-components";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -38,7 +38,6 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
   const [email, setEmail] = useState(user?.email ?? "");
   const [role, setRole] = useState<Role | null>(user?.role ?? null);
   const [pendingDevEmail, setPendingDevEmail] = useState<string | null>(null);
-  const submittingRef = useRef(false);
 
   const { isPending, submitForm } = useModalForm<{ email: string; role: Role; userId?: string }>({
     submit: async (args) =>
@@ -55,32 +54,26 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
 
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
-    if (isPending || submittingRef.current) return;
+    if (isPending) return;
     if (!email || !role) return;
 
-    submittingRef.current = true;
-
-    try {
-      if (mode === "add") {
-        try {
-          const isDev = await checkDeveloperEmail(email);
-          if (isDev) {
-            setPendingDevEmail(email);
-            return;
-          }
-        } catch {
-          toastError(
-            "Failed to verify email",
-            "We couldn't verify this email address. Please try again.",
-          );
+    if (mode === "add") {
+      try {
+        const isDev = await checkDeveloperEmail(email);
+        if (isDev) {
+          setPendingDevEmail(email);
           return;
         }
+      } catch {
+        toastError(
+          "Failed to verify email",
+          "We couldn't verify this email address. Please try again.",
+        );
+        return;
       }
-
-      await submitForm({ email: requiredString(email), role, userId: user?.id });
-    } finally {
-      submittingRef.current = false;
     }
+
+    await submitForm({ email: requiredString(email), role, userId: user?.id });
   }
 
   async function handleDevConfirm() {
@@ -96,7 +89,7 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
         onOpenChange(false);
       }
     } catch {
-      toastError("An unexpected error occurred", "Something went wrong. Please try again.");
+      toastError("Failed to create user", "The user could not be created. Please try again.");
     } finally {
       setPendingDevEmail(null);
     }
@@ -109,7 +102,7 @@ export function UserFormModal({ mode, user, isOpen, onOpenChange, onSuccess }: U
       isOpen={isOpen}
       onOpenChange={onOpenChange}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.form}>
           <TextField
             label="Email"

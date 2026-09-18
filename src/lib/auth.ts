@@ -2,10 +2,13 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
-import { syncUserFromGoogle, upsertDeveloperUser } from "@/features/users/mutations";
+import {
+  getAuthAdapterClient,
+  syncUserFromGoogle,
+  upsertDeveloperUser,
+} from "@/features/users/mutations";
 import { getUserByEmail } from "@/features/users/queries";
 import { isDeveloperEmail } from "@/lib/developer-emails";
-import { prisma } from "@/lib/prisma";
 
 /**
  * NextAuth configuration (Google OAuth + Prisma adapter + JWT sessions).
@@ -18,7 +21,7 @@ import { prisma } from "@/lib/prisma";
  * session getter.
  */
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(getAuthAdapterClient()),
   providers: [
     Google({
       // Bypasses the OAuthAccountNotLinked block dynamically in both dev and prod environment

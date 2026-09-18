@@ -6,8 +6,15 @@ import {
   confirmDocumentUploadAction,
   getDocumentUploadUrlAction,
 } from "@/features/documents/actions";
-import type { FileEntry } from "@/features/documents/components/FileList/FileList";
 import { toastError } from "@/lib/toast-utils";
+
+/** A single file in the client upload queue. */
+export interface FileEntry {
+  id: number;
+  file: File;
+  status: "pending" | "uploading" | "done" | "failed";
+  error?: string;
+}
 
 /** Parent resource reference for document upload. */
 export interface UseFileUploadParams {

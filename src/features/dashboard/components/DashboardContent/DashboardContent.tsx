@@ -20,7 +20,11 @@ interface DashboardContentProps {
   upcomingMilestones: UpcomingMilestoneRow[] | null;
 }
 
-function ErrorBlock({ message }: { message: string }) {
+interface ErrorBlockProps {
+  message: string;
+}
+
+function ErrorBlock({ message }: ErrorBlockProps) {
   return <div className={styles.errorMessage}>{message}</div>;
 }
 

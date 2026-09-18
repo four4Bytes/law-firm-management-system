@@ -1,4 +1,4 @@
-export async function register() {
+export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   const { parseDeveloperEmails } = await import("@/lib/developer-emails");

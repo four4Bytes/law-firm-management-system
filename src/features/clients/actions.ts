@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
-import type { Client } from "@/generated/prisma/client";
+import type { Client } from "@/generated/prisma/browser";
 import { actionInvalid, type ActionDataResponse } from "@/lib/action-response";
 import { requireAuth } from "@/lib/auth-guards";
 import { toActionResponse } from "@/lib/errors";

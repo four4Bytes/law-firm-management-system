@@ -19,7 +19,11 @@ export function useSidebar(): SidebarContextValue {
   return ctx;
 }
 
-export function SidebarProvider({ children }: { children: ReactNode }) {
+interface SidebarProviderProps {
+  children: ReactNode;
+}
+
+export function SidebarProvider({ children }: SidebarProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const open = useCallback(() => setIsOpen(true), []);

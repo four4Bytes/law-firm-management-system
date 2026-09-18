@@ -53,10 +53,7 @@ export function DecisionModal({
       const succeeded = await onConfirm(optionalString(reason));
       if (succeeded !== false) setReason("");
     } catch {
-      toastError(
-        "Something went wrong",
-        "Please try again. If this keeps happening, refresh the page and try again.",
-      );
+      toastError("Failed to save decision", "The decision could not be saved. Please try again.");
     } finally {
       setIsPending(false);
     }
@@ -64,7 +61,7 @@ export function DecisionModal({
 
   return (
     <Modal title={title} isOpen={isOpen} onOpenChange={handleDismiss} className={styles.modal}>
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <p className={styles.description}>{description}</p>
         <div className={styles.column}>
           <TextField

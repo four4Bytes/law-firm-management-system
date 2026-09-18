@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 
-export async function toggleSidebarAction(collapsed: boolean) {
+export async function toggleSidebarAction(collapsed: boolean): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set("sidebar-collapsed", String(collapsed), {
     path: "/",

@@ -507,24 +507,20 @@ export async function changeCaseStatusAction(
         details: `Changed case status from ${existing.status} to ${status}`,
       });
 
-      try {
-        const assigneeIds = await getCaseAssigneeIds(caseId);
-        if (assigneeIds.length > 0) {
-          await notifyRecipients(
-            session.id,
-            {
-              userIds: assigneeIds,
-              type: NotificationType.CaseStatusChanged,
-              title: `Case status changed: ${existing.case_title.substring(0, 100)}`,
-              message: `Case "${existing.case_title.substring(0, 100)}" status changed from ${existing.status} to ${status}.`,
-              actionUrl: `/case/${caseId}`,
-              caseId,
-            },
-            "status change",
-          );
-        }
-      } catch (err) {
-        console.error("Failed to dispatch status change notification:", err);
+      const assigneeIds = await getCaseAssigneeIds(caseId);
+      if (assigneeIds.length > 0) {
+        await notifyRecipients(
+          session.id,
+          {
+            userIds: assigneeIds,
+            type: NotificationType.CaseStatusChanged,
+            title: `Case status changed: ${existing.case_title.substring(0, 100)}`,
+            message: `Case "${existing.case_title.substring(0, 100)}" status changed from ${existing.status} to ${status}.`,
+            actionUrl: `/case/${caseId}`,
+            caseId,
+          },
+          "status change",
+        );
       }
     });
 

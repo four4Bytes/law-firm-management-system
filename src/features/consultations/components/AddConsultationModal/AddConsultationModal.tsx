@@ -142,7 +142,7 @@ export function AddConsultationModal({
       onOpenChange={handleCancel}
       className={styles.modal}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField

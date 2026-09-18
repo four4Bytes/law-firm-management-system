@@ -81,7 +81,7 @@ export function AddPaymentModal({
 
   return (
     <Modal title="Add Payment" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.content}>
           <TextField
             label="Amount"

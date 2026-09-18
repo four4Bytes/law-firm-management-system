@@ -82,7 +82,7 @@ export function AddMilestoneModal({
       onOpenChange={handleCancel}
       className={styles.modal}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.content}>
           <TextField
             label="Title"

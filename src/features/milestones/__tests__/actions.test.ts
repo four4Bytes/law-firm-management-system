@@ -58,10 +58,6 @@ vi.mock("next/server", () => {
   };
 });
 
-vi.mock("@/lib/path", () => ({
-  getParentPath: vi.fn(),
-}));
-
 vi.mock("../queries", () => ({
   getMilestoneAccessContext: vi.fn(),
   getMilestoneById: vi.fn(),

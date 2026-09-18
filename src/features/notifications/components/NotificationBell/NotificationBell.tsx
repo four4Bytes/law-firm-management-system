@@ -30,13 +30,14 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const pendingIdsRef = useRef(new Set<string>());
   const [pendingIds, setPendingIds] = useState(new Set<string>());
 
   useEffect(() => {
     let cancelled = false;
     if (isOpen) {
-      const load = async () => {
+      const loadNotifications = async () => {
         setIsLoading(true);
         try {
           const data = await getUnreadNotificationsAction();
@@ -56,7 +57,7 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
           }
         }
       };
-      void load();
+      void loadNotifications();
     }
     return () => {
       cancelled = true;
@@ -90,6 +91,8 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
   }
 
   async function handleMarkAllRead() {
+    if (isMarkingAllRead) return;
+    setIsMarkingAllRead(true);
     try {
       const result = await markAllNotificationsReadAction();
       if (result.success) {
@@ -103,6 +106,8 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
         "Failed to mark all notifications as read",
         "The notifications could not be updated. Please try again.",
       );
+    } finally {
+      setIsMarkingAllRead(false);
     }
   }
 
@@ -122,7 +127,13 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
               Notifications
             </Heading>
             {notifications.length > 0 && (
-              <Button variant="ghost" className={styles.markAllButton} onPress={handleMarkAllRead}>
+              <Button
+                variant="ghost"
+                className={styles.markAllButton}
+                onPress={handleMarkAllRead}
+                isDisabled={isMarkingAllRead}
+                isPending={isMarkingAllRead}
+              >
                 Mark all read
               </Button>
             )}

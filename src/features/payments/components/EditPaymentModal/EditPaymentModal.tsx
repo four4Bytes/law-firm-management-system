@@ -81,7 +81,7 @@ export function EditPaymentModal({
       onOpenChange={handleCancel}
       className={styles.modal}
     >
-      <Form onSubmit={handleSave}>
+      <Form validationBehavior="native" onSubmit={handleSave}>
         <div className={styles.content}>
           <TextField
             label="Amount"

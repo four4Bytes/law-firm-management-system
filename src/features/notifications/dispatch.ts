@@ -16,6 +16,7 @@ import {
   statusChangeTemplate,
   taskAssignedTemplate,
 } from "@/lib/email-templates";
+import { logError } from "@/lib/logger";
 
 /** Compile-time exhaustiveness guard — `value` must be `never` at this point. */
 function assertNever(value: never): never {
@@ -108,7 +109,7 @@ export async function dispatchNotifications(
       userIds = userIds.filter((id) => allowed.has(id));
       if (userIds.length === 0) return { count: 0 };
     } catch (err) {
-      console.error("Failed to resolve notification preferences, falling back to all:", err);
+      logError("notifications.prefs", err);
     }
   }
 
@@ -121,13 +122,13 @@ export async function dispatchNotifications(
   try {
     actorName = (await getUserNameById({ id: actorUserId })) ?? "System";
   } catch (err) {
-    console.error("Failed to resolve actor name:", err);
+    logError("notifications.actor", err);
   }
 
   try {
     recipients = await getUsersByIds({ ids: filteredPayload.userIds });
   } catch (err) {
-    console.error("Failed to resolve recipients:", err);
+    logError("notifications.recipients", err);
   }
 
   const template = pickTemplate(payload.type);
@@ -146,7 +147,7 @@ export async function dispatchNotifications(
 
       await sendEmail({ to: user.email, subject: payload.title, html });
     } catch (err) {
-      console.error(`Failed to send email notification to user ${user.id}:`, err);
+      logError("notifications.email", err);
     }
   }
 

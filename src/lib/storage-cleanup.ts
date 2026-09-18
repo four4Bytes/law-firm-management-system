@@ -1,3 +1,4 @@
+import { logError } from "@/lib/logger";
 import { deleteFile } from "@/lib/s3";
 
 /**
@@ -22,13 +23,14 @@ export async function deleteDocumentFiles(filePaths: string[]): Promise<void> {
       await deleteFile(filePath);
     } catch (error) {
       failures.push(filePath);
-      console.error(`Failed to delete document file "${filePath}":`, error);
+      logError("storage.cleanup", error);
     }
   }
 
   if (failures.length > 0) {
-    console.error(
-      `Storage cleanup left ${failures.length} undeleted object(s): ${failures.join(", ")}`,
+    logError(
+      "storage.cleanup",
+      `Left ${failures.length} undeleted object(s): ${failures.join(", ")}`,
     );
   }
 }

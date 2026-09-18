@@ -81,10 +81,6 @@ export async function updateCaseStatus(
   return { id };
 }
 
-export async function lockCase(tx: TransactionClient, caseId: string): Promise<void> {
-  await tx.$queryRaw`SELECT 1 FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
-}
-
 export interface CaseDecisionData {
   caseId: string;
   status: CaseStatus;

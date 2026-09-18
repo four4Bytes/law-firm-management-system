@@ -1,3 +1,4 @@
+import { logError } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 export interface AuditLogPayload {
@@ -20,6 +21,6 @@ export async function logAudit(payload: AuditLogPayload): Promise<void> {
       },
     });
   } catch (err) {
-    console.error("Failed to write audit log", payload.action, payload.entityId, err);
+    logError("audit.write", err);
   }
 }

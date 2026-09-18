@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { FaEye, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -27,6 +27,7 @@ import {
   toastNotFound,
   toastSuccess,
 } from "@/lib/toast-utils";
+import { usePendingFetch } from "@/lib/usePendingFetch";
 
 import styles from "./NotesTab.module.css";
 
@@ -46,20 +47,21 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
   const [viewNote, setViewNote] = useState<NoteRow | null>(null);
   const [editNote, setEditNote] = useState<NoteRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<NoteRow | null>(null);
-  const [pendingEditId, setPendingEditId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const latestRequest = useRef(0);
+  const {
+    pendingId: pendingEditId,
+    run: runEditFetch,
+    clear: clearPendingFetch,
+  } = usePendingFetch();
 
   const canCreate = can(userRole, "note.create", access);
 
   const handleRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   async function handleEdit(note: NoteRow) {
-    const requestId = ++latestRequest.current;
-    setPendingEditId(note.id);
     try {
-      const data = await getNoteRowByIdAction(note.id);
-      if (requestId !== latestRequest.current) return;
+      const data = await runEditFetch(note.id, () => getNoteRowByIdAction(note.id));
+      if (!data) return;
       if (!data.row) {
         toastNotFound("Note");
         return;
@@ -70,22 +72,23 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
       }
       setEditNote(data.row);
     } catch {
-      if (requestId !== latestRequest.current) return;
-      toastError("Failed to load note", "Please try again in a moment.");
-    } finally {
-      if (requestId === latestRequest.current) setPendingEditId(null);
+      toastError("Failed to load note", "The note could not be loaded. Please try again.");
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    const result = await deleteNoteAction({ noteId: deleteTarget.id });
-    if (result.success) {
-      setDeleteTarget(null);
-      handleRefresh();
-      toastSuccess("Note deleted", "The note has been deleted.");
-    } else {
-      toastActionError(result, "delete note");
+    try {
+      const result = await deleteNoteAction({ noteId: deleteTarget.id });
+      if (result.success) {
+        setDeleteTarget(null);
+        handleRefresh();
+        toastSuccess("Note deleted", "The note has been deleted.");
+      } else {
+        toastActionError(result, "delete note");
+      }
+    } catch {
+      toastError("Failed to delete note", "The note could not be deleted. Please try again.");
     }
   }
 
@@ -111,8 +114,7 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
             variant="ghost"
             aria-label="Delete note"
             onPress={() => {
-              latestRequest.current++;
-              setPendingEditId(null);
+              clearPendingFetch();
               setDeleteTarget(note);
             }}
           >

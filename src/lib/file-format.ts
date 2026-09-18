@@ -3,11 +3,11 @@
 /**
  * Formats a byte count as a human-readable size (e.g. "1.5 MB"); `null` yields "Unknown".
  *
- * @param bytes - The byte count, or `null`/`undefined`.
+ * @param bytes - The byte count, or `null`.
  * @returns A human-readable size string.
  */
 export function formatFileSize(bytes: number | null): string {
-  if (bytes === null || bytes === undefined) return "Unknown";
+  if (bytes === null) return "Unknown";
   if (bytes === 0) return "0 B";
 
   const units = ["B", "KB", "MB", "GB", "TB"];

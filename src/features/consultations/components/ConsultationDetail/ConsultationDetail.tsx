@@ -343,6 +343,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
       />
 
       <CreateCaseFromConsultationModal
+        key={overview.id}
         isOpen={showCaseModal}
         onOpenChange={setShowCaseModal}
         onSuccess={(caseId) => {

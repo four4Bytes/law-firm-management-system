@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export async function POST(_request: NextRequest): Promise<NextResponse> {
   try {
     const session = await requireAuth();
 

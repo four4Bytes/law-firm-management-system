@@ -62,7 +62,7 @@ function resetConsultation(): ConsultationFields {
     concern: "",
     date: today(getLocalTimeZone()),
     time: new Time(9, 0),
-    status: ConsultationStatus.Scheduled,
+    status: ConsultationStatus.Pending,
     type: ConsultationType.Scheduled,
   };
 }

@@ -37,7 +37,7 @@ const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
   id: "1",
   concern: "Legal advice",
   booking_datetime: new Date("2024-06-01T10:00:00"),
-  status: "Scheduled" as const,
+  status: "Pending" as const,
   type: "Scheduled" as const,
   client_id: "c1",
   created_by_user_id: "u1",
@@ -110,7 +110,7 @@ describe("getDashboardStats", () => {
     expect(prisma.consultation.count).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          status: "Scheduled",
+          status: "Pending",
           booking_datetime: { gte: expect.any(Date), lt: expect.any(Date) },
         },
       }),
@@ -144,7 +144,7 @@ describe("getDashboardStats", () => {
     expect(prisma.consultation.count).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          status: "Scheduled",
+          status: "Pending",
           booking_datetime: { gte: expect.any(Date), lt: expect.any(Date) },
           consultationAssignments: { some: { user_id: "uConsultations" } },
         },
@@ -261,13 +261,13 @@ describe("getUpcomingConsultations", () => {
       clientName: "Jane Client",
       concern: "Legal advice",
       booking_datetime: consultations[0].booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
     });
     expect(prisma.consultation.findMany).toHaveBeenCalledWith({
       take: 5,
       where: {
         booking_datetime: { gte: expect.any(Date) },
-        status: "Scheduled",
+        status: "Pending",
       },
       orderBy: { booking_datetime: "asc" },
       select: {

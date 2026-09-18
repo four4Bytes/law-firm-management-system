@@ -80,7 +80,7 @@ export const getDashboardStats = cache(
       prisma.case.count({ where: { status: "Open", ...casesFilter } }),
       prisma.consultation.count({
         where: {
-          status: "Scheduled",
+          status: "Pending",
           booking_datetime: { gte: startOfDay, lt: endOfDay },
           ...consultationsFilter,
         },
@@ -128,7 +128,7 @@ export const getUpcomingConsultations = cache(
       take: limit,
       where: {
         booking_datetime: { gte: new Date() },
-        status: "Scheduled",
+        status: "Pending",
         ...(assignedUserId
           ? { consultationAssignments: { some: { user_id: assignedUserId } } }
           : {}),

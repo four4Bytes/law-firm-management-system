@@ -22,7 +22,7 @@ enum ConsultationType {
 }
 
 enum ConsultationStatus {
-  Scheduled
+  Pending
   Completed
   Accepted
   Rejected

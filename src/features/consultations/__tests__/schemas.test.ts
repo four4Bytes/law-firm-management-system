@@ -13,7 +13,7 @@ describe("ConsultationCreatePayloadSchema", () => {
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: "2024-07-15T10:00:00.000Z",
-    status: "Scheduled",
+    status: "Pending",
     type: "Scheduled",
   };
 
@@ -87,7 +87,7 @@ describe("ConsultationUpdatePayloadSchema", () => {
       client_id: uuid,
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
     });
     expect(result.success).toBe(false);
@@ -99,7 +99,7 @@ describe("ConsultationUpdatePayloadSchema", () => {
       client_id: uuid,
       concern: "c",
       booking_datetime: "2024-07-15T10:00:00.000Z",
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
     });
     expect(result.success).toBe(true);

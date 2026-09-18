@@ -20,7 +20,7 @@ interface Props {
 }
 
 const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
-  Scheduled: "info",
+  Pending: "info",
   Completed: "done",
   Accepted: "accent",
   Rejected: "danger",

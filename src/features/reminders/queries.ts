@@ -54,7 +54,7 @@ export async function getConsultationsNeedingReminder(): Promise<ConsultationRem
 
   const consultations = await prisma.consultation.findMany({
     where: {
-      status: "Scheduled",
+      status: "Pending",
       OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: todayStart } }],
     },
     select: {

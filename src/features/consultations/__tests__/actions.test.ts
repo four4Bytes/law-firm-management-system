@@ -109,7 +109,7 @@ const consultationRecord: ConsultationWithAssignments = {
   client_id: uuid,
   concern: "Legal advice",
   booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
-  status: "Scheduled",
+  status: "Pending",
   type: "Scheduled",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
@@ -131,7 +131,7 @@ describe("getConsultationForEditAction", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled" as const,
+      status: "Pending" as const,
       type: "Scheduled" as const,
       assignee_ids: [],
       assignees: [],
@@ -154,7 +154,7 @@ describe("createConsultationAction", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled" as const,
+    status: "Pending" as const,
     type: "Scheduled" as const,
   };
 
@@ -244,7 +244,7 @@ describe("updateConsultationAction", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled" as const,
+    status: "Pending" as const,
     type: "Scheduled" as const,
   };
 
@@ -279,7 +279,7 @@ describe("updateConsultationAction", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -296,7 +296,7 @@ describe("updateConsultationAction", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -320,7 +320,7 @@ describe("updateConsultationAction", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -369,7 +369,7 @@ describe("deleteConsultationAction", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -389,7 +389,7 @@ describe("deleteConsultationAction", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -412,7 +412,7 @@ describe("deleteConsultationAction", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -441,7 +441,7 @@ describe("authorization guards for non-Admin users", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled" as const,
+    status: "Pending" as const,
     type: "Scheduled" as const,
   };
 
@@ -452,7 +452,7 @@ describe("authorization guards for non-Admin users", () => {
     consultation: {
       concern: "Legal advice",
       booking_datetime: "2024-06-01T10:00:00.000Z",
-      status: "Scheduled" as const,
+      status: "Pending" as const,
       type: "Scheduled" as const,
     },
   };
@@ -463,7 +463,7 @@ describe("authorization guards for non-Admin users", () => {
     consultation: {
       concern: "Legal advice",
       booking_datetime: "2024-06-01T10:00:00.000Z",
-      status: "Scheduled" as const,
+      status: "Pending" as const,
       type: "Scheduled" as const,
     },
   };
@@ -480,7 +480,7 @@ describe("authorization guards for non-Admin users", () => {
       client_id: uuid,
       concern: "Legal advice",
       booking_datetime: consultationRecord.booking_datetime,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       assignee_ids: [],
       assignees: [],
@@ -533,7 +533,7 @@ describe("updateConsultationAction notification split", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: "2024-06-01T10:00:00.000Z",
-    status: "Scheduled" as const,
+    status: "Pending" as const,
     type: "Scheduled" as const,
   };
 
@@ -546,7 +546,7 @@ describe("updateConsultationAction notification split", () => {
     client_id: uuid,
     concern: "Legal advice",
     booking_datetime: consultationRecord.booking_datetime,
-    status: "Scheduled" as const,
+    status: "Pending" as const,
     type: "Scheduled" as const,
     assignee_ids: [assignee1, assignee2],
     assignees: [],
@@ -592,7 +592,7 @@ describe("updateConsultationAction notification split", () => {
       consultation: {
         concern: "Legal advice",
         booking_datetime: "2024-06-01T10:00:00.000Z",
-        status: "Scheduled" as const,
+        status: "Pending" as const,
         type: "Scheduled" as const,
         assignee_ids: [assignee1, assignee2, assignee3],
       },
@@ -622,7 +622,7 @@ describe("updateConsultationAction notification split", () => {
 
     expect(calls).toHaveLength(1);
     expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2, assignee3]);
-    expect(statusChange?.[0].message).toContain("Scheduled");
+    expect(statusChange?.[0].message).toContain("Pending");
     expect(statusChange?.[0].message).toContain("Accepted");
   });
 
@@ -648,7 +648,7 @@ describe("updateConsultationAction notification split", () => {
 
     expect(calls).toHaveLength(1);
     expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2, assignee3]);
-    expect(statusChange?.[0].message).toContain("Scheduled");
+    expect(statusChange?.[0].message).toContain("Pending");
     expect(statusChange?.[0].message).toContain("Accepted");
   });
 });

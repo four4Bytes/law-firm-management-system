@@ -32,7 +32,7 @@ it("createConsultation merges created_by_user_id into the create payload", async
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
+    status: "Pending",
     type: "Scheduled",
     created_by_user_id: "u1",
   });
@@ -42,7 +42,7 @@ it("createConsultation merges created_by_user_id into the create payload", async
       client_id: uuid,
       concern: "Breach of contract",
       booking_datetime: booking,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       created_by_user_id: "u1",
     },
@@ -56,7 +56,7 @@ it("updateConsultation strips id from the update data", async () => {
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
+    status: "Pending",
     type: "Scheduled",
   });
 
@@ -66,7 +66,7 @@ it("updateConsultation strips id from the update data", async () => {
       client_id: uuid,
       concern: "Breach of contract",
       booking_datetime: booking,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
     },
     select: { id: true },
@@ -101,7 +101,7 @@ it("createConsultation nests consultationAssignments when assignee_ids are provi
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
+    status: "Pending",
     type: "Scheduled",
     assignee_ids: ["u1", "u2"],
     created_by_user_id: "u1",
@@ -112,7 +112,7 @@ it("createConsultation nests consultationAssignments when assignee_ids are provi
       client_id: uuid,
       concern: "Breach of contract",
       booking_datetime: booking,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       created_by_user_id: "u1",
       consultationAssignments: {
@@ -129,7 +129,7 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
+    status: "Pending",
     type: "Scheduled",
     assignee_ids: ["u2"],
   });
@@ -140,7 +140,7 @@ it("updateConsultation replaces consultationAssignments when assignee_ids are pr
       client_id: uuid,
       concern: "Breach of contract",
       booking_datetime: booking,
-      status: "Scheduled",
+      status: "Pending",
       type: "Scheduled",
       consultationAssignments: {
         deleteMany: {},
@@ -157,7 +157,7 @@ it("updateConsultation clears last_reminded_at when resetReminderTiming is set",
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
+    status: "Pending",
     type: "Scheduled",
     resetReminderTiming: true,
   });
@@ -177,7 +177,7 @@ it("updateConsultation omits last_reminded_at when resetReminderTiming is not se
     client_id: uuid,
     concern: "Breach of contract",
     booking_datetime: booking,
-    status: "Scheduled",
+    status: "Pending",
     type: "Scheduled",
   });
 

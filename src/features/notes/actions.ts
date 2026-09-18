@@ -23,10 +23,10 @@ import { can } from "@/lib/rbac";
 import {
   createNote,
   createNoteForTask,
-  deleteNote,
   deleteNoteForTask,
-  updateNote,
+  deleteNoteWithParentCheck,
   updateNoteForTask,
+  updateNoteWithParentCheck,
 } from "./mutations";
 import {
   getCaseNotesPaginated,
@@ -252,7 +252,7 @@ export async function updateNoteAction(
     if (existing.task_id) {
       await updateNoteForTask(existing.task_id, noteId, content);
     } else {
-      await updateNote(noteId, content);
+      await updateNoteWithParentCheck(noteId, content, existing);
     }
 
     after(() =>
@@ -302,7 +302,7 @@ export async function deleteNoteAction(
     if (existing.task_id) {
       await deleteNoteForTask(existing.task_id, noteId);
     } else {
-      await deleteNote(noteId);
+      await deleteNoteWithParentCheck(noteId, existing);
     }
 
     after(() =>

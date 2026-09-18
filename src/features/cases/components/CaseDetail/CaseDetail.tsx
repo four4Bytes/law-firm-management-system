@@ -5,13 +5,20 @@ import { useEffect, useRef, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { DecisionModal } from "@/components/ui/DecisionModal/DecisionModal";
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { ActivityLogTab } from "@/features/audit/components/ActivityLogTab/ActivityLogTab";
-import { deleteCaseAction, getCaseForEditAction } from "@/features/cases/actions";
+import {
+  changeCaseStatusAction,
+  deleteCaseAction,
+  getCaseForEditAction,
+} from "@/features/cases/actions";
+import { CaseWorkflowActions } from "@/features/cases/components/CaseWorkflowActions/CaseWorkflowActions";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
+import { CaseStatusChangePayloadSchema } from "@/features/cases/schemas";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
@@ -21,7 +28,7 @@ import { PaymentsTab } from "@/features/payments/components/PaymentsTab/Payments
 import { TasksTab } from "@/features/tasks/components/TasksTab/TasksTab";
 import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import type { Role } from "@/generated/prisma/browser";
+import { CaseStatus, type Role } from "@/generated/prisma/browser";
 import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
@@ -30,6 +37,7 @@ import {
   toastNotFound,
   toastSuccess,
 } from "@/lib/toast-utils";
+import { useStatusWorkflow } from "@/lib/useStatusWorkflow";
 
 import { CaseOverview } from "../CaseOverview/CaseOverview";
 import styles from "./CaseDetail.module.css";
@@ -53,6 +61,11 @@ export function CaseDetail({ overview, access, userRole }: Props) {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
+  const [decisionModal, setDecisionModal] = useState<Extract<
+    CaseStatus,
+    "Closed" | "Settled" | "Terminated"
+  > | null>(null);
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
 
   const canViewPayments = can(userRole, "payment.read");
 
@@ -144,6 +157,53 @@ export function CaseDetail({ overview, access, userRole }: Props) {
     }
   }
 
+  const { isWorkflowPending, applyChange } = useStatusWorkflow({
+    operation: "change case status",
+  });
+
+  async function applyStatusChange(status: CaseStatus, reason?: string): Promise<boolean> {
+    const succeeded = await applyChange(
+      () =>
+        changeCaseStatusAction({
+          caseId: overview.id,
+          status,
+          ...(reason ? { reason } : {}),
+        }),
+      `The case has been marked as ${status}.`,
+    );
+    if (succeeded) {
+      router.refresh();
+    }
+    return succeeded;
+  }
+
+  async function handleDecisionConfirm(reason?: string): Promise<boolean> {
+    if (!decisionModal) return false;
+    const target = decisionModal;
+    const succeeded = await applyStatusChange(target, reason);
+    if (succeeded) setDecisionModal(null);
+    return succeeded;
+  }
+
+  async function handleReopenConfirm() {
+    setShowReopenConfirm(false);
+    await applyStatusChange(CaseStatus.Open);
+  }
+
+  async function handleChangeStatus(status: CaseStatus) {
+    if (status === CaseStatus.Open) {
+      setShowReopenConfirm(true);
+      return;
+    }
+    if (
+      status === CaseStatus.Closed ||
+      status === CaseStatus.Settled ||
+      status === CaseStatus.Terminated
+    ) {
+      setDecisionModal(status);
+    }
+  }
+
   return (
     <div className={styles.detail}>
       <Link href="/case" className={styles.backLink}>
@@ -155,6 +215,13 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         onEdit={handleEdit}
         onDelete={() => setShowDeleteConfirm(true)}
         isEditPending={isEditPending}
+        workflowActions={
+          <CaseWorkflowActions
+            status={overview.status as CaseStatus}
+            onChangeStatus={handleChangeStatus}
+            isPending={isWorkflowPending}
+          />
+        }
       />
 
       {selectedKey ? (
@@ -163,8 +230,8 @@ export function CaseDetail({ overview, access, userRole }: Props) {
             {validTabs.includes("tasks") && <Tab id="tasks">Tasks</Tab>}
             {validTabs.includes("attachments") && <Tab id="attachments">Attachments</Tab>}
             {validTabs.includes("notes") && <Tab id="notes">Notes</Tab>}
-            {validTabs.includes("milestones") && <Tab id="milestones">Milestone</Tab>}
-            {validTabs.includes("payments") && <Tab id="payments">Payment</Tab>}
+            {validTabs.includes("milestones") && <Tab id="milestones">Milestones</Tab>}
+            {validTabs.includes("payments") && <Tab id="payments">Payments</Tab>}
             {validTabs.includes("activity") && <Tab id="activity">Activity Log</Tab>}
           </TabList>
           <TabPanels>
@@ -232,6 +299,59 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         This permanently deletes the case and ALL its tasks, milestones, notes, documents,
         assignments, and payments. This action cannot be undone.
       </ConfirmDialog>
+
+      <ConfirmDialog
+        isOpen={showReopenConfirm}
+        onOpenChange={setShowReopenConfirm}
+        title="Reopen case"
+        confirmLabel="Reopen"
+        onConfirm={handleReopenConfirm}
+      >
+        This reopens a concluded matter — the case returns to Open with its full history intact.
+        Only reopen if litigation has genuinely resumed.
+      </ConfirmDialog>
+
+      <DecisionModal
+        isOpen={decisionModal === CaseStatus.Closed}
+        onOpenChange={(open) => {
+          if (!open) setDecisionModal(null);
+        }}
+        title="Close case"
+        description="The case will be marked as closed. This records a successful conclusion — use settle for compromises, terminate for unresolved endings."
+        reasonLabel="Closing reason"
+        reasonPlaceholder="Optional — how was this concluded?"
+        confirmLabel="Close case"
+        reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
+        onConfirm={handleDecisionConfirm}
+      />
+
+      <DecisionModal
+        isOpen={decisionModal === CaseStatus.Settled}
+        onOpenChange={(open) => {
+          if (!open) setDecisionModal(null);
+        }}
+        title="Settle case"
+        description="The case will be marked as settled. Use this for compromises and settlement agreements — not for judgments."
+        reasonLabel="Settlement reason"
+        reasonPlaceholder="Optional — what were the settlement terms?"
+        confirmLabel="Settle case"
+        reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
+        onConfirm={handleDecisionConfirm}
+      />
+
+      <DecisionModal
+        isOpen={decisionModal === CaseStatus.Terminated}
+        onOpenChange={(open) => {
+          if (!open) setDecisionModal(null);
+        }}
+        title="Terminate case"
+        description="The case will be marked as terminated. Use this when the matter ends without resolution — withdrawal or dismissal."
+        reasonLabel="Termination reason"
+        reasonPlaceholder="Optional — why is this ending unresolved?"
+        confirmLabel="Terminate case"
+        reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
+        onConfirm={handleDecisionConfirm}
+      />
     </div>
   );
 }

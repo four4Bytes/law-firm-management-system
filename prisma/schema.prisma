@@ -59,6 +59,7 @@ enum NotificationType {
   ConsultationOverdue
   MilestoneDueSoon
   MilestoneStatusChanged
+  MilestoneDueDateChanged
   MilestoneOverdue
   TaskAssigned
   TaskStatusChanged
@@ -66,6 +67,7 @@ enum NotificationType {
   CaseStatusChanged
   ConsultationAssigned
   ConsultationStatusChanged
+  ConsultationRescheduled
 }
 
 enum PaymentStatus {
@@ -101,14 +103,15 @@ model Account {
 }
 
 model User {
-  id         String   @id @default(uuid()) @db.Uuid
-  name       String
-  email      String   @unique
-  google_sub String?  @unique
-  role       Role?
-  is_active  Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  email        String    @unique
+  google_sub   String?   @unique
+  role         Role?
+  is_active    Boolean   @default(true)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  last_seen_at DateTime?
 
   emailVerified DateTime? @map("email_verified")
   image         String?
@@ -140,8 +143,10 @@ model UserSettings {
   notify_email_task_assigned               Boolean           @default(true)
   notify_email_case_status_changed         Boolean           @default(true)
   notify_email_consultation_status_changed Boolean           @default(true)
+  notify_email_consultation_rescheduled    Boolean           @default(true)
   notify_email_task_status_changed         Boolean           @default(true)
   notify_email_milestone_status_changed    Boolean           @default(true)
+  notify_email_milestone_rescheduled       Boolean           @default(true)
   consultation_reminder_days               Int               @default(3)
   consultation_reminder_frequency          ReminderFrequency @default(KeyDays)
   consultation_notify_overdue              Boolean           @default(true)

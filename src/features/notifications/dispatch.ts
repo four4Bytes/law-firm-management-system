@@ -16,6 +16,7 @@ import {
   statusChangeTemplate,
   taskAssignedTemplate,
 } from "@/lib/email-templates";
+import { logError } from "@/lib/logger";
 
 /** Compile-time exhaustiveness guard — `value` must be `never` at this point. */
 function assertNever(value: never): never {
@@ -36,9 +37,11 @@ function pickTemplate(type: NotificationType) {
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
     case NotificationType.MilestoneStatusChanged:
+    case NotificationType.MilestoneDueDateChanged:
     case NotificationType.TaskStatusChanged:
     case NotificationType.CaseStatusChanged:
     case NotificationType.ConsultationStatusChanged:
+    case NotificationType.ConsultationRescheduled:
       return statusChangeTemplate;
     case NotificationType.ConsultationAssigned:
       return consultationAssignedTemplate;
@@ -70,8 +73,10 @@ export async function dispatchNotifications(
   const isStatusChangeType =
     payload.type === NotificationType.CaseStatusChanged ||
     payload.type === NotificationType.ConsultationStatusChanged ||
+    payload.type === NotificationType.ConsultationRescheduled ||
     payload.type === NotificationType.TaskStatusChanged ||
-    payload.type === NotificationType.MilestoneStatusChanged;
+    payload.type === NotificationType.MilestoneStatusChanged ||
+    payload.type === NotificationType.MilestoneDueDateChanged;
 
   if (isAssignmentType || isStatusChangeType) {
     try {
@@ -89,10 +94,14 @@ export async function dispatchNotifications(
               return prefs.notify_email_case_status_changed;
             if (payload.type === NotificationType.ConsultationStatusChanged)
               return prefs.notify_email_consultation_status_changed;
+            if (payload.type === NotificationType.ConsultationRescheduled)
+              return prefs.notify_email_consultation_rescheduled;
             if (payload.type === NotificationType.TaskStatusChanged)
               return prefs.notify_email_task_status_changed;
             if (payload.type === NotificationType.MilestoneStatusChanged)
               return prefs.notify_email_milestone_status_changed;
+            if (payload.type === NotificationType.MilestoneDueDateChanged)
+              return prefs.notify_email_milestone_rescheduled;
             return false;
           })
           .map(([userId]) => userId),
@@ -100,7 +109,7 @@ export async function dispatchNotifications(
       userIds = userIds.filter((id) => allowed.has(id));
       if (userIds.length === 0) return { count: 0 };
     } catch (err) {
-      console.error("Failed to resolve notification preferences, falling back to all:", err);
+      logError("notifications.prefs", err);
     }
   }
 
@@ -113,13 +122,13 @@ export async function dispatchNotifications(
   try {
     actorName = (await getUserNameById({ id: actorUserId })) ?? "System";
   } catch (err) {
-    console.error("Failed to resolve actor name:", err);
+    logError("notifications.actor", err);
   }
 
   try {
     recipients = await getUsersByIds({ ids: filteredPayload.userIds });
   } catch (err) {
-    console.error("Failed to resolve recipients:", err);
+    logError("notifications.recipients", err);
   }
 
   const template = pickTemplate(payload.type);
@@ -138,7 +147,7 @@ export async function dispatchNotifications(
 
       await sendEmail({ to: user.email, subject: payload.title, html });
     } catch (err) {
-      console.error(`Failed to send email notification to user ${user.id}:`, err);
+      logError("notifications.email", err);
     }
   }
 

@@ -1,0 +1,100 @@
+.card {
+  min-width: 0;
+  display: flex;
+  background: var(--color-surface-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+
+  .mainContent {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-2xl) var(--space-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+      flex-wrap: wrap;
+
+      .title {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-text-primary);
+        margin: 0;
+      }
+
+      .headerActions {
+        display: flex;
+        flex-direction: row;
+        gap: var(--space-xs);
+        margin-left: auto;
+      }
+    }
+
+    .bodyRow {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
+
+      .grid {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-lg) var(--space-3xl);
+
+        .field {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-xs);
+
+          .label {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+          }
+
+          .value {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-normal);
+            color: var(--color-text-primary);
+          }
+
+          .bookingValue {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-normal);
+            color: var(--color-text-primary);
+          }
+
+          .overdue {
+            color: var(--color-danger);
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Mobile overrides */
+@media (max-width: 48rem) {
+  .card {
+    .mainContent {
+      padding: var(--space-lg);
+
+      .bodyRow {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: var(--space-md);
+        }
+      }
+    }
+  }
+}

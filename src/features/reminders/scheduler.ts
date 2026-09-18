@@ -7,8 +7,15 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
 import { getDeadlineReminderPreferencesByUserIds } from "@/features/settings/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import { formatDate, formatDateTime, getAppTimeZone, getStartOfDay } from "@/lib/date";
+import {
+  formatDate,
+  formatDateTime,
+  getAppTimeZone,
+  getStartOfDay,
+  isBeforeToday,
+} from "@/lib/date";
 import { getOptionalInteger } from "@/lib/env";
+import { logError } from "@/lib/logger";
 
 import {
   claimConsultationReminder,
@@ -31,25 +38,27 @@ export async function runReminderCheck(): Promise<void> {
   try {
     await pruneNotifications(retentionDays);
   } catch (err) {
-    console.error("[reminders] Notification pruning failed:", err);
+    logError("reminders.prune", err);
   }
 
   try {
     await processMilestones(now);
   } catch (err) {
-    console.error("[reminders] Milestone processing failed:", err);
+    logError("reminders.milestones", err);
   }
 
   try {
     await processConsultations(now);
   } catch (err) {
-    console.error("[reminders] Consultation processing failed:", err);
+    logError("reminders.consultations", err);
   }
 }
 
 function isSameDay(a: Date, b: Date): boolean {
   return getStartOfDay(a).getTime() === getStartOfDay(b).getTime();
 }
+
+const DAY_IN_MS = 86_400_000;
 
 function isKeyDay(now: Date, targetDate: Date, reminderDays: number): boolean {
   const timeZone = getAppTimeZone();
@@ -59,10 +68,12 @@ function isKeyDay(now: Date, targetDate: Date, reminderDays: number): boolean {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(targetDate);
-  const y = Number(parts.find((p) => p.type === "year")?.value);
-  const m = Number(parts.find((p) => p.type === "month")?.value);
-  const d = Number(parts.find((p) => p.type === "day")?.value);
-  const trigger = new CalendarDate(y, m, d).subtract({ days: reminderDays }).toDate(timeZone);
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+  const day = Number(parts.find((p) => p.type === "day")?.value);
+  const trigger = new CalendarDate(year, month, day)
+    .subtract({ days: reminderDays })
+    .toDate(timeZone);
   return isSameDay(now, trigger) || isSameDay(now, targetDate);
 }
 
@@ -72,13 +83,13 @@ async function processMilestones(now: Date): Promise<void> {
   for (const m of milestones) {
     if (m.assigneeIds.length === 0) continue;
 
-    const isOverdue = m.due_date < now;
+    const isOverdue = isBeforeToday(m.due_date);
 
     let prefsMap: Awaited<ReturnType<typeof getDeadlineReminderPreferencesByUserIds>>;
     try {
       prefsMap = await getDeadlineReminderPreferencesByUserIds(m.assigneeIds);
     } catch (err) {
-      console.error(`Failed to resolve milestone reminder preferences for ${m.id}:`, err);
+      logError("reminders.milestone.prefs", err);
       prefsMap = new Map(
         m.assigneeIds.map((id) => [
           id,
@@ -108,7 +119,7 @@ async function processMilestones(now: Date): Promise<void> {
         if (!prefs) return false;
         const days = prefs.milestone_reminder_days;
         const isDueSoon =
-          m.due_date <= new Date(now.getTime() + days * 86_400_000) && m.due_date > now;
+          m.due_date <= new Date(now.getTime() + days * DAY_IN_MS) && m.due_date > now;
         if (!isDueSoon) return false;
         if (prefs.milestone_reminder_frequency === "Daily") return true;
         return isKeyDay(now, m.due_date, days);
@@ -148,9 +159,9 @@ async function processMilestones(now: Date): Promise<void> {
           await unclaimMilestoneReminder(m.id, claimedAt);
         }
       } catch (rollbackErr) {
-        console.error(`Failed to roll back milestone reminder ${m.id}:`, rollbackErr);
+        logError("reminders.milestone.rollback", rollbackErr);
       }
-      console.error(`Failed to dispatch milestone reminder ${m.id}:`, err);
+      logError("reminders.milestone.dispatch", err);
     }
   }
 }
@@ -161,13 +172,13 @@ async function processConsultations(now: Date): Promise<void> {
   for (const c of consultations) {
     if (c.assigneeIds.length === 0) continue;
 
-    const isOverdue = c.booking_datetime < now;
+    const isOverdue = isBeforeToday(c.booking_datetime);
 
     let prefsMap: Awaited<ReturnType<typeof getDeadlineReminderPreferencesByUserIds>>;
     try {
       prefsMap = await getDeadlineReminderPreferencesByUserIds(c.assigneeIds);
     } catch (err) {
-      console.error(`Failed to resolve consultation reminder preferences for ${c.id}:`, err);
+      logError("reminders.consultation.prefs", err);
       prefsMap = new Map(
         c.assigneeIds.map((id) => [
           id,
@@ -197,7 +208,7 @@ async function processConsultations(now: Date): Promise<void> {
         if (!prefs) return false;
         const days = prefs.consultation_reminder_days;
         const isDueSoon =
-          c.booking_datetime <= new Date(now.getTime() + days * 86_400_000) &&
+          c.booking_datetime <= new Date(now.getTime() + days * DAY_IN_MS) &&
           c.booking_datetime > now;
         if (!isDueSoon) return false;
         if (prefs.consultation_reminder_frequency === "Daily") return true;
@@ -239,9 +250,9 @@ async function processConsultations(now: Date): Promise<void> {
           await unclaimConsultationReminder(c.id, claimedAt);
         }
       } catch (rollbackErr) {
-        console.error(`Failed to roll back consultation reminder ${c.id}:`, rollbackErr);
+        logError("reminders.consultation.rollback", rollbackErr);
       }
-      console.error(`Failed to dispatch consultation reminder ${c.id}:`, err);
+      logError("reminders.consultation.dispatch", err);
     }
   }
 }

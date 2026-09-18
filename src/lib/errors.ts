@@ -11,6 +11,7 @@ import {
   actionConflict,
   actionForbidden,
   actionLocked,
+  actionRecordLocked,
   actionUnauthorized,
   unknownActionError,
   type ActionStatusResponse,
@@ -84,6 +85,40 @@ export class TaskValidationError extends Error {
   }
 }
 
+/**
+ * Error thrown when mutating notes or files on a terminal consultation or
+ * case. Terminal records are append-only: new notes and files are welcome,
+ * but existing ones can no longer be edited or deleted.
+ */
+export class RecordLockedError extends Error {
+  /** Stable identifier for error boundary detection. */
+  readonly digest = "RECORD_LOCKED";
+
+  /** Human-readable entity name used in the user-facing message. */
+  readonly entity: string;
+
+  constructor(entity: string) {
+    super(`${entity} is locked`);
+    this.name = "RecordLockedError";
+    this.entity = entity;
+  }
+}
+
+/**
+ * Error thrown when a compare-and-set status update affects zero rows because
+ * another transition won the race. Mapped to a conflict envelope telling the
+ * user to refresh and retry.
+ */
+export class StatusConflictError extends Error {
+  /** Stable identifier for error boundary detection. */
+  readonly digest = "STATUS_CONFLICT";
+
+  constructor() {
+    super("Record changed by another user");
+    this.name = "StatusConflictError";
+  }
+}
+
 /** Conflict copy supplied by the caller when a P2002 violation is domain-specific. */
 interface ConflictCopy {
   /** Short headline (e.g. `"Case already exists"`). */
@@ -115,8 +150,15 @@ export function toActionResponse(
   if (error instanceof ForbiddenError) return actionForbidden();
   if (error instanceof UnauthorizedError) return actionUnauthorized();
   if (error instanceof TaskLockedError) return actionLocked();
+  if (error instanceof RecordLockedError) return actionRecordLocked(error.entity);
   if (error instanceof TaskValidationError) {
     return actionConflict(error.title, error.description);
+  }
+  if (error instanceof StatusConflictError) {
+    return actionConflict(
+      "Record changed",
+      "Another user changed this record just now. Refresh the page and try again.",
+    );
   }
   if ((error as { code?: string } | null)?.code === "P2002" && conflict) {
     return actionConflict(conflict.title, conflict.description);

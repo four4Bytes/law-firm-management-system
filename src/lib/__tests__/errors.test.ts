@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { actionForbidden } from "@/lib/action-response";
-import { ForbiddenError, TaskLockedError, toActionResponse, UnauthorizedError } from "@/lib/errors";
+import { actionForbidden, actionRecordLocked } from "@/lib/action-response";
+import {
+  ForbiddenError,
+  RecordLockedError,
+  StatusConflictError,
+  TaskLockedError,
+  toActionResponse,
+  UnauthorizedError,
+} from "@/lib/errors";
 
 const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -34,6 +41,25 @@ describe("toActionResponse", () => {
         code: "locked",
         title: "Task locked",
         description: "This task is done and its attachments are locked",
+      },
+    });
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("maps RecordLockedError to the record-locked preset", () => {
+    expect(toActionResponse(new RecordLockedError("Consultation"), "update note")).toEqual(
+      actionRecordLocked("Consultation"),
+    );
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("maps StatusConflictError to a refresh-and-retry conflict", () => {
+    expect(toActionResponse(new StatusConflictError(), "change case status")).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Record changed",
+        description: "Another user changed this record just now. Refresh the page and try again.",
       },
     });
     expect(errorSpy).not.toHaveBeenCalled();

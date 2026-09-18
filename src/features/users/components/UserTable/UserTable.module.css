@@ -1,0 +1,79 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  flex: 1;
+  min-height: 0;
+
+  .toolbar {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+
+    .searchWrapper {
+      flex: 1;
+    }
+  }
+
+  .loadingContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    background: var(--color-surface-bg);
+  }
+
+  .actions {
+    display: flex;
+    gap: var(--space-xs);
+
+    .icon {
+      width: var(--icon-size-sm);
+      height: auto;
+    }
+  }
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  color: var(--raw-white);
+}
+
+.roleDev {
+  background-color: var(--role-dev);
+}
+
+.roleAdmin {
+  background-color: var(--role-admin);
+}
+
+.roleBranchManager {
+  background-color: var(--role-branch-manager);
+}
+
+.roleLawyer {
+  background-color: var(--role-lawyer);
+}
+
+.roleParalegal {
+  background-color: var(--role-paralegal);
+}
+
+.roleProcessServer {
+  background-color: var(--role-process-server);
+}
+
+.statusDotRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}

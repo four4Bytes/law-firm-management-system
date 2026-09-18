@@ -4,6 +4,8 @@ import { Role, type User } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { PageQuery } from "@/lib/types";
 
+import { isUserOnline } from "./onlineStatus";
+
 export const getActiveUserIds = cache(async (payload: { ids: string[] }): Promise<string[]> => {
   const { ids } = payload;
   if (ids.length === 0) return [];
@@ -14,14 +16,19 @@ export const getActiveUserIds = cache(async (payload: { ids: string[] }): Promis
   return users.map((u) => u.id);
 });
 
-export type ActiveUserSummary = Pick<User, "id" | "name">;
+export type ActiveUserSummary = Pick<User, "id" | "name"> & { is_online: boolean };
 
 export const getActiveUsers = cache(async (): Promise<ActiveUserSummary[]> => {
-  return prisma.user.findMany({
+  const users = await prisma.user.findMany({
     where: { is_active: true },
-    select: { id: true, name: true },
+    select: { id: true, name: true, last_seen_at: true },
     orderBy: { name: "asc" },
   });
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    is_online: isUserOnline(user.last_seen_at),
+  }));
 });
 
 const userSelect = {
@@ -31,6 +38,7 @@ const userSelect = {
   role: true,
   is_active: true,
   created_at: true,
+  last_seen_at: true,
 } as const;
 
 export const getUserNameById = cache(async (payload: { id: string }): Promise<string | null> => {
@@ -103,13 +111,24 @@ export const getUserByEmail = cache(
 );
 
 export const getUsers = cache(async (): Promise<UserRow[]> => {
-  return prisma.user.findMany({
+  const users = await prisma.user.findMany({
     orderBy: { created_at: "desc" },
     select: userSelect,
   });
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    is_active: user.is_active,
+    created_at: user.created_at,
+    is_online: isUserOnline(user.last_seen_at),
+  }));
 });
 
-export type UserRow = Pick<User, "id" | "name" | "email" | "role" | "is_active" | "created_at">;
+export type UserRow = Pick<User, "id" | "name" | "email" | "role" | "is_active" | "created_at"> & {
+  is_online: boolean;
+};
 
 export interface UserPageQuery extends PageQuery {
   includeInactive?: boolean;
@@ -163,7 +182,15 @@ export const getUsersPaginated = cache(
     if (hasMore) users.pop();
 
     return {
-      users,
+      users: users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        is_active: user.is_active,
+        created_at: user.created_at,
+        is_online: isUserOnline(user.last_seen_at),
+      })),
       nextCursor: hasMore ? users[users.length - 1].id : null,
     };
   },

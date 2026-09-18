@@ -58,6 +58,30 @@ export function getStartOfDay(date: Date, timeZone: string = getAppTimeZone()): 
 }
 
 /**
+ * Determines whether an instant falls on a calendar day before today in the
+ * app timezone. Same-day times (even hours already passed) are not "past" —
+ * only strictly earlier days are.
+ *
+ * @param date - The instant to test.
+ * @returns True when `date` is on a day before today.
+ */
+export function isBeforeToday(date: Date): boolean {
+  return getStartOfDay(date).getTime() < getStartOfDay(new Date()).getTime();
+}
+
+/**
+ * Determines whether an instant falls on a calendar day after today in the
+ * app timezone. Same-day times (even hours still ahead) are not "future" —
+ * only strictly later days are.
+ *
+ * @param date - The instant to test.
+ * @returns True when `date` is on a day after today.
+ */
+export function isAfterToday(date: Date): boolean {
+  return getStartOfDay(date).getTime() > getStartOfDay(new Date()).getTime();
+}
+
+/**
  * Parses a `Date` or ISO string into an app-timezone `Date`.
  * Date-only strings (`YYYY-MM-DD`) are treated as calendar dates in the app
  * timezone to avoid the UTC-to-local shift that `new Date("YYYY-MM-DD")` produces.
@@ -103,6 +127,18 @@ export function toTimeValue(date: Date): Time {
  */
 export function combineDateTime(date: CalendarDate, time: Time): Date {
   return toCalendarDateTime(date, time).toDate(getAppTimeZone());
+}
+
+/**
+ * Normalizes a `Date` to minute precision by zeroing seconds and milliseconds.
+ * Date/time pickers only capture hour and minute, so persisted timestamps with
+ * seconds would otherwise read as changed on every edit.
+ *
+ * @param date - The instant to normalize.
+ * @returns Epoch millis truncated to the minute.
+ */
+export function toMinuteEpoch(date: Date): number {
+  return Math.floor(date.getTime() / 60000) * 60000;
 }
 
 /**

@@ -1,11 +1,14 @@
 import clsx from "clsx";
 
+import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
+
 import styles from "./UserList.module.css";
 
 interface UserListItem {
   id: string;
   name: string;
   status?: string;
+  is_online: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -31,8 +34,9 @@ export function UserList({ users, emptyText = "—", className }: UserListProps)
 
   return (
     <ul className={clsx(styles.list, className)}>
-      {users.map(({ id, name, status }) => (
+      {users.map(({ id, name, status, is_online }) => (
         <li key={id} className={styles.item}>
+          <StatusDot isOnline={is_online} />
           <span className={styles.name}>{name}</span>
           {status && (
             <span className={styles.status} data-status={status}>

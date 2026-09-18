@@ -13,9 +13,11 @@ import type { ConsultationRow } from "@/features/consultations/queries";
 import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime, isBeforeToday } from "@/lib/date";
 import { can } from "@/lib/rbac";
 import { toastError } from "@/lib/toast-utils";
+
+import styles from "./ConsultationTable.module.css";
 
 const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
   Scheduled: "info",
@@ -44,15 +46,21 @@ const columns: ColumnDef<ConsultationRow>[] = [
   },
   {
     id: "assignTo",
-    name: "Assign To",
+    name: "Assigned To",
   },
   {
     id: "booking_datetime",
     name: "Date & Time",
     allowsSorting: true,
-    render: (value) => {
+    render: (value, row) => {
       const date = value as Date;
-      return formatDateTime(date);
+      const isOverdue = row.status === ConsultationStatus.Scheduled && isBeforeToday(date);
+      return (
+        <span className={styles.dateCell}>
+          {formatDateTime(date)}
+          {isOverdue && <span className={styles.overdue}>Overdue</span>}
+        </span>
+      );
     },
   },
   {

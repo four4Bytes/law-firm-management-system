@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { FaBars, FaUser } from "react-icons/fa6";
 
+import { useHeartbeat } from "@/components/layout/HeartbeatClient/HeartbeatClient";
 import { useSidebar } from "@/components/layout/Sidebar/sidebar-context";
 import { Button } from "@/components/ui/Button/Button";
+import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
 import { SignOutButton } from "@/features/auth/components/SignOutButton/SignOutButton";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell/NotificationBell";
 import { roleLabels } from "@/features/users/constants";
@@ -22,6 +24,7 @@ interface HeaderProps {
 }
 
 export function Header({ userImage, userName, userRole, initialUnreadCount }: HeaderProps) {
+  const { isOnline } = useHeartbeat();
   const pathname = usePathname();
   const [imgError, setImgError] = useState(false);
   const { toggle } = useSidebar();
@@ -65,6 +68,7 @@ export function Header({ userImage, userName, userRole, initialUnreadCount }: He
             ) : (
               <FaUser className={styles.userIcon} />
             )}
+            <StatusDot isOnline={isOnline} className={styles.badge} />
           </div>
           <div className={styles.nameRoleContainer}>
             {userName && <span className={styles.userName}>{userName}</span>}

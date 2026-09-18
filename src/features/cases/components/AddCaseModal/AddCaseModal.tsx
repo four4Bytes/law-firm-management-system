@@ -6,7 +6,6 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
-import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createCaseWithClientAction } from "@/features/cases/actions";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
@@ -14,17 +13,10 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
-import {
-  createFieldValidator,
-  optionalString,
-  requiredString,
-  selectEnumHandler,
-} from "@/lib/form-utils";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./AddCaseModal.module.css";
-
-const STATUS_OPTIONS = Object.values(CaseStatus);
 
 interface AddCaseModalProps {
   isOpen: boolean;
@@ -43,7 +35,6 @@ interface ClientFields {
 interface CaseFields {
   caseTitle: string;
   caseType: string;
-  status: CaseStatus;
   partiesInvolved: string;
 }
 
@@ -55,7 +46,6 @@ function resetCase(): CaseFields {
   return {
     caseTitle: "",
     caseType: "",
-    status: CaseStatus.Open,
     partiesInvolved: "",
   };
 }
@@ -66,7 +56,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
 
   const { name, email, phone, address } = client;
-  const { caseTitle, caseType, status, partiesInvolved } = caseFields;
+  const { caseTitle, caseType, partiesInvolved } = caseFields;
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof CaseWithClientCreatePayloadSchema>,
@@ -110,7 +100,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
       case: {
         case_title: requiredString(caseTitle),
         case_type: requiredString(caseType),
-        status,
+        status: CaseStatus.Open,
         parties_involved: optionalString(partiesInvolved),
         assignee_ids: Array.from(assigneeIds),
       },
@@ -119,7 +109,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
 
   return (
     <Modal title="New Case" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      <Form onSubmit={handleSubmit}>
+      <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField
@@ -188,18 +178,6 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
               )}
               isDisabled={isPending}
             />
-            <Select
-              label="Status"
-              value={status}
-              onChange={selectEnumHandler(CaseStatus, (value) => setCaseField("status", value))}
-              isDisabled={isPending}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} id={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </Select>
             <UserSelect
               users={users}
               selectedIds={assigneeIds}

@@ -1,7 +1,8 @@
-import { lockTask } from "@/features/tasks/mutations";
 import { TaskStatus } from "@/generated/prisma/browser";
-import { TaskLockedError } from "@/lib/errors";
-import { prisma } from "@/lib/prisma";
+import { RecordLockedError, TaskLockedError } from "@/lib/errors";
+import { isSubdataLocked } from "@/lib/lifecycle";
+import { prisma, type TransactionClient } from "@/lib/prisma";
+import { lockCaseRow, lockConsultationRow, lockTaskRow } from "@/lib/row-locks";
 
 export interface NoteCreateData {
   content: string;
@@ -32,7 +33,7 @@ export async function createNoteForTask(
   data: Omit<NoteCreateData, "task_id">,
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { status: true },
@@ -48,13 +49,102 @@ export async function createNoteForTask(
  * Updates a note attached to a task atomically: locks the task, verifies it is not
  * done, then updates the note. Throws TaskLockedError if the task is done.
  */
+async function assertTaskParentCaseUnlocked(tx: TransactionClient, taskId: string): Promise<void> {
+  const task = await tx.task.findUnique({
+    where: { id: taskId },
+    select: { case_id: true },
+  });
+  if (!task?.case_id) return;
+  await lockCaseRow(tx, task.case_id);
+  const parent = await tx.case.findUnique({
+    where: { id: task.case_id },
+    select: { status: true },
+  });
+  if (parent && isSubdataLocked("case", parent.status)) {
+    throw new RecordLockedError("Case");
+  }
+}
+
+/**
+ * Updates a note atomically with its parent lock check: locks the parent
+ * consultation/case row, refuses when locked, then updates. Closes the
+ * read-then-mutate race in the action layer.
+ */
+export async function updateNoteWithParentCheck(
+  noteId: string,
+  content: string,
+  parent: { consultation_id: string | null; case_id: string | null },
+): Promise<{ id: string }> {
+  return prisma.$transaction(async (tx) => {
+    if (parent.consultation_id) {
+      await lockConsultationRow(tx, parent.consultation_id);
+      const consultation = await tx.consultation.findUnique({
+        where: { id: parent.consultation_id },
+        select: { status: true },
+      });
+      if (consultation && isSubdataLocked("consultation", consultation.status)) {
+        throw new RecordLockedError("Consultation");
+      }
+    }
+    if (parent.case_id) {
+      await lockCaseRow(tx, parent.case_id);
+      const record = await tx.case.findUnique({
+        where: { id: parent.case_id },
+        select: { status: true },
+      });
+      if (record && isSubdataLocked("case", record.status)) {
+        throw new RecordLockedError("Case");
+      }
+    }
+    return tx.note.update({ where: { id: noteId }, data: { content }, select: { id: true } });
+  });
+}
+
+/**
+ * Deletes a note atomically with its parent lock check: locks the parent
+ * consultation/case row, refuses when locked, then deletes.
+ */
+export async function deleteNoteWithParentCheck(
+  noteId: string,
+  parent: { consultation_id: string | null; case_id: string | null },
+): Promise<{ id: string }> {
+  return prisma.$transaction(async (tx) => {
+    if (parent.consultation_id) {
+      await lockConsultationRow(tx, parent.consultation_id);
+      const consultation = await tx.consultation.findUnique({
+        where: { id: parent.consultation_id },
+        select: { status: true },
+      });
+      if (consultation && isSubdataLocked("consultation", consultation.status)) {
+        throw new RecordLockedError("Consultation");
+      }
+    }
+    if (parent.case_id) {
+      await lockCaseRow(tx, parent.case_id);
+      const record = await tx.case.findUnique({
+        where: { id: parent.case_id },
+        select: { status: true },
+      });
+      if (record && isSubdataLocked("case", record.status)) {
+        throw new RecordLockedError("Case");
+      }
+    }
+    return tx.note.delete({ where: { id: noteId }, select: { id: true } });
+  });
+}
+
+/**
+ * Updates a note attached to a task atomically: locks the task, verifies it is not
+ * done, verifies the parent case is unlocked, then updates the note.
+ * Throws TaskLockedError if the task is done, RecordLockedError if the case is locked.
+ */
 export async function updateNoteForTask(
   taskId: string,
   noteId: string,
   content: string,
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { status: true },
@@ -62,6 +152,7 @@ export async function updateNoteForTask(
     if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
+    await assertTaskParentCaseUnlocked(tx, taskId);
     // Verify the note belongs to this task (defense in depth)
     const note = await tx.note.findUnique({ where: { id: noteId }, select: { task_id: true } });
     if (note?.task_id !== taskId) {
@@ -73,11 +164,12 @@ export async function updateNoteForTask(
 
 /**
  * Deletes a note attached to a task atomically: locks the task, verifies it is not
- * done, then deletes the note. Throws TaskLockedError if the task is done.
+ * done, verifies the parent case is unlocked, then deletes the note.
+ * Throws TaskLockedError if the task is done, RecordLockedError if the case is locked.
  */
 export async function deleteNoteForTask(taskId: string, noteId: string): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
     const task = await tx.task.findUnique({
       where: { id: taskId },
       select: { status: true },
@@ -85,6 +177,7 @@ export async function deleteNoteForTask(taskId: string, noteId: string): Promise
     if (task?.status === TaskStatus.Done) {
       throw new TaskLockedError();
     }
+    await assertTaskParentCaseUnlocked(tx, taskId);
     // Verify the note belongs to this task (defense in depth)
     const note = await tx.note.findUnique({ where: { id: noteId }, select: { task_id: true } });
     if (note?.task_id !== taskId) {

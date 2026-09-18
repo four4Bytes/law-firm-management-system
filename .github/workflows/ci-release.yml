@@ -123,9 +123,9 @@ jobs:
 
           Links:
 
-          - Main App: [https://law-firm-management-system.r4ppz.dev](https://law-firm-management-system.r4ppz.dev)
-          - Stories: [https://four4bytes.github.io/law-firm-management-system](https://four4bytes.github.io/law-firm-management-system)
-          - Documentation: [https://github.com/four4Bytes/law-firm-management-system/tree/main/documentation](https://github.com/four4Bytes/law-firm-management-system/tree/main/documentation)
+          - Main App: [law-firm-management-system.r4ppz.dev](https://law-firm-management-system.r4ppz.dev)
+          - Stories: [four4bytes.github.io/law-firm-management-system](https://four4bytes.github.io/law-firm-management-system)
+          - Documentation: [four4Bytes/law-firm-management-system/documentation](https://github.com/four4Bytes/law-firm-management-system/tree/main/documentation)
 
           HDR
             cat /tmp/body.md

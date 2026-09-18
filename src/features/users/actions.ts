@@ -5,7 +5,12 @@ import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
 import { CREATABLE_ROLES } from "@/features/users/constants";
-import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
+import {
+  createUser,
+  setUserActiveStatus,
+  updateUser,
+  updateUserLastSeen,
+} from "@/features/users/mutations";
 import {
   countActiveAdminsAndDevs,
   getActiveUsers,
@@ -42,6 +47,16 @@ export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
 export async function getSessionUserIdAction(): Promise<string> {
   const session = await requireAuth();
   return session.id;
+}
+
+export async function touchLastSeenAction(): Promise<ActionStatusResponse> {
+  try {
+    const session = await requireAuth();
+    await updateUserLastSeen(session.id);
+    return { success: true };
+  } catch (error) {
+    return toActionResponse(error, "update presence");
+  }
 }
 
 export async function getUsersPaginatedAction(

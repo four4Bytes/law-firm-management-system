@@ -2,6 +2,7 @@ import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
 import { TaskLockedError, TaskValidationError } from "@/lib/errors";
 import { prisma, type TransactionClient } from "@/lib/prisma";
+import { lockTaskRow } from "@/lib/row-locks";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import { hasAssigneeReviewerOverlap, wouldLeaveNoReviewer } from "./validation";
@@ -59,10 +60,6 @@ async function grantCaseMembership(
   });
 }
 
-export async function lockTask(tx: TransactionClient, taskId: string): Promise<void> {
-  await tx.$queryRaw`SELECT 1 FROM "Task" WHERE id = ${taskId} FOR UPDATE`;
-}
-
 export async function createTask(data: TaskCreateData): Promise<{ id: string }> {
   const { assignee_ids, created_by_user_id, case_id, ...taskData } = data;
   const attached = [...new Set([...(assignee_ids ?? []), created_by_user_id])];
@@ -99,7 +96,7 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
   const { assignee_ids, reviewer_ids, removed_reviewer_ids, ...taskData } = data;
 
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, id);
+    await lockTaskRow(tx, id);
 
     const currentTask = await tx.task.findUnique({
       where: { id },
@@ -228,7 +225,7 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
 
 export async function deleteTask(id: string): Promise<{ id: string }> {
   const { filePaths, deleted } = await prisma.$transaction(async (tx) => {
-    await lockTask(tx, id);
+    await lockTaskRow(tx, id);
 
     const filePaths = await getDocumentFilePathsByTaskId(id, tx);
 
@@ -248,7 +245,7 @@ export async function setAssignmentStatus(
   status: TaskAssignmentStatus,
 ): Promise<{ taskStatus: TaskStatus }> {
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
 
     const task = await tx.task.findUnique({
       where: { id: taskId },
@@ -256,7 +253,7 @@ export async function setAssignmentStatus(
     });
     if (!task) throw new Error("Task not found");
     if (task.status === TaskStatus.Done) {
-      throw new Error("Assignment submission is locked for this task");
+      throw new TaskLockedError();
     }
 
     await tx.taskAssignment.updateMany({
@@ -289,7 +286,7 @@ export async function addTaskReviewer(
   reviewerUserId: string,
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
 
     const task = await tx.task.findUnique({
       where: { id: taskId },
@@ -352,7 +349,7 @@ export async function removeTaskReviewer(
   reviewerUserId: string,
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
 
     const task = await tx.task.findUnique({
       where: { id: taskId },
@@ -403,7 +400,7 @@ export async function applyReviewDecision(data: ReviewDecisionData): Promise<{
   const { taskId, reviewerUserId, decision } = data;
 
   return prisma.$transaction(async (tx) => {
-    await lockTask(tx, taskId);
+    await lockTaskRow(tx, taskId);
 
     const task = await tx.task.findUnique({
       where: { id: taskId },

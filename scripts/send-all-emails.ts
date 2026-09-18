@@ -63,9 +63,11 @@ function pickTemplate(type: NotificationType) {
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
     case NotificationType.MilestoneStatusChanged:
+    case NotificationType.MilestoneDueDateChanged:
     case NotificationType.TaskStatusChanged:
     case NotificationType.CaseStatusChanged:
     case NotificationType.ConsultationStatusChanged:
+    case NotificationType.ConsultationRescheduled:
       return statusChangeTemplate;
     case NotificationType.ConsultationAssigned:
       return consultationAssignedTemplate;
@@ -179,6 +181,18 @@ function fakeContext(type: NotificationType): { subject: string; ctx: TemplateCo
           actionUrl: "/consultation/debug-consultation-id",
         },
       };
+    case NotificationType.ConsultationRescheduled:
+      return {
+        subject: "Consultation Rescheduled — Reyes Property Tax Reassessment",
+        ctx: {
+          toName,
+          actorName,
+          title: "Consultation rescheduled: Reyes Property Tax Reassessment",
+          message:
+            'Consultation "Property tax reassessment — assessed value doubled, seeking legal remedy" has been rescheduled from Sep 10, 2026 at 9:00 AM to Sep 12, 2026 at 2:00 PM',
+          actionUrl: "/consultation/debug-consultation-id",
+        },
+      };
     case NotificationType.CaseStatusChanged:
       return {
         subject: "Case Status: Open → Closed — Navarro Estate Joint Venture",
@@ -212,6 +226,18 @@ function fakeContext(type: NotificationType): { subject: string; ctx: TemplateCo
           title: "Milestone status changed: Due Diligence Completed",
           message:
             'Milestone "Psychological Evaluation Completed — Alcantara Annulment Proceedings (Family Law)" status changed from Pending to Done',
+          actionUrl: "/case/debug-case-id",
+        },
+      };
+    case NotificationType.MilestoneDueDateChanged:
+      return {
+        subject: "Milestone Rescheduled — Due Diligence",
+        ctx: {
+          toName: "Atty. Angela Mercado",
+          actorName: "Atty. Maya Fernandez",
+          title: "Milestone rescheduled: Due Diligence Completed",
+          message:
+            'Milestone "Due Diligence Completed for Ramirez Corp Series A" has been rescheduled.',
           actionUrl: "/case/debug-case-id",
         },
       };

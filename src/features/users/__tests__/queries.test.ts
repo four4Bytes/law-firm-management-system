@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getActiveUserIds,
@@ -13,6 +13,10 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { user: { findUnique: vi.fn(), findMany: vi.fn() } },
 }));
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 const userSelect = {
   id: true,
   name: true,
@@ -20,6 +24,7 @@ const userSelect = {
   role: true,
   is_active: true,
   created_at: true,
+  last_seen_at: true,
 } as const;
 
 const mockUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -31,6 +36,7 @@ const mockUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
   is_active: true,
   created_at: new Date("2024-01-01"),
   updated_at: new Date("2024-01-01"),
+  last_seen_at: null,
   emailVerified: null,
   image: null,
   ...overrides,
@@ -241,23 +247,51 @@ describe("getActiveUserIds", () => {
 describe("getActiveUsers", () => {
   it("returns active users", async () => {
     vi.mocked(prisma.user.findMany).mockResolvedValue([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { id: "u1", name: "Alice" } as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { id: "u2", name: "Bob" } as any,
+      mockUser({ id: "u1", name: "Alice", last_seen_at: null }),
+      mockUser({ id: "u2", name: "Bob", last_seen_at: null }),
     ]);
 
     const result = await getActiveUsers();
 
     expect(result).toEqual([
-      { id: "u1", name: "Alice" },
-      { id: "u2", name: "Bob" },
+      { id: "u1", name: "Alice", is_online: false },
+      { id: "u2", name: "Bob", is_online: false },
     ]);
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: { is_active: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, last_seen_at: true },
       orderBy: { name: "asc" },
     });
+  });
+
+  it("returns online users", async () => {
+    const recentDate = new Date(Date.now() - 30000);
+    const oldDate = new Date(Date.now() - 300000);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      mockUser({ id: "u1", name: "Alice", last_seen_at: recentDate }),
+      mockUser({ id: "u2", name: "Bob", last_seen_at: oldDate }),
+    ]);
+
+    const result = await getActiveUsers();
+
+    expect(result).toEqual([
+      { id: "u1", name: "Alice", is_online: true },
+      { id: "u2", name: "Bob", is_online: false },
+    ]);
+  });
+
+  it("isOnline boundary is offline", async () => {
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    const thresholdDate = new Date(now - 120000);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      mockUser({ id: "u1", name: "Alice", last_seen_at: thresholdDate }),
+    ]);
+
+    const result = await getActiveUsers();
+
+    expect(result[0].is_online).toBe(false);
   });
 
   it("propagates database errors", async () => {

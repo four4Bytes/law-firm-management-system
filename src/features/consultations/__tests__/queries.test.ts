@@ -275,6 +275,7 @@ describe("getConsultationOverviewById", () => {
       created_at: data.created_at,
       updated_at: data.updated_at,
       client: {
+        id: "c1",
         name: "Jane Client",
         phone_number: "09170000001",
         email: "jane@email.com",

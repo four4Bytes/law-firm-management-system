@@ -8,7 +8,7 @@ import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadg
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime, isBeforeToday } from "@/lib/date";
 
 import styles from "./ConsultationOverview.module.css";
 
@@ -17,6 +17,7 @@ interface Props {
   onEdit?: () => void;
   onDelete?: () => void;
   isEditPending?: boolean;
+  workflowActions?: React.ReactNode;
 }
 
 const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
@@ -27,7 +28,13 @@ const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
   Cancelled: "cancelled",
 };
 
-export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: Props) {
+export function ConsultationOverview({
+  data,
+  onEdit,
+  onDelete,
+  isEditPending,
+  workflowActions,
+}: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
@@ -36,12 +43,14 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
           <StatusBadge variant={statusClassMap[data.status as ConsultationStatus]}>
             {data.status}
           </StatusBadge>
-          {(onEdit || onDelete) && (
+          {(workflowActions || onEdit || onDelete) && (
             <div className={styles.headerActions}>
+              {workflowActions}
               {onEdit && (
                 <Button
                   variant="ghost"
                   aria-label="Edit consultation"
+                  title="Edit consultation"
                   onPress={onEdit}
                   isPending={isEditPending}
                 >
@@ -49,7 +58,12 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
                 </Button>
               )}
               {onDelete && (
-                <Button variant="ghost" aria-label="Delete consultation" onPress={onDelete}>
+                <Button
+                  variant="ghost"
+                  aria-label="Delete consultation"
+                  title="Delete consultation"
+                  onPress={onDelete}
+                >
                   <FaTrash />
                 </Button>
               )}
@@ -77,7 +91,13 @@ export function ConsultationOverview({ data, onEdit, onDelete, isEditPending }: 
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Booking Date & Time</span>
-              <span className={styles.value}>{formatDateTime(data.booking_datetime)}</span>
+              <span className={styles.bookingValue}>
+                {formatDateTime(data.booking_datetime)}
+                {data.status === ConsultationStatus.Scheduled &&
+                  isBeforeToday(data.booking_datetime) && (
+                    <span className={styles.overdue}>Overdue</span>
+                  )}
+              </span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Assigned Staff</span>

@@ -58,10 +58,6 @@ vi.mock("next/server", () => {
   };
 });
 
-vi.mock("@/lib/path", () => ({
-  getParentPath: vi.fn(),
-}));
-
 vi.mock("../queries", () => ({
   getMilestoneAccessContext: vi.fn(),
   getMilestoneById: vi.fn(),
@@ -176,7 +172,7 @@ describe("createMilestoneAction", () => {
     const payload = {
       title: "File complaint",
       description: undefined,
-      due_date: new Date("2024-06-01"),
+      due_date: new Date("2099-06-01"),
       status: "Pending" as const,
       case_id: uuid,
     };
@@ -184,6 +180,51 @@ describe("createMilestoneAction", () => {
     const result = await createMilestoneAction(payload);
 
     expect(result).toEqual({ success: true, data: { id: "m1" } });
+  });
+
+  it("refuses a past due date on creation", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const payload = {
+      title: "File complaint",
+      description: undefined,
+      due_date: new Date("2024-06-01"),
+      status: "Pending" as const,
+      case_id: uuid,
+    };
+
+    expect(await createMilestoneAction(payload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Due date is in the past",
+        description: "A new milestone cannot be due in the past. Choose today or a future date.",
+      },
+    });
+    expect(createMilestone).not.toHaveBeenCalled();
+  });
+
+  it("refuses a non-Pending status on creation", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const payload = {
+      title: "File complaint",
+      description: undefined,
+      due_date: new Date("2099-06-01"),
+      status: "Done" as const,
+      case_id: uuid,
+    };
+
+    expect(await createMilestoneAction(payload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Milestones are created as Pending",
+        description:
+          "A new milestone always starts as Pending. Mark it as Done or Cancelled from the case page after creation.",
+      },
+    });
+    expect(createMilestone).not.toHaveBeenCalled();
   });
 });
 
@@ -238,7 +279,7 @@ describe("updateMilestoneAction", () => {
       milestoneId: uuid,
       title: milestoneRecord.title,
       description: undefined,
-      due_date: new Date("2024-06-15"),
+      due_date: new Date("2099-06-15"),
       status: milestoneRecord.status,
     };
 
@@ -249,6 +290,177 @@ describe("updateMilestoneAction", () => {
       uuid,
       expect.objectContaining({ resetReminderTiming: true }),
     );
+  });
+
+  it("refuses rescheduling a pending milestone to the past", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2024-05-01"),
+      status: "Pending" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Due date is in the past",
+        description:
+          "A pending milestone cannot be due in the past. Choose today or a future date.",
+      },
+    });
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("refuses completing a milestone with a future due date", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2099-06-01"),
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Due date is in the future",
+        description:
+          "A completed milestone cannot be due in the future. Choose today or a past date.",
+      },
+    });
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("allows completing a milestone with a past due date", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2024-05-01"),
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("refuses an invalid status transition", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Done" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: milestoneRecord.due_date,
+      status: "Cancelled" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Invalid status change",
+        description:
+          "Cannot change a milestone from Done to Cancelled. From Done, you can: reopen it.",
+      },
+    });
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("resets reminder timing when reopening to Pending", async () => {
+    const future = new Date(Date.now() + 86400000);
+    vi.mocked(getMilestoneById).mockResolvedValue({
+      ...milestoneRecord,
+      status: "Done",
+      due_date: future,
+    });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: future,
+      status: "Pending" as const,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateMilestone).toHaveBeenCalledWith(
+      uuid,
+      expect.objectContaining({ resetReminderTiming: true, status: "Pending" }),
+    );
+  });
+
+  it("refuses Pending-to-Done with an unchanged future date", async () => {
+    const future = new Date(Date.now() + 86400000);
+    vi.mocked(getMilestoneById).mockResolvedValue({
+      ...milestoneRecord,
+      status: "Pending",
+      due_date: future,
+    });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: future,
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Due date is in the future",
+        description:
+          "A completed milestone cannot be due in the future. Choose today or a past date.",
+      },
+    });
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("refuses terminal-to-Pending with an unchanged past date", async () => {
+    const past = new Date("2024-06-01");
+    vi.mocked(getMilestoneById).mockResolvedValue({
+      ...milestoneRecord,
+      status: "Done",
+      due_date: past,
+    });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: past,
+      status: "Pending" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Due date is in the past",
+        description:
+          "A pending milestone cannot be due in the past. Choose today or a future date.",
+      },
+    });
+    expect(updateMilestone).not.toHaveBeenCalled();
   });
 });
 
@@ -296,6 +508,26 @@ describe("updateMilestoneAction notifications", () => {
     await flushAfterCallbacks();
 
     expect(dispatchNotifications).not.toHaveBeenCalled();
+  });
+
+  it("dispatches MilestoneDueDateChanged when the due date changes", async () => {
+    await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2099-07-01"),
+      status: milestoneRecord.status,
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const rescheduled = calls.find(
+      ([payload]) => payload.type === NotificationType.MilestoneDueDateChanged,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(rescheduled?.[0].userIds).toEqual([assignee1, assignee2]);
+    expect(rescheduled?.[0].message).toContain("rescheduled");
   });
 });
 

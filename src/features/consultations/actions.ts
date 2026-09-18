@@ -540,6 +540,10 @@ export async function changeConsultationStatusAction(
     const existing = await getConsultationEditData(consultationId);
     if (!existing) return actionNotFound("Consultation");
 
+    // Accepted risk: permission is checked pre-transaction, so a revocation
+    // landing mid-flight can permit one audited write. The concurrent-writer
+    // race is closed by the expectedStatus guard below; full closure needs
+    // serializable isolation or RLS, a project-wide decision.
     if (!(await hasConsultationPermission(session, consultationId, "consultation.update"))) {
       return actionForbidden();
     }

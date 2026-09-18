@@ -1,12 +1,16 @@
 "use client";
 
+import { Text } from "@/components/ui/Content/Content";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
+import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
 import { keysToSet } from "@/lib/form-utils";
+
+import styles from "./UserSelect.module.css";
 
 export interface UserOption {
   id: string;
   name: string;
-  is_online?: boolean;
+  is_online: boolean;
 }
 
 export interface UserSelectProps {
@@ -53,8 +57,11 @@ export function UserSelect({
       alwaysPlaceholder
     >
       {(user) => (
-        <SelectItem id={user.id} isOnline={user.is_online}>
-          {user.name}
+        <SelectItem id={user.id} textValue={user.name}>
+          <span className={styles.option}>
+            <StatusDot isOnline={user.is_online} />
+            <Text slot="label">{user.name}</Text>
+          </span>
         </SelectItem>
       )}
     </Select>

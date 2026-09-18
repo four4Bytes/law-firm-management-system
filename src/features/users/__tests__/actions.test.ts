@@ -128,7 +128,6 @@ describe("createUserAction", () => {
       id: "existing-id",
       role: "Lawyer",
       is_active: true,
-      last_seen_at: null,
     });
 
     const result = await createUserAction(validPayload);
@@ -150,7 +149,6 @@ describe("createUserAction", () => {
       id: "inactive-id",
       role: "Lawyer",
       is_active: false,
-      last_seen_at: null,
     });
     vi.mocked(updateUser).mockResolvedValue(undefined);
 
@@ -167,7 +165,6 @@ describe("createUserAction", () => {
       id: "inactive-id",
       role: "Lawyer",
       is_active: false,
-      last_seen_at: null,
     });
     vi.mocked(updateUser).mockRejectedValue(new Error("db error"));
 
@@ -254,7 +251,6 @@ describe("updateUserAction", () => {
       id: uuid,
       role: Role.Dev,
       is_active: true,
-      last_seen_at: null,
     });
 
     const result = await updateUserAction(validPayload);
@@ -275,13 +271,11 @@ describe("updateUserAction", () => {
       id: uuid,
       role: "Paralegal",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: "other-id",
       role: "Lawyer",
       is_active: true,
-      last_seen_at: null,
     });
 
     const result = await updateUserAction(validPayload);
@@ -302,13 +296,11 @@ describe("updateUserAction", () => {
       id: uuid,
       role: "Paralegal",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: uuid,
       role: "Paralegal",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(updateUser).mockResolvedValue(undefined);
 
@@ -324,13 +316,11 @@ describe("updateUserAction", () => {
       id: uuid,
       role: "Paralegal",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(getUserByEmail).mockResolvedValue({
       id: uuid,
       role: "Paralegal",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(updateUser).mockRejectedValue(new Error("db error"));
 
@@ -398,7 +388,6 @@ describe("deactivateUserAction", () => {
       id: uuid,
       role: Role.Admin,
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(0);
 
@@ -420,7 +409,6 @@ describe("deactivateUserAction", () => {
       id: uuid,
       role: "Paralegal",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
 
@@ -436,7 +424,6 @@ describe("deactivateUserAction", () => {
       id: uuid,
       role: Role.Admin,
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(1);
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);
@@ -453,7 +440,6 @@ describe("deactivateUserAction", () => {
       id: uuid,
       role: "Paralegal",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(setUserActiveStatus).mockRejectedValue(new Error("db error"));
 
@@ -480,7 +466,6 @@ describe("deactivateUserAction", () => {
       id: uuid,
       role: "Admin",
       is_active: true,
-      last_seen_at: null,
     });
     vi.mocked(countActiveAdminsAndDevs).mockResolvedValue(1);
     vi.mocked(setUserActiveStatus).mockResolvedValue(undefined);

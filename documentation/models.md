@@ -18,17 +18,18 @@ Any database schema changes must be handled by prisma migration, even in develop
 
 A person who can sign in and use the system.
 
-| Field          | Type      | Required | Description                        |
-| -------------- | --------- | -------- | ---------------------------------- |
-| Name           | Text      | Yes      | Display name                       |
-| Email          | Text      | Yes      | Email address (unique)             |
-| Google Sub     | Text      | No       | Google OAuth subject (unique)      |
-| Email Verified | Timestamp | No       | When the email was verified        |
-| Role           | Enum      | No       | Access level (see [Roles](#roles)) |
-| Status         | Boolean   | Yes      | Whether the user can sign in       |
-| Avatar         | Text      | No       | Profile image URL                  |
-| Created        | Timestamp | Yes      | When the account was created       |
-| Updated        | Timestamp | Yes      | When the account was last modified |
+| Field          | Type      | Required | Description                                                      |
+| -------------- | --------- | -------- | ---------------------------------------------------------------- |
+| Name           | Text      | Yes      | Display name                                                     |
+| Email          | Text      | Yes      | Email address (unique)                                           |
+| Google Sub     | Text      | No       | Google OAuth subject (unique)                                    |
+| Email Verified | Timestamp | No       | When the email was verified                                      |
+| Role           | Enum      | No       | Access level (see [Roles](#roles))                               |
+| Status         | Boolean   | Yes      | Whether the user can sign in                                     |
+| Last Seen      | Timestamp | No       | Last presence heartbeat (`last_seen_at`); online if within 2 min |
+| Avatar         | Text      | No       | Profile image URL                                                |
+| Created        | Timestamp | Yes      | When the account was created                                     |
+| Updated        | Timestamp | Yes      | When the account was last modified                               |
 
 ---
 

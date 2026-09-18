@@ -56,20 +56,18 @@ export function Header({ userImage, userName, userRole, initialUnreadCount }: He
         <NotificationBell initialUnreadCount={initialUnreadCount} />
         <div className={styles.userSection}>
           <div className={styles.userProfile}>
-            <span className={styles.statusDotWrapper}>
-              {userImage && !imgError ? (
-                <Image
-                  src={userImage}
-                  alt="Profile"
-                  width={32}
-                  height={32}
-                  className={styles.avatar}
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <FaUser className={styles.userIcon} />
-              )}
-            </span>
+            {userImage && !imgError ? (
+              <Image
+                src={userImage}
+                alt="Profile"
+                width={32}
+                height={32}
+                className={styles.avatar}
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <FaUser className={styles.userIcon} />
+            )}
             <StatusDot isOnline={isOnline} className={styles.badge} />
           </div>
           <div className={styles.nameRoleContainer}>

@@ -55,7 +55,7 @@ describe("getUserByEmail", () => {
     });
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { email: "a@b.com" },
-      select: { id: true, role: true, is_active: true, last_seen_at: true },
+      select: { id: true, role: true, is_active: true },
     });
   });
 
@@ -254,8 +254,8 @@ describe("getActiveUsers", () => {
     const result = await getActiveUsers();
 
     expect(result).toEqual([
-      { ...mockUser({ id: "u1", name: "Alice", last_seen_at: null }), is_online: false },
-      { ...mockUser({ id: "u2", name: "Bob", last_seen_at: null }), is_online: false },
+      { id: "u1", name: "Alice", is_online: false },
+      { id: "u2", name: "Bob", is_online: false },
     ]);
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: { is_active: true },
@@ -275,8 +275,8 @@ describe("getActiveUsers", () => {
     const result = await getActiveUsers();
 
     expect(result).toEqual([
-      { ...mockUser({ id: "u1", name: "Alice", last_seen_at: recentDate }), is_online: true },
-      { ...mockUser({ id: "u2", name: "Bob", last_seen_at: oldDate }), is_online: false },
+      { id: "u1", name: "Alice", is_online: true },
+      { id: "u2", name: "Bob", is_online: false },
     ]);
   });
 

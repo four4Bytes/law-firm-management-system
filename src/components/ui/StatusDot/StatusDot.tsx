@@ -2,17 +2,13 @@ import clsx from "clsx";
 
 import styles from "./StatusDot.module.css";
 
-interface StatusDotProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface StatusDotProps {
   isOnline: boolean;
+  className?: string;
 }
 
-export function StatusDot({ isOnline, className, ...props }: StatusDotProps) {
+export function StatusDot({ isOnline, className }: StatusDotProps) {
   return (
-    <span
-      role="img"
-      aria-label={isOnline ? "Online" : "Offline"}
-      className={clsx(styles.dot, isOnline && styles.online, className)}
-      {...props}
-    />
+    <span aria-hidden="true" className={clsx(styles.dot, isOnline && styles.online, className)} />
   );
 }

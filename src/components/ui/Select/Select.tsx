@@ -69,6 +69,6 @@ export function Select<T extends object, M extends "single" | "multiple" = "sing
   );
 }
 
-export function SelectItem(props: ListBoxItemProps & { isOnline?: boolean }) {
+export function SelectItem(props: ListBoxItemProps) {
   return <DropdownItem {...props} />;
 }

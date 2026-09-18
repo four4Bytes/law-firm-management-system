@@ -23,7 +23,11 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
   const hasNotes = true;
   const noop = () => {};
   const assigneeRows = resolveAssigneeDisplayRows({
-    users: task.assignTo,
+    users: task.assignTo.map((assignee) => ({
+      id: assignee.id,
+      name: assignee.name,
+      is_online: false,
+    })),
     selectedIds: new Set(task.assignTo.map((assignee) => assignee.id)),
     snapshot: task.assignTo,
   });
@@ -31,6 +35,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
     users: task.reviewers.map((reviewer) => ({
       id: reviewer.reviewer_user_id,
       name: reviewer.name,
+      is_online: false,
     })),
     selectedIds: new Set(task.reviewers.map((reviewer) => reviewer.reviewer_user_id)),
     snapshot: task.reviewers,

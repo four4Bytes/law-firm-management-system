@@ -9,9 +9,9 @@ import {
 } from "../display";
 
 const users = [
-  { id: "user-1", name: "Alice" },
-  { id: "user-2", name: "Bob" },
-  { id: "user-3", name: "Cara" },
+  { id: "user-1", name: "Alice", is_online: true },
+  { id: "user-2", name: "Bob", is_online: false },
+  { id: "user-3", name: "Cara", is_online: true },
 ];
 
 describe("resolveAssigneeDisplayRows", () => {
@@ -26,8 +26,8 @@ describe("resolveAssigneeDisplayRows", () => {
     });
 
     expect(rows).toEqual([
-      { id: "user-1", name: "Alice", status: "Done" },
-      { id: "user-2", name: "Bob", status: "Todo" },
+      { id: "user-1", name: "Alice", status: "Done", is_online: true },
+      { id: "user-2", name: "Bob", status: "Todo", is_online: false },
     ]);
   });
 
@@ -39,8 +39,8 @@ describe("resolveAssigneeDisplayRows", () => {
     });
 
     expect(rows).toEqual([
-      { id: "user-1", name: "Alice", status: "Done" },
-      { id: "user-3", name: "Cara", status: "Todo" },
+      { id: "user-1", name: "Alice", status: "Done", is_online: true },
+      { id: "user-3", name: "Cara", status: "Todo", is_online: true },
     ]);
   });
 
@@ -54,7 +54,7 @@ describe("resolveAssigneeDisplayRows", () => {
       ],
     });
 
-    expect(rows).toEqual([{ id: "user-2", name: "Bob", status: "Todo" }]);
+    expect(rows).toEqual([{ id: "user-2", name: "Bob", status: "Todo", is_online: false }]);
   });
 
   it("keeps selected members missing from the directory using snapshot names", () => {
@@ -68,8 +68,8 @@ describe("resolveAssigneeDisplayRows", () => {
     });
 
     expect(rows).toEqual([
-      { id: "user-2", name: "Bob", status: "Todo" },
-      { id: "user-3", name: "Cara", status: "Done" },
+      { id: "user-2", name: "Bob", status: "Todo", is_online: false },
+      { id: "user-3", name: "Cara", status: "Done", is_online: false },
     ]);
   });
 
@@ -97,8 +97,8 @@ describe("resolveReviewerDisplayRows", () => {
     });
 
     expect(rows).toEqual([
-      { id: "user-1", name: "Alice", status: "Approved" },
-      { id: "user-2", name: "Bob", status: "Pending" },
+      { id: "user-1", name: "Alice", status: "Approved", is_online: true },
+      { id: "user-2", name: "Bob", status: "Pending", is_online: false },
     ]);
   });
 
@@ -111,8 +111,8 @@ describe("resolveReviewerDisplayRows", () => {
     });
 
     expect(rows).toEqual([
-      { id: "user-1", name: "Alice", status: "Rejected" },
-      { id: "user-3", name: "Cara (creator)", status: "Pending" },
+      { id: "user-1", name: "Alice", status: "Rejected", is_online: true },
+      { id: "user-3", name: "Cara (creator)", status: "Pending", is_online: true },
     ]);
   });
 
@@ -126,7 +126,7 @@ describe("resolveReviewerDisplayRows", () => {
       ],
     });
 
-    expect(rows).toEqual([{ id: "user-2", name: "Bob", status: "Pending" }]);
+    expect(rows).toEqual([{ id: "user-2", name: "Bob", status: "Pending", is_online: false }]);
   });
 
   it("keeps selected reviewers missing from the directory using snapshot names", () => {
@@ -141,8 +141,8 @@ describe("resolveReviewerDisplayRows", () => {
     });
 
     expect(rows).toEqual([
-      { id: "user-2", name: "Bob", status: "Pending" },
-      { id: "user-3", name: "Cara (creator)", status: "Approved" },
+      { id: "user-2", name: "Bob", status: "Pending", is_online: false },
+      { id: "user-3", name: "Cara (creator)", status: "Approved", is_online: false },
     ]);
   });
 

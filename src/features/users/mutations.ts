@@ -78,3 +78,10 @@ export async function setUserActiveStatus(id: string, isActive: boolean): Promis
     data: { is_active: isActive },
   });
 }
+
+export async function updateUserLastSeen(id: string): Promise<void> {
+  await prisma.user.update({
+    where: { id },
+    data: { last_seen_at: new Date() },
+  });
+}

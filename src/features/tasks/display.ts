@@ -33,14 +33,14 @@ export function getTaskStatusHint(task: TaskStatusHintInput): string {
 export interface DirectoryUser {
   id: string;
   name: string;
-  is_online?: boolean;
+  is_online: boolean;
 }
 
 export interface TaskMemberDisplayRow {
   id: string;
   name: string;
   status: string;
-  is_online?: boolean;
+  is_online: boolean;
 }
 
 export interface AssigneeSnapshot {
@@ -94,7 +94,7 @@ export function resolveAssigneeDisplayRows(
     if (!directoryIds.has(id)) {
       const saved = snapshotById.get(id);
       if (saved)
-        rows.push({ id: saved.id, name: saved.name, status: saved.status, is_online: undefined });
+        rows.push({ id: saved.id, name: saved.name, status: saved.status, is_online: false });
     }
   }
   return rows;
@@ -124,7 +124,7 @@ export function resolveReviewerDisplayRows(
           id: saved.reviewer_user_id,
           name: id === createdByUserId ? `${saved.name} (creator)` : saved.name,
           status: saved.decision,
-          is_online: undefined,
+          is_online: false,
         });
       }
     }

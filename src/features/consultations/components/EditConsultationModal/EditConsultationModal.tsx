@@ -95,9 +95,9 @@ export function EditConsultationModal({
   }
   const assigneeOptions = useMemo(() => {
     const directoryIds = new Set(users.map((user) => user.id));
-    const missing = consultation.assignees.filter(
-      (assignee) => assigneeIds.has(assignee.id) && !directoryIds.has(assignee.id),
-    );
+    const missing = consultation.assignees
+      .filter((assignee) => assigneeIds.has(assignee.id) && !directoryIds.has(assignee.id))
+      .map((assignee) => ({ ...assignee, is_online: false }));
     return [...users, ...missing];
   }, [users, assigneeIds, consultation.assignees]);
 

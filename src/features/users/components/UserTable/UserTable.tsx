@@ -50,12 +50,11 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
       name: "Name",
       isRowHeader: true,
       allowsSorting: true,
-      render: (value: unknown, row: unknown) => {
-        const user = row as UserRow;
+      render: (_value, row) => {
         return (
           <span className={styles.statusDotRow}>
-            <StatusDot isOnline={user.is_online} />
-            {String(value)}
+            <StatusDot isOnline={row.is_online} />
+            {row.name}
           </span>
         );
       },

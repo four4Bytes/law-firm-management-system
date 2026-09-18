@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { EntityActivityLogQuerySchema } from "@/features/audit/schemas";
+import { mockSessionUser } from "@/test-utils/fixtures";
 
-const mockUser = { id: "u1", email: "e", role: "Admin", name: "n" } as const;
+const mockUser = mockSessionUser({ id: "u1", email: "e", role: "Admin", name: "n" });
 
 vi.mock("@/lib/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue(mockUser),

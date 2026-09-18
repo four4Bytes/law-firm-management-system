@@ -4,6 +4,7 @@ import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskLockedError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { mockTask, mockTaskAssignment, mockTaskReviewer } from "@/test-utils/fixtures";
 
 import {
   addTaskReviewer,
@@ -40,18 +41,6 @@ vi.mock("@/lib/storage-cleanup", () => ({
   deleteDocumentFiles: vi.fn(),
 }));
 
-const mockTask = (overrides: Record<string, unknown> = {}) => ({
-  id: "t1",
-  case_id: "c1",
-  title: "Task title",
-  description: null,
-  status: "Pending" as const,
-  created_by_user_id: "u1",
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
-  ...overrides,
-});
-
 type Tx = {
   task: unknown;
   taskReviewer: unknown;
@@ -71,27 +60,6 @@ const tx: Tx = {
 const transactionMock = vi.mocked(prisma.$transaction) as unknown as Mock<
   (fn: (tx: Tx) => Promise<unknown>) => Promise<unknown>
 >;
-
-const mockTaskReviewer = (overrides: Record<string, unknown> = {}) => ({
-  id: "tr1",
-  task_id: "t1",
-  reviewer_user_id: "u4",
-  decision: "Pending" as const,
-  reviewed_at: null,
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
-  ...overrides,
-});
-
-const mockTaskAssignment = (overrides: Record<string, unknown> = {}) => ({
-  id: "ta1",
-  task_id: "t1",
-  user_id: "u2",
-  status: "Todo" as const,
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
-  ...overrides,
-});
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
+import { mockPayment as mockBasePayment } from "@/test-utils/fixtures";
 
 import {
   getPaymentById,
@@ -13,19 +14,12 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { payment: { findUnique: vi.fn(), findMany: vi.fn() } },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockPayment = (overrides: Record<string, unknown> = {}): any => ({
-  id: "p1",
-  amount: 50000,
+const mockPayment = (overrides: Record<string, unknown> = {}) => ({
+  ...mockBasePayment(),
   payment_date: new Date("2024-06-15"),
-  status: "Paid",
   payment_method: "Bank Transfer",
   receipt_number: "RET-001",
   case_id: "c1",
-  consultation_id: null,
-  created_by_user_id: "u1",
-  created_at: new Date("2024-06-15"),
-  updated_at: new Date("2024-06-15"),
   ...overrides,
 });
 
@@ -150,17 +144,10 @@ describe("getPaymentRowById", () => {
 
 describe("getPaymentsPaginated", () => {
   const mockPayment = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
-    id: "p1",
-    amount: 50000,
+    ...mockBasePayment(),
     payment_date: new Date("2024-06-15"),
-    status: "Paid",
     payment_method: "Bank Transfer",
     receipt_number: "RET-2024-001",
-    case_id: "c1",
-    consultation_id: null,
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-15"),
-    updated_at: new Date("2024-06-15"),
     ...overrides,
   });
 

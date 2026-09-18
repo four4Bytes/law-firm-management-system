@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
+import { mockAuditLog as mockBaseLog } from "@/test-utils/fixtures";
 
 import { getAuditLogPaginated, getEntityActivityLogPaginated } from "../queries";
 
@@ -13,13 +14,11 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 const mockLog = (overrides: Record<string, unknown> = {}) => ({
+  ...mockBaseLog(),
   id: "l1",
   action: "case.created",
-  actor_user_id: "u1",
-  entity_type: "Case",
   entity_id: "550e8400-e29b-41d4-a716-446655440000",
   details: "Created case: Smith vs Jones",
-  created_at: new Date("2024-06-01"),
   actor: { name: "Bob Lawyer" },
   ...overrides,
 });

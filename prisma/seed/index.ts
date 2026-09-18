@@ -10,6 +10,7 @@ import { seedNotes } from "./seed-notes";
 import { seedNotifications } from "./seed-notifications";
 import { seedPayments } from "./seed-payments";
 import { seedTasks } from "./seed-tasks";
+import { seedUserSettings } from "./seed-user-settings";
 import { seedUsers } from "./seed-users";
 
 async function cleanDatabase() {
@@ -37,6 +38,7 @@ async function main() {
   await cleanDatabase();
 
   const userByEmail = await seedUsers();
+  await seedUserSettings(userByEmail);
   const clients = await seedClients();
   const consultations = await seedConsultations(userByEmail, clients);
   const cases = await seedCases(userByEmail, clients, consultations);

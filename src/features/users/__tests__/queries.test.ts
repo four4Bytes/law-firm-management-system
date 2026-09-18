@@ -8,6 +8,7 @@ import {
   getUsersPaginated,
 } from "@/features/users/queries";
 import { prisma } from "@/lib/prisma";
+import { mockUser } from "@/test-utils/fixtures";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: { user: { findUnique: vi.fn(), findMany: vi.fn() } },
@@ -26,21 +27,6 @@ const userSelect = {
   created_at: true,
   last_seen_at: true,
 } as const;
-
-const mockUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
-  id: "1",
-  name: "Test User",
-  email: "a@b.com",
-  google_sub: null,
-  role: "Dev" as const,
-  is_active: true,
-  created_at: new Date("2024-01-01"),
-  updated_at: new Date("2024-01-01"),
-  last_seen_at: null,
-  emailVerified: null,
-  image: null,
-  ...overrides,
-});
 
 describe("getUserByEmail", () => {
   it("returns user when found", async () => {

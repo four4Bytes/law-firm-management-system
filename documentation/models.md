@@ -330,13 +330,14 @@ Links a reviewer to a task for approval workflows.
 
 ### Case Status
 
-| Value      | Description                      |
-| ---------- | -------------------------------- |
-| Open       | Case created but not yet active  |
-| Ongoing    | Case is actively being worked on |
-| Closed     | Case concluded successfully      |
-| Terminated | Case ended without completion    |
-| Settled    | Case settled out of court        |
+`Open` covers the whole live matter, from intake through active work — there is no separate "ongoing" state. The three endings are siblings distinguished by exit paperwork:
+
+| Value      | Description                                                      |
+| ---------- | ---------------------------------------------------------------- |
+| Open       | Matter is live (intake through active work)                      |
+| Closed     | Concluded by decision or completion (judgment, matter fulfilled) |
+| Settled    | Concluded by compromise (settlement / compromise agreement)      |
+| Terminated | Ended without resolution (withdrawn, dismissed, disengaged)      |
 
 ---
 

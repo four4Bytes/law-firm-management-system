@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
+  CaseStatusChangePayloadSchema,
   CaseUpdatePayloadSchema,
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
@@ -104,7 +105,6 @@ describe("CaseUpdatePayloadSchema", () => {
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
-      status: "Open",
     });
     expect(result.success).toBe(false);
   });
@@ -115,7 +115,6 @@ describe("CaseUpdatePayloadSchema", () => {
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
-      status: "Open",
     });
     expect(result.success).toBe(true);
   });
@@ -126,20 +125,20 @@ describe("CaseUpdatePayloadSchema", () => {
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
-      status: "Open",
     });
     expect(result.success).toBe(false);
   });
 
-  it("rejects an invalid status inherited from the create schema", () => {
+  it("strips a status field instead of accepting it", () => {
     const result = CaseUpdatePayloadSchema.safeParse({
       caseId: uuid,
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
-      status: "NotAStatus",
+      status: "Closed",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).not.toHaveProperty("status");
   });
 
   it("rejects duplicate assignee ids", () => {
@@ -148,10 +147,39 @@ describe("CaseUpdatePayloadSchema", () => {
       client_id: uuid,
       case_title: "t",
       case_type: "Civil",
-      status: "Open",
       assignee_ids: [uuid, uuid],
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("CaseStatusChangePayloadSchema", () => {
+  it("accepts a valid status change", () => {
+    const result = CaseStatusChangePayloadSchema.safeParse({
+      caseId: uuid,
+      status: "Closed",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status", () => {
+    expect(
+      CaseStatusChangePayloadSchema.safeParse({ caseId: uuid, status: "Invalid" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a missing caseId", () => {
+    expect(CaseStatusChangePayloadSchema.safeParse({ status: "Closed" }).success).toBe(false);
+  });
+
+  it("accepts an optional reason", () => {
+    const result = CaseStatusChangePayloadSchema.safeParse({
+      caseId: uuid,
+      status: "Settled",
+      reason: "Compromise agreement signed",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.reason).toBe("Compromise agreement signed");
   });
 });
 

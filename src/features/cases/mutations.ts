@@ -1,4 +1,5 @@
 import { getDocumentFilePathsForCaseDeletion } from "@/features/documents/queries";
+import { CaseStatus } from "@/generated/prisma/browser";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -48,6 +49,54 @@ export async function updateCase(
         : {}),
     },
     select: { id: true },
+  });
+}
+
+export async function updateCaseStatus(
+  id: string,
+  status: CaseStatus,
+  tx?: TransactionClient,
+): Promise<{ id: string }> {
+  const client = tx || prisma;
+  return client.case.update({
+    where: { id },
+    data: { status },
+    select: { id: true },
+  });
+}
+
+export interface CaseDecisionData {
+  caseId: string;
+  status: CaseStatus;
+  reason?: string;
+  decidedByUserId: string;
+}
+
+export async function transitionCaseWithNote(data: CaseDecisionData): Promise<{ id: string }> {
+  const { caseId, status, reason, decidedByUserId } = data;
+  return prisma.$transaction(async (tx) => {
+    await tx.case.update({
+      where: { id: caseId },
+      data: { status },
+      select: { id: true },
+    });
+    if (reason) {
+      const label =
+        status === CaseStatus.Settled
+          ? "Settlement reason"
+          : status === CaseStatus.Terminated
+            ? "Termination reason"
+            : "Closing reason";
+      await tx.note.create({
+        data: {
+          content: `${label}: ${reason}`,
+          case_id: caseId,
+          created_by_user_id: decidedByUserId,
+        },
+        select: { id: true },
+      });
+    }
+    return { id: caseId };
   });
 }
 
@@ -115,7 +164,6 @@ export async function updateCaseWithClient(
         client_id: data.client_id,
         case_title: data.case.case_title,
         case_type: data.case.case_type,
-        status: data.case.status,
         parties_involved: data.case.parties_involved || undefined,
         assignee_ids: data.case.assignee_ids,
       },

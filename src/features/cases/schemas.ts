@@ -26,15 +26,21 @@ export const CaseCreatePayloadSchema = z.object({
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
-export const CaseUpdatePayloadSchema = CaseCreatePayloadSchema.extend({
+export const CaseUpdatePayloadSchema = CaseCreatePayloadSchema.omit({ status: true }).extend({
   caseId: z.uuid(),
+});
+
+export const CaseStatusChangePayloadSchema = z.object({
+  caseId: z.uuid(),
+  status: requiredEnum(CaseStatus, "Status"),
+  reason: optionalText(2000, "Reason"),
 });
 
 export const CaseDeletePayloadSchema = z.object({
   caseId: z.uuid(),
 });
 
-const CaseDataSchema = z.object({
+const CaseCreateDataSchema = z.object({
   case_title: requiredText(255, "Case title"),
   case_type: requiredText(255, "Case type"),
   status: requiredEnum(CaseStatus, "Status"),
@@ -42,16 +48,23 @@ const CaseDataSchema = z.object({
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });
 
+const CaseUpdateDataSchema = z.object({
+  case_title: requiredText(255, "Case title"),
+  case_type: requiredText(255, "Case type"),
+  parties_involved: optionalText(2000, "Parties involved"),
+  assignee_ids: uniqueUuidArray("Assignee").optional(),
+});
+
 export const CaseWithClientCreatePayloadSchema = z.object({
   client: ClientDataSchema,
-  case: CaseDataSchema,
+  case: CaseCreateDataSchema,
 });
 
 export const CaseWithClientUpdatePayloadSchema = z.object({
   case_id: z.uuid(),
   client_id: z.uuid(),
   client: ClientDataSchema,
-  case: CaseDataSchema,
+  case: CaseUpdateDataSchema,
 });
 
 export type CaseCreatePayload = z.infer<typeof CaseCreatePayloadSchema>;

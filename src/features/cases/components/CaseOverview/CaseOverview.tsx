@@ -17,6 +17,7 @@ interface Props {
   onEdit?: () => void;
   onDelete?: () => void;
   isEditPending?: boolean;
+  workflowActions?: React.ReactNode;
 }
 
 const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
@@ -26,7 +27,7 @@ const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
   Settled: "info",
 };
 
-export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
+export function CaseOverview({ data, onEdit, onDelete, isEditPending, workflowActions }: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.mainContent}>
@@ -35,12 +36,14 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
           <StatusBadge variant={statusClassMap[data.status as CaseStatus]}>
             {data.status}
           </StatusBadge>
-          {(onEdit || onDelete) && (
+          {(workflowActions || onEdit || onDelete) && (
             <div className={styles.headerActions}>
+              {workflowActions}
               {onEdit && (
                 <Button
                   variant="ghost"
                   aria-label="Edit case"
+                  title="Edit case"
                   onPress={onEdit}
                   isPending={isEditPending}
                 >
@@ -48,7 +51,12 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending }: Props) {
                 </Button>
               )}
               {onDelete && (
-                <Button variant="ghost" aria-label="Delete case" onPress={onDelete}>
+                <Button
+                  variant="ghost"
+                  aria-label="Delete case"
+                  title="Delete case"
+                  onPress={onDelete}
+                >
                   <FaTrash />
                 </Button>
               )}

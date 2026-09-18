@@ -23,7 +23,7 @@ import { getConsultationEditData } from "@/features/consultations/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
-import { ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
+import { CaseStatus, ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
 import {
   actionConflict,
@@ -47,7 +47,9 @@ import {
   createCase,
   createCaseWithClient,
   deleteCase,
+  transitionCaseWithNote,
   updateCase,
+  updateCaseStatus,
   updateCaseWithClient,
 } from "./mutations";
 import {
@@ -55,10 +57,12 @@ import {
   CaseDeletePayloadSchema,
   CaseOverviewIdSchema,
   CasePageQuerySchema,
+  CaseStatusChangePayloadSchema,
   CaseUpdatePayloadSchema,
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
 } from "./schemas";
+import { describeCaseNextSteps, isValidCaseStatusTransition } from "./status";
 
 async function requireCasePermission(
   session: AuthenticatedUser,
@@ -337,7 +341,6 @@ export async function updateCaseAction(
     client_id,
     case_title,
     case_type,
-    status,
     parties_involved,
     source_consultation_id,
     assignee_ids,
@@ -356,7 +359,6 @@ export async function updateCaseAction(
       client_id,
       case_title,
       case_type,
-      status,
       parties_involved: parties_involved || undefined,
       source_consultation_id,
       assignee_ids,
@@ -385,28 +387,6 @@ export async function updateCaseAction(
           actionUrl: `/case/${caseId}`,
           caseId,
         });
-      }
-
-      try {
-        if (existing.status !== status) {
-          const assigneeIds = await getCaseAssigneeIds(caseId);
-          if (assigneeIds.length > 0) {
-            await notifyRecipients(
-              session.id,
-              {
-                userIds: assigneeIds,
-                type: NotificationType.CaseStatusChanged,
-                title: `Case status changed: ${case_title}`,
-                message: `Case "${case_title}" status changed from ${existing.status} to ${status}`,
-                actionUrl: `/case/${caseId}`,
-                caseId,
-              },
-              "status change",
-            );
-          }
-        }
-      } catch (err) {
-        console.error("Failed to dispatch status change notification:", err);
       }
     });
 
@@ -470,28 +450,6 @@ export async function updateCaseWithClientAction(
           caseId: case_id,
         });
       }
-
-      try {
-        if (existing.status !== caseData.status) {
-          const assigneeIds = await getCaseAssigneeIds(case_id);
-          if (assigneeIds.length > 0) {
-            await notifyRecipients(
-              session.id,
-              {
-                userIds: assigneeIds,
-                type: NotificationType.CaseStatusChanged,
-                title: `Case status changed: ${caseData.case_title}`,
-                message: `Case "${caseData.case_title}" status changed from ${existing.status} to ${caseData.status}`,
-                actionUrl: `/case/${case_id}`,
-                caseId: case_id,
-              },
-              "status change",
-            );
-          }
-        }
-      } catch (err) {
-        console.error("Failed to dispatch status change notification:", err);
-      }
     });
 
     revalidatePath(`/case/${case_id}`);
@@ -500,6 +458,81 @@ export async function updateCaseWithClientAction(
     return { success: true };
   } catch (error) {
     return toActionResponse(error, "update case");
+  }
+}
+
+export async function changeCaseStatusAction(
+  payload: z.input<typeof CaseStatusChangePayloadSchema>,
+): Promise<ActionStatusResponse> {
+  const session = await requireAuth();
+
+  const parsed = CaseStatusChangePayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return actionInvalid("case");
+  }
+
+  const { caseId, status, reason } = parsed.data;
+
+  try {
+    const existing = await getCaseEditData(caseId);
+    if (!existing) return actionNotFound("Case");
+
+    await requireCasePermission(session, caseId, "case.update");
+
+    if (!isValidCaseStatusTransition(existing.status as CaseStatus, status)) {
+      return actionConflict(
+        "Invalid status change",
+        `Cannot change a case from ${existing.status} to ${status}. From ${existing.status}, you can: ${describeCaseNextSteps(existing.status as CaseStatus)}.`,
+      );
+    }
+
+    if (reason && status !== CaseStatus.Open) {
+      await transitionCaseWithNote({
+        caseId,
+        status,
+        reason,
+        decidedByUserId: session.id,
+      });
+    } else {
+      await updateCaseStatus(caseId, status);
+    }
+
+    after(async () => {
+      await logAudit({
+        actorUserId: session.id,
+        action: "case.status_changed",
+        entityType: "Case",
+        entityId: caseId,
+        details: `Changed case status from ${existing.status} to ${status}`,
+      });
+
+      try {
+        const assigneeIds = await getCaseAssigneeIds(caseId);
+        if (assigneeIds.length > 0) {
+          await notifyRecipients(
+            session.id,
+            {
+              userIds: assigneeIds,
+              type: NotificationType.CaseStatusChanged,
+              title: `Case status changed: ${existing.case_title.substring(0, 100)}`,
+              message: `Case "${existing.case_title.substring(0, 100)}" status changed from ${existing.status} to ${status}.`,
+              actionUrl: `/case/${caseId}`,
+              caseId,
+            },
+            "status change",
+          );
+        }
+      } catch (err) {
+        console.error("Failed to dispatch status change notification:", err);
+      }
+    });
+
+    revalidatePath(`/case/${caseId}`);
+    revalidatePath("/case");
+
+    return { success: true };
+  } catch (error) {
+    return toActionResponse(error, "change case status");
   }
 }
 

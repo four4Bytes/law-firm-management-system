@@ -5,17 +5,26 @@ import { getConsultationEditData } from "@/features/consultations/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Case } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
+import { ForbiddenError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 
 import {
+  changeCaseStatusAction,
   createCaseAction,
   deleteCaseAction,
   getCaseForEditAction,
   updateCaseAction,
   updateCaseWithClientAction,
 } from "../actions";
-import { createCase, deleteCase, updateCase, updateCaseWithClient } from "../mutations";
+import {
+  createCase,
+  deleteCase,
+  transitionCaseWithNote,
+  updateCase,
+  updateCaseStatus,
+  updateCaseWithClient,
+} from "../mutations";
 import {
   getCaseAccessContext,
   getCaseAssigneeIds,
@@ -40,7 +49,7 @@ vi.mock("@/lib/auth-guards", () => ({
     .fn()
     .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
   assertRecordPermission: vi.fn((session, permission, context) => {
-    if (!can(session.role, permission, context)) throw new Error("Forbidden");
+    if (!can(session.role, permission, context)) throw new ForbiddenError();
     return context;
   }),
 }));
@@ -88,6 +97,8 @@ vi.mock("../mutations", () => ({
   createCaseWithClient: vi.fn(),
   updateCase: vi.fn(),
   updateCaseWithClient: vi.fn(),
+  updateCaseStatus: vi.fn(),
+  transitionCaseWithNote: vi.fn(),
   deleteCase: vi.fn(),
 }));
 
@@ -378,7 +389,6 @@ describe("updateCaseAction", () => {
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
-    status: "Open" as const,
   };
 
   it("returns an error for an invalid payload", async () => {
@@ -492,7 +502,6 @@ describe("authorization guards for non-Admin users", () => {
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
-    status: "Open" as const,
   };
 
   const updateWithClientPayload = {
@@ -502,7 +511,6 @@ describe("authorization guards for non-Admin users", () => {
     case: {
       case_title: "Smith vs Jones",
       case_type: "Civil",
-      status: "Open" as const,
     },
   };
 
@@ -613,7 +621,6 @@ describe("updateCaseAction notification split", () => {
     client_id: uuid,
     case_title: "Smith vs Jones",
     case_type: "Civil",
-    status: "Open" as const,
   };
 
   const assignee1 = uuid;
@@ -688,7 +695,6 @@ describe("updateCaseAction notification split", () => {
       case: {
         case_title: "Smith vs Jones",
         case_type: "Civil",
-        status: "Open" as const,
         assignee_ids: [assignee1, assignee2, assignee3],
       },
     });
@@ -699,5 +705,152 @@ describe("updateCaseAction notification split", () => {
 
     expect(calls).toHaveLength(1);
     expect(assigned?.[0].userIds).toEqual([assignee3]);
+  });
+});
+
+describe("changeCaseStatusAction", () => {
+  const assignee1 = uuid;
+  const assignee2 = "550e8400-e29b-41d4-a716-446655440001";
+
+  function openEditData() {
+    return {
+      id: "1",
+      client_id: uuid,
+      case_title: "Smith vs Jones",
+      case_type: "Civil",
+      status: "Open" as const,
+      parties_involved: null,
+      source_consultation_id: null,
+      assignee_ids: [assignee1, assignee2],
+      assignees: [],
+    };
+  }
+
+  beforeEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u1",
+      email: "e",
+      role: Role.Admin,
+      name: "n",
+    });
+    vi.mocked(getCaseEditData).mockResolvedValue(openEditData());
+    vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee1, assignee2]);
+    vi.mocked(updateCaseStatus).mockResolvedValue({ id: uuid });
+    vi.mocked(transitionCaseWithNote).mockResolvedValue({ id: uuid });
+  });
+
+  it("returns an error for an invalid payload", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await changeCaseStatusAction({ caseId: uuid } as any)).toEqual({
+      success: false,
+      error: {
+        code: "validation",
+        title: "Invalid case data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
+    });
+  });
+
+  it("returns an error when the case is not found", async () => {
+    vi.mocked(getCaseEditData).mockResolvedValue(null);
+
+    expect(await changeCaseStatusAction({ caseId: uuid, status: "Closed" })).toEqual({
+      success: false,
+      error: {
+        code: "not_found",
+        title: "Case not found",
+        description: "The case may have been deleted by another user.",
+      },
+    });
+  });
+
+  it("denies users without case update access", async () => {
+    vi.mocked(requireAuth).mockResolvedValueOnce({
+      id: "u2",
+      email: "e2",
+      role: Role.Paralegal,
+      name: "n2",
+    });
+
+    expect(await changeCaseStatusAction({ caseId: uuid, status: "Closed" })).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: "You don't have permission to perform this action.",
+      },
+    });
+    expect(updateCaseStatus).not.toHaveBeenCalled();
+  });
+
+  it("returns an error for an invalid transition", async () => {
+    expect(await changeCaseStatusAction({ caseId: uuid, status: "Open" })).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Invalid status change",
+        description:
+          "Cannot change a case from Open to Open. From Open, you can: close it, settle it, or terminate it.",
+      },
+    });
+    expect(updateCaseStatus).not.toHaveBeenCalled();
+  });
+
+  it("refuses moving backwards from a terminal status", async () => {
+    vi.mocked(getCaseEditData).mockResolvedValue({ ...openEditData(), status: "Closed" });
+
+    expect(await changeCaseStatusAction({ caseId: uuid, status: "Settled" })).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Invalid status change",
+        description:
+          "Cannot change a case from Closed to Settled. From Closed, you can: reopen it.",
+      },
+    });
+    expect(updateCaseStatus).not.toHaveBeenCalled();
+  });
+
+  it("closes an open case and notifies assignees", async () => {
+    expect(await changeCaseStatusAction({ caseId: uuid, status: "Closed" })).toEqual({
+      success: true,
+    });
+    expect(updateCaseStatus).toHaveBeenCalledWith(uuid, "Closed");
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const statusChange = calls.find(
+      ([payload]) => payload.type === NotificationType.CaseStatusChanged,
+    );
+
+    expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2]);
+    expect(statusChange?.[0].message).toContain("Open");
+    expect(statusChange?.[0].message).toContain("Closed");
+  });
+
+  it("saves a settlement reason as a note", async () => {
+    expect(
+      await changeCaseStatusAction({
+        caseId: uuid,
+        status: "Settled",
+        reason: "Compromise agreement signed",
+      }),
+    ).toEqual({ success: true });
+    expect(transitionCaseWithNote).toHaveBeenCalledWith({
+      caseId: uuid,
+      status: "Settled",
+      reason: "Compromise agreement signed",
+      decidedByUserId: "u1",
+    });
+    expect(updateCaseStatus).not.toHaveBeenCalled();
+  });
+
+  it("reopens a terminated case", async () => {
+    vi.mocked(getCaseEditData).mockResolvedValue({ ...openEditData(), status: "Terminated" });
+
+    expect(await changeCaseStatusAction({ caseId: uuid, status: "Open" })).toEqual({
+      success: true,
+    });
+    expect(updateCaseStatus).toHaveBeenCalledWith(uuid, "Open");
   });
 });

@@ -100,7 +100,7 @@ Guards use the throwing helpers (`requireAuth`, `requirePermission`, `requireCon
 ## 7. Notifications
 
 - Any status change → `ConsultationStatusChanged` to all assignees (actor excluded), gated by the `consultation status changed` setting ([Notifications](./notifications.md), Consultations).
-- Booking change on edit → same type with a "rescheduled" title/message + reminder re-arm ("Re-arm on reschedule").
+- Booking change on edit → `ConsultationRescheduled` (own `rescheduled` setting) with a "rescheduled" title/message + reminder re-arm ("Re-arm on reschedule").
 - Reminders/overdue run on the scheduler (`ConsultationReminder` / `ConsultationOverdue` per assignee prefs); changing the booking resets the timing baseline.
 
 ## 8. Data model

@@ -10,6 +10,7 @@ export type NotificationPreferences = Pick<
   | "notify_email_task_assigned"
   | "notify_email_case_status_changed"
   | "notify_email_consultation_status_changed"
+  | "notify_email_consultation_rescheduled"
   | "notify_email_task_status_changed"
   | "notify_email_milestone_status_changed"
 >;
@@ -30,6 +31,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   notify_email_task_assigned: true,
   notify_email_case_status_changed: true,
   notify_email_consultation_status_changed: true,
+  notify_email_consultation_rescheduled: true,
   notify_email_task_status_changed: true,
   notify_email_milestone_status_changed: true,
 };
@@ -53,6 +55,7 @@ export const getNotificationPreferences = cache(
         notify_email_task_assigned: true,
         notify_email_case_status_changed: true,
         notify_email_consultation_status_changed: true,
+        notify_email_consultation_rescheduled: true,
         notify_email_task_status_changed: true,
         notify_email_milestone_status_changed: true,
       },
@@ -76,6 +79,7 @@ export async function getNotificationPreferencesByUserIds(
       notify_email_task_assigned: true,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: true,
+      notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
     },
@@ -92,6 +96,7 @@ export async function getNotificationPreferencesByUserIds(
       notify_email_task_assigned: row.notify_email_task_assigned,
       notify_email_case_status_changed: row.notify_email_case_status_changed,
       notify_email_consultation_status_changed: row.notify_email_consultation_status_changed,
+      notify_email_consultation_rescheduled: row.notify_email_consultation_rescheduled,
       notify_email_task_status_changed: row.notify_email_task_status_changed,
       notify_email_milestone_status_changed: row.notify_email_milestone_status_changed,
     });

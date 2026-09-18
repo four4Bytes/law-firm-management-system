@@ -66,6 +66,7 @@ enum NotificationType {
   CaseStatusChanged
   ConsultationAssigned
   ConsultationStatusChanged
+  ConsultationRescheduled
 }
 
 enum PaymentStatus {
@@ -140,6 +141,7 @@ model UserSettings {
   notify_email_task_assigned               Boolean           @default(true)
   notify_email_case_status_changed         Boolean           @default(true)
   notify_email_consultation_status_changed Boolean           @default(true)
+  notify_email_consultation_rescheduled    Boolean           @default(true)
   notify_email_task_status_changed         Boolean           @default(true)
   notify_email_milestone_status_changed    Boolean           @default(true)
   consultation_reminder_days               Int               @default(3)

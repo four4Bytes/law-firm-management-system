@@ -637,6 +637,22 @@ describe("updateConsultationAction notification split", () => {
     expect(vi.mocked(dispatchNotifications)).not.toHaveBeenCalled();
   });
 
+  it("dispatches ConsultationRescheduled when the booking changes", async () => {
+    await updateConsultationAction({
+      ...validPayload,
+      booking_datetime: "2024-06-05T10:00:00.000Z",
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const rescheduled = calls.find(
+      ([payload]) => payload.type === NotificationType.ConsultationRescheduled,
+    );
+
+    expect(rescheduled?.[0].userIds).toEqual([assignee1, assignee2, assignee3]);
+    expect(rescheduled?.[0].message).toContain("rescheduled");
+  });
+
   it("dispatches ConsultationAssigned only for updateConsultationWithClientAction", async () => {
     await updateConsultationWithClientAction({
       consultation_id: uuid,

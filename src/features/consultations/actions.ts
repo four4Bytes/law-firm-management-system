@@ -358,7 +358,7 @@ export async function updateConsultationAction(
               session.id,
               {
                 userIds: assigneeIds,
-                type: NotificationType.ConsultationStatusChanged,
+                type: NotificationType.ConsultationRescheduled,
                 title: `Consultation rescheduled: ${concern.substring(0, 100)}`,
                 message: `Consultation "${concern.substring(0, 100)}" has been rescheduled.`,
                 actionUrl: `/consultation/${consultationId}`,
@@ -461,7 +461,7 @@ export async function updateConsultationWithClientAction(
               session.id,
               {
                 userIds: assigneeIds,
-                type: NotificationType.ConsultationStatusChanged,
+                type: NotificationType.ConsultationRescheduled,
                 title: `Consultation rescheduled: ${consultation.concern.substring(0, 100)}`,
                 message: `Consultation "${consultation.concern.substring(0, 100)}" has been rescheduled.`,
                 actionUrl: `/consultation/${consultation_id}`,

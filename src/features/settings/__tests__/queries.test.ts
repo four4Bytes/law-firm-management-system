@@ -29,6 +29,7 @@ describe("getNotificationPreferences", () => {
       notify_email_task_assigned: true,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: true,
+      notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
     });
@@ -40,6 +41,7 @@ describe("getNotificationPreferences", () => {
         notify_email_task_assigned: true,
         notify_email_case_status_changed: true,
         notify_email_consultation_status_changed: true,
+        notify_email_consultation_rescheduled: true,
         notify_email_task_status_changed: true,
         notify_email_milestone_status_changed: true,
       },
@@ -94,6 +96,7 @@ describe("getNotificationPreferencesByUserIds", () => {
         notify_email_task_assigned: true,
         notify_email_case_status_changed: false,
         notify_email_consultation_status_changed: true,
+        notify_email_consultation_rescheduled: true,
         notify_email_task_status_changed: false,
         notify_email_milestone_status_changed: true,
       } as unknown as never,
@@ -107,6 +110,7 @@ describe("getNotificationPreferencesByUserIds", () => {
       notify_email_task_assigned: true,
       notify_email_case_status_changed: false,
       notify_email_consultation_status_changed: true,
+      notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: false,
       notify_email_milestone_status_changed: true,
     });
@@ -116,6 +120,7 @@ describe("getNotificationPreferencesByUserIds", () => {
       notify_email_task_assigned: true,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: true,
+      notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
     });

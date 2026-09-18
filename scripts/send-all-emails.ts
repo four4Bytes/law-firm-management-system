@@ -66,6 +66,7 @@ function pickTemplate(type: NotificationType) {
     case NotificationType.TaskStatusChanged:
     case NotificationType.CaseStatusChanged:
     case NotificationType.ConsultationStatusChanged:
+    case NotificationType.ConsultationRescheduled:
       return statusChangeTemplate;
     case NotificationType.ConsultationAssigned:
       return consultationAssignedTemplate;
@@ -176,6 +177,18 @@ function fakeContext(type: NotificationType): { subject: string; ctx: TemplateCo
           title: "Consultation status changed: Gonzales Legal Separation",
           message:
             'Consultation "Legal separation — married 12 years, husband abandoned the family, seeking custody and support (Maria Gonzales)" status changed from Scheduled to Accepted',
+          actionUrl: "/consultation/debug-consultation-id",
+        },
+      };
+    case NotificationType.ConsultationRescheduled:
+      return {
+        subject: "Consultation Rescheduled — Reyes Property Tax Reassessment",
+        ctx: {
+          toName,
+          actorName,
+          title: "Consultation rescheduled: Reyes Property Tax Reassessment",
+          message:
+            'Consultation "Property tax reassessment — assessed value doubled, seeking legal remedy" has been rescheduled from Sep 10, 2026 at 9:00 AM to Sep 12, 2026 at 2:00 PM',
           actionUrl: "/consultation/debug-consultation-id",
         },
       };

@@ -9,6 +9,7 @@ export const NotificationPreferencesSchema = z.object({
   notify_email_task_assigned: z.boolean(),
   notify_email_case_status_changed: z.boolean(),
   notify_email_consultation_status_changed: z.boolean(),
+  notify_email_consultation_rescheduled: z.boolean(),
   notify_email_task_status_changed: z.boolean(),
   notify_email_milestone_status_changed: z.boolean(),
 });

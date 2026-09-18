@@ -44,6 +44,7 @@ Per-user preferences attached 1:1 to `User`. Defaults to all email toggles **on*
 | Notify Email Task Assigned               | Boolean   | Yes      | Email when assigned to a task (`@default(true)`)                                 |
 | Notify Email Case Status Changed         | Boolean   | Yes      | Email when a case you’re assigned to changes status (`@default(true)`)           |
 | Notify Email Consultation Status Changed | Boolean   | Yes      | Email when a consultation you’re assigned to changes status (`@default(true)`)   |
+| Notify Email Consultation Rescheduled    | Boolean   | Yes      | Email when a consultation you’re assigned to is rescheduled (`@default(true)`)   |
 | Notify Email Task Status Changed         | Boolean   | Yes      | Email when a task you’re assigned to/reviewing changes status (`@default(true)`) |
 | Notify Email Milestone Status Changed    | Boolean   | Yes      | Email when a milestone in your case changes status (`@default(true)`)            |
 | Created                                  | Timestamp | Yes      | When the settings row was created                                                |
@@ -395,6 +396,7 @@ Links a reviewer to a task for approval workflows.
 | CaseStatusChanged         | Any case status change                             |
 | ConsultationAssigned      | Consultation assignee added                        |
 | ConsultationStatusChanged | Any consultation status change                     |
+| ConsultationRescheduled   | Consultation booking date/time changed             |
 
 > See [Notifications & Reminders](./notifications.md) for the full delivery rules.
 

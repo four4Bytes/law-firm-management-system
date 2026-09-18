@@ -39,6 +39,7 @@ function pickTemplate(type: NotificationType) {
     case NotificationType.TaskStatusChanged:
     case NotificationType.CaseStatusChanged:
     case NotificationType.ConsultationStatusChanged:
+    case NotificationType.ConsultationRescheduled:
       return statusChangeTemplate;
     case NotificationType.ConsultationAssigned:
       return consultationAssignedTemplate;
@@ -70,6 +71,7 @@ export async function dispatchNotifications(
   const isStatusChangeType =
     payload.type === NotificationType.CaseStatusChanged ||
     payload.type === NotificationType.ConsultationStatusChanged ||
+    payload.type === NotificationType.ConsultationRescheduled ||
     payload.type === NotificationType.TaskStatusChanged ||
     payload.type === NotificationType.MilestoneStatusChanged;
 
@@ -89,6 +91,8 @@ export async function dispatchNotifications(
               return prefs.notify_email_case_status_changed;
             if (payload.type === NotificationType.ConsultationStatusChanged)
               return prefs.notify_email_consultation_status_changed;
+            if (payload.type === NotificationType.ConsultationRescheduled)
+              return prefs.notify_email_consultation_rescheduled;
             if (payload.type === NotificationType.TaskStatusChanged)
               return prefs.notify_email_task_status_changed;
             if (payload.type === NotificationType.MilestoneStatusChanged)

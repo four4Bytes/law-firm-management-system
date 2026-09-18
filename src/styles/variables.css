@@ -34,6 +34,7 @@ Plan: add more than one theme later
   --raw-gray-900: #111827;
 
   --raw-sage: #5a7c58;
+  --raw-green: #22c55e;
   --raw-amber: #b7791f;
   --raw-brick: #9e4747;
   --raw-steel: #4a6e85;
@@ -73,6 +74,7 @@ Plan: add more than one theme later
   --color-border-strong: var(--raw-gray-400);
 
   --color-success: var(--raw-sage);
+  --color-online: var(--raw-green);
   --color-warning: var(--raw-amber);
   --color-danger: var(--raw-brick);
   --color-info: var(--raw-steel);

@@ -1,6 +1,15 @@
 .modal {
   width: var(--modal-wide-width);
 
+  .lockedNotice {
+    background: var(--color-surface-bg-alt);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
+  }
+
   .columns {
     display: flex;
     gap: var(--space-2xl);

@@ -17,6 +17,7 @@ import {
   deleteConsultationAction,
   getConsultationForEditAction,
 } from "@/features/consultations/actions";
+import { ConsultationDecisionModal } from "@/features/consultations/components/ConsultationDecisionModal/ConsultationDecisionModal";
 import { ConsultationWorkflowActions } from "@/features/consultations/components/ConsultationWorkflowActions/ConsultationWorkflowActions";
 import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
 import type {
@@ -63,7 +64,11 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   const [showCaseModal, setShowCaseModal] = useState(false);
   const [isWorkflowPending, setIsWorkflowPending] = useState(false);
   const [workflowUsers, setWorkflowUsers] = useState<ActiveUserSummary[]>([]);
-  const previousStatusRef = useRef<ConsultationStatus | null>(null);
+  const [decisionModal, setDecisionModal] = useState<Extract<
+    ConsultationStatus,
+    "Rejected" | "Cancelled"
+  > | null>(null);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
   const canViewPayments = can(userRole, "payment.read");
 
@@ -151,62 +156,77 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
     }
   }
 
-  async function revertAcceptedStatus(): Promise<boolean> {
-    const targetStatus = previousStatusRef.current ?? ConsultationStatus.Scheduled;
+  async function runWorkflowTask(task: () => Promise<void>, failureTitle: string) {
+    setIsWorkflowPending(true);
+    try {
+      await task();
+    } catch {
+      toastError(
+        failureTitle,
+        "Please try again. If this keeps happening, refresh the page and try again.",
+      );
+    } finally {
+      setIsWorkflowPending(false);
+    }
+  }
+
+  async function applyStatusChange(status: ConsultationStatus, reason?: string): Promise<boolean> {
     const result = await changeConsultationStatusAction({
       consultationId: overview.id,
-      status: targetStatus,
+      status,
+      ...(reason ? { reason } : {}),
     });
-    if (!result.success) {
-      toastActionError(result, "revert consultation status");
-      return false;
+    if (result.success) {
+      toastSuccess("Status updated", `The consultation has been marked as ${status}.`);
+      router.refresh();
+      return true;
     }
-    router.refresh();
-    return true;
+    toastActionError(result, "change consultation status");
+    return false;
+  }
+
+  async function handleAcceptOpen() {
+    await runWorkflowTask(async () => {
+      const users = await getActiveUsersAction();
+      setWorkflowUsers(users);
+      setShowCaseModal(true);
+    }, "Failed to accept consultation");
+  }
+
+  async function handleDecisionConfirm(reason?: string) {
+    if (!decisionModal) return;
+    const target = decisionModal;
+    await runWorkflowTask(async () => {
+      if (await applyStatusChange(target, reason)) {
+        setDecisionModal(null);
+      }
+    }, "Failed to update status");
+  }
+
+  async function handleCompleteConfirm() {
+    setShowCompleteConfirm(false);
+    await runWorkflowTask(async () => {
+      await applyStatusChange(ConsultationStatus.Completed);
+    }, "Failed to update status");
   }
 
   async function handleChangeStatus(status: ConsultationStatus) {
     if (status === ConsultationStatus.Accepted) {
-      setIsWorkflowPending(true);
-      try {
-        previousStatusRef.current = overview.status as ConsultationStatus;
-        const result = await changeConsultationStatusAction({
-          consultationId: overview.id,
-          status: ConsultationStatus.Accepted,
-        });
-        if (!result.success) {
-          previousStatusRef.current = null;
-          toastActionError(result, "accept consultation");
-          return;
-        }
-        const users = await getActiveUsersAction();
-        setWorkflowUsers(users);
-        setShowCaseModal(true);
-      } catch {
-        toastError("Failed to accept consultation", "Please try again.");
-      } finally {
-        setIsWorkflowPending(false);
-      }
+      await handleAcceptOpen();
+      return;
+    }
+    if (status === ConsultationStatus.Rejected || status === ConsultationStatus.Cancelled) {
+      setDecisionModal(status);
+      return;
+    }
+    if (status === ConsultationStatus.Completed) {
+      setShowCompleteConfirm(true);
       return;
     }
 
-    setIsWorkflowPending(true);
-    try {
-      const result = await changeConsultationStatusAction({
-        consultationId: overview.id,
-        status,
-      });
-      if (result.success) {
-        toastSuccess("Status updated", `The consultation has been marked as ${status}.`);
-        router.refresh();
-      } else {
-        toastActionError(result, "change consultation status");
-      }
-    } catch {
-      toastError("Failed to update status", "Please try again.");
-    } finally {
-      setIsWorkflowPending(false);
-    }
+    await runWorkflowTask(async () => {
+      await applyStatusChange(status);
+    }, "Failed to update status");
   }
 
   return (
@@ -223,6 +243,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         workflowActions={
           <ConsultationWorkflowActions
             status={overview.status as ConsultationStatus}
+            hasLinkedCase={overview.relatedCase !== null}
             onChangeStatus={handleChangeStatus}
             isPending={isWorkflowPending}
           />
@@ -278,6 +299,10 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
           }}
           consultation={editData.consultation}
           clientData={editData.clientData}
+          isLocked={
+            overview.status === ConsultationStatus.Accepted && overview.relatedCase !== null
+          }
+          linkedCaseId={overview.relatedCase?.id ?? null}
         />
       )}
 
@@ -292,6 +317,43 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         cases are kept (unlinked). This action cannot be undone.
       </ConfirmDialog>
 
+      <ConfirmDialog
+        isOpen={showCompleteConfirm}
+        onOpenChange={setShowCompleteConfirm}
+        title="Mark as completed"
+        confirmLabel="Mark completed"
+        onConfirm={handleCompleteConfirm}
+      >
+        Confirm the meeting has been held. The consultation will be ready for an accept or reject
+        decision.
+      </ConfirmDialog>
+
+      <ConsultationDecisionModal
+        isOpen={decisionModal === ConsultationStatus.Rejected}
+        onOpenChange={(open) => {
+          if (!open) setDecisionModal(null);
+        }}
+        title="Reject consultation"
+        description="The consultation will be marked as rejected. This cannot be undone. You can still edit its concern, client, and team, but the booking is frozen."
+        reasonLabel="Rejection reason"
+        reasonPlaceholder="Optional — why is this being rejected?"
+        confirmLabel="Reject"
+        onConfirm={handleDecisionConfirm}
+      />
+
+      <ConsultationDecisionModal
+        isOpen={decisionModal === ConsultationStatus.Cancelled}
+        onOpenChange={(open) => {
+          if (!open) setDecisionModal(null);
+        }}
+        title="Cancel consultation"
+        description="The consultation will be marked as cancelled. Its booking is frozen, but you can rebook it later. Concern, client, and team stay editable."
+        reasonLabel="Cancellation reason"
+        reasonPlaceholder="Optional — why is this being cancelled?"
+        confirmLabel="Cancel consultation"
+        onConfirm={handleDecisionConfirm}
+      />
+
       <CreateCaseFromConsultationModal
         isOpen={showCaseModal}
         onOpenChange={setShowCaseModal}
@@ -300,9 +362,8 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
           startLoading();
           router.push(`/case/${caseId}`);
         }}
-        onCancel={revertAcceptedStatus}
+        onCancel={() => setShowCaseModal(false)}
         consultationId={overview.id}
-        clientId={overview.client.id}
         defaultTitle={overview.concern}
         users={workflowUsers}
       />

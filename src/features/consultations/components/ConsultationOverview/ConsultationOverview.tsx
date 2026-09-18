@@ -50,6 +50,7 @@ export function ConsultationOverview({
                 <Button
                   variant="ghost"
                   aria-label="Edit consultation"
+                  title="Edit consultation"
                   onPress={onEdit}
                   isPending={isEditPending}
                 >
@@ -57,7 +58,12 @@ export function ConsultationOverview({
                 </Button>
               )}
               {onDelete && (
-                <Button variant="ghost" aria-label="Delete consultation" onPress={onDelete}>
+                <Button
+                  variant="ghost"
+                  aria-label="Delete consultation"
+                  title="Delete consultation"
+                  onPress={onDelete}
+                >
                   <FaTrash />
                 </Button>
               )}

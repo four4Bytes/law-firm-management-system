@@ -1,5 +1,6 @@
+import { createCase } from "@/features/cases/mutations";
 import { getDocumentFilePathsByConsultationId } from "@/features/documents/queries";
-import { ConsultationStatus } from "@/generated/prisma/browser";
+import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
 import { prisma, type TransactionClient } from "@/lib/prisma";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
@@ -66,6 +67,96 @@ export async function updateConsultationStatus(
     where: { id },
     data: { status },
     select: { id: true },
+  });
+}
+
+export interface ConsultationDecisionData {
+  consultationId: string;
+  status: ConsultationStatus;
+  reason?: string;
+  decidedByUserId: string;
+}
+
+export async function transitionConsultationWithNote(
+  data: ConsultationDecisionData,
+): Promise<{ id: string }> {
+  const { consultationId, status, reason, decidedByUserId } = data;
+  return prisma.$transaction(async (tx) => {
+    await tx.consultation.update({
+      where: { id: consultationId },
+      data: { status },
+      select: { id: true },
+    });
+    if (reason) {
+      const label =
+        status === ConsultationStatus.Rejected ? "Rejection reason" : "Cancellation reason";
+      await tx.note.create({
+        data: {
+          content: `${label}: ${reason}`,
+          consultation_id: consultationId,
+          created_by_user_id: decidedByUserId,
+        },
+        select: { id: true },
+      });
+    }
+    return { id: consultationId };
+  });
+}
+
+export interface AcceptConsultationWithCaseData {
+  consultationId: string;
+  caseTitle: string;
+  caseType: string;
+  status: CaseStatus;
+  partiesInvolved?: string;
+  assigneeIds?: string[];
+  createdByUserId: string;
+}
+
+export async function acceptConsultationWithCase(
+  data: AcceptConsultationWithCaseData,
+): Promise<{ caseId: string }> {
+  const { consultationId } = data;
+  return prisma.$transaction(async (tx) => {
+    const consultation = await tx.consultation.findUnique({
+      where: { id: consultationId },
+      select: { id: true, client_id: true, status: true },
+    });
+    if (!consultation) {
+      throw new Error("Consultation not found");
+    }
+    const linked = await tx.case.findUnique({
+      where: { source_consultation_id: consultationId },
+      select: { id: true },
+    });
+    if (linked) {
+      throw new Error("A case already exists for this consultation");
+    }
+    if (
+      consultation.status !== ConsultationStatus.Completed &&
+      consultation.status !== ConsultationStatus.Accepted
+    ) {
+      throw new Error("Consultation cannot be accepted");
+    }
+    await tx.consultation.update({
+      where: { id: consultationId },
+      data: { status: ConsultationStatus.Accepted },
+      select: { id: true },
+    });
+    const created = await createCase(
+      {
+        client_id: consultation.client_id,
+        case_title: data.caseTitle,
+        case_type: data.caseType,
+        status: data.status,
+        parties_involved: data.partiesInvolved,
+        source_consultation_id: consultationId,
+        assignee_ids: data.assigneeIds,
+        created_by_user_id: data.createdByUserId,
+      },
+      tx,
+    );
+    return { caseId: created.id };
   });
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FaBan, FaCalendarCheck, FaCheck, FaXmark } from "react-icons/fa6";
+import { FaBan, FaCalendarCheck, FaCalendarDays, FaCheck, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConsultationStatus } from "@/generated/prisma/browser";
@@ -10,6 +10,7 @@ import styles from "./ConsultationWorkflowActions.module.css";
 
 interface ConsultationWorkflowActionsProps {
   status: ConsultationStatus;
+  hasLinkedCase: boolean;
   onChangeStatus: (status: ConsultationStatus) => void;
   isPending?: boolean;
 }
@@ -50,27 +51,44 @@ const WORKFLOW_ACTIONS: Record<ConsultationStatus, WorkflowAction> = {
 
 export function ConsultationWorkflowActions({
   status,
+  hasLinkedCase,
   onChangeStatus,
   isPending,
 }: ConsultationWorkflowActionsProps) {
-  const allowedStatuses = CONSULTATION_STATUS_TRANSITIONS[status] ?? [];
+  const allowedTargets = [...(CONSULTATION_STATUS_TRANSITIONS[status] ?? [])];
+  if (status === ConsultationStatus.Accepted && !hasLinkedCase) {
+    allowedTargets.push(ConsultationStatus.Accepted);
+  }
+  if (allowedTargets.length === 0) {
+    return null;
+  }
 
   return (
     <div className={styles.actions}>
-      {allowedStatuses.map((targetStatus) => {
-        const action = WORKFLOW_ACTIONS[targetStatus];
+      {allowedTargets.map((targetStatus) => {
+        const rebook = status === ConsultationStatus.Cancelled;
+        const label =
+          rebook && targetStatus === ConsultationStatus.Scheduled
+            ? "Rebook consultation"
+            : WORKFLOW_ACTIONS[targetStatus].label;
+        const icon =
+          rebook && targetStatus === ConsultationStatus.Scheduled ? (
+            <FaCalendarDays />
+          ) : (
+            WORKFLOW_ACTIONS[targetStatus].icon
+          );
         return (
           <Button
             key={targetStatus}
             variant="ghost"
             type="button"
-            aria-label={action.label}
-            title={action.label}
+            aria-label={label}
+            title={label}
             onPress={() => onChangeStatus(targetStatus)}
             isPending={isPending}
             isDisabled={isPending}
           >
-            {action.icon}
+            {icon}
           </Button>
         );
       })}

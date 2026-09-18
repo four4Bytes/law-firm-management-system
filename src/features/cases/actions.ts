@@ -19,10 +19,11 @@ import {
   type CaseOverviewData,
   type CaseRow,
 } from "@/features/cases/queries";
+import { getConsultationEditData } from "@/features/consultations/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import type { TaskRow } from "@/features/tasks/queries";
-import { NotificationType } from "@/generated/prisma/browser";
+import { ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
 import {
   actionConflict,
@@ -160,6 +161,44 @@ export async function getCaseForEditAction(id: string): Promise<CaseEditData | n
   return getCaseEditData(caseId);
 }
 
+interface ConsultationLinkCheck {
+  sourceConsultationId: string;
+  clientId: string;
+}
+
+async function checkConsultationLink(
+  check: ConsultationLinkCheck,
+): Promise<ActionStatusResponse | null> {
+  const { sourceConsultationId, clientId } = check;
+  const existing = await getCaseBySourceConsultationId(sourceConsultationId);
+  if (existing) {
+    return actionConflict(
+      "Case already exists",
+      "A case already exists for this consultation. Open the linked case instead of creating a duplicate.",
+    );
+  }
+  const source = await getConsultationEditData(sourceConsultationId);
+  if (!source) {
+    return actionNotFound("Consultation");
+  }
+  if (
+    source.status !== ConsultationStatus.Completed &&
+    source.status !== ConsultationStatus.Accepted
+  ) {
+    return actionConflict(
+      "Consultation cannot become a case",
+      `Only completed or accepted consultations can become a case. This consultation is ${source.status.toLowerCase()}. Mark it as completed first.`,
+    );
+  }
+  if (source.client_id !== clientId) {
+    return actionConflict(
+      "Client mismatch",
+      "The case must use the same client as the consultation. Change the client on the case or create it without a consultation link.",
+    );
+  }
+  return null;
+}
+
 export async function createCaseAction(
   payload: z.input<typeof CaseCreatePayloadSchema>,
 ): Promise<ActionDataResponse<{ id: string }>> {
@@ -182,13 +221,11 @@ export async function createCaseAction(
     } = parsed.data;
 
     if (source_consultation_id) {
-      const existing = await getCaseBySourceConsultationId(source_consultation_id);
-      if (existing) {
-        return actionConflict(
-          "Case already exists",
-          "A case already exists for this consultation.",
-        );
-      }
+      const linkError = await checkConsultationLink({
+        sourceConsultationId: source_consultation_id,
+        clientId: client_id,
+      });
+      if (linkError) return linkError;
     }
 
     const createdCase = await createCase({
@@ -230,7 +267,8 @@ export async function createCaseAction(
   } catch (error) {
     return toActionResponse(error, "create case", {
       title: "Case already exists",
-      description: "A case already exists for this consultation.",
+      description:
+        "A case already exists for this consultation. Open the linked case instead of creating a duplicate.",
     });
   }
 }

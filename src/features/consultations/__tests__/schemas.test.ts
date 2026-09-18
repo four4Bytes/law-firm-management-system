@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AcceptConsultationWithCasePayloadSchema,
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
   ConsultationStatusChangePayloadSchema,
@@ -124,6 +125,60 @@ describe("ConsultationStatusChangePayloadSchema", () => {
       status: "Accepted",
     });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts an optional reason", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Rejected",
+      reason: "No merit",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.reason).toBe("No merit");
+  });
+
+  it("trims the reason", () => {
+    const result = ConsultationStatusChangePayloadSchema.safeParse({
+      consultationId: uuid,
+      status: "Rejected",
+      reason: "  No merit  ",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.reason).toBe("No merit");
+  });
+});
+
+describe("AcceptConsultationWithCasePayloadSchema", () => {
+  const base = {
+    consultationId: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open" as const,
+  };
+
+  it("accepts a valid payload", () => {
+    expect(AcceptConsultationWithCasePayloadSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("accepts optional parties and assignees", () => {
+    const result = AcceptConsultationWithCasePayloadSchema.safeParse({
+      ...base,
+      parties_involved: "Jane Smith",
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a missing case title", () => {
+    expect(
+      AcceptConsultationWithCasePayloadSchema.safeParse({ ...base, case_title: "  " }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an invalid status", () => {
+    expect(
+      AcceptConsultationWithCasePayloadSchema.safeParse({ ...base, status: "Invalid" }).success,
+    ).toBe(false);
   });
 });
 

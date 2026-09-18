@@ -6,7 +6,9 @@ import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
+import { Link } from "@/components/ui/Link/Link";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
@@ -18,7 +20,8 @@ import { getActiveUsersAction } from "@/features/users/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
+import { ConsultationStatus } from "@/generated/prisma/browser";
+import { combineDateTime, formatDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
 import { toastError } from "@/lib/toast-utils";
 import { useModalForm } from "@/lib/useModalForm";
@@ -31,6 +34,8 @@ interface EditConsultationModalProps {
   onSuccess: () => void;
   consultation: ConsultationEditData;
   clientData: ClientEditData;
+  isLocked: boolean;
+  linkedCaseId: string | null;
 }
 
 interface ConsultationFields {
@@ -45,7 +50,15 @@ export function EditConsultationModal({
   onSuccess,
   consultation,
   clientData,
+  isLocked,
+  linkedCaseId,
 }: EditConsultationModalProps) {
+  const isScheduled = consultation.status === ConsultationStatus.Scheduled;
+  const bookingLockedDescription = isScheduled
+    ? undefined
+    : consultation.status === ConsultationStatus.Cancelled
+      ? "Rebook the consultation to set a new booking."
+      : "The booking can only change while a consultation is scheduled.";
   const [clientId] = useState(consultation.client_id);
   const [clientName, setClientName] = useState(clientData.name);
   const [clientEmail, setClientEmail] = useState(clientData.email ?? "");
@@ -63,6 +76,11 @@ export function EditConsultationModal({
   );
 
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+  const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
+
+  const bookingChanged =
+    combineDateTime(fields.date, fields.time).getTime() !== consultation.booking_datetime.getTime();
+  const needsRescheduleConfirm = !isLocked && isScheduled && bookingChanged;
 
   const assigneeOptions = useMemo(() => {
     const directoryIds = new Set(users.map((user) => user.id));
@@ -125,8 +143,21 @@ export function EditConsultationModal({
     event.preventDefault();
     if (isPending) return;
 
+    if (needsRescheduleConfirm) {
+      setShowRescheduleConfirm(true);
+      return;
+    }
     await submitForm(buildConsultationPayload());
   }
+
+  async function handleRescheduleConfirm() {
+    if (isPending) return;
+    setShowRescheduleConfirm(false);
+    await submitForm(buildConsultationPayload());
+  }
+
+  const fieldsDisabled = isPending || isLocked;
+  const bookingDisabled = isPending || isLocked || !isScheduled;
 
   return (
     <Modal
@@ -135,7 +166,23 @@ export function EditConsultationModal({
       onOpenChange={handleDismiss}
       className={styles.modal}
     >
+      <ConfirmDialog
+        isOpen={showRescheduleConfirm}
+        onOpenChange={setShowRescheduleConfirm}
+        title="Reschedule consultation"
+        confirmLabel="Reschedule"
+        onConfirm={handleRescheduleConfirm}
+      >
+        {`Move the booking from ${formatDateTime(consultation.booking_datetime)} to ${formatDateTime(combineDateTime(fields.date, fields.time))}? Assigned staff will be notified and reminders will restart.`}
+      </ConfirmDialog>
       <Form onSubmit={handleSave}>
+        {isLocked && (
+          <p className={styles.lockedNotice}>
+            This consultation has been accepted and linked to a case. Update the{" "}
+            {linkedCaseId ? <Link href={`/case/${linkedCaseId}`}>linked case</Link> : "linked case"}{" "}
+            instead — these details are read-only.
+          </p>
+        )}
         <div className={styles.columns}>
           <div className={styles.column}>
             <TextField
@@ -145,7 +192,7 @@ export function EditConsultationModal({
               validate={createFieldValidator(
                 ConsultationWithClientUpdatePayloadSchema.shape.client.shape.name,
               )}
-              isDisabled={isPending}
+              isDisabled={fieldsDisabled}
             />
             <TextField
               label="Email"
@@ -155,7 +202,7 @@ export function EditConsultationModal({
               validate={createFieldValidator(
                 ConsultationWithClientUpdatePayloadSchema.shape.client.shape.email,
               )}
-              isDisabled={isPending}
+              isDisabled={fieldsDisabled}
             />
             <TextField
               label="Phone"
@@ -165,7 +212,7 @@ export function EditConsultationModal({
               validate={createFieldValidator(
                 ConsultationWithClientUpdatePayloadSchema.shape.client.shape.phone_number,
               )}
-              isDisabled={isPending}
+              isDisabled={fieldsDisabled}
             />
             <TextField
               label="Address"
@@ -178,7 +225,7 @@ export function EditConsultationModal({
               validate={createFieldValidator(
                 ConsultationWithClientUpdatePayloadSchema.shape.client.shape.address,
               )}
-              isDisabled={isPending}
+              isDisabled={fieldsDisabled}
             />
           </div>
           <div className={styles.divider} />
@@ -192,25 +239,27 @@ export function EditConsultationModal({
               validate={createFieldValidator(
                 ConsultationWithClientUpdatePayloadSchema.shape.consultation.shape.concern,
               )}
-              isDisabled={isPending}
+              isDisabled={fieldsDisabled}
             />
             <DatePicker
               label="Booking Date"
               value={fields.date}
               onChange={(v) => v && setFields((p) => ({ ...p, date: v }))}
-              isDisabled={isPending}
+              isDisabled={bookingDisabled}
+              description={bookingLockedDescription}
             />
             <TimeField
               label="Booking Time"
               value={fields.time}
               onChange={(v) => v && setFields((p) => ({ ...p, time: new Time(v.hour, v.minute) }))}
-              isDisabled={isPending}
+              isDisabled={bookingDisabled}
+              description={bookingLockedDescription}
             />
             <UserSelect
               users={assigneeOptions}
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
-              isDisabled={isPending}
+              isDisabled={fieldsDisabled}
             />
             {assigneeIds.size > 0 && (
               <UserChips users={assigneeOptions.filter((user) => assigneeIds.has(user.id))} />
@@ -219,11 +268,13 @@ export function EditConsultationModal({
         </div>
         <div className={styles.actions}>
           <Button variant="secondary" type="button" onPress={handleDismiss} isDisabled={isPending}>
-            Cancel
+            {isLocked ? "Close" : "Cancel"}
           </Button>
-          <Button variant="primary" type="submit" isDisabled={isPending} isPending={isPending}>
-            Save
-          </Button>
+          {!isLocked && (
+            <Button variant="primary" type="submit" isDisabled={isPending} isPending={isPending}>
+              Save
+            </Button>
+          )}
         </div>
       </Form>
     </Modal>

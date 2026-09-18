@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { createCaseAction } from "@/features/cases/actions";
 import { CaseCreatePayloadSchema } from "@/features/cases/schemas";
+import { acceptConsultationWithCaseAction } from "@/features/consultations/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
@@ -29,9 +29,8 @@ interface CreateCaseFromConsultationModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: (caseId: string) => void;
-  onCancel?: () => Promise<boolean>;
+  onCancel?: () => void;
   consultationId: string;
-  clientId: string;
   defaultTitle: string;
   users: ActiveUserSummary[];
 }
@@ -58,7 +57,6 @@ export function CreateCaseFromConsultationModal({
   onSuccess,
   onCancel,
   consultationId,
-  clientId,
   defaultTitle,
   users,
 }: CreateCaseFromConsultationModalProps) {
@@ -68,29 +66,11 @@ export function CreateCaseFromConsultationModal({
 
   const { caseTitle, caseType, status, partiesInvolved } = fields;
 
-  async function handleCancel() {
+  function handleCancel() {
     if (isPending) return;
     setFields(resetFields(defaultTitle));
     setAssigneeIds(new Set());
-    if (onCancel) {
-      let reverted: boolean;
-      try {
-        reverted = await onCancel();
-      } catch {
-        toastError(
-          "Failed to revert consultation status",
-          "The consultation status could not be restored. Please review it before trying again.",
-        );
-        return;
-      }
-      if (!reverted) {
-        toastError(
-          "Failed to revert consultation status",
-          "The consultation status could not be restored. Please review it before trying again.",
-        );
-        return;
-      }
-    }
+    onCancel?.();
     onOpenChange(false);
   }
 
@@ -105,22 +85,21 @@ export function CreateCaseFromConsultationModal({
     setIsPending(true);
 
     try {
-      const result = await createCaseAction({
-        client_id: clientId,
+      const result = await acceptConsultationWithCaseAction({
+        consultationId,
         case_title: requiredString(caseTitle),
         case_type: requiredString(caseType),
         status,
         parties_involved: optionalString(partiesInvolved),
-        source_consultation_id: consultationId,
         assignee_ids: Array.from(assigneeIds),
       });
 
       if (result.success && result.data) {
-        toastSuccess("Case created", "The case has been created.");
+        toastSuccess("Case created", "The consultation has been accepted and the case created.");
         setFields(resetFields(defaultTitle));
         setAssigneeIds(new Set());
         onOpenChange(false);
-        onSuccess(result.data.id);
+        onSuccess(result.data.caseId);
       } else {
         toastActionError(result, "create case");
       }

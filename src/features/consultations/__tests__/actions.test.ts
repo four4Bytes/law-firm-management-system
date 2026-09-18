@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getConsultationAssigneeIds,
   getConsultationEditData,
+  hasLinkedCase,
 } from "@/features/consultations/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Consultation } from "@/generated/prisma/browser";
@@ -15,6 +16,7 @@ import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
 
 import {
+  acceptConsultationWithCaseAction,
   changeConsultationStatusAction,
   createConsultationAction,
   createConsultationWithClientAction,
@@ -41,7 +43,7 @@ vi.mock("@/lib/auth-guards", () => ({
     .fn()
     .mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
   assertRecordPermission: vi.fn((session, permission, context) => {
-    if (!can(session.role, permission, context)) throw new Error("Forbidden");
+    if (!can(session.role, permission, context)) throw new ForbiddenError();
     return context;
   }),
 }));
@@ -81,12 +83,18 @@ vi.mock("@/lib/prisma", () => {
   const consultation = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() };
   const consultationAssignment = { findFirst: vi.fn(), findMany: vi.fn() };
   const client = { create: vi.fn(), update: vi.fn() };
-  const caseModel = { findFirst: vi.fn().mockResolvedValue(null) };
+  const caseModel = {
+    findFirst: vi.fn().mockResolvedValue(null),
+    findUnique: vi.fn().mockResolvedValue(null),
+    create: vi.fn(),
+  };
+  const note = { create: vi.fn() };
   const prisma = {
     consultation,
     consultationAssignment,
     client,
     case: caseModel,
+    note,
     $transaction: vi.fn((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
   };
   return { prisma };
@@ -328,6 +336,69 @@ describe("updateConsultationAction", () => {
         description: "Something went wrong on our end. Please try again.",
       },
     });
+  });
+
+  it("refuses booking changes once the consultation is no longer scheduled", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-05-01T10:00:00.000Z"),
+      status: "Completed",
+      assignee_ids: [],
+      assignees: [],
+    });
+
+    expect(await updateConsultationAction(validPayload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Booking date is locked",
+        description:
+          "The booking date can only change while a consultation is scheduled. This consultation is Completed.",
+      },
+    });
+    expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses field edits on an accepted consultation with a linked case", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Accepted",
+      assignee_ids: [],
+      assignees: [],
+    });
+    vi.mocked(hasLinkedCase).mockResolvedValue(true);
+
+    expect(await updateConsultationAction(validPayload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Consultation already accepted",
+        description:
+          "This consultation has been accepted and linked to a case. Update the case instead.",
+      },
+    });
+    expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+
+  it("still allows field edits on an accepted consultation without a linked case", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
+      status: "Accepted",
+      assignee_ids: [],
+      assignees: [],
+    });
+    vi.mocked(hasLinkedCase).mockResolvedValue(false);
+    vi.mocked(prisma.consultation.update).mockResolvedValue(consultationRecord);
+
+    expect(await updateConsultationAction(validPayload)).toEqual({ success: true });
   });
 });
 
@@ -639,13 +710,88 @@ describe("changeConsultationStatusAction", () => {
 
   it("returns an error for an invalid transition", async () => {
     expect(
-      await changeConsultationStatusAction({ consultationId: uuid, status: "Accepted" }),
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Rejected" }),
     ).toEqual({
       success: false,
       error: {
         code: "conflict",
         title: "Invalid status change",
-        description: "Cannot change a consultation from Scheduled to Accepted.",
+        description:
+          "Cannot change a consultation from Scheduled to Rejected. From Scheduled, you can: mark it completed or cancel it.",
+      },
+    });
+  });
+
+  it("refuses a direct accept outside the case flow", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      status: "Completed",
+    });
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Accepted" }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Accept from the consultation page",
+        description:
+          "Accepting creates the linked case in the same step. Open the consultation and click the Accept button to continue.",
+      },
+    });
+    expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+
+  it("allows rebooking a cancelled consultation", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      status: "Cancelled",
+    });
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Scheduled" }),
+    ).toEqual({ success: true });
+    expect(prisma.consultation.update).toHaveBeenCalledWith({
+      where: { id: uuid },
+      data: { status: "Scheduled" },
+      select: { id: true },
+    });
+  });
+
+  it("names rebooking as the only move from a cancelled consultation", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      status: "Cancelled",
+    });
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Completed" }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Invalid status change",
+        description:
+          "Cannot change a consultation from Cancelled to Completed. From Cancelled, you can: rebook it.",
+      },
+    });
+  });
+
+  it("names the closed state when leaving a terminal status", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      status: "Accepted",
+    });
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Completed" }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Invalid status change",
+        description:
+          "Cannot change a consultation from Accepted to Completed. From Accepted, you can: nothing — this consultation is closed.",
       },
     });
   });
@@ -663,5 +809,310 @@ describe("changeConsultationStatusAction", () => {
     expect(statusChange?.[0].userIds).toEqual([assignee1, assignee2]);
     expect(statusChange?.[0].message).toContain("Scheduled");
     expect(statusChange?.[0].message).toContain("Completed");
+  });
+
+  it("saves a rejection reason as a note", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      status: "Completed",
+    });
+
+    expect(
+      await changeConsultationStatusAction({
+        consultationId: uuid,
+        status: "Rejected",
+        reason: "No merit",
+      }),
+    ).toEqual({ success: true });
+    expect(prisma.note.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        content: "Rejection reason: No merit",
+        consultation_id: uuid,
+        created_by_user_id: "u1",
+      }),
+      select: { id: true },
+    });
+  });
+
+  it("saves a cancellation reason as a note", async () => {
+    expect(
+      await changeConsultationStatusAction({
+        consultationId: uuid,
+        status: "Cancelled",
+        reason: "Client no-show",
+      }),
+    ).toEqual({ success: true });
+    expect(prisma.note.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ content: "Cancellation reason: Client no-show" }),
+      select: { id: true },
+    });
+  });
+
+  it("skips the note when rejecting without a reason", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      status: "Completed",
+    });
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Rejected" }),
+    ).toEqual({ success: true });
+    expect(prisma.note.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateConsultationWithClientAction booking lock", () => {
+  it("refuses booking changes once the consultation is no longer scheduled", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-05-01T10:00:00.000Z"),
+      status: "Completed",
+      assignee_ids: [],
+      assignees: [],
+    });
+
+    expect(
+      await updateConsultationWithClientAction({
+        consultation_id: uuid,
+        client_id: uuid,
+        client: { name: "John Doe", phone_number: "09170000001" },
+        consultation: {
+          concern: "Legal advice",
+          booking_datetime: "2024-06-01T10:00:00.000Z",
+          assignee_ids: [],
+        },
+      }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Booking date is locked",
+        description:
+          "The booking date can only change while a consultation is scheduled. This consultation is Completed.",
+      },
+    });
+    expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses field edits on an accepted consultation with a linked case", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: consultationRecord.booking_datetime,
+      status: "Accepted",
+      assignee_ids: [],
+      assignees: [],
+    });
+    vi.mocked(hasLinkedCase).mockResolvedValue(true);
+
+    expect(
+      await updateConsultationWithClientAction({
+        consultation_id: uuid,
+        client_id: uuid,
+        client: { name: "John Doe", phone_number: "09170000001" },
+        consultation: {
+          concern: "Legal advice",
+          booking_datetime: consultationRecord.booking_datetime.toISOString(),
+          assignee_ids: [],
+        },
+      }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Consultation already accepted",
+        description:
+          "This consultation has been accepted and linked to a case. Update the case instead.",
+      },
+    });
+    expect(prisma.consultation.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("acceptConsultationWithCaseAction", () => {
+  const acceptPayload = {
+    consultationId: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    status: "Open" as const,
+  };
+
+  function completedEditData() {
+    return {
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
+      status: "Completed" as const,
+      assignee_ids: [],
+      assignees: [],
+    };
+  }
+
+  const linkedCaseRecord = {
+    id: "case-1",
+    client_id: uuid,
+    created_by_user_id: "u1",
+    status: "Open" as const,
+    created_at: new Date("2024-06-01"),
+    updated_at: new Date("2024-06-01"),
+    source_consultation_id: uuid,
+    case_title: "Smith vs Jones",
+    case_type: "Civil",
+    parties_involved: null,
+  };
+
+  beforeEach(() => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      id: "u1",
+      email: "e",
+      role: Role.Admin,
+      name: "n",
+    });
+    vi.mocked(requirePermission).mockResolvedValue({
+      id: "u1",
+      email: "e",
+      role: Role.Admin,
+      name: "n",
+    });
+    vi.mocked(getConsultationEditData).mockResolvedValue(completedEditData());
+    vi.mocked(hasLinkedCase).mockResolvedValue(false);
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue({
+      ...consultationRecord,
+      status: "Completed",
+    });
+    vi.mocked(prisma.case.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.case.create).mockResolvedValue(linkedCaseRecord);
+  });
+
+  it("returns an error for an invalid payload", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await acceptConsultationWithCaseAction({} as any)).toEqual({
+      success: false,
+      error: {
+        code: "validation",
+        title: "Invalid case data",
+        description: "Some fields are missing or malformed. Review your input and try again.",
+      },
+    });
+  });
+
+  it("returns an error when the consultation is not found", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue(null);
+
+    expect(await acceptConsultationWithCaseAction(acceptPayload)).toEqual({
+      success: false,
+      error: {
+        code: "not_found",
+        title: "Consultation not found",
+        description: "The consultation may have been deleted by another user.",
+      },
+    });
+  });
+
+  it("denies users without consultation update access", async () => {
+    vi.mocked(requireAuth).mockResolvedValueOnce({
+      id: "u2",
+      email: "e",
+      role: Role.Paralegal,
+      name: "n",
+    });
+
+    expect(await acceptConsultationWithCaseAction(acceptPayload)).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: "You don't have permission to perform this action.",
+      },
+    });
+    expect(prisma.case.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses when a case already exists", async () => {
+    vi.mocked(hasLinkedCase).mockResolvedValue(true);
+
+    expect(await acceptConsultationWithCaseAction(acceptPayload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Case already exists",
+        description:
+          "A case already exists for this consultation. Open the linked case from the consultation page instead.",
+      },
+    });
+    expect(prisma.case.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a consultation that is not completed", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...completedEditData(),
+      status: "Scheduled",
+    });
+
+    expect(await acceptConsultationWithCaseAction(acceptPayload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Consultation cannot be accepted",
+        description:
+          "Only completed consultations can be accepted. This consultation is scheduled. Mark it as completed first.",
+      },
+    });
+    expect(prisma.case.create).not.toHaveBeenCalled();
+  });
+
+  it("accepts and creates the case atomically", async () => {
+    expect(await acceptConsultationWithCaseAction(acceptPayload)).toEqual({
+      success: true,
+      data: { caseId: "case-1" },
+    });
+    expect(prisma.consultation.update).toHaveBeenCalledWith({
+      where: { id: uuid },
+      data: { status: "Accepted" },
+      select: { id: true },
+    });
+    expect(prisma.case.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        client_id: uuid,
+        source_consultation_id: uuid,
+        created_by_user_id: "u1",
+      }),
+      select: { id: true },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
+
+  it("heals an accepted consultation that has no case yet", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...completedEditData(),
+      status: "Accepted",
+    });
+    vi.mocked(prisma.consultation.findUnique).mockResolvedValue({
+      ...consultationRecord,
+      status: "Accepted",
+    });
+
+    expect(await acceptConsultationWithCaseAction(acceptPayload)).toEqual({
+      success: true,
+      data: { caseId: "case-1" },
+    });
+  });
+
+  it("maps a duplicate-link race to the friendly conflict", async () => {
+    vi.mocked(prisma.case.findUnique).mockResolvedValue({ ...linkedCaseRecord, id: "existing-1" });
+
+    expect(await acceptConsultationWithCaseAction(acceptPayload)).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Case already exists",
+        description:
+          "A case already exists for this consultation. Open the linked case from the consultation page instead.",
+      },
+    });
   });
 });

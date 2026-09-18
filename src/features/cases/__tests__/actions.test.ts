@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getConsultationEditData } from "@/features/consultations/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Case } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
@@ -95,6 +96,10 @@ vi.mock("../queries", () => ({
   getCaseAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
   getCaseBySourceConsultationId: vi.fn().mockResolvedValue(null),
   getCaseAssigneeIds: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/features/consultations/queries", () => ({
+  getConsultationEditData: vi.fn(),
 }));
 
 type CaseWithAssignments = Case & { caseAssignments: { user_id: string }[] };
@@ -234,6 +239,7 @@ describe("createCaseAction", () => {
     vi.mocked(createCase).mockRejectedValue(
       Object.assign(new Error("Unique constraint"), { code: "P2002" }),
     );
+    vi.mocked(getConsultationEditData).mockResolvedValue(completedConsultation());
 
     const result = await createCaseAction({
       ...validPayload,
@@ -245,10 +251,23 @@ describe("createCaseAction", () => {
       error: {
         code: "conflict",
         title: "Case already exists",
-        description: "A case already exists for this consultation.",
+        description:
+          "A case already exists for this consultation. Open the linked case instead of creating a duplicate.",
       },
     });
   });
+
+  function completedConsultation() {
+    return {
+      id: uuid,
+      client_id: uuid,
+      concern: "Legal advice",
+      booking_datetime: new Date("2024-06-01T10:00:00.000Z"),
+      status: "Completed" as const,
+      assignee_ids: [],
+      assignees: [],
+    };
+  }
 
   it("returns an error when a case already exists for the consultation", async () => {
     vi.mocked(getCaseBySourceConsultationId).mockResolvedValue({ ...caseRecord, id: "existing-1" });
@@ -263,7 +282,90 @@ describe("createCaseAction", () => {
       error: {
         code: "conflict",
         title: "Case already exists",
-        description: "A case already exists for this consultation.",
+        description:
+          "A case already exists for this consultation. Open the linked case instead of creating a duplicate.",
+      },
+    });
+    expect(createCase).not.toHaveBeenCalled();
+  });
+
+  it("creates a case from a completed consultation", async () => {
+    vi.mocked(getCaseBySourceConsultationId).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue(completedConsultation());
+    vi.mocked(createCase).mockResolvedValue({ id: "1" });
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({ success: true, data: { id: "1" } });
+    expect(getConsultationEditData).toHaveBeenCalledWith(uuid);
+  });
+
+  it("returns not_found when the source consultation is missing", async () => {
+    vi.mocked(getCaseBySourceConsultationId).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue(null);
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "not_found",
+        title: "Consultation not found",
+        description: "The consultation may have been deleted by another user.",
+      },
+    });
+    expect(createCase).not.toHaveBeenCalled();
+  });
+
+  it("rejects a case from a scheduled consultation", async () => {
+    vi.mocked(getCaseBySourceConsultationId).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...completedConsultation(),
+      status: "Scheduled",
+    });
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Consultation cannot become a case",
+        description:
+          "Only completed or accepted consultations can become a case. This consultation is scheduled. Mark it as completed first.",
+      },
+    });
+    expect(createCase).not.toHaveBeenCalled();
+  });
+
+  it("rejects a case when the client does not match the consultation", async () => {
+    vi.mocked(getCaseBySourceConsultationId).mockResolvedValue(null);
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...completedConsultation(),
+      client_id: "550e8400-e29b-41d4-a716-446655440099",
+    });
+
+    const result = await createCaseAction({
+      ...validPayload,
+      source_consultation_id: uuid,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Client mismatch",
+        description:
+          "The case must use the same client as the consultation. Change the client on the case or create it without a consultation link.",
       },
     });
     expect(createCase).not.toHaveBeenCalled();

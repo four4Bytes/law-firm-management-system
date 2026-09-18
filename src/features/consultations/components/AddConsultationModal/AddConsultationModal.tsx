@@ -209,6 +209,7 @@ export function AddConsultationModal({
             <Select
               label="Status"
               value={status}
+              description="Completed is for backfilled past meetings and skips the workflow."
               onChange={selectEnumHandler(ConsultationStatus, (value) => {
                 if (
                   value === ConsultationStatus.Scheduled ||

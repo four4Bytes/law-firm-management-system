@@ -17,6 +17,8 @@ import { formatDateTime } from "@/lib/date";
 import { can } from "@/lib/rbac";
 import { toastError } from "@/lib/toast-utils";
 
+import styles from "./ConsultationTable.module.css";
+
 const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
   Scheduled: "info",
   Completed: "done",
@@ -44,15 +46,21 @@ const columns: ColumnDef<ConsultationRow>[] = [
   },
   {
     id: "assignTo",
-    name: "Assign To",
+    name: "Assigned To",
   },
   {
     id: "booking_datetime",
     name: "Date & Time",
     allowsSorting: true,
-    render: (value) => {
+    render: (value, row) => {
       const date = value as Date;
-      return formatDateTime(date);
+      const isOverdue = row.status === ConsultationStatus.Scheduled && date.getTime() < Date.now();
+      return (
+        <span className={styles.dateCell}>
+          {formatDateTime(date)}
+          {isOverdue && <StatusBadge variant="warning">Overdue</StatusBadge>}
+        </span>
+      );
     },
   },
   {

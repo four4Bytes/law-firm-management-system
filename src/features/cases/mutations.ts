@@ -72,6 +72,16 @@ export interface CaseDecisionData {
   decidedByUserId: string;
 }
 
+const CASE_DECISION_NOTE_LABELS: Record<Exclude<CaseStatus, "Open">, string> = {
+  Closed: "Closing reason",
+  Settled: "Settlement reason",
+  Terminated: "Termination reason",
+};
+
+function caseDecisionNoteLabel(status: CaseStatus): string {
+  return CASE_DECISION_NOTE_LABELS[status as Exclude<CaseStatus, "Open">] ?? "Decision reason";
+}
+
 export async function transitionCaseWithNote(data: CaseDecisionData): Promise<{ id: string }> {
   const { caseId, status, reason, decidedByUserId } = data;
   return prisma.$transaction(async (tx) => {
@@ -81,12 +91,7 @@ export async function transitionCaseWithNote(data: CaseDecisionData): Promise<{ 
       select: { id: true },
     });
     if (reason) {
-      const label =
-        status === CaseStatus.Settled
-          ? "Settlement reason"
-          : status === CaseStatus.Terminated
-            ? "Termination reason"
-            : "Closing reason";
+      const label = caseDecisionNoteLabel(status);
       await tx.note.create({
         data: {
           content: `${label}: ${reason}`,

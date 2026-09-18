@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { DecisionModal } from "@/components/ui/DecisionModal/DecisionModal";
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
@@ -14,10 +15,10 @@ import {
   deleteCaseAction,
   getCaseForEditAction,
 } from "@/features/cases/actions";
-import { CaseDecisionModal } from "@/features/cases/components/CaseDecisionModal/CaseDecisionModal";
 import { CaseWorkflowActions } from "@/features/cases/components/CaseWorkflowActions/CaseWorkflowActions";
 import { EditCaseModal } from "@/features/cases/components/EditCaseModal/EditCaseModal";
 import type { CaseEditData, CaseOverviewData } from "@/features/cases/queries";
+import { CaseStatusChangePayloadSchema } from "@/features/cases/schemas";
 import { getClientForEditAction } from "@/features/clients/actions";
 import type { ClientEditData } from "@/features/clients/queries";
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
@@ -323,7 +324,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         Only reopen if litigation has genuinely resumed.
       </ConfirmDialog>
 
-      <CaseDecisionModal
+      <DecisionModal
         isOpen={decisionModal === CaseStatus.Closed}
         onOpenChange={(open) => {
           if (!open) setDecisionModal(null);
@@ -333,10 +334,11 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         reasonLabel="Closing reason"
         reasonPlaceholder="Optional — how was this concluded?"
         confirmLabel="Close case"
+        reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
       />
 
-      <CaseDecisionModal
+      <DecisionModal
         isOpen={decisionModal === CaseStatus.Settled}
         onOpenChange={(open) => {
           if (!open) setDecisionModal(null);
@@ -346,10 +348,11 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         reasonLabel="Settlement reason"
         reasonPlaceholder="Optional — what were the settlement terms?"
         confirmLabel="Settle case"
+        reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
       />
 
-      <CaseDecisionModal
+      <DecisionModal
         isOpen={decisionModal === CaseStatus.Terminated}
         onOpenChange={(open) => {
           if (!open) setDecisionModal(null);
@@ -359,6 +362,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
         reasonLabel="Termination reason"
         reasonPlaceholder="Optional — why is this ending unresolved?"
         confirmLabel="Terminate case"
+        reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
       />
     </div>

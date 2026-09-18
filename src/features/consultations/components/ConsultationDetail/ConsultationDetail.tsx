@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { DecisionModal } from "@/components/ui/DecisionModal/DecisionModal";
 import { Link } from "@/components/ui/Link/Link";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@/components/ui/Tabs/Tabs";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
@@ -17,13 +18,13 @@ import {
   deleteConsultationAction,
   getConsultationForEditAction,
 } from "@/features/consultations/actions";
-import { ConsultationDecisionModal } from "@/features/consultations/components/ConsultationDecisionModal/ConsultationDecisionModal";
 import { ConsultationWorkflowActions } from "@/features/consultations/components/ConsultationWorkflowActions/ConsultationWorkflowActions";
 import { EditConsultationModal } from "@/features/consultations/components/EditConsultationModal/EditConsultationModal";
 import type {
   ConsultationEditData,
   ConsultationOverviewData,
 } from "@/features/consultations/queries";
+import { ConsultationStatusChangePayloadSchema } from "@/features/consultations/schemas";
 import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/AttachmentsTab";
 import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
 import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
@@ -328,7 +329,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         decision.
       </ConfirmDialog>
 
-      <ConsultationDecisionModal
+      <DecisionModal
         isOpen={decisionModal === ConsultationStatus.Rejected}
         onOpenChange={(open) => {
           if (!open) setDecisionModal(null);
@@ -338,10 +339,11 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         reasonLabel="Rejection reason"
         reasonPlaceholder="Optional — why is this being rejected?"
         confirmLabel="Reject"
+        reasonSchema={ConsultationStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
       />
 
-      <ConsultationDecisionModal
+      <DecisionModal
         isOpen={decisionModal === ConsultationStatus.Cancelled}
         onOpenChange={(open) => {
           if (!open) setDecisionModal(null);
@@ -351,6 +353,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         reasonLabel="Cancellation reason"
         reasonPlaceholder="Optional — why is this being cancelled?"
         confirmLabel="Cancel consultation"
+        reasonSchema={ConsultationStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
       />
 

@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import { Form } from "react-aria-components";
+import type { ZodType } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { ConsultationStatusChangePayloadSchema } from "@/features/consultations/schemas";
 import { createFieldValidator, optionalString } from "@/lib/form-utils";
 import { toastError } from "@/lib/toast-utils";
 
-import styles from "./ConsultationDecisionModal.module.css";
+import styles from "./DecisionModal.module.css";
 
-interface ConsultationDecisionModalProps {
+interface DecisionModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   title: string;
@@ -20,10 +20,11 @@ interface ConsultationDecisionModalProps {
   reasonLabel: string;
   reasonPlaceholder: string;
   confirmLabel: string;
+  reasonSchema: ZodType;
   onConfirm: (reason?: string) => Promise<void>;
 }
 
-export function ConsultationDecisionModal({
+export function DecisionModal({
   isOpen,
   onOpenChange,
   title,
@@ -31,8 +32,9 @@ export function ConsultationDecisionModal({
   reasonLabel,
   reasonPlaceholder,
   confirmLabel,
+  reasonSchema,
   onConfirm,
-}: ConsultationDecisionModalProps) {
+}: DecisionModalProps) {
   const [reason, setReason] = useState("");
   const [isPending, setIsPending] = useState(false);
 
@@ -70,7 +72,7 @@ export function ConsultationDecisionModal({
             value={reason}
             onChange={setReason}
             placeholder={reasonPlaceholder}
-            validate={createFieldValidator(ConsultationStatusChangePayloadSchema.shape.reason)}
+            validate={createFieldValidator(reasonSchema)}
             isDisabled={isPending}
             isTextArea
             rows={3}

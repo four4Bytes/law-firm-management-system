@@ -94,7 +94,7 @@ Guards use the throwing helpers (`requireAuth`, `requirePermission`, `requireCon
 - **Confirms**: complete (meeting held?), reject/cancel (with optional reason → saved as a `Note`), reschedule (old → new + notify/restart warning), delete (existing copy). The cancel-confirm button reads "Cancel consultation" so it never duplicates the dismiss "Cancel".
 - **Table**: `Scheduled` rows past their booking show a warning "Overdue" badge beside the date (display only; scheduler notifications unchanged).
 - **Toasts**: every failure carries title + description (`toastActionError` passthrough); network-level throws use "refresh the page and try again" fallbacks.
-- **Modals**: `AddConsultationModal` (status select limited to `Scheduled | Completed`), `EditConsultationModal` (no status control; date/time disabled unless `Scheduled` with inline guidance; read-only banner + linked-case link when accepted-with-case; Save hidden when locked), `CreateCaseFromConsultationModal` (accept flow only; cancel is a plain close), `ConsultationDecisionModal` (reject/cancel + reason), delete `ConfirmDialog` ("Linked cases are kept (unlinked)").
+- **Modals**: `AddConsultationModal` (status select limited to `Scheduled | Completed`), `EditConsultationModal` (no status control; date/time disabled unless `Scheduled` with inline guidance; read-only banner + linked-case link when accepted-with-case; Save hidden when locked), `CreateCaseFromConsultationModal` (accept flow only; cancel is a plain close), `DecisionModal` (shared; reject/cancel + reason), delete `ConfirmDialog` ("Linked cases are kept (unlinked)").
 - **Table/detail**: `StatusBadge` display only; no status select anywhere. Detail shows a `RelatedLinkCard` to the linked case when present.
 
 ## 7. Notifications
@@ -117,7 +117,7 @@ Guards use the throwing helpers (`requireAuth`, `requirePermission`, `requireCon
 - **Q2 — Cancel-after-accept cannot revert.** Fixed by removing the premature flip: the modal opens first, cancel changes nothing, and the revert path is deleted.
 - **Q3 — Edits never lock.** Fixed: booking changes only while `Scheduled` (server + disabled fields + reschedule confirm); `Accepted`-with-case freezes all fields (read-only banner links the case).
 - **Q4 — `createCaseAction` trusts the link.** Fixed: requires an existing `Completed`/`Accepted` source consultation and matching clients (`checkConsultationLink`).
-- **Q5 — No decision rationale.** Fixed: optional reason on reject/cancel via `ConsultationDecisionModal`, stored as a labelled `Note` in-transaction.
+- **Q5 — No decision rationale.** Fixed: optional reason on reject/cancel via the shared `DecisionModal`, stored as a labelled `Note` in-transaction.
 - **Q6 — `TERMINAL_CONSULTATION_STATUSES` is dead code.** Fixed: set removed; terminality derives from the matrix via `isTerminalStatus()`.
 - **Q7 — Create-as-`Completed`.** Kept intentionally for backfill of already-held meetings; documented in §3.
 - **Q8 — `Cancelled` terminality.** Reviewed against real-world flow: cancelling is a scheduling outcome clients routinely reverse, so `Cancelled → Scheduled` (rebook) is allowed with its own button and copy. `Rejected`/`Accepted` stay terminal (decision history / case ownership).

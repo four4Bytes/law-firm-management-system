@@ -60,12 +60,12 @@ Guards use the throwing helpers inside the `try` block; `toActionResponse` maps 
 
 ## 5. Closing flow
 
-`CaseDetail` routes terminal targets to `CaseDecisionModal` (description names which ending applies + optional reason → `Closing reason:` / `Settlement reason:` / `Termination reason:` note). Reopening routes to a confirm dialog ("reopens a concluded matter — history stays intact — only if litigation genuinely resumed"). Reasons are consultation-workflow-style labelled notes on `case_id`, visible in the case Notes tab.
+`CaseDetail` routes terminal targets to the shared `DecisionModal` (description names which ending applies + optional reason → `Closing reason:` / `Settlement reason:` / `Termination reason:` note). Reopening routes to a confirm dialog ("reopens a concluded matter — history stays intact — only if litigation genuinely resumed"). Reasons are consultation-workflow-style labelled notes on `case_id`, visible in the case Notes tab.
 
 ## 6. UI
 
 - **Workflow buttons** (`CaseWorkflowActions`): ghost icon buttons from the matrix — gavel (close), handshake (settle), ban (terminate), rotate (reopen). Empty states render `null`. Never permission-gated client-side; denials surface via toast. `title` + `aria-label`; disabled while pending.
-- **Modals**: `AddCaseModal` and `CreateCaseFromConsultationModal` have no status select (always `Open`); `EditCaseModal` has no status control; `CaseDecisionModal` per outcome + reopen `ConfirmDialog`; delete `ConfirmDialog` (existing copy).
+- **Modals**: `AddCaseModal` and `CreateCaseFromConsultationModal` have no status select (always `Open`); `EditCaseModal` has no status control; shared `DecisionModal` per outcome + reopen `ConfirmDialog`; delete `ConfirmDialog` (existing copy).
 - **Table/detail**: `StatusBadge` display only (`Open` info, `Closed` done, `Settled` info, `Terminated` danger); no status select anywhere.
 
 ## 7. Notifications

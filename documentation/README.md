@@ -11,5 +11,7 @@
 | [Deployment](./deployment.md)           | Release process, Docker, Vercel, storage encryption, reminders                    |
 | [RBAC](./RBAC.md)                       | Role Based Access Control (canonical)                                             |
 | [Notifications](./notifications.md)     | Notification & reminder pipelines (canonical)                                     |
+| [Testing](./testing.md)                 | Test conventions, fixtures, and helpers (see also `AGENTS.md` §12)                |
+| [Seeding](./seeding.md)                 | Seed scenarios: which rows demonstrate what                                       |
 
 For a quickstart, see [Getting Started](./getting-started.md).

@@ -1,11 +1,34 @@
-# AGENTS.md - Law Firm Management System
+# AGENTS.md — Law Firm Management System
+
+Conventions for AI coding agents working in this repo. Read this file before writing code, and follow it over general defaults.
+
+## Contents
+
+1. [Working Agreements](#1-working-agreements)
+2. [Commands](#2-commands)
+3. [Tech Stack](#3-tech-stack)
+4. [Architecture](#4-architecture)
+5. [Styling](#5-styling)
+6. [Components](#6-components)
+7. [Data Layer & Asset Storage](#7-data-layer--asset-storage)
+8. [Security & Boundary Safety](#8-security--boundary-safety)
+9. [Error Handling & Logging](#9-error-handling--logging)
+10. [Async](#10-async)
+11. [TypeScript](#11-typescript)
+12. [Testing](#12-testing)
+13. [General](#13-general)
+14. [Documentation (TSDoc)](#14-documentation-tsdoc)
+
+## 1. Working Agreements
 
 - Never commit, push, or create PRs unless explicitly asked.
 - Read the actual file first. Don't assume you know what's in it.
 - After making changes, run `pnpm validate` + `pnpm build` and loop (fix issues, re-run until passing).
-- Stop validating/linting/building on trivial changes like DOCS, trivial CSS (e.g. spacing, colors on existing rules), TEXT, maybe format. Do NOT skip validation for substantive CSS changes (new components, layout changes, structural modifications).
+- Stop validating/linting/building on trivial changes like DOCS, trivial CSS (e.g. spacing, colors
+  on existing rules), TEXT, maybe format. Do NOT skip validation for substantive CSS changes (new
+  components, layout changes, structural modifications).
 
-## Commands
+## 2. Commands
 
 - `pnpm dev` - dev server
 - `pnpm build` - prisma:generate + next build
@@ -21,184 +44,310 @@
 - `pnpm prisma:seed` - `tsx prisma/seed.ts`
 - `pnpm prisma:studio` - Prisma Studio
 - `pnpm prepare` - husky + prisma generate (runs on install)
-- `direnv allow` (keeps shell) / `nix develop -c $SHELL` — pinned devShell via `flake.nix` (`flake.lock`); bare `nix develop` spawns bash
-- `nix fmt` / `nix flake update` - format `flake.nix` / bump `nixpkgs`
+- `direnv allow` (keeps shell) / `nix develop -c $SHELL` — pinned devShell via `flake.nix`
 
-## Tech Stack
+## 3. Tech Stack
 
 - Framework: Next.js 16 (App Router), React 19 + React Compiler.
 - Language: TypeScript strict, `@/*` alias for `./src/*`.
-- Styling: CSS Modules + design tokens (`src/styles/variables.css` primitives → semantic tokens). `clsx` for composition. Never inline styles.
-- UI: `react-aria-components` — wrap Aria primitives in local components (e.g. `Button.tsx` wraps `Button as AriaButton`); extend Aria props, apply CSS modules via `clsx`, forward external `className`.
+- Styling: CSS Modules + design tokens (`src/styles/variables.css` primitives → semantic tokens).
+  `clsx` for composition. Never inline styles.
+- UI: `react-aria-components` — wrap Aria primitives in local components (e.g. `Button.tsx` wraps
+  `Button as AriaButton`); extend Aria props, apply CSS modules via `clsx`, forward external
+  `className`.
 - Icons: `react-icons` (subpath imports like `react-icons/fa6`).
 - Auth: NextAuth v5 beta (`next-auth@5.0.0-beta.31`) with Google OAuth, JWT sessions, PrismaAdapter.
-- Data: Prisma 7 + PostgreSQL via `@prisma/adapter-pg`. Adapter pattern: `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`. Generated client at `src/generated/prisma/`. Singleton at `src/lib/prisma.ts`. Prisma config at `prisma.config.ts`.
-- Storage: `@aws-sdk/client-s3` api compatible for managing document storage attachments via secure, server-generated presigned URLs.
+- Data: Prisma 7 + PostgreSQL via `@prisma/adapter-pg`. Adapter pattern:
+  `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`. Generated client at
+  `src/generated/prisma/`. Singleton at `src/lib/prisma.ts`. Prisma config at `prisma.config.ts`.
+- Storage: `@aws-sdk/client-s3` api compatible for managing document storage attachments via secure,
+  server-generated presigned URLs.
 - Package Manager: pnpm.
-- Dev Environment: Nix flake (`flake.nix` + `flake.lock`) — `nix develop` gives pinned `nodejs_22`, pnpm, prisma, docker per system via `genAttrs`. Non-Nix contributors install Node/pnpm manually.
+- Dev Environment: Nix flake (`flake.nix` + `flake.lock`) — `nix develop` gives pinned `nodejs_22`,
+  pnpm, prisma, docker per system via `genAttrs`. Non-Nix contributors install Node/pnpm manually.
 
-## Architecture
+## 4. Architecture
 
 - `src/app/(auth)/page.tsx` — unauthenticated login page.
-- `src/app/(dashboard)/` — authenticated section (Sidebar + Header shared layout). Dashboard routes: `dashboard/`, `case/`, `consultation/`, `user/`.
-- API Routes — Restricted strictly to framework orchestration (`src/app/api/auth/[...nextauth]/route.ts`) and scheduled job webhooks (e.g. `src/app/api/cron/*/route.ts`). Do not create custom REST endpoints for application data under any circumstances.
-- Server Actions (`actions.ts`) — The primary mechanism for all data mutation, form submission, and infrastructure execution (including generating storage presigned URLs). Every structural modification to application state must route through a Server Action.
-- `src/features/` — domain logic organized by feature (`auth/`, `users/`, `consultations/`, `cases/`, etc.).
-  - Each domain contains `actions.ts` (orchestration, validation, and authorization), `queries.ts` (Prisma read operations), and `mutations.ts` (Prisma write operations).
+- `src/app/(dashboard)/` — authenticated section (Sidebar + Header shared layout). Dashboard routes:
+  `dashboard/`, `case/`, `consultation/`, `user/`, `settings/`, `audit/`.
+- API Routes — Restricted strictly to framework orchestration
+  (`src/app/api/auth/[...nextauth]/route.ts`) and scheduled job webhooks (e.g.
+  `src/app/api/cron/*/route.ts`). Do not create custom REST endpoints for application data under any
+  circumstances.
+- Server Actions (`actions.ts`) — The primary mechanism for all data mutation, form submission, and
+  infrastructure execution (including generating storage presigned URLs). Every structural
+  modification to application state must route through a Server Action.
+- `src/features/` — domain logic organized by feature (`auth/`, `users/`, `consultations/`,
+  `cases/`, etc.).
+  - Each domain contains `actions.ts` (orchestration, validation, and authorization), `queries.ts`
+    (Prisma read operations), and `mutations.ts` (Prisma write operations).
   - Feature-specific components live in `src/features/{domain}/components/`.
-- `src/components/{ui,layout}/` — shared primitives (ui) and app chrome (layout). Domain-agnostic; reusable across features.
-- `src/lib/` — shared utilities: `prisma.ts` (singleton), `auth.ts` (NextAuth config), `s3.ts` (S3 client instance initialization), etc.
+- `src/components/{ui,layout}/` — shared primitives (ui) and app chrome (layout). Domain-agnostic;
+  reusable across features.
+- `src/lib/` — shared utilities: `prisma.ts` (singleton), `auth.ts` (NextAuth config), `s3.ts` (S3
+  client instance initialization), etc.
+- `src/test-utils/` — test-only shared code (fixtures, auth setup). Never imported by production code.
 - `src/styles/` — design tokens (`variables.css`: primitives → semantic tokens).
 - `src/stories/` — Storybook stories for UI components, imported via `@/` aliases.
 - Docker Compose for local Postgres: `docker compose up -d`.
 
-## Conventions
+## 5. Styling
 
-### Styling
+### 5.1 Design tokens
 
 - Token system: primitives (`--raw-*`) → semantic tokens (`--color-*`, `--space-*`, etc.).
+- Prefer semantic tokens from `variables.css`. Hardcoded values are fine for one-off cases
+  (single-use spacing, border-radius, etc.) — creating a variable for a value used only once is
+  overengineering. Extract to `variables.css` when the same value appears twice or more.
+
+### 5.2 CSS Modules
+
 - Style exclusively via CSS Modules, imported as `styles` and composed with `clsx`.
 - Never use inline styles (except storybooks) or global element selectors.
-- Nesting in CSS Modules must mirror the component or document hierarchy (parent element nests children).
+- Nesting in CSS Modules must mirror the component or document hierarchy (parent element nests
+  children).
 - Accept and forward external `className` props for overrides.
-- Prefer semantic tokens from `variables.css`. Hardcoded values are fine for one-off cases (single-use spacing, border-radius, etc.) — creating a variable for a value used only once is overengineering. Extract to `variables.css` when the same value appears twice or more.
 
-- Responsives:
-- Desktop first aproach CSS - mobile will be added later.
-- Use flexbox whenever possible - avoid grid.
+### 5.3 Responsive
+
+- Desktop-first approach CSS — mobile will be added later.
+- Use flexbox whenever possible — avoid grid.
 - `@media` only at `48rem` (use literal `rem` — CSS variables don't work in media queries).
-- Avoid the use JS viewport detection or conditional mobile/desktop components for layout — use CSS where possible.
+- Avoid the use of JS viewport detection or conditional mobile/desktop components for layout — use
+  CSS where possible.
 
-### Components
+## 6. Components
 
 - Always scan and use existing components from `components/` first.
 - Scan `src/lib/` for existing utilities before creating new types/functions to avoid duplication.
 - Interactive/browser API components: start with `"use client"`.
 - Co-locate in `src/components/{category}/{ComponentName}/` — component, CSS module.
+- Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly
+  shared/reusable components in `src/components/ui/`.
 - Stories live in `src/stories/`, imported via `@/` aliases (no relative `./` imports).
-- Wrapping Aria components pattern: extend Aria props interface, add local variants/props, use explicit interface.
-- Extract component props into a named interface extending the Aria type when adding local variants/props — keeps function signatures terse and consistent.
+- Wrapping Aria components pattern: extend Aria props interface, add local variants/props, use
+  explicit interface.
+- Extract component props into a named interface extending the Aria type when adding local
+  variants/props — keeps function signatures terse and consistent.
 
-### Data Layer & Asset Storage
+## 7. Data Layer & Asset Storage
+
+### 7.1 Feature slices
 
 - Each feature domain (`src/features/{domain}/`) owns its data logic split across three files:
-  - `actions.ts` — Next.js Server Actions (`"use server"`). This layer acts as the security and evaluation perimeter. It enforces authentication, evaluates role authorization, validates inputs via Zod schemas, and orchestrates calls to underlying mutations or queries.
-  - `queries.ts` — Prisma read operations (`findUnique`, `findMany`, aggregate, etc.). Plain async functions (no `"use server"`).
-  - `mutations.ts` — Prisma write operations (`create`, `update`, `upsert`, `delete`, etc.). Plain async functions.
-- Execution Protocol: Components must never invoke `queries.ts` or `mutations.ts` directly if the action requires data filtering or mutation safety. Components call Server Actions to enforce authorization and schema validation boundaries. Server Components may call optimized, plain query functions from `queries.ts` exclusively for read operations where user session parameters are handled explicitly.
-- Binary Document Management: File uploads must never stream through or be parsed by the Next.js runtime environment. When a client needs to save an item (e.g., a case file artifact):
-  1. The client invokes a secure Server Action requesting a upload target.
-  2. The Server Action validates permissions and generates an S3 presigned URL via `@aws-sdk/client-s3`.
-  3. The client receives the URL and executes a native client-side `fetch` browser payload directly to the storage bucket.
-- Cascade document cleanup: Deleting a Case, Consultation, or Task must also purge its attached S3 document blobs, not just the cascaded `Document` rows. The database is the source of truth, so each delete mutation deletes the `Document` rows (via `onDelete: Cascade`) **before** calling `deleteDocumentFiles` (in `src/lib/storage-cleanup.ts`). `deleteDocumentFiles` is best-effort and idempotent: it deletes each S3 object and logs but does not propagate individual failures, because the records are already gone. This guarantees no dangling `Document` rows pointing at missing files. Any S3 objects left behind by a cleanup failure are harmless orphans reclaimed by the storage GC sweep (`src/app/api/cron/storage-gc`). Never reverse the order — deleting storage first would leave `Document` rows referencing missing blobs.
+  - `actions.ts` — Next.js Server Actions (`"use server"`). This layer acts as the security and
+    evaluation perimeter. It enforces authentication, evaluates role authorization, validates inputs
+    via Zod schemas, and orchestrates calls to underlying mutations or queries.
+  - `queries.ts` — Prisma read operations (`findUnique`, `findMany`, aggregate, etc.). Plain async
+    functions (no `"use server"`).
+  - `mutations.ts` — Prisma write operations (`create`, `update`, `upsert`, `delete`, etc.). Plain
+    async functions.
+
+### 7.2 Execution protocol
+
+- Components must never invoke `queries.ts` or `mutations.ts` directly if the action requires data
+  filtering or mutation safety. Components call Server Actions to enforce authorization and schema
+  validation boundaries. Server Components may call optimized, plain query functions from
+  `queries.ts` exclusively for read operations where user session parameters are handled explicitly.
 - Never import `prisma` directly outside of `queries.ts` or `mutations.ts`.
-- Prisma client vs browser entry: Any module reachable by client components (UI components, and Zod schemas referenced at runtime in the browser) MUST import enums/models from `@/generated/prisma/browser`, never `@/generated/prisma/client`. The `client` entry imports `node:` builtins and breaks `next build` (Turbopack `node:module` error) if pulled into the client bundle.
-- Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly shared/reusable components in `src/components/ui/`.
-- Client-side role checks: Use `can(userRole, permission, access?)` from `@/lib/rbac` for UI presentation (show/hide tabs, buttons, columns). This is a pure boolean check — never use it for enforcement. All security boundaries must remain server-side in Server Actions via `requirePermission(...)` (context-free cells) or `requireAuth()` + `can(...)` (record-scoped cells).
-- RBAC actions: Do **not** hide per-record action buttons (Edit, Delete, View, etc.) with client-side RBAC checks. Always render the action and let the Server Action return an `ActionStatusResponse`; surface the result via the shared helpers in `src/lib/toast-utils.ts` (e.g. `toastActionError`). The server owns access-context decisions, and users should see why an action failed rather than having buttons silently disappear. Reserve client-side `can()` gating for coarse, context-free UI (e.g. tabs or Add buttons), not row actions. If hiding an action is clearly better UX in a specific case, flag it.
-- Read permission gating: For button/row actions (View/Open), follow the same rule: always render them and surface denials via the toast helpers (`toastDenied()`). For navigation links to inaccessible pages, also render the link; the destination should show an empty body with an “Access denied” message using the `DashboardError` / access-denied pattern.
-- Lifecycle (the second axis): RBAC answers _who may act_; record state answers _when_. Transition tables live in `src/lib/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`); feature `status.ts` modules re-export them plus entity copy (`isValid*Transition`, `describe*NextSteps`). Never add status conditions to the RBAC matrix. Enforce legality server-side via the transition evaluators (`canTransition`, `isTerminalStatus`), and sub-data locks via `isSubdataLocked(...)` (throws `RecordLockedError` → `locked` envelope). Spec: `documentation/lifecycle.md`.
 - Scan `src/lib/` for existing utilities before creating new types/functions to avoid duplication.
 
-### Testing
+### 7.3 Binary document management
 
-- Test files live in `__tests__/` directories co-located with their feature/component (Next.js convention).
-  Example: `src/features/users/__tests__/queries.test.ts`
-- Naming: `*.test.ts` for logic, `*.test.tsx` for components.
-- Mock `@/lib/prisma` via `vi.mock` for data-layer tests. Use Prisma types for mock values (no `as any`).
+- File uploads must never stream through or be parsed by the Next.js runtime environment. When a
+  client needs to save an item (e.g., a case file artifact):
+  1. The client invokes a secure Server Action requesting an upload target.
+  2. The Server Action validates permissions and generates an S3 presigned URL via
+     `@aws-sdk/client-s3`.
+  3. The client receives the URL and executes a native client-side `fetch` browser payload directly
+     to the storage bucket.
+- Cascade document cleanup: Deleting a Case, Consultation, or Task must also purge its attached S3
+  document blobs, not just the cascaded `Document` rows. The database is the source of truth, so
+  each delete mutation deletes the `Document` rows (via `onDelete: Cascade`) **before** calling
+  `deleteDocumentFiles` (in `src/lib/storage-cleanup.ts`). `deleteDocumentFiles` is best-effort and
+  idempotent: it deletes each S3 object and logs but does not propagate individual failures, because
+  the records are already gone. This guarantees no dangling `Document` rows pointing at missing
+  files. Any S3 objects left behind by a cleanup failure are harmless orphans reclaimed by the
+  storage GC sweep (`src/app/api/cron/storage-gc`). Never reverse the order — deleting storage first
+  would leave `Document` rows referencing missing blobs.
 
-### Security & Boundary Safety
+### 7.4 Prisma client entries
 
-- Input Validation with Zod: Every exported Server Action must validate its input via `z.safeParse()` before executing any business logic. Do not declare schemas inside action files; import them from feature-specific schema files (e.g., `@/features/cases/schemas`) so they can be reused by client forms.
-- String Hygiene & Parsing: Ensure all string parameters in schemas call `.trim().min(1)` and include a `.max()` constraint matching database limits to prevent malicious database exhaustion. Reject whitespace-only values.
-  - Strict Parameter Assurances: Validate all structural parameters meticulously. Ensure IDs call `.uuid()` or `.cuid()`, and enforce strictly defined sets using `z.enum(PrismaEnum)` where `PrismaEnum` is the generated const-object enum (e.g. `TaskStatus` from `@/generated/prisma/browser`). Never accept raw string inputs to cast them inside the function body via `as`.
-- Action Response Convention:
-  - Read actions (paginated queries, single-record fetches): Return data directly
-    (e.g., `Promise<{ rows: T[]; nextCursor: string | null }>`). Let framework error
-    boundaries handle failures — throw for unrecoverable errors. No wrapper needed.
-  - Write actions (create, update, delete): Wrap execution in try-catch and return
-    `Promise<ActionStatusResponse>`. Use `ActionDataResponse<T>` when returning
-    created/updated data alongside the status. This lets the client display inline
-    error messages (toasts) without navigating away.
-- Never allow raw server exceptions to leak to the client. For writes, catch and
-  return structured errors; for reads, the framework error boundary is sufficient.
-- Centralized Auth Guards: Invoke unified, centralized protection functions at the very top of the execution flow: `requireAuth()` (verified session) or `requirePermission(...permissions)` (context-free RBAC cells). Both throw typed errors (`UnauthorizedError`, `ForbiddenError`) — there is no non-throwing variant. For write actions that return `ActionStatusResponse`, call the throwing guards inside the action's existing `try` block and let `toActionResponse(...)` map `UnauthorizedError` → the unauthorized envelope ("Session expired") and `ForbiddenError` → the forbidden envelope ("Access denied"). Record-scoped cells are checked per record via `assertRecordPermission(session, permission, accessContext)` (throws `"Forbidden"`) or `can(role, permission, accessContext)` (boolean) after loading the context. Do not write inline, ad-hoc `auth()` verification logic inside individual actions.
-- Typed Payloads over Raw FormData: Client components must pass clean, typed objects to actions instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client side before triggering the transition boundary. Shared normalization/validation helpers live in `src/lib/form-utils.ts` (`optionalString`, `requiredString`, `toDateValue`, `selectEnumHandler`, `keysToSet`, `createFieldValidator`) and the `useModalForm` hook — reuse these instead of ad-hoc trimming or `as` casts.
-- Modal form validation: Use React Aria's default `validationBehavior="native"`. Wrap a modal's fields + actions in a RAC `<Form onSubmit={handleSubmit}>` and make the submit button `type="submit"` (Cancel must be `type="button"`). On submit RAC runs each field's `validate`, blocks `onSubmit`, and shows inline errors only when invalid — errors never appear on open. **Never use `validationBehavior="aria"`**: it renders a required field's error on mount (before any interaction), which is the premature-error regression. Keep the submit button enabled so RAC surfaces inline errors on submit; rely on `useModalForm`'s `schema` guard + toast for the server-side failure path. Define user-facing validation messages in the Zod schemas via the shared builders in `form-utils` (`requiredText`, `optionalText`, `positiveNumber`, `requiredEnum`, `emailText`) — never surface raw Zod messages like "Invalid input: expected string, received undefined".
+- Any module reachable by client components (UI components, and Zod schemas referenced at runtime in
+  the browser) MUST import enums/models from `@/generated/prisma/browser`, never
+  `@/generated/prisma/client`. The `client` entry imports `node:` builtins and breaks `next build`
+  (Turbopack `node:module` error) if pulled into the client bundle.
 
-### Error Handling & Logging
+### 7.5 Client-side role checks (presentation only)
 
-- Structured envelope: write actions never return raw string errors. Failures
-  use `ActionStatusResponse.error = { code, title, description }` from
-  `src/lib/action-response.ts`. `description` is mandatory — every user-facing
-  failure explains what happened and what to do next.
-- Factory presets only: build failures with `actionForbidden()`,
-  `actionNotFound(entity)`, `actionInvalid(entity)`, `actionConflict(title, description)`,
-  `actionLocked()`, `actionUnauthorized()` from `src/lib/action-response.ts`.
-  Hand-rolled `{ success: false, error: ... }` literals in actions are banned.
-- Single catch path: route caught exceptions through
-  `toActionResponse(error, operation, conflict?)` from `src/lib/errors.ts`. It
-  classifies known errors (`ForbiddenError`, `UnauthorizedError`,
-  `TaskLockedError`, Prisma `P2002`) into presets, logs unclassified causes via
-  `src/lib/logger.ts` (`logError(context, error)`), and returns a sanitized
-  unknown envelope. Bare `catch {}` that discards the error is banned.
-- Log/client split: full error details stay in server logs; the client only
-  ever receives the sanitized envelope copy. Never send stack traces or Prisma
-  internals through responses.
-- Toast helpers: client components enqueue toasts exclusively via
-  `src/lib/toast-utils.ts` (`toastSuccess`, `toastInfo`, `toastError`,
-  `toastActionError(response, operation)`, `toastDenied`, `toastNotFound`).
-  Ad-hoc `queue.add(...)` calls in feature code are banned. Every toast carries
-  both a title and a description; timeouts are standardized by the helpers.
-- Copy style: titles are short sentence-case labels without a trailing period
-  ("Failed to update case"); descriptions are complete sentences ending with a
-  period ("The case may have been deleted by another user.").
-- Reads remain throwing: read actions throw (`ForbiddenError` digests drive the
-  access-denied boundary); only write actions return envelopes.
+- Use `can(userRole, permission, access?)` from `@/lib/rbac` for UI presentation (show/hide tabs,
+  buttons, columns). This is a pure boolean check — never use it for enforcement. All security
+  boundaries must remain server-side in Server Actions via `requirePermission(...)` (context-free
+  cells) or `requireAuth()` + `can(...)` (record-scoped cells).
+- RBAC actions: Do **not** hide per-record action buttons (Edit, Delete, View, etc.) with
+  client-side RBAC checks. Always render the action and let the Server Action return an
+  `ActionStatusResponse`; surface the result via the shared helpers in `src/lib/toast-utils.ts`
+  (e.g. `toastActionError`). The server owns access-context decisions, and users should see why an
+  action failed rather than having buttons silently disappear. Reserve client-side `can()` gating for
+  coarse, context-free UI (e.g. tabs or Add buttons), not row actions. If hiding an action is clearly
+  better UX in a specific case, flag it.
+- Read permission gating: For button/row actions (View/Open), follow the same rule: always render
+  them and surface denials via the toast helpers (`toastDenied()`). For navigation links to
+  inaccessible pages, also render the link; the destination should show an empty body with an
+  “Access denied” message using the `DashboardError` / access-denied pattern.
 
-### Async & Error Handling
+### 7.6 Lifecycle (the second axis)
 
-- Default to `async/await` with `try...catch` for asynchronous code. Preserve or use `.then()/.catch()` only when it is the idiomatic, clearer, or required approach for the specific code pattern.
-- Never let a promise rejection go unhandled. In client components, surface failures through the shared toast helpers in `src/lib/toast-utils.ts` (`toastError`, `toastActionError`, etc.) or appropriate error UI. In Server Actions, follow the existing Action Response Convention (catch and return a structured `ActionStatusResponse`).
-- Inside `useEffect`, wrap async work in a locally-scoped `async function` and invoke it (use `void` for fire-and-forget calls to keep intent explicit).
+- RBAC answers _who may act_; record state answers _when_. Transition tables live in
+  `src/lib/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`);
+  feature `status.ts` modules re-export them plus entity copy (`isValid*Transition`,
+  `describe*NextSteps`). Never add status conditions to the RBAC matrix. Enforce legality server-side
+  via the transition evaluators (`canTransition`, `isTerminalStatus`), and sub-data locks via
+  `isSubdataLocked(...)` (throws `RecordLockedError` → `locked` envelope). Spec:
+  `documentation/lifecycle.md`.
 
-### General
+## 8. Security & Boundary Safety
 
-- Idiomatic, modular code is the top priority in this project, not a collection of hacks and workarounds.
-- Named exports only — no default exports, except for Next.js special files (`page.tsx`, `layout.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`, `route.tsx` etc.) which require a default export. Use inline `export default function` for these files.
-- PascalCase components/types; camelCase variables/functions/files (component dirs are PascalCase).
-- No inline `//` comments unless explaining a non-obvious decision. TSDoc on `src/lib/` helpers is the explicit exception (see Documentation).
-- Prisma schema: `snake_case` fields, `PascalCase` models/enums.
-- Husky: pre-commit runs `lint-staged` (Prettier + ESLint on staged files); pre-push runs `pnpm validate && pnpm test`.
+### 8.1 Input validation
 
-### Documentation (TSDoc)
+- Every exported Server Action must validate its input via `z.safeParse()` before executing any
+  business logic. Do not declare schemas inside action files; import them from feature-specific
+  schema files (e.g., `@/features/cases/schemas`) so they can be reused by client forms.
+- String hygiene: ensure all string parameters in schemas call `.trim().min(1)` and include a
+  `.max()` constraint matching database limits to prevent malicious database exhaustion. Reject
+  whitespace-only values.
+- Strict parameter assurances: validate all structural parameters meticulously. Ensure IDs call
+  `.uuid()` or `.cuid()`, and enforce strictly defined sets using `z.enum(PrismaEnum)` where
+  `PrismaEnum` is the generated const-object enum (e.g. `TaskStatus` from
+  `@/generated/prisma/browser`). Never accept raw string inputs to cast them inside the function
+  body via `as`.
 
-- TSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`, plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
-- Use `@param`, `@returns`, and `@typeParam` where applicable; keep descriptions terse and within the 100-char print width (Prettier reformats).
-- This convention is **scoped to `src/lib/` only**. Do not add TSDoc to feature or component code — it adds noise. Inline `//` comments remain banned (see General).
+### 8.2 Action response convention
 
----
+- Read actions (paginated queries, single-record fetches): return data directly (e.g.,
+  `Promise<{ rows: T[]; nextCursor: string | null }>`). Let framework error boundaries handle
+  failures — throw for unrecoverable errors. No wrapper needed.
+- Write actions (create, update, delete): wrap execution in try-catch and return
+  `Promise<ActionStatusResponse>`. Use `ActionDataResponse<T>` when returning created/updated data
+  alongside the status. This lets the client display inline error messages (toasts) without
+  navigating away.
+- Never allow raw server exceptions to leak to the client. For writes, catch and return structured
+  errors; for reads, the framework error boundary is sufficient.
 
-## TypeScript Coding Standards
+### 8.3 Auth guards
 
-### Parameter Typing and Readability
+- Invoke unified, centralized protection functions at the very top of the execution flow:
+  `requireAuth()` (verified session) or `requirePermission(...permissions)` (context-free RBAC
+  cells). Both throw typed errors (`UnauthorizedError`, `ForbiddenError`) — there is no non-throwing
+  variant. For write actions that return `ActionStatusResponse`, call the throwing guards inside the
+  action's existing `try` block and let `toActionResponse(...)` map `UnauthorizedError` → the
+  unauthorized envelope ("Session expired") and `ForbiddenError` → the forbidden envelope ("Access
+  denied"). Record-scoped cells are checked per record via `assertRecordPermission(session,
+permission, accessContext)` (throws `"Forbidden"`) or `can(role, permission, accessContext)`
+  (boolean) after loading the context. Do not write inline, ad-hoc `auth()` verification logic
+  inside individual actions.
 
-- Ban Destructured Inline Types: Never mix inline type declarations and object destructuring within function parameter signatures (e.g., `({ a, b }: { a: string; b: string })`).
-- Parameter Handling for Standard Functions: For standard utility functions and business logic, pass complex inputs as a single unified object argument (e.g., `payload: DocumentPayload`) and destructure it within the first lines of the function body.
-- Component Props Exception: Standard React Functional Components are exempt from the parameters-as-payload formatting rule. Component signatures may use inline destructuring of explicitly typed prop interfaces (e.g., `export function Button({ variant, children, ...props }: ButtonProps)`) to facilitate direct application of rest parameter extraction and prop forwarding.
-- Inline Type Scope: Simple inline object types are permitted only if the object consists of 3 or fewer primitive properties, is not destructured in the signature, and is scoped entirely within a non-exported utility helper.
+### 8.4 Payloads and forms
 
-### Domain-Driven Naming (Anti-Nominal)
+- Typed payloads over raw FormData: client components must pass clean, typed objects to actions
+  instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client
+  side before triggering the transition boundary. Shared normalization/validation helpers live in
+  `src/lib/form-utils.ts` (`optionalString`, `requiredString`, `toDateValue`, `selectEnumHandler`,
+  `keysToSet`, `createFieldValidator`) and the `useModalForm` hook — reuse these instead of ad-hoc
+  trimming or `as` casts.
+- Modal form validation: use React Aria's default `validationBehavior="native"`. Wrap a modal's
+  fields + actions in a RAC `<Form onSubmit={handleSubmit}>` and make the submit button
+  `type="submit"` (Cancel must be `type="button"`). On submit RAC runs each field's `validate`,
+  blocks `onSubmit`, and shows inline errors only when invalid — errors never appear on open. **Never
+  use `validationBehavior="aria"`**: it renders a required field's error on mount (before any
+  interaction), which is the premature-error regression. Keep the submit button enabled so RAC
+  surfaces inline errors on submit; rely on `useModalForm`'s `schema` guard + toast for the
+  server-side failure path. Define user-facing validation messages in the Zod schemas via the shared
+  builders in `form-utils` (`requiredText`, `optionalText`, `positiveNumber`, `requiredEnum`,
+  `emailText`) — never surface raw Zod messages like "Invalid input: expected string, received
+  undefined".
 
-- No Function-Scoped Type Names: Do not name interfaces or types after a single specific function (avoid `ProcessDataArgs`).
-- Focus on the Data Shape: Name types after the domain data or payload they represent (e.g., `DocumentPayload`, `UserSession`). This ensures types are structurally reusable across database utilities, API boundaries, and UI components.
+## 9. Error Handling & Logging
 
-### Boundary Type Strictness
+### 9.1 Structured envelopes
 
-- Explicit Returns at Boundaries: Always explicitly declare return types on public API endpoints, exported Server Actions, and shared hooks (e.g., `Promise<ActionStatusResponse>` for write actions). This protects contracts and speeds up compilation times.
-- Implicit Internal Returns: Allow TypeScript's native type inference engine to handle return types for internal, unexported helper functions or simple utility chains.
+- Write actions never return raw string errors. Failures use `ActionStatusResponse.error = { code,
+title, description }` from `src/lib/action-response.ts`. `description` is mandatory — every
+  user-facing failure explains what happened and what to do next.
+- Factory presets only: build failures with `actionForbidden()`, `actionNotFound(entity)`,
+  `actionInvalid(entity)`, `actionConflict(title, description)`, `actionLocked()`,
+  `actionUnauthorized()` from `src/lib/action-response.ts`. Hand-rolled `{ success: false, error: ...
+}` literals in actions are banned.
+- Reads remain throwing: read actions throw (`ForbiddenError` digests drive the access-denied
+  boundary); only write actions return envelopes.
 
-### Code Patterns
+### 9.2 Catch path and logging
+
+- Single catch path: route caught exceptions through `toActionResponse(error, operation, conflict?)`
+  from `src/lib/errors.ts`. It classifies known errors (`ForbiddenError`, `UnauthorizedError`,
+  `TaskLockedError`, Prisma `P2002`) into presets, logs unclassified causes via `src/lib/logger.ts`
+  (`logError(context, error)`), and returns a sanitized unknown envelope. Bare `catch {}` that
+  discards the error is banned.
+- Log/client split: full error details stay in server logs; the client only ever receives the
+  sanitized envelope copy. Never send stack traces or Prisma internals through responses.
+
+### 9.3 Toasts and copy style
+
+- Toast helpers: client components enqueue toasts exclusively via `src/lib/toast-utils.ts`
+  (`toastSuccess`, `toastInfo`, `toastError`, `toastActionError(response, operation)`, `toastDenied`,
+  `toastNotFound`). Ad-hoc `queue.add(...)` calls in feature code are banned. Every toast carries both
+  a title and a description; timeouts are standardized by the helpers.
+- Copy style: titles are short sentence-case labels without a trailing period ("Failed to update
+  case"); descriptions are complete sentences ending with a period ("The case may have been deleted
+  by another user.").
+
+## 10. Async
+
+- Default to `async/await` with `try...catch` for asynchronous code. Preserve or use
+  `.then()/.catch()` only when it is the idiomatic, clearer, or required approach for the specific
+  code pattern.
+- Never let a promise rejection go unhandled. In client components, surface failures through the
+  shared toast helpers in `src/lib/toast-utils.ts` (`toastError`, `toastActionError`, etc.) or
+  appropriate error UI. In Server Actions, follow the Action Response Convention (§8.2) — catch and
+  return a structured `ActionStatusResponse`.
+- Inside `useEffect`, wrap async work in a locally-scoped `async function` and invoke it (use `void`
+  for fire-and-forget calls to keep intent explicit).
+
+## 11. TypeScript
+
+### 11.1 Parameter typing and readability
+
+- Ban destructured inline types: never mix inline type declarations and object destructuring within
+  function parameter signatures (e.g., `({ a, b }: { a: string; b: string })`).
+- Parameter handling for standard functions: for standard utility functions and business logic, pass
+  complex inputs as a single unified object argument (e.g., `payload: DocumentPayload`) and
+  destructure it within the first lines of the function body.
+- Component props exception: standard React Functional Components are exempt from the
+  parameters-as-payload formatting rule. Component signatures may use inline destructuring of
+  explicitly typed prop interfaces (e.g., `export function Button({ variant, children, ...props }:
+ButtonProps)`) to facilitate direct application of rest parameter extraction and prop forwarding.
+- Inline type scope: simple inline object types are permitted only if the object consists of 3 or
+  fewer primitive properties, is not destructured in the signature, and is scoped entirely within a
+  non-exported utility helper.
+
+### 11.2 Domain-driven naming (anti-nominal)
+
+- No function-scoped type names: do not name interfaces or types after a single specific function
+  (avoid `ProcessDataArgs`).
+- Focus on the data shape: name types after the domain data or payload they represent (e.g.,
+  `DocumentPayload`, `UserSession`). This ensures types are structurally reusable across database
+  utilities, API boundaries, and UI components.
+
+### 11.3 Boundary type strictness
+
+- Explicit returns at boundaries: always explicitly declare return types on public API endpoints,
+  exported Server Actions, and shared hooks (e.g., `Promise<ActionStatusResponse>` for write
+  actions). This protects contracts and speeds up compilation times.
+- Implicit internal returns: allow TypeScript's native type inference engine to handle return types
+  for internal, unexported helper functions or simple utility chains.
+
+### 11.4 Code patterns
 
 Avoid this signature clutter:
 
@@ -224,6 +373,62 @@ export async function updateRecordAction(payload: TaskPayload): Promise<ActionSt
 }
 ```
 
-#### Avoid overengineering:
+### 11.5 Avoid overengineering
 
-Do not introduce a new named interface or type alias for trivial object shapes (e.g. `{ id: string }`) or for simple projections that can be expressed with `Pick<PrismaModel, Keys>`. Prefer using `Pick<PrismaModel, Keys>` directly for one-off or local projections. If the projection becomes a meaningful domain concept that is reused across multiple APIs, layers, or modules, give it a semantic name by aliasing the `Pick` (e.g. `type UserSummary = Pick<User, "id" | "name">`) rather than duplicating the property definitions. Only define a custom object type when the output intentionally diverges from the source model—for example, by combining data from multiple sources, adding computed fields, or reshaping the data.
+Do not introduce a new named interface or type alias for trivial object shapes (e.g. `{ id: string
+}`) or for simple projections that can be expressed with `Pick<PrismaModel, Keys>`. Prefer using
+`Pick<PrismaModel, Keys>` directly for one-off or local projections. If the projection becomes a
+meaningful domain concept that is reused across multiple APIs, layers, or modules, give it a semantic
+name by aliasing the `Pick` (e.g. `type UserSummary = Pick<User, "id" | "name">`) rather than
+duplicating the property definitions. Only define a custom object type when the output intentionally
+diverges from the source model—for example, by combining data from multiple sources, adding computed
+fields, or reshaping the data.
+
+## 12. Testing
+
+- Test files live in `__tests__/` directories co-located with their feature/component (Next.js
+  convention). Example: `src/features/users/__tests__/queries.test.ts`
+- Naming: `*.test.ts` for logic, `*.test.tsx` for components.
+- Structure: one `describe` per exported unit (action/query/mutation/helper), one `it` per behavior.
+  Collapse identical behavior across roles/inputs with `it.each` — never copy-paste a test body.
+- Fixtures first: build mock rows with `src/test-utils/fixtures.ts` (`mockUser`, `mockCase`, …),
+  typed off Prisma models. Never define local row factories; rebase relational shapes via spread
+  (`{...mockCase(), client: {...}}`).
+- Sessions: set auth state only via the shared helper (`setupAuth(...)` in `src/test-utils/`). Never
+  inline session literals per test.
+- Mock `@/lib/prisma` via per-file `vi.mock` for data-layer tests (Vitest hoisting forbids
+  centralizing `vi.mock` itself — only rows and session setup are shared).
+- Assert behavior, not internals: prefer exact `toEqual` shapes over `toMatchObject`; never assert
+  mock call order unless ordering is the contract.
+- No `as any`, no `as never`, no `Record<string, unknown>` wrappers. If a mock doesn't typecheck, the
+  query boundary is probably leaking a non-plain type (e.g. `Decimal`) — fix the query, not the test.
+- Fake timers are scoped per test (`useFakeTimers`/`useRealTimers` inside the test). Never file-global
+  timer state.
+- Do not test re-exports, framework behavior, or one-line pass-throughs. Every `it` must assert a
+  distinct behavior — no coverage theater.
+- `src/test-utils/` is test-only shared code: visible via the `@/` alias, matched by no test glob,
+  and exempt from the `src/lib/` TSDoc rule.
+- Full guide with examples: `documentation/testing.md`.
+
+## 13. General
+
+- Idiomatic, modular code is the top priority in this project, not a collection of hacks and
+  workarounds.
+- Named exports only — no default exports, except for Next.js special files (`page.tsx`,
+  `layout.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`, `route.tsx` etc.)
+  which require a default export. Use inline `export default function` for these files.
+- PascalCase components/types; camelCase variables/functions/files (component dirs are PascalCase).
+- No inline `//` comments unless explaining a non-obvious decision. TSDoc on `src/lib/` helpers is
+  the explicit exception (see §14).
+- Prisma schema: `snake_case` fields, `PascalCase` models/enums.
+- Husky: pre-commit runs `lint-staged` (Prettier + ESLint on staged files); pre-push runs `pnpm
+validate && pnpm test`.
+
+## 14. Documentation (TSDoc)
+
+- TSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`,
+  plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
+- Use `@param`, `@returns`, and `@typeParam` where applicable; keep descriptions terse and within the
+  100-char print width (Prettier reformats).
+- This convention is **scoped to `src/lib/` only**. Do not add TSDoc to feature or component code —
+  it adds noise. Code should be readable by default. If not add comments/tsdocs.

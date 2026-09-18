@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createUser, setUserActiveStatus, updateUser } from "@/features/users/mutations";
+import {
+  createUser,
+  setUserActiveStatus,
+  updateUser,
+  updateUserLastSeen,
+} from "@/features/users/mutations";
 import {
   countActiveAdminsAndDevs,
   getActiveUsers,
@@ -17,6 +22,7 @@ import {
   deactivateUserAction,
   getActiveUsersAction,
   getSessionUserIdAction,
+  touchLastSeenAction,
   updateUserAction,
 } from "../actions";
 
@@ -44,6 +50,7 @@ vi.mock("@/features/users/mutations", () => ({
   createUser: vi.fn(),
   updateUser: vi.fn(),
   setUserActiveStatus: vi.fn(),
+  updateUserLastSeen: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -493,5 +500,43 @@ describe("getSessionUserIdAction", () => {
     vi.mocked(requireAuth).mockResolvedValue(sessionAdmin);
 
     await expect(getSessionUserIdAction()).resolves.toBe("admin-id");
+  });
+});
+
+describe("touchLastSeenAction", () => {
+  it("updates the session user's last seen timestamp", async () => {
+    vi.mocked(requireAuth).mockResolvedValue(sessionAdmin);
+    vi.mocked(updateUserLastSeen).mockResolvedValue(undefined);
+
+    await expect(touchLastSeenAction()).resolves.toEqual({ success: true });
+    expect(updateUserLastSeen).toHaveBeenCalledWith("admin-id");
+  });
+
+  it("returns an error when unauthorized", async () => {
+    vi.mocked(requireAuth).mockRejectedValue(new UnauthorizedError());
+
+    expect(await touchLastSeenAction()).toEqual({
+      success: false,
+      error: {
+        code: "unauthorized",
+        title: "Session expired",
+        description: "Please sign in again to continue.",
+      },
+    });
+    expect(updateUserLastSeen).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when the update fails", async () => {
+    vi.mocked(requireAuth).mockResolvedValue(sessionAdmin);
+    vi.mocked(updateUserLastSeen).mockRejectedValue(new Error("db error"));
+
+    expect(await touchLastSeenAction()).toEqual({
+      success: false,
+      error: {
+        code: "unknown",
+        title: "Failed to update presence",
+        description: "Something went wrong on our end. Please try again.",
+      },
+    });
   });
 });

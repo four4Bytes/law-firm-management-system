@@ -81,21 +81,20 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
     {
       id: "is_active" as const,
       name: "Action" as const,
-      render: (_value: unknown, row: unknown) => {
-        const user = row as UserRow;
+      render: (_value, row) => {
         return (
           <div className={styles.actions}>
             <Button
               variant="ghost"
-              aria-label={`Edit ${user.name}`}
-              onPress={() => setModalTarget({ type: "edit", user })}
+              aria-label={`Edit ${row.name}`}
+              onPress={() => setModalTarget({ type: "edit", user: row })}
             >
               <FaPenToSquare className={styles.icon} />
             </Button>
             <Button
               variant="ghost"
-              aria-label={`Deactivate ${user.name}`}
-              onPress={() => setDeletingUser(user)}
+              aria-label={`Deactivate ${row.name}`}
+              onPress={() => setDeletingUser(row)}
             >
               <FaTrashCan className={styles.icon} />
             </Button>

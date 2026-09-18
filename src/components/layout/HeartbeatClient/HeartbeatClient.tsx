@@ -14,24 +14,33 @@ export function useHeartbeat() {
 
 export function HeartbeatProvider({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     async function heartbeat() {
+      abortRef.current = new AbortController();
       try {
-        const response = await fetch("/api/heartbeat", { method: "POST" });
+        const response = await fetch("/api/heartbeat", {
+          method: "POST",
+          signal: abortRef.current.signal,
+        });
         setIsOnline(response.ok);
       } catch {
         setIsOnline(false);
+      } finally {
+        timeoutRef.current = setTimeout(heartbeat, 30000);
       }
     }
 
     heartbeat();
-    intervalRef.current = setInterval(heartbeat, 30000);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);

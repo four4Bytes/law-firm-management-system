@@ -120,7 +120,7 @@ export function EditMilestoneModal({
             description={
               milestone.status === CaseMilestoneStatus.Pending
                 ? undefined
-                : "Reopening returns this to Pending and restarts its reminders."
+                : "Selecting Pending reopens this milestone and restarts its reminders."
             }
           >
             {milestoneStatusOptions(milestone.status as CaseMilestoneStatus).map((s) => (

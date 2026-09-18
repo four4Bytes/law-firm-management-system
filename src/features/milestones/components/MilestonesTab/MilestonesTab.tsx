@@ -56,7 +56,7 @@ const columns: ColumnDef<CaseMilestoneListRow>[] = [
       return (
         <span className={styles.dateCell}>
           {formatDateTime(date)}
-          {isOverdue && <StatusBadge variant="warning">Overdue</StatusBadge>}
+          {isOverdue && <span className={styles.overdue}>Overdue</span>}
         </span>
       );
     },

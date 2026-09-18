@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getActiveUserIds,
@@ -280,19 +280,19 @@ describe("getActiveUsers", () => {
     ]);
   });
 
-it("isOnline boundary is offline", async () => {
-     const now = Date.now();
-     vi.useFakeTimers();
-     vi.setSystemTime(now);
-     const thresholdDate = new Date(now - 120000);
-     vi.mocked(prisma.user.findMany).mockResolvedValue([
-       mockUser({ id: "u1", name: "Alice", last_seen_at: thresholdDate }),
-     ]);
+  it("isOnline boundary is offline", async () => {
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    const thresholdDate = new Date(now - 120000);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      mockUser({ id: "u1", name: "Alice", last_seen_at: thresholdDate }),
+    ]);
 
-     const result = await getActiveUsers();
+    const result = await getActiveUsers();
 
-     expect(result[0].is_online).toBe(false);
-   });
+    expect(result[0].is_online).toBe(false);
+  });
 
   it("propagates database errors", async () => {
     const error = new Error("connection failed");

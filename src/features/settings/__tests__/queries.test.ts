@@ -32,6 +32,7 @@ describe("getNotificationPreferences", () => {
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
+      notify_email_milestone_rescheduled: true,
     });
     expect(prisma.userSettings.findUnique).toHaveBeenCalledWith({
       where: { user_id: "user-1" },
@@ -44,6 +45,7 @@ describe("getNotificationPreferences", () => {
         notify_email_consultation_rescheduled: true,
         notify_email_task_status_changed: true,
         notify_email_milestone_status_changed: true,
+        notify_email_milestone_rescheduled: true,
       },
     });
   });
@@ -99,6 +101,7 @@ describe("getNotificationPreferencesByUserIds", () => {
         notify_email_consultation_rescheduled: true,
         notify_email_task_status_changed: false,
         notify_email_milestone_status_changed: true,
+        notify_email_milestone_rescheduled: true,
       } as unknown as never,
     ]);
 
@@ -113,6 +116,7 @@ describe("getNotificationPreferencesByUserIds", () => {
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: false,
       notify_email_milestone_status_changed: true,
+      notify_email_milestone_rescheduled: true,
     });
     expect(result.get("u2")).toEqual({
       notify_email_case_assigned: true,
@@ -123,6 +127,7 @@ describe("getNotificationPreferencesByUserIds", () => {
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
+      notify_email_milestone_rescheduled: true,
     });
   });
 
@@ -147,6 +152,7 @@ describe("getNotificationPreferencesByUserIds", () => {
         notify_email_consultation_status_changed: true,
         notify_email_task_status_changed: true,
         notify_email_milestone_status_changed: true,
+        notify_email_milestone_rescheduled: true,
       } as unknown as never,
     ]);
 

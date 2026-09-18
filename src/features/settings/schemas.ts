@@ -12,6 +12,7 @@ export const NotificationPreferencesSchema = z.object({
   notify_email_consultation_rescheduled: z.boolean(),
   notify_email_task_status_changed: z.boolean(),
   notify_email_milestone_status_changed: z.boolean(),
+  notify_email_milestone_rescheduled: z.boolean(),
 });
 
 export type NotificationPreferencesPayload = z.infer<typeof NotificationPreferencesSchema>;

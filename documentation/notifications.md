@@ -23,7 +23,7 @@ All notifications pass through `dispatchNotifications(payload, actorUserId, noti
 1. **Actor exclusion** — the actor is removed from recipients unless `notifyActor` is `true`.
 2. **Active users only** — deactivated users never receive anything.
 3. **Deduplication** — duplicate IDs are collapsed.
-4. **Preference gate (in-app + email in sync)** — assignment types (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) consult `UserSettings` (`notify_email_*_assigned`, edited at `/settings` under “Assignments”); status-change types (`CaseStatusChanged`, `ConsultationStatusChanged`, `TaskStatusChanged`, `MilestoneStatusChanged`) consult `notify_email_*_status_changed` (under “Status changes”); `ConsultationRescheduled` consults `notify_email_consultation_rescheduled` (under “Status changes”). Disabled users are removed **before** the DB row is created, so they receive no in-app row and no email. Reminder types (`ConsultationReminder`/`Overdue`, `MilestoneDueSoon`/`Overdue`) are not gated here — they are filtered per-user by the scheduler via `UserSettings` frequency/overdue prefs. Preference lookup is best-effort — a DB failure falls back to notifying all recipients and is logged.
+4. **Preference gate (in-app + email in sync)** — assignment types (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) consult `UserSettings` (`notify_email_*_assigned`, edited at `/settings` under “Assignments”); status-change types (`CaseStatusChanged`, `ConsultationStatusChanged`, `TaskStatusChanged`, `MilestoneStatusChanged`) consult `notify_email_*_status_changed` (under “Status changes”); `ConsultationRescheduled` consults `notify_email_consultation_rescheduled` and `MilestoneDueDateChanged` consults `notify_email_milestone_rescheduled` (both under “Status changes”). Disabled users are removed **before** the DB row is created, so they receive no in-app row and no email. Reminder types (`ConsultationReminder`/`Overdue`, `MilestoneDueSoon`/`Overdue`) are not gated here — they are filtered per-user by the scheduler via `UserSettings` frequency/overdue prefs. Preference lookup is best-effort — a DB failure falls back to notifying all recipients and is logged.
 5. **Database row** — one `is_read = false` row per remaining recipient. For assignments and status changes, rows are only created for opted-in users; for reminders, one per per-user-filtered recipient.
 6. **Email** — per remaining recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
 
@@ -82,11 +82,12 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 ### Milestones (sub-data of Case)
 
-| Event                    | Recipients         | Type                     |
-| ------------------------ | ------------------ | ------------------------ |
-| Milestone status changed | All case assignees | `MilestoneStatusChanged` |
+| Event                    | Recipients         | Type                      |
+| ------------------------ | ------------------ | ------------------------- |
+| Milestone status changed | All case assignees | `MilestoneStatusChanged`  |
+| Milestone rescheduled    | All case assignees | `MilestoneDueDateChanged` |
 
-> Any status transition (incl. → `Done`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Pending to Done`). Actor always excluded.
+> Any status transition (incl. → `Done`) notifies; creation, deletion, and content-only edits dispatch nothing. The message states the change as `from <before> to <after>` (e.g. `from Pending to Done`). A due-date change dispatches `MilestoneDueDateChanged` (own preference toggle) and re-arms reminders. Actor always excluded.
 
 ### Consultations
 
@@ -171,6 +172,7 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 | `MilestoneDueSoon`          | milestoneTemplate            | (uses notification title)      |
 | `MilestoneOverdue`          | milestoneTemplate            | (uses notification title)      |
 | `MilestoneStatusChanged`    | statusChangeTemplate         | (uses notification title)      |
+| `MilestoneDueDateChanged`   | statusChangeTemplate         | (uses notification title)      |
 | `TaskAssigned`              | taskAssignedTemplate         | Task Assigned                  |
 | `TaskStatusChanged`         | statusChangeTemplate         | (uses notification title)      |
 | `CaseAssigned`              | caseAssignedTemplate         | Case Assigned                  |
@@ -183,7 +185,7 @@ All templates live in `src/lib/email-templates.ts`. Every dispatched type maps t
 - `MilestoneStatusChanged`, `TaskStatusChanged`, `CaseStatusChanged`, and `ConsultationStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
 - All interpolated text is HTML-escaped.
 - Recipients without an email are skipped for the email channel (the in-app row is still gated by preferences — see Dispatch Pipeline).
-- Assignment, status-change, reschedule, and reminder notifications (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`, `CaseStatusChanged`, `ConsultationStatusChanged`, `ConsultationRescheduled`, `TaskStatusChanged`, `MilestoneStatusChanged`, `MilestoneDueSoon`/`Overdue`, `ConsultationReminder`/`Overdue`) respect the recipient's `UserSettings` toggles/frequency edited at `/settings` — opted-out users receive neither the in-app row nor the email (channels always in sync).
+- Assignment, status-change, reschedule, and reminder notifications (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`, `CaseStatusChanged`, `ConsultationStatusChanged`, `ConsultationRescheduled`, `TaskStatusChanged`, `MilestoneStatusChanged`, `MilestoneDueDateChanged`, `MilestoneDueSoon`/`Overdue`, `ConsultationReminder`/`Overdue`) respect the recipient's `UserSettings` toggles/frequency edited at `/settings` — opted-out users receive neither the in-app row nor the email (channels always in sync).
 
 ---
 

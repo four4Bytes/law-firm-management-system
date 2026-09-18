@@ -59,6 +59,7 @@ enum NotificationType {
   ConsultationOverdue
   MilestoneDueSoon
   MilestoneStatusChanged
+  MilestoneDueDateChanged
   MilestoneOverdue
   TaskAssigned
   TaskStatusChanged
@@ -144,6 +145,7 @@ model UserSettings {
   notify_email_consultation_rescheduled    Boolean           @default(true)
   notify_email_task_status_changed         Boolean           @default(true)
   notify_email_milestone_status_changed    Boolean           @default(true)
+  notify_email_milestone_rescheduled       Boolean           @default(true)
   consultation_reminder_days               Int               @default(3)
   consultation_reminder_frequency          ReminderFrequency @default(KeyDays)
   consultation_notify_overdue              Boolean           @default(true)

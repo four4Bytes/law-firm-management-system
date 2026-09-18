@@ -341,6 +341,26 @@ describe("updateMilestoneAction notifications", () => {
 
     expect(dispatchNotifications).not.toHaveBeenCalled();
   });
+
+  it("dispatches MilestoneDueDateChanged when the due date changes", async () => {
+    await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2024-07-01"),
+      status: milestoneRecord.status,
+    });
+    await flushAfterCallbacks();
+
+    const calls = vi.mocked(dispatchNotifications).mock.calls;
+    const rescheduled = calls.find(
+      ([payload]) => payload.type === NotificationType.MilestoneDueDateChanged,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(rescheduled?.[0].userIds).toEqual([assignee1, assignee2]);
+    expect(rescheduled?.[0].message).toContain("rescheduled");
+  });
 });
 
 describe("deleteMilestoneAction", () => {

@@ -19,8 +19,19 @@ describe("NotificationPreferencesSchema", () => {
         notify_email_consultation_rescheduled: true,
         notify_email_task_status_changed: true,
         notify_email_milestone_status_changed: false,
+        notify_email_milestone_rescheduled: true,
       }).success,
     ).toBe(true);
+  });
+
+  it("accepts a milestone rescheduled-only patch", () => {
+    const result = UpdateNotificationPreferencesSchema.safeParse({
+      notify_email_milestone_rescheduled: false,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.notify_email_milestone_rescheduled).toBe(false);
+    }
   });
 
   it("accepts a rescheduled-only patch", () => {

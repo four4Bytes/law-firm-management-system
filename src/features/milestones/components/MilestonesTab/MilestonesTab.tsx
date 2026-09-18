@@ -15,7 +15,7 @@ import { AddMilestoneModal } from "@/features/milestones/components/AddMilestone
 import { EditMilestoneModal } from "@/features/milestones/components/EditMilestoneModal/EditMilestoneModal";
 import type { MilestoneRow } from "@/features/milestones/queries";
 import { CaseMilestoneStatus, type Role } from "@/generated/prisma/browser";
-import { formatDate } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
@@ -55,7 +55,7 @@ const columns: ColumnDef<CaseMilestoneListRow>[] = [
       const isOverdue = row.status === CaseMilestoneStatus.Pending && date.getTime() < Date.now();
       return (
         <span className={styles.dateCell}>
-          {formatDate(date)}
+          {formatDateTime(date)}
           {isOverdue && <StatusBadge variant="warning">Overdue</StatusBadge>}
         </span>
       );

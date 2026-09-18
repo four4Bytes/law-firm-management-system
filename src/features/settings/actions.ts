@@ -22,6 +22,7 @@ export async function getNotificationPreferencesAction(): Promise<{
   notify_email_consultation_rescheduled: boolean;
   notify_email_task_status_changed: boolean;
   notify_email_milestone_status_changed: boolean;
+  notify_email_milestone_rescheduled: boolean;
 }> {
   const session = await requireAuth();
   return getNotificationPreferences(session.id);

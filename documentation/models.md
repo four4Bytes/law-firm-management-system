@@ -47,6 +47,7 @@ Per-user preferences attached 1:1 to `User`. Defaults to all email toggles **on*
 | Notify Email Consultation Rescheduled    | Boolean   | Yes      | Email when a consultation you’re assigned to is rescheduled (`@default(true)`)   |
 | Notify Email Task Status Changed         | Boolean   | Yes      | Email when a task you’re assigned to/reviewing changes status (`@default(true)`) |
 | Notify Email Milestone Status Changed    | Boolean   | Yes      | Email when a milestone in your case changes status (`@default(true)`)            |
+| Notify Email Milestone Rescheduled       | Boolean   | Yes      | Email when a milestone in your case is rescheduled (`@default(true)`)            |
 | Created                                  | Timestamp | Yes      | When the settings row was created                                                |
 | Updated                                  | Timestamp | Yes      | When the settings row was last modified                                          |
 
@@ -392,6 +393,7 @@ Links a reviewer to a task for approval workflows.
 | ConsultationOverdue       | Consultation booking date has passed               |
 | MilestoneDueSoon          | Milestone due within reminder window               |
 | MilestoneStatusChanged    | Any milestone status change                        |
+| MilestoneDueDateChanged   | Milestone due date/time changed                    |
 | MilestoneOverdue          | Milestone due date has passed                      |
 | TaskAssigned              | User assigned to a task                            |
 | TaskStatusChanged         | Any task status change (review workflow)           |

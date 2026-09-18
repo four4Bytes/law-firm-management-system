@@ -13,6 +13,7 @@ export type NotificationPreferences = Pick<
   | "notify_email_consultation_rescheduled"
   | "notify_email_task_status_changed"
   | "notify_email_milestone_status_changed"
+  | "notify_email_milestone_rescheduled"
 >;
 
 export type DeadlineReminderPreferences = Pick<
@@ -34,6 +35,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   notify_email_consultation_rescheduled: true,
   notify_email_task_status_changed: true,
   notify_email_milestone_status_changed: true,
+  notify_email_milestone_rescheduled: true,
 };
 
 const DEFAULT_DEADLINE_PREFERENCES: DeadlineReminderPreferences = {
@@ -58,6 +60,7 @@ export const getNotificationPreferences = cache(
         notify_email_consultation_rescheduled: true,
         notify_email_task_status_changed: true,
         notify_email_milestone_status_changed: true,
+        notify_email_milestone_rescheduled: true,
       },
     });
 
@@ -82,6 +85,7 @@ export async function getNotificationPreferencesByUserIds(
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
+      notify_email_milestone_rescheduled: true,
     },
   });
 
@@ -99,6 +103,7 @@ export async function getNotificationPreferencesByUserIds(
       notify_email_consultation_rescheduled: row.notify_email_consultation_rescheduled,
       notify_email_task_status_changed: row.notify_email_task_status_changed,
       notify_email_milestone_status_changed: row.notify_email_milestone_status_changed,
+      notify_email_milestone_rescheduled: row.notify_email_milestone_rescheduled,
     });
   }
 

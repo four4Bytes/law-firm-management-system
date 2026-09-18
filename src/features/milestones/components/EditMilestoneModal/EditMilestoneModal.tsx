@@ -1,27 +1,27 @@
 "use client";
 
-import { CalendarDate } from "@internationalized/date";
+import { CalendarDate, Time } from "@internationalized/date";
 import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
-import { DateField } from "@/components/ui/DateField/DateField";
+import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
+import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { updateMilestoneAction } from "@/features/milestones/actions";
 import type { MilestoneRow } from "@/features/milestones/queries";
 import { MilestoneUpdatePayloadSchema } from "@/features/milestones/schemas";
 import { milestoneStatusOptions } from "@/features/milestones/status";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
-import { toCalendarDate } from "@/lib/date";
+import { combineDateTime, toCalendarDate, toTimeValue } from "@/lib/date";
 import {
   createFieldValidator,
   optionalString,
   requiredString,
   selectEnumHandler,
-  toDateValue,
 } from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
@@ -43,6 +43,7 @@ export function EditMilestoneModal({
   const [title, setTitle] = useState(milestone.title);
   const [description, setDescription] = useState(milestone.description ?? "");
   const [dueDate, setDueDate] = useState<CalendarDate>(toCalendarDate(milestone.due_date));
+  const [dueTime, setDueTime] = useState<Time>(toTimeValue(milestone.due_date));
   const [status, setStatus] = useState<CaseMilestoneStatus>(
     milestone.status as CaseMilestoneStatus,
   );
@@ -67,7 +68,7 @@ export function EditMilestoneModal({
       milestoneId: milestone.id,
       title: requiredString(title),
       description: optionalString(description),
-      due_date: toDateValue(dueDate),
+      due_date: combineDateTime(dueDate, dueTime),
       status,
     });
   }
@@ -99,10 +100,16 @@ export function EditMilestoneModal({
             validate={createFieldValidator(MilestoneUpdatePayloadSchema.shape.description)}
             isDisabled={isPending}
           />
-          <DateField
+          <DatePicker
             label="Due Date"
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
+            isDisabled={isPending}
+          />
+          <TimeField
+            label="Due Time"
+            value={dueTime}
+            onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
             isDisabled={isPending}
           />
           <Select

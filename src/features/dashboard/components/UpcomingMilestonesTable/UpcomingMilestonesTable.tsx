@@ -7,7 +7,7 @@ import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import type { UpcomingMilestoneRow } from "@/features/dashboard/queries";
-import { formatDate } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 
 import styles from "./UpcomingMilestonesTable.module.css";
 
@@ -21,7 +21,7 @@ const columns: ColumnDef<UpcomingMilestoneRow>[] = [
   {
     id: "due_date",
     name: "Due Date",
-    render: (value) => formatDate(value as Date),
+    render: (value) => formatDateTime(value as Date),
   },
 ];
 

@@ -48,6 +48,7 @@ describe("getNotificationPreferencesAction", () => {
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: false,
+      notify_email_milestone_rescheduled: true,
     });
 
     const result = await getNotificationPreferencesAction();
@@ -61,6 +62,7 @@ describe("getNotificationPreferencesAction", () => {
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: false,
+      notify_email_milestone_rescheduled: true,
     });
     expect(getNotificationPreferences).toHaveBeenCalledWith("user-1");
   });
@@ -106,6 +108,7 @@ describe("updateNotificationPreferencesAction", () => {
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
+      notify_email_milestone_rescheduled: true,
     });
 
     const result = await updateNotificationPreferencesAction({ notify_email_case_assigned: false });
@@ -127,6 +130,7 @@ describe("updateNotificationPreferencesAction", () => {
       notify_email_consultation_rescheduled: false,
       notify_email_task_status_changed: false,
       notify_email_milestone_status_changed: false,
+      notify_email_milestone_rescheduled: true,
     });
 
     const result = await updateNotificationPreferencesAction({
@@ -151,6 +155,7 @@ describe("updateNotificationPreferencesAction", () => {
       notify_email_consultation_rescheduled: true,
       notify_email_task_status_changed: true,
       notify_email_milestone_status_changed: true,
+      notify_email_milestone_rescheduled: true,
     });
 
     const result = await updateNotificationPreferencesAction({

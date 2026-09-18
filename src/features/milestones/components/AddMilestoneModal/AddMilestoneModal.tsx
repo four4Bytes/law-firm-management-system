@@ -1,24 +1,25 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
+import { CalendarDate, getLocalTimeZone, Time, today } from "@internationalized/date";
 import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
-import { DateField } from "@/components/ui/DateField/DateField";
+import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
+import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createMilestoneAction } from "@/features/milestones/actions";
 import { MilestoneCreatePayloadSchema } from "@/features/milestones/schemas";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
+import { combineDateTime } from "@/lib/date";
 import {
   createFieldValidator,
   optionalString,
   requiredString,
   selectEnumHandler,
-  toDateValue,
 } from "@/lib/form-utils";
 import { useModalForm } from "@/lib/useModalForm";
 
@@ -42,6 +43,7 @@ export function AddMilestoneModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<CalendarDate>(today(getLocalTimeZone()));
+  const [dueTime, setDueTime] = useState<Time>(new Time(9, 0));
   const [status, setStatus] = useState<CaseMilestoneStatus>(CaseMilestoneStatus.Pending);
 
   const { isPending, submitForm, handleCancel } = useModalForm<
@@ -58,6 +60,7 @@ export function AddMilestoneModal({
       setTitle("");
       setDescription("");
       setDueDate(today(getLocalTimeZone()));
+      setDueTime(new Time(9, 0));
       setStatus(CaseMilestoneStatus.Pending);
     },
   });
@@ -69,7 +72,7 @@ export function AddMilestoneModal({
     await submitForm({
       title: requiredString(title),
       description: optionalString(description),
-      due_date: toDateValue(dueDate),
+      due_date: combineDateTime(dueDate, dueTime),
       status,
       case_id: caseId,
     });
@@ -102,10 +105,16 @@ export function AddMilestoneModal({
             validate={createFieldValidator(MilestoneCreatePayloadSchema.shape.description)}
             isDisabled={isPending}
           />
-          <DateField
+          <DatePicker
             label="Due Date"
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
+            isDisabled={isPending}
+          />
+          <TimeField
+            label="Due Time"
+            value={dueTime}
+            onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
             isDisabled={isPending}
           />
           <Select

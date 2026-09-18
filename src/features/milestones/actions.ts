@@ -141,9 +141,9 @@ export async function updateMilestoneAction(
         `Cannot change a milestone from ${existing.status} to ${status}. From ${existing.status}, you can: ${describeMilestoneNextSteps(existing.status as CaseMilestoneStatus)}.`,
       );
     }
-
     const reopened = statusChanged && status === CaseMilestoneStatus.Pending;
-    const resetReminderTiming = existing.due_date.getTime() !== due_date.getTime() || reopened;
+    const dueDateChanged = existing.due_date.getTime() !== due_date.getTime();
+    const resetReminderTiming = dueDateChanged || reopened;
 
     await updateMilestone(milestoneId, {
       title,
@@ -167,17 +167,34 @@ export async function updateMilestoneAction(
       try {
         const assigneeIds = await getCaseAssigneeIds(existing.case_id);
         if (assigneeIds.length === 0) return;
-        if (existing.status === status) return;
 
-        await notifyRecipients(session.id, {
-          userIds: assigneeIds,
-          type: NotificationType.MilestoneStatusChanged,
-          title: `Milestone status changed: ${title}`,
-          message: `Milestone "${title}" status changed from ${existing.status} to ${status}`,
-          actionUrl: `/case/${existing.case_id}`,
-          caseId: existing.case_id,
-          milestoneId: existing.id,
-        });
+        if (existing.status !== status) {
+          await notifyRecipients(session.id, {
+            userIds: assigneeIds,
+            type: NotificationType.MilestoneStatusChanged,
+            title: `Milestone status changed: ${title}`,
+            message: `Milestone "${title}" status changed from ${existing.status} to ${status}`,
+            actionUrl: `/case/${existing.case_id}`,
+            caseId: existing.case_id,
+            milestoneId: existing.id,
+          });
+        }
+
+        if (dueDateChanged) {
+          await notifyRecipients(
+            session.id,
+            {
+              userIds: assigneeIds,
+              type: NotificationType.MilestoneDueDateChanged,
+              title: `Milestone rescheduled: ${title}`,
+              message: `Milestone "${title}" has been rescheduled.`,
+              actionUrl: `/case/${existing.case_id}`,
+              caseId: existing.case_id,
+              milestoneId: existing.id,
+            },
+            "reschedule",
+          );
+        }
       } catch (err) {
         console.error("Failed to dispatch notification:", err);
       }

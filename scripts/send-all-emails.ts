@@ -63,6 +63,7 @@ function pickTemplate(type: NotificationType) {
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
     case NotificationType.MilestoneStatusChanged:
+    case NotificationType.MilestoneDueDateChanged:
     case NotificationType.TaskStatusChanged:
     case NotificationType.CaseStatusChanged:
     case NotificationType.ConsultationStatusChanged:
@@ -225,6 +226,18 @@ function fakeContext(type: NotificationType): { subject: string; ctx: TemplateCo
           title: "Milestone status changed: Due Diligence Completed",
           message:
             'Milestone "Psychological Evaluation Completed — Alcantara Annulment Proceedings (Family Law)" status changed from Pending to Done',
+          actionUrl: "/case/debug-case-id",
+        },
+      };
+    case NotificationType.MilestoneDueDateChanged:
+      return {
+        subject: "Milestone Rescheduled — Due Diligence",
+        ctx: {
+          toName: "Atty. Angela Mercado",
+          actorName: "Atty. Maya Fernandez",
+          title: "Milestone rescheduled: Due Diligence Completed",
+          message:
+            'Milestone "Due Diligence Completed for Ramirez Corp Series A" has been rescheduled.',
           actionUrl: "/case/debug-case-id",
         },
       };

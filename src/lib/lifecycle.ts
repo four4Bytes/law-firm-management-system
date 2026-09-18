@@ -10,7 +10,12 @@
  * @module lib/lifecycle
  */
 
-import { CaseStatus, ConsultationStatus, TaskStatus } from "@/generated/prisma/browser";
+import {
+  CaseMilestoneStatus,
+  CaseStatus,
+  ConsultationStatus,
+  TaskStatus,
+} from "@/generated/prisma/browser";
 
 /** Entities with a status lifecycle. */
 export type LifecycleEntity = "consultation" | "case" | "task";
@@ -33,6 +38,13 @@ export const CASE_TRANSITIONS: TransitionTable<CaseStatus> = {
   [CaseStatus.Closed]: [CaseStatus.Open],
   [CaseStatus.Settled]: [CaseStatus.Open],
   [CaseStatus.Terminated]: [CaseStatus.Open],
+};
+
+/** Milestone lifecycle: pending work concludes; concluded work can reopen. */
+export const MILESTONE_TRANSITIONS: TransitionTable<CaseMilestoneStatus> = {
+  [CaseMilestoneStatus.Pending]: [CaseMilestoneStatus.Done, CaseMilestoneStatus.Cancelled],
+  [CaseMilestoneStatus.Done]: [CaseMilestoneStatus.Pending],
+  [CaseMilestoneStatus.Cancelled]: [CaseMilestoneStatus.Pending],
 };
 
 /**

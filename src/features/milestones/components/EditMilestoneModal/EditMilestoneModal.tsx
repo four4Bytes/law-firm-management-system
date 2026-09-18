@@ -13,6 +13,7 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { updateMilestoneAction } from "@/features/milestones/actions";
 import type { MilestoneRow } from "@/features/milestones/queries";
 import { MilestoneUpdatePayloadSchema } from "@/features/milestones/schemas";
+import { milestoneStatusOptions } from "@/features/milestones/status";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
 import { toCalendarDate } from "@/lib/date";
 import {
@@ -25,8 +26,6 @@ import {
 import { useModalForm } from "@/lib/useModalForm";
 
 import styles from "./EditMilestoneModal.module.css";
-
-const STATUS_OPTIONS = Object.values(CaseMilestoneStatus);
 
 interface EditMilestoneModalProps {
   isOpen: boolean;
@@ -111,8 +110,13 @@ export function EditMilestoneModal({
             value={status}
             onChange={selectEnumHandler(CaseMilestoneStatus, setStatus)}
             isDisabled={isPending}
+            description={
+              milestone.status === CaseMilestoneStatus.Pending
+                ? undefined
+                : "Reopening returns this to Pending and restarts its reminders."
+            }
           >
-            {STATUS_OPTIONS.map((s) => (
+            {milestoneStatusOptions(milestone.status as CaseMilestoneStatus).map((s) => (
               <SelectItem key={s} id={s}>
                 {s}
               </SelectItem>

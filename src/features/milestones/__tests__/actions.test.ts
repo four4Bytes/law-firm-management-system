@@ -250,6 +250,50 @@ describe("updateMilestoneAction", () => {
       expect.objectContaining({ resetReminderTiming: true }),
     );
   });
+
+  it("refuses an invalid status transition", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Done" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: milestoneRecord.due_date,
+      status: "Cancelled" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Invalid status change",
+        description:
+          "Cannot change a milestone from Done to Cancelled. From Done, you can: reopen it.",
+      },
+    });
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("resets reminder timing when reopening to Pending", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Done" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: milestoneRecord.due_date,
+      status: "Pending" as const,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateMilestone).toHaveBeenCalledWith(
+      uuid,
+      expect.objectContaining({ resetReminderTiming: true, status: "Pending" }),
+    );
+  });
 });
 
 describe("updateMilestoneAction notifications", () => {

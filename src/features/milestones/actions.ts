@@ -7,8 +7,9 @@ import { z } from "zod";
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
-import { NotificationType } from "@/generated/prisma/browser";
+import { CaseMilestoneStatus, NotificationType } from "@/generated/prisma/browser";
 import {
+  actionConflict,
   actionForbidden,
   actionInvalid,
   actionNotFound,
@@ -31,6 +32,7 @@ import {
   MilestoneIdSchema,
   MilestoneUpdatePayloadSchema,
 } from "./schemas";
+import { describeMilestoneNextSteps, isValidMilestoneStatusTransition } from "./status";
 
 export async function getMilestoneRowByIdAction(
   milestoneId: string,
@@ -129,7 +131,19 @@ export async function updateMilestoneAction(
       return { success: true };
     }
 
-    const resetReminderTiming = existing.due_date.getTime() !== due_date.getTime();
+    const statusChanged = existing.status !== status;
+    if (
+      statusChanged &&
+      !isValidMilestoneStatusTransition(existing.status as CaseMilestoneStatus, status)
+    ) {
+      return actionConflict(
+        "Invalid status change",
+        `Cannot change a milestone from ${existing.status} to ${status}. From ${existing.status}, you can: ${describeMilestoneNextSteps(existing.status as CaseMilestoneStatus)}.`,
+      );
+    }
+
+    const reopened = statusChanged && status === CaseMilestoneStatus.Pending;
+    const resetReminderTiming = existing.due_date.getTime() !== due_date.getTime() || reopened;
 
     await updateMilestone(milestoneId, {
       title,
@@ -145,7 +159,9 @@ export async function updateMilestoneAction(
         action: "milestone.updated",
         entityType: "Case",
         entityId: existing.case_id,
-        details: `Updated milestone: "${title}"`,
+        details: statusChanged
+          ? `Changed milestone status from ${existing.status} to ${status}`
+          : `Updated milestone: "${title}"`,
       });
 
       try {

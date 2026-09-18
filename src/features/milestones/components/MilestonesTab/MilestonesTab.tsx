@@ -50,7 +50,16 @@ const columns: ColumnDef<CaseMilestoneListRow>[] = [
     id: "due_date",
     name: "Due Date",
     allowsSorting: true,
-    render: (value) => formatDate(value as Date),
+    render: (value, row) => {
+      const date = value as Date;
+      const isOverdue = row.status === CaseMilestoneStatus.Pending && date.getTime() < Date.now();
+      return (
+        <span className={styles.dateCell}>
+          {formatDate(date)}
+          {isOverdue && <StatusBadge variant="warning">Overdue</StatusBadge>}
+        </span>
+      );
+    },
   },
   {
     id: "status",

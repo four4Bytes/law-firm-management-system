@@ -374,11 +374,13 @@ Links a reviewer to a task for approval workflows.
 
 ### Milestone Status
 
-| Value     | Description                    |
-| --------- | ------------------------------ |
-| Pending   | Milestone not yet reached      |
-| Done      | Milestone completed            |
-| Cancelled | Milestone no longer applicable |
+`Pending` covers both upcoming and overdue-not-done work (overdue items keep `Pending`; the scheduler sends `MilestoneOverdue` for them). There is deliberately no separate "upcoming" state.
+
+| Value     | Description                                     |
+| --------- | ----------------------------------------------- |
+| Pending   | Milestone not yet reached (upcoming or overdue) |
+| Done      | Milestone completed                             |
+| Cancelled | Milestone no longer applicable                  |
 
 ---
 

@@ -23,24 +23,33 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 
 - Never commit, push, or create PRs unless explicitly asked.
 - Read the actual file first. Don't assume you know what's in it.
-- After making changes, run `pnpm validate` + `pnpm build` and loop (fix issues, re-run until passing).
-- Stop validating/linting/building on trivial changes like DOCS, trivial CSS (e.g. spacing, colors
-  on existing rules), TEXT, maybe format. Do NOT skip validation for substantive CSS changes (new
-  components, layout changes, structural modifications).
+- After making changes, run only the commands the touched files need — not the full `pnpm validate`:
+
+  | Files touched                                       | Run                                                          |
+  | --------------------------------------------------- | ------------------------------------------------------------ |
+  | `.md`, `.css`, non-schema `.json`                   | `pnpm format`                                                |
+  | `.ts` / `.tsx` / `.js` / `.jsx`                     | `pnpm format && pnpm lint && tsc --noEmit`                   |
+  | `schema.prisma`                                     | `pnpm prisma format && pnpm prisma:generate && tsc --noEmit` |
+  | `tsconfig.json`, `next.config.*`, `eslint.config.*` | `pnpm validate`                                              |
+  | Mix of the above                                    | Union of their commands                                      |
+
+  `.ts`/`.tsx` always gets the full `format && lint && tsc` — `tsc --noEmit` checks the whole
+  project graph, so it can't be scoped to one file. Run `pnpm build` too if the change touches
+  `.ts`/`.tsx`, `schema.prisma`, or config.
 
 ## 2. Commands
 
 - `pnpm dev` - dev server
-- `pnpm build` - prisma:generate + next build
+- `pnpm build` - prisma:generate + (prisma migrate deploy in production) + next build
 - `pnpm start` - production server
 - `pnpm lint` / `pnpm lint:fix` - ESLint
 - `pnpm format` - Prettier (with import sorting) + Prisma format
 - `pnpm validate` - format + lint + `tsc --noEmit`
 - `pnpm test` / `pnpm test:watch` - vitest
 - `pnpm test:coverage` - vitest with coverage
-- `pnpm test:browser` - vitest with Playwright
+- `pnpm test:browser` - vitest with Playwright (storybook project)
 - `pnpm storybook` (port 6006) / `pnpm build-storybook`
-- `pnpm prisma:migrate` / `pnpm prisma:deploy` / `pnpm prisma:generate`
+- `pnpm prisma:migrate` / `pnpm prisma:deploy` / `pnpm prisma:generate` / `pnpm prisma:reset`
 - `pnpm prisma:seed` - `tsx prisma/seed.ts`
 - `pnpm prisma:studio` - Prisma Studio
 - `pnpm prepare` - husky + prisma generate (runs on install)
@@ -56,13 +65,13 @@ Conventions for AI coding agents working in this repo. Read this file before wri
   `Button as AriaButton`); extend Aria props, apply CSS modules via `clsx`, forward external
   `className`.
 - Icons: `react-icons` (subpath imports like `react-icons/fa6`).
-- Auth: NextAuth v5 beta (`next-auth@5.0.0-beta.31`) with Google OAuth, JWT sessions, PrismaAdapter.
+- Auth: NextAuth v5 beta (`next-auth@5.0.0-beta.32`) with Google OAuth, JWT sessions, PrismaAdapter.
 - Data: Prisma 7 + PostgreSQL via `@prisma/adapter-pg`. Adapter pattern:
   `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`. Generated client at
   `src/generated/prisma/`. Singleton at `src/lib/prisma.ts`. Prisma config at `prisma.config.ts`.
-- Storage: `@aws-sdk/client-s3` api compatible for managing document storage attachments via secure,
-  server-generated presigned URLs.
-- Package Manager: pnpm.
+- Storage: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` for managing document storage
+  attachments via secure, server-generated presigned URLs.
+- Package Manager: pnpm (pinned `pnpm@11.10.0`), Node `>=22.0.0`.
 - Dev Environment: Nix flake (`flake.nix` + `flake.lock`) — `nix develop` gives pinned `nodejs_22`,
   pnpm, prisma, docker per system via `genAttrs`. Non-Nix contributors install Node/pnpm manually.
 
@@ -195,7 +204,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - Read permission gating: For button/row actions (View/Open), follow the same rule: always render
   them and surface denials via the toast helpers (`toastDenied()`). For navigation links to
   inaccessible pages, also render the link; the destination should show an empty body with an
-  “Access denied” message using the `DashboardError` / access-denied pattern.
+  "Access denied" message using the `DashboardError` / access-denied pattern.
 
 ### 7.6 Lifecycle (the second axis)
 

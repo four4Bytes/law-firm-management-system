@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import type { TaskRow } from "@/features/tasks/queries";
+import { isUserOnline } from "@/features/users/onlineStatus";
 import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
@@ -121,7 +122,7 @@ export type CaseOverviewData = {
     address: string | null;
   };
   createdBy: { name: string };
-  assignTo: { id: string; name: string }[];
+  assignTo: { id: string; name: string; is_online: boolean }[];
   latestMilestone: { title: string; status: string } | null;
   sourceConsultation: { id: string; concern: string } | null;
 };
@@ -134,7 +135,7 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       createdBy: { select: { name: true } },
       caseAssignments: {
         where: { user: { is_active: true } },
-        include: { user: { select: { id: true, name: true } } },
+        include: { user: { select: { id: true, name: true, last_seen_at: true } } },
         orderBy: [
           { created_at: "asc" },
           { user: { name: "asc" } },
@@ -168,7 +169,11 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
       address: data.client.address,
     },
     createdBy: data.createdBy,
-    assignTo: data.caseAssignments.map((a) => ({ id: a.user.id, name: a.user.name })),
+    assignTo: data.caseAssignments.map((a) => ({
+      id: a.user.id,
+      name: a.user.name,
+      is_online: isUserOnline(a.user.last_seen_at),
+    })),
     latestMilestone: data.milestones[0]
       ? { title: data.milestones[0].title, status: data.milestones[0].status }
       : null,

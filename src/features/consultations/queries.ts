@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import type { NoteRow } from "@/features/notes/queries";
+import { isUserOnline } from "@/features/users/onlineStatus";
 import type { Consultation, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
@@ -56,7 +57,7 @@ export type ConsultationOverviewData = {
     address: string | null;
   };
   createdBy: { name: string };
-  assignTo: { id: string; name: string }[];
+  assignTo: { id: string; name: string; is_online: boolean }[];
   relatedCase: { id: string; case_title: string } | null;
 };
 
@@ -69,7 +70,7 @@ export const getConsultationOverviewById = cache(
         createdBy: { select: { name: true } },
         consultationAssignments: {
           where: { user: { is_active: true } },
-          include: { user: { select: { id: true, name: true } } },
+          include: { user: { select: { id: true, name: true, last_seen_at: true } } },
           orderBy: [
             { created_at: "asc" },
             { user: { name: "asc" } },
@@ -100,6 +101,7 @@ export const getConsultationOverviewById = cache(
       assignTo: data.consultationAssignments.map((a) => ({
         id: a.user.id,
         name: a.user.name,
+        is_online: isUserOnline(a.user.last_seen_at),
       })),
       relatedCase: data.cases[0] ?? null,
     } satisfies ConsultationOverviewData;

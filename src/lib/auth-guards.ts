@@ -1,6 +1,6 @@
 import { type Role } from "@/generated/prisma/browser";
 import { auth } from "@/lib/auth";
-import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import { DeactivatedError, ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
 
 /** Minimal authenticated-user projection shared by the auth guards. */
@@ -17,7 +17,10 @@ export interface AuthenticatedUser {
  * @returns The authenticated user projection.
  *
  * @throws {UnauthorizedError} when the session is missing any required field
- *         (`id`, `email`, `role`, `name`). Use at the top of Server Actions
+ *         (`id`, `email`, `role`, `name`) or the user has been deactivated.
+ *         Deactivation throws {@link DeactivatedError} (mapped to the
+ *         deactivated envelope) instead of the generic expiry message.
+ *         Use at the top of Server Actions
  *         that need the current user regardless of role.
  */
 export async function requireAuth(): Promise<AuthenticatedUser> {
@@ -26,6 +29,12 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 
   if (!user?.id || !user.email || !user.role || !user.name) {
     throw new UnauthorizedError();
+  }
+
+  // Deactivated users keep a flagged session so the proxy can redirect them
+  // to the notice page; block them here so no Server Action runs for them.
+  if (user.isActive === false) {
+    throw new DeactivatedError();
   }
 
   return {

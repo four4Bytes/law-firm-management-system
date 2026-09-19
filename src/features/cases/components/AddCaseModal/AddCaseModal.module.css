@@ -21,12 +21,6 @@
     }
   }
 
-  .divider {
-    width: 1px;
-    flex: 0 0 auto;
-    background: var(--color-border-subtle);
-  }
-
   .actions {
     display: flex;
     gap: var(--space-lg);

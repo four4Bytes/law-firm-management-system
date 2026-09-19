@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Link } from "@/components/ui/Link/Link";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import type { ClientEditData } from "@/features/clients/queries";
@@ -244,7 +245,7 @@ export function EditConsultationModal({
               isDisabled={fieldsDisabled}
             />
           </div>
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
           <div className={styles.column}>
             <TextField
               label="Concern"

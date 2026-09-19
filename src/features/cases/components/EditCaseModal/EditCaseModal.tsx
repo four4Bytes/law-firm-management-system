@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { updateCaseWithClientAction } from "@/features/cases/actions";
 import type { CaseEditData } from "@/features/cases/queries";
@@ -142,7 +143,7 @@ export function EditCaseModal({
               isDisabled={isPending}
             />
           </div>
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
           <div className={styles.column}>
             <TextField
               label="Case Title"

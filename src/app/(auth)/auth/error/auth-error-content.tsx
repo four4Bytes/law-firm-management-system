@@ -1,0 +1,51 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+
+import { Link } from "@/components/ui/Link/Link";
+
+import styles from "./AuthErrorPage.module.css";
+
+enum AuthError {
+  Configuration = "Configuration",
+  AccessDenied = "AccessDenied",
+  Verification = "Verification",
+  Default = "Default",
+}
+
+const errorMap: Record<string, { title: string; message: string }> = {
+  [AuthError.Configuration]: {
+    title: "Something went wrong",
+    message:
+      "We encountered a problem on our end. Please try signing in again. If the issue persists, contact your administrator.",
+  },
+  [AuthError.AccessDenied]: {
+    title: "Access Denied",
+    message:
+      "You don't have permission to sign in with this account. Your account may have been deactivated - if this is a mistake please contact your administrator.",
+  },
+  [AuthError.Verification]: {
+    title: "Link expired",
+    message: "This sign-in link is no longer valid. Please go back and try signing in again.",
+  },
+  [AuthError.Default]: {
+    title: "Sign in failed",
+    message:
+      "We couldn't complete the sign-in. Please try again or contact your administrator if the issue continues.",
+  },
+};
+
+export function AuthErrorContent() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error") as AuthError | null;
+  const errorInfo = error ? errorMap[error] : undefined;
+  const { title, message } = errorInfo ?? errorMap[AuthError.Default];
+
+  return (
+    <div className={styles.content}>
+      <h1 className={styles.title}>{title}</h1>
+      <p className={styles.message}>{message}</p>
+      <Link href="/">Back to Sign In</Link>
+    </div>
+  );
+}

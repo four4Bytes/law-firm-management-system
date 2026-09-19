@@ -19,10 +19,10 @@ The system uses **Google OAuth 2.0** as its sole authentication provider. There 
 
 ### JWT Session Callbacks
 
-| Callback                      | Purpose                                                                                                                           |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `jwt({ token })`              | Looks up the database user by `token.email`. Rejects inactive users by returning `null`. Projects `role` and `id` onto the token. |
-| `session({ session, token })` | Projects `role`, `id`, and `image` from the token onto the session object for downstream use.                                     |
+| Callback                      | Purpose                                                                                                                                                                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `jwt({ token })`              | Looks up the database user by `token.email`. Returns `null` for deleted users. Flags deactivated users via `isActive: false` (kept alive so the proxy can redirect them to `/deactivated`). Projects `role` and `id` onto the token. |
+| `session({ session, token })` | Projects `role`, `id`, `isActive`, and `image` from the token onto the session object for downstream use.                                                                                                                            |
 
 ### Developer Email Bypass
 

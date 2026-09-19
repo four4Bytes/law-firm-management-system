@@ -6,6 +6,7 @@ import { Form } from "react-aria-components";
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { FileList } from "@/features/documents/components/FileList/FileList";
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
@@ -192,7 +193,7 @@ export function AddTaskModal({
             />
           </div>
 
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
 
           <div className={styles.column}>
             <DropZone

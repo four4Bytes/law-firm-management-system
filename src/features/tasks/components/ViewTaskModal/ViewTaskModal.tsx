@@ -3,6 +3,7 @@
 import clsx from "clsx";
 
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/TaskStatusBadge";
@@ -75,7 +76,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
           </div>
         </div>
 
-        <div className={styles.divider} />
+        <Separator orientation="vertical" className={styles.divider} />
         <div className={styles.column}>
           <div className={clsx(styles.field, styles.fillField)}>
             <span className={styles.label}>Attachments</span>
@@ -83,7 +84,7 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
           </div>
         </div>
 
-        <div className={styles.divider} />
+        <Separator orientation="vertical" className={styles.divider} />
         <div className={styles.column}>
           <div className={clsx(styles.field, styles.fillField)}>
             <span className={styles.label}>Notes</span>

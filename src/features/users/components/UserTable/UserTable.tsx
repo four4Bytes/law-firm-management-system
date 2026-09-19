@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { logoutUser } from "@/features/auth/actions";
 import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
 import { UserFormModal } from "@/features/users/components/UserFormModal/UserFormModal";
@@ -84,20 +85,26 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
       render: (_value, row) => {
         return (
           <div className={styles.actions}>
-            <Button
-              variant="ghost"
-              aria-label={`Edit ${row.name}`}
-              onPress={() => setModalTarget({ type: "edit", user: row })}
-            >
-              <FaPenToSquare className={styles.icon} />
-            </Button>
-            <Button
-              variant="ghost"
-              aria-label={`Deactivate ${row.name}`}
-              onPress={() => setDeletingUser(row)}
-            >
-              <FaTrashCan className={styles.icon} />
-            </Button>
+            <TooltipTrigger>
+              <Button
+                variant="ghost"
+                aria-label={`Edit ${row.name}`}
+                onPress={() => setModalTarget({ type: "edit", user: row })}
+              >
+                <FaPenToSquare className={styles.icon} />
+              </Button>
+              <Tooltip>{`Edit ${row.name}`}</Tooltip>
+            </TooltipTrigger>
+            <TooltipTrigger>
+              <Button
+                variant="ghost"
+                aria-label={`Deactivate ${row.name}`}
+                onPress={() => setDeletingUser(row)}
+              >
+                <FaTrashCan className={styles.icon} />
+              </Button>
+              <Tooltip>{`Deactivate ${row.name}`}</Tooltip>
+            </TooltipTrigger>
           </div>
         );
       },

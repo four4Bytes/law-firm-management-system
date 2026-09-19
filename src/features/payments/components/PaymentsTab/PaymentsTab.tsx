@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import {
   deletePaymentAction,
   getPaymentRowByIdAction,
@@ -18,7 +19,8 @@ import { EditPaymentModal } from "@/features/payments/components/EditPaymentModa
 import type { PaymentRow } from "@/features/payments/queries";
 import { PaymentStatus } from "@/generated/prisma/browser";
 import { formatDate } from "@/lib/date";
-import { toastActionError, toastError, toastNotFound, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
+import { usePendingFetch } from "@/lib/usePendingFetch";
 
 import styles from "./PaymentsTab.module.css";
 
@@ -64,30 +66,24 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editPayment, setEditPayment] = useState<PaymentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PaymentRow | null>(null);
-  const [pendingEditId, setPendingEditId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const latestRequest = useRef(0);
+  const {
+    pendingId: pendingEditId,
+    run: runEditFetch,
+    clear: clearPendingFetch,
+  } = usePendingFetch();
 
   function handleRefresh() {
     setRefreshTrigger((n) => n + 1);
   }
 
   async function handleEdit(payment: PaymentRow) {
-    const requestId = ++latestRequest.current;
-    setPendingEditId(payment.id);
     try {
-      const data = await getPaymentRowByIdAction(payment.id);
-      if (requestId !== latestRequest.current) return;
-      if (data) {
-        setEditPayment(data);
-      } else {
-        toastNotFound("Payment");
-      }
+      const data = await runEditFetch(payment.id, () => getPaymentRowByIdAction(payment.id));
+      if (!data) return;
+      setEditPayment(data);
     } catch {
-      if (requestId !== latestRequest.current) return;
       toastError("Failed to load payment", "Please try again in a moment.");
-    } finally {
-      if (requestId === latestRequest.current) setPendingEditId(null);
     }
   }
 
@@ -110,25 +106,30 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
       const payment = row as PaymentRow;
       return (
         <div className={styles.actions}>
-          <Button
-            variant="ghost"
-            aria-label="Edit payment"
-            onPress={() => handleEdit(payment)}
-            isPending={pendingEditId === payment.id}
-          >
-            <FaPenToSquare className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Delete payment"
-            onPress={() => {
-              latestRequest.current++;
-              setPendingEditId(null);
-              setDeleteTarget(payment);
-            }}
-          >
-            <FaTrashCan className={styles.icon} />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Edit payment"
+              onPress={() => handleEdit(payment)}
+              isPending={pendingEditId === payment.id}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Tooltip>Edit payment</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Delete payment"
+              onPress={() => {
+                clearPendingFetch();
+                setDeleteTarget(payment);
+              }}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+            <Tooltip>Delete payment</Tooltip>
+          </TooltipTrigger>
         </div>
       );
     },

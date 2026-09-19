@@ -150,6 +150,21 @@ export function actionUnauthorized(): ActionStatusResponse {
   return actionError("unauthorized", UNAUTHORIZED_TITLE, UNAUTHORIZED_DESCRIPTION);
 }
 
+const DEACTIVATED_TITLE = "Account deactivated";
+const DEACTIVATED_DESCRIPTION =
+  "Your account has been deactivated. Please contact your administrator if this is a mistake.";
+
+/**
+ * Failure preset for actions invoked with a deactivated session. Shares the
+ * `unauthorized` code so clients treat it like an invalid session, with copy
+ * explaining the real cause instead of a misleading expiry message.
+ *
+ * @returns An unauthorized response naming deactivation.
+ */
+export function actionDeactivated(): ActionStatusResponse {
+  return actionError("unauthorized", DEACTIVATED_TITLE, DEACTIVATED_DESCRIPTION);
+}
+
 /**
  * Fallback content for unrecoverable failures where the server could not
  * classify the cause. Used by both the catch mapper and client helpers when

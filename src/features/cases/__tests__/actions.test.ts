@@ -8,6 +8,8 @@ import { requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { mockSessionUser } from "@/test-utils/fixtures";
+import { setupAuth } from "@/test-utils/test-setup";
 
 import {
   changeCaseStatusAction,
@@ -38,6 +40,9 @@ async function flushAfterCallbacks(): Promise<void> {
   };
   await server.__flushAfterCallbacks();
 }
+
+const sessionAdmin = mockSessionUser({ id: "u1", email: "e", name: "n" });
+const sessionLawyer = mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" });
 
 afterEach(async () => {
   await flushAfterCallbacks();
@@ -515,22 +520,12 @@ describe("authorization guards for non-Admin users", () => {
   };
 
   beforeEach(() => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(prisma.case.findUnique).mockResolvedValue(caseRecord);
   });
 
   afterEach(() => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u1",
-      email: "e",
-      role: Role.Admin,
-      name: "n",
-    });
+    setupAuth(sessionAdmin);
   });
 
   it("returns forbidden envelope from updateCaseAction when not assigned and not the owner", async () => {
@@ -727,12 +722,7 @@ describe("changeCaseStatusAction", () => {
   }
 
   beforeEach(() => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u1",
-      email: "e",
-      role: Role.Admin,
-      name: "n",
-    });
+    setupAuth(sessionAdmin);
     vi.mocked(getCaseEditData).mockResolvedValue(openEditData());
     vi.mocked(getCaseAssigneeIds).mockResolvedValue([assignee1, assignee2]);
     vi.mocked(updateCaseStatus).mockResolvedValue({ id: uuid });

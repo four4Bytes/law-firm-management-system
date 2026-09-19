@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createCaseWithClientAction } from "@/features/cases/actions";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
@@ -156,7 +157,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
               isDisabled={isPending}
             />
           </div>
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
           <div className={styles.column}>
             <TextField
               label="Case Title"
@@ -193,7 +194,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
               onChange={(v) => setCaseField("partiesInvolved", v)}
               placeholder="Optional..."
               isTextArea
-              rows={3}
+              rows={6}
               validate={createFieldValidator(
                 CaseWithClientCreatePayloadSchema.shape.case.shape.parties_involved,
               )}

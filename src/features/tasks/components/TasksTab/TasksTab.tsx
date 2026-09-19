@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FaEye, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import {
   deleteTaskAction,
@@ -30,6 +31,7 @@ import {
   toastNotFound,
   toastSuccess,
 } from "@/lib/toast-utils";
+import { usePendingFetch } from "@/lib/usePendingFetch";
 
 import styles from "./TasksTab.module.css";
 
@@ -65,12 +67,11 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   const [editCurrentUserId, setEditCurrentUserId] = useState<string | null>(null);
   const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
-  const [pendingEditId, setPendingEditId] = useState<string | null>(null);
-  const [pendingViewId, setPendingViewId] = useState<string | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const latestRequest = useRef(0);
+  const { pendingId: pendingEditId, run: runEditFetch, clear: clearEditFetch } = usePendingFetch();
+  const { pendingId: pendingViewId, run: runViewFetch, clear: clearViewFetch } = usePendingFetch();
 
   const canCreate = can(userRole, "task.create", access);
 
@@ -102,18 +103,15 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   }, []);
 
   async function handleView(task: TaskRow) {
-    const requestId = ++latestRequest.current;
-    setPendingViewId(task.id);
     try {
-      const data = await getTaskDetailRowByIdAction(task.id);
-      if (requestId !== latestRequest.current) return;
+      const data = await runViewFetch(task.id, () => getTaskDetailRowByIdAction(task.id));
+      if (!data) return;
       if (!data.row) {
         toastNotFound("Task");
         return;
       }
       setViewTask(data.row);
     } catch (error) {
-      if (requestId !== latestRequest.current) return;
       const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
       if (isForbidden) {
         toastDenied();
@@ -123,17 +121,13 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           "Something went wrong while loading this task. Please try again.",
         );
       }
-    } finally {
-      if (requestId === latestRequest.current) setPendingViewId(null);
     }
   }
 
   async function handleEdit(task: TaskRow) {
-    const requestId = ++latestRequest.current;
-    setPendingEditId(task.id);
     try {
-      const data = await getTaskDetailRowByIdAction(task.id);
-      if (requestId !== latestRequest.current) return;
+      const data = await runEditFetch(task.id, () => getTaskDetailRowByIdAction(task.id));
+      if (!data) return;
       if (!data.row) {
         toastNotFound("Task");
         return;
@@ -147,7 +141,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         toastDenied();
       }
     } catch (error) {
-      if (requestId !== latestRequest.current) return;
       const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
       if (isForbidden) {
         toastDenied();
@@ -157,8 +150,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           "Something went wrong while loading this task. Please try again.",
         );
       }
-    } finally {
-      if (requestId === latestRequest.current) setPendingEditId(null);
     }
   }
 
@@ -181,34 +172,42 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       const task = row as TaskRow;
       return (
         <div className={styles.actions}>
-          <Button
-            variant="ghost"
-            aria-label="View task"
-            onPress={() => handleView(task)}
-            isPending={pendingViewId === task.id}
-          >
-            <FaEye className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Edit task"
-            onPress={() => handleEdit(task)}
-            isPending={pendingEditId === task.id}
-          >
-            <FaPenToSquare className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Delete task"
-            onPress={() => {
-              latestRequest.current++;
-              setPendingEditId(null);
-              setPendingViewId(null);
-              setDeleteTarget(task);
-            }}
-          >
-            <FaTrashCan className={styles.icon} />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="View task"
+              onPress={() => handleView(task)}
+              isPending={pendingViewId === task.id}
+            >
+              <FaEye className={styles.icon} />
+            </Button>
+            <Tooltip>View task</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Edit task"
+              onPress={() => handleEdit(task)}
+              isPending={pendingEditId === task.id}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Tooltip>Edit task</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Delete task"
+              onPress={() => {
+                clearEditFetch();
+                clearViewFetch();
+                setDeleteTarget(task);
+              }}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+            <Tooltip>Delete task</Tooltip>
+          </TooltipTrigger>
         </div>
       );
     },

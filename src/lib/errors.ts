@@ -9,6 +9,7 @@
 
 import {
   actionConflict,
+  actionDeactivated,
   actionForbidden,
   actionLocked,
   actionRecordLocked,
@@ -47,6 +48,25 @@ export class UnauthorizedError extends Error {
   constructor() {
     super("Unauthorized");
     this.name = "UnauthorizedError";
+  }
+}
+
+/**
+ * Error thrown when the session belongs to a deactivated user.
+ *
+ * Deactivated sessions are kept alive but flagged so the proxy can redirect
+ * to the notice page; this error blocks them from executing Server Actions.
+ *
+ * Uses a stable `digest` property so error boundaries can reliably identify
+ * deactivation without depending on the `message` string.
+ */
+export class DeactivatedError extends Error {
+  /** Stable identifier for error boundary detection. */
+  readonly digest = "DEACTIVATED";
+
+  constructor() {
+    super("Account deactivated");
+    this.name = "DeactivatedError";
   }
 }
 
@@ -131,7 +151,8 @@ interface ConflictCopy {
  * Maps an unknown caught value to a structured {@link ActionStatusResponse}.
  *
  * Expected, classified failures (`ForbiddenError`, `UnauthorizedError`,
- * `TaskLockedError`) convert to their matching presets without logging.
+ * `DeactivatedError`, `TaskLockedError`) convert to their matching presets
+ * without logging.
  * Prisma `P2002` unique violations map to a conflict when the caller supplies
  * {@link ConflictCopy}. Everything else is logged via `logError` and returned
  * as a sanitized unknown-error envelope — raw exceptions never reach the client.
@@ -148,6 +169,7 @@ export function toActionResponse(
   conflict?: ConflictCopy,
 ): ActionStatusResponse {
   if (error instanceof ForbiddenError) return actionForbidden();
+  if (error instanceof DeactivatedError) return actionDeactivated();
   if (error instanceof UnauthorizedError) return actionUnauthorized();
   if (error instanceof TaskLockedError) return actionLocked();
   if (error instanceof RecordLockedError) return actionRecordLocked(error.entity);

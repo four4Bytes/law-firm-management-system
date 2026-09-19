@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
 import type { CaseMilestoneListRow } from "@/features/cases/queries";
 import { deleteMilestoneAction, getMilestoneRowByIdAction } from "@/features/milestones/actions";
@@ -24,6 +25,7 @@ import {
   toastNotFound,
   toastSuccess,
 } from "@/lib/toast-utils";
+import { usePendingFetch } from "@/lib/usePendingFetch";
 
 import styles from "./MilestonesTab.module.css";
 
@@ -77,9 +79,12 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editMilestone, setEditMilestone] = useState<MilestoneRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CaseMilestoneListRow | null>(null);
-  const [pendingEditId, setPendingEditId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const latestRequest = useRef(0);
+  const {
+    pendingId: pendingEditId,
+    run: runEditFetch,
+    clear: clearPendingFetch,
+  } = usePendingFetch();
 
   const canCreate = can(userRole, "milestone.create", access);
 
@@ -88,11 +93,9 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
   }
 
   async function handleEdit(milestone: CaseMilestoneListRow) {
-    const requestId = ++latestRequest.current;
-    setPendingEditId(milestone.id);
     try {
-      const data = await getMilestoneRowByIdAction(milestone.id);
-      if (requestId !== latestRequest.current) return;
+      const data = await runEditFetch(milestone.id, () => getMilestoneRowByIdAction(milestone.id));
+      if (!data) return;
       if (!data.row) {
         toastNotFound("Milestone");
         return;
@@ -103,10 +106,7 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
       }
       setEditMilestone(data.row);
     } catch {
-      if (requestId !== latestRequest.current) return;
       toastError("Failed to load milestone", "Please try again in a moment.");
-    } finally {
-      if (requestId === latestRequest.current) setPendingEditId(null);
     }
   }
 
@@ -129,25 +129,30 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
       const milestone = row as CaseMilestoneListRow;
       return (
         <div className={styles.actions}>
-          <Button
-            variant="ghost"
-            aria-label="Edit milestone"
-            onPress={() => handleEdit(milestone)}
-            isPending={pendingEditId === milestone.id}
-          >
-            <FaPenToSquare className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Delete milestone"
-            onPress={() => {
-              latestRequest.current++;
-              setPendingEditId(null);
-              setDeleteTarget(milestone);
-            }}
-          >
-            <FaTrashCan className={styles.icon} />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Edit milestone"
+              onPress={() => handleEdit(milestone)}
+              isPending={pendingEditId === milestone.id}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Tooltip>Edit milestone</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Delete milestone"
+              onPress={() => {
+                clearPendingFetch();
+                setDeleteTarget(milestone);
+              }}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+            <Tooltip>Delete milestone</Tooltip>
+          </TooltipTrigger>
         </div>
       );
     },

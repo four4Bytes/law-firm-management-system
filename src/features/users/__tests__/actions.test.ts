@@ -16,6 +16,7 @@ import { Role } from "@/generated/prisma/browser";
 import { requireAuth, requirePermission } from "@/lib/auth-guards";
 import { isDeveloperEmail } from "@/lib/developer-emails";
 import { UnauthorizedError } from "@/lib/errors";
+import { mockSessionUser } from "@/test-utils/fixtures";
 
 import {
   createUserAction,
@@ -55,7 +56,7 @@ vi.mock("@/features/users/mutations", () => ({
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
-const sessionAdmin = { id: "admin-id", email: "admin@law.com", role: Role.Admin, name: "Admin" };
+const sessionAdmin = mockSessionUser();
 
 beforeEach(() => {
   vi.clearAllMocks();

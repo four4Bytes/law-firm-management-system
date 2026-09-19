@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { actionForbidden, actionRecordLocked } from "@/lib/action-response";
+import { actionDeactivated, actionForbidden, actionRecordLocked } from "@/lib/action-response";
 import {
+  DeactivatedError,
   ForbiddenError,
   RecordLockedError,
   StatusConflictError,
@@ -31,6 +32,11 @@ describe("toActionResponse", () => {
         description: "Please sign in again to continue.",
       },
     });
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("maps DeactivatedError to the deactivated preset", () => {
+    expect(toActionResponse(new DeactivatedError(), "update case")).toEqual(actionDeactivated());
     expect(errorSpy).not.toHaveBeenCalled();
   });
 

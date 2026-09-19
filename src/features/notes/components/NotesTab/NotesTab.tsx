@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { getConsultationNotesPaginatedAction } from "@/features/consultations/actions";
 import {
   deleteNoteAction,
@@ -99,27 +100,36 @@ export function NotesTab({ caseId, consultationId, access, userRole }: Props) {
       const note = row as NoteRow;
       return (
         <div className={styles.actions}>
-          <Button variant="ghost" aria-label="View note" onPress={() => setViewNote(note)}>
-            <FaEye className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Edit note"
-            onPress={() => handleEdit(note)}
-            isPending={pendingEditId === note.id}
-          >
-            <FaPenToSquare className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Delete note"
-            onPress={() => {
-              clearPendingFetch();
-              setDeleteTarget(note);
-            }}
-          >
-            <FaTrashCan className={styles.icon} />
-          </Button>
+          <TooltipTrigger>
+            <Button variant="ghost" aria-label="View note" onPress={() => setViewNote(note)}>
+              <FaEye className={styles.icon} />
+            </Button>
+            <Tooltip>View note</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Edit note"
+              onPress={() => handleEdit(note)}
+              isPending={pendingEditId === note.id}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Tooltip>Edit note</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Delete note"
+              onPress={() => {
+                clearPendingFetch();
+                setDeleteTarget(note);
+              }}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+            <Tooltip>Delete note</Tooltip>
+          </TooltipTrigger>
         </div>
       );
     },

@@ -15,6 +15,8 @@ import { ForbiddenError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { mockSessionUser } from "@/test-utils/fixtures";
+import { setupAuth } from "@/test-utils/test-setup";
 
 import {
   acceptConsultationWithCaseAction,
@@ -33,6 +35,9 @@ async function flushAfterCallbacks(): Promise<void> {
   };
   await server.__flushAfterCallbacks();
 }
+
+const sessionAdmin = mockSessionUser({ id: "u1", email: "e", name: "n" });
+const sessionLawyer = mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" });
 
 afterEach(async () => {
   await flushAfterCallbacks();
@@ -692,12 +697,7 @@ describe("authorization guards for non-Admin users", () => {
   };
 
   beforeEach(() => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getConsultationEditData).mockResolvedValue({
       id: "1",
       client_id: uuid,
@@ -710,12 +710,7 @@ describe("authorization guards for non-Admin users", () => {
   });
 
   afterEach(() => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u1",
-      email: "e",
-      role: Role.Admin,
-      name: "n",
-    });
+    setupAuth(sessionAdmin);
   });
 
   it("returns forbidden envelope from updateConsultationAction when not assigned and not the owner", async () => {
@@ -1183,18 +1178,7 @@ describe("acceptConsultationWithCaseAction", () => {
   };
 
   beforeEach(() => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u1",
-      email: "e",
-      role: Role.Admin,
-      name: "n",
-    });
-    vi.mocked(requirePermission).mockResolvedValue({
-      id: "u1",
-      email: "e",
-      role: Role.Admin,
-      name: "n",
-    });
+    setupAuth(sessionAdmin);
     vi.mocked(getConsultationEditData).mockResolvedValue(completedEditData());
     vi.mocked(hasLinkedCase).mockResolvedValue(false);
     vi.mocked(prisma.consultation.findUnique).mockResolvedValue({

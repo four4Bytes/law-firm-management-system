@@ -436,6 +436,55 @@ const tasks: TaskData[] = [
     assigneeEmails: ["marco.lopez@aninolaw.com"],
     reviewerEmail: "maria.anino@aninolaw.com",
   },
+  {
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    title: "Draft Position Paper for Labor Arbiter",
+    description:
+      "Prepare position paper with annexes: payslips, termination notice, and company handbook excerpts",
+    status: "Done",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    assigneeEmails: ["kevin.garcia@aninolaw.com"],
+    reviewerEmail: "maria.anino@aninolaw.com",
+  },
+  {
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    title: "Compute Separation Pay and Backwages",
+    description:
+      "Compute backwages from dismissal date plus separation pay in lieu of reinstatement per payroll records",
+    status: "Done",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    assigneeEmails: ["miguel.cruz@aninolaw.com"],
+    reviewerEmail: "maria.anino@aninolaw.com",
+  },
+  {
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    title: "Prepare Compromise Agreement",
+    description:
+      "Draft compromise agreement for the PHP 850,000 settlement package for execution before the Labor Arbiter",
+    status: "Done",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    assigneeEmails: ["kevin.garcia@aninolaw.com"],
+    reviewerEmail: "maria.anino@aninolaw.com",
+  },
+  {
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    title: "Draft Complaint for Ejectment",
+    description:
+      "Draft verified complaint for unlawful detainer against the heirs occupying the Antipolo property",
+    status: "Done",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    assigneeEmails: ["paolo.guerrero@aninolaw.com"],
+    reviewerEmail: "maria.anino@aninolaw.com",
+  },
+  {
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    title: "Serve Demand Letter to Vacate",
+    description:
+      "Personally serve demand letter to vacate on each heir at the subject property in Antipolo",
+    status: "Done",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    assigneeEmails: ["ramon.flores@aninolaw.com"],
+  },
 ];
 
 export async function seedTasks(

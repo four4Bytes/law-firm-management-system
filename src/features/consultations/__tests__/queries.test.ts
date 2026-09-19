@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getEntityActivityLogPaginated } from "@/features/audit/queries";
 import { prisma } from "@/lib/prisma";
+import {
+  mockConsultation as mockBaseConsultation,
+  mockAuditLog as mockBaseLog,
+  mockNote as mockBaseNote,
+} from "@/test-utils/fixtures";
 
 import {
   getConsultationAssigneeIds,
@@ -40,15 +45,9 @@ const consultationSelect = {
 } as const;
 
 const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
+  ...mockBaseConsultation(),
   id: "1",
   concern: "Legal advice",
-  booking_datetime: new Date("2024-06-01T10:00:00"),
-  status: "Scheduled" as const,
-  client_id: "c1",
-  created_by_user_id: "u1",
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
-  last_reminded_at: null,
   client: { name: "Jane Client" },
   createdBy: { name: "John Lawyer" },
   consultationAssignments: [],
@@ -234,15 +233,9 @@ describe("getConsultationsPaginated", () => {
 
 describe("getConsultationOverviewById", () => {
   const mockFullConsultation = (overrides: Record<string, unknown> = {}) => ({
+    ...mockBaseConsultation(),
     id: "1",
     concern: "Legal advice",
-    booking_datetime: new Date("2024-06-01T10:00:00"),
-    status: "Scheduled" as const,
-    client_id: "c1",
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-01"),
-    updated_at: new Date("2024-06-01"),
-    last_reminded_at: null,
     client: {
       id: "c1",
       name: "Jane Client",
@@ -254,8 +247,8 @@ describe("getConsultationOverviewById", () => {
     },
     createdBy: { name: "John Lawyer" },
     consultationAssignments: [
-      { user: { id: "u1", name: "John Lawyer" } },
-      { user: { id: "u2", name: "Alice Paralegal" } },
+      { user: { id: "u1", name: "John Lawyer", last_seen_at: new Date(Date.now() - 30_000) } },
+      { user: { id: "u2", name: "Alice Paralegal", last_seen_at: null } },
     ],
     cases: [{ id: "case1", case_title: "Jane vs Corp" }],
     ...overrides,
@@ -283,8 +276,8 @@ describe("getConsultationOverviewById", () => {
       },
       createdBy: { name: "John Lawyer" },
       assignTo: [
-        { id: "u1", name: "John Lawyer" },
-        { id: "u2", name: "Alice Paralegal" },
+        { id: "u1", name: "John Lawyer", is_online: true },
+        { id: "u2", name: "Alice Paralegal", is_online: false },
       ],
       relatedCase: { id: "case1", case_title: "Jane vs Corp" },
     });
@@ -295,7 +288,7 @@ describe("getConsultationOverviewById", () => {
         createdBy: { select: { name: true } },
         consultationAssignments: {
           where: { user: { is_active: true } },
-          include: { user: { select: { id: true, name: true } } },
+          include: { user: { select: { id: true, name: true, last_seen_at: true } } },
           orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
         },
         cases: { select: { id: true, case_title: true }, take: 1 },
@@ -328,14 +321,9 @@ describe("getConsultationOverviewById", () => {
 
 describe("getConsultationNotesPaginated", () => {
   const mockNote = (overrides: Record<string, unknown> = {}) => ({
-    id: "n1",
+    ...mockBaseNote(),
     content: "Client discussed settlement options",
-    case_id: null,
     consultation_id: "1",
-    task_id: null,
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-01"),
-    updated_at: new Date("2024-06-01"),
     createdBy: { name: "John Lawyer" },
     ...overrides,
   });
@@ -399,13 +387,12 @@ describe("getEntityActivityLogPaginated (Consultation)", () => {
   });
 
   const mockLog = (overrides: Record<string, unknown> = {}) => ({
+    ...mockBaseLog(),
     id: "l1",
     action: "CREATE",
-    actor_user_id: "u1",
     entity_type: "Consultation",
     entity_id: "1",
     details: "Consultation created",
-    created_at: new Date("2024-06-01"),
     actor: { name: "John Lawyer" },
     ...overrides,
   });

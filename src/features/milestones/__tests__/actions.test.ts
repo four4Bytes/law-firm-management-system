@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role } from "@/generated/prisma/browser";
-import { requireAuth } from "@/lib/auth-guards";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { mockSessionUser } from "@/test-utils/fixtures";
+import { setupAuth } from "@/test-utils/test-setup";
 
 import {
   createMilestoneAction,
@@ -72,6 +73,14 @@ vi.mock("../mutations", () => ({
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
+const sessionLawyer = mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" });
+const sessionParalegal = mockSessionUser({
+  id: "u2",
+  email: "e2",
+  role: Role.Paralegal,
+  name: "n2",
+});
+
 const milestoneRecord = {
   id: "m1",
   title: "File complaint",
@@ -97,12 +106,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.mocked(requireAuth).mockResolvedValue({
-    id: "u2",
-    email: "e2",
-    role: Role.Lawyer,
-    name: "n2",
-  });
+  setupAuth(sessionLawyer);
 });
 
 describe("getMilestoneRowByIdAction", () => {
@@ -111,12 +115,7 @@ describe("getMilestoneRowByIdAction", () => {
   });
 
   it("returns canUpdate=false for a Paralegal who is assigned but cannot update", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: false });
 
     const result = await getMilestoneRowByIdAction(uuid);
@@ -125,12 +124,7 @@ describe("getMilestoneRowByIdAction", () => {
   });
 
   it("returns canUpdate=true for an owner who is assigned", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
 
     const result = await getMilestoneRowByIdAction(uuid);
@@ -160,12 +154,7 @@ describe("createMilestoneAction", () => {
   });
 
   it("returns success when authorized", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(createMilestone).mockResolvedValue(milestoneRecord);
 
@@ -249,12 +238,7 @@ describe("updateMilestoneAction", () => {
   });
 
   it("returns success when authorized", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
 
@@ -544,12 +528,7 @@ describe("deleteMilestoneAction", () => {
   });
 
   it("returns success when authorized", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(deleteMilestone).mockResolvedValue(milestoneRecord);
 

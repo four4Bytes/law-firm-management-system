@@ -1,0 +1,51 @@
+.modal {
+  width: var(--modal-wide-width);
+  --list-max-height: none;
+
+  .form {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .columns {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: var(--space-2xl);
+    text-align: left;
+  }
+
+  .column {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  .actions {
+    display: flex;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+
+    > * {
+      flex: 1;
+    }
+  }
+}
+
+/* Mobile overrides */
+@media (max-width: 48rem) {
+  .modal {
+    .columns {
+      flex-direction: column;
+    }
+
+    .divider {
+      display: none;
+    }
+  }
+}

@@ -89,8 +89,8 @@ export function EditConsultationModal({
   const needsRescheduleConfirm = !isLocked && isScheduled && bookingChanged;
 
   function validateBookingDate(): string | null {
-    if (!bookingChanged) return null;
-    if (isBeforeToday(newBooking)) return "Booking date cannot be in the past";
+    const booking = combineDateTime(fields.date, fields.time);
+    if (isBeforeToday(booking)) return "Booking date cannot be in the past";
     return null;
   }
   const assigneeOptions = useMemo(() => {
@@ -164,6 +164,11 @@ export function EditConsultationModal({
   async function handleRescheduleConfirm() {
     if (isPending) return;
     setShowRescheduleConfirm(false);
+    const error = validateBookingDate();
+    if (error) {
+      toastError("Invalid booking date", error);
+      return;
+    }
     await submitForm(buildConsultationPayload());
   }
 

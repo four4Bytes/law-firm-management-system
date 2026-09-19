@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Role } from "@/generated/prisma/browser";
 import { requirePermission } from "@/lib/auth-guards";
-import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import { DeactivatedError, ForbiddenError, UnauthorizedError } from "@/lib/errors";
 
 const { auth: authMock } = vi.hoisted(() => ({ auth: vi.fn() }));
 
@@ -28,6 +28,14 @@ describe("requirePermission", () => {
     authMock.mockRejectedValue(new UnauthorizedError());
 
     await expect(requirePermission("activity.read")).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("throws DeactivatedError for a deactivated session", async () => {
+    authMock.mockResolvedValue({
+      user: { ...adminSession.user, isActive: false },
+    });
+
+    await expect(requirePermission("activity.read")).rejects.toBeInstanceOf(DeactivatedError);
   });
 
   it("throws ForbiddenError when no permission is granted", async () => {

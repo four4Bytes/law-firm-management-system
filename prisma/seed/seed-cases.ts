@@ -153,6 +153,25 @@ const cases: CaseData[] = [
     partiesInvolved: "Catherine P. Santos (Homeowner), BPI Family Bank (Creditor)",
     assigneeEmails: ["marco.lopez@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
+  {
+    clientEmail: "ramon.aquino@email.com",
+    title: "Aquino Illegal Dismissal Settlement",
+    type: "Labor",
+    status: "Settled",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    partiesInvolved:
+      "Ramon D. Aquino (Complainant), First Pacific Manufacturing Corp. (Respondent)",
+    assigneeEmails: ["miguel.cruz@aninolaw.com", "kevin.garcia@aninolaw.com"],
+  },
+  {
+    clientEmail: "divina.torres@email.com",
+    title: "Torres Ejectment Case — Withdrawn",
+    type: "Civil Litigation",
+    status: "Terminated",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    partiesInvolved: "Divina C. Torres (Plaintiff), Heirs of the late Faustino Torres (Defendants)",
+    assigneeEmails: ["marco.lopez@aninolaw.com", "paolo.guerrero@aninolaw.com"],
+  },
 ];
 
 export async function seedCases(

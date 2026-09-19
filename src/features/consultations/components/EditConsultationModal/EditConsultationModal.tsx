@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Link } from "@/components/ui/Link/Link";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import type { ClientEditData } from "@/features/clients/queries";
@@ -89,8 +90,8 @@ export function EditConsultationModal({
   const needsRescheduleConfirm = !isLocked && isScheduled && bookingChanged;
 
   function validateBookingDate(): string | null {
-    if (!bookingChanged) return null;
-    if (isBeforeToday(newBooking)) return "Booking date cannot be in the past";
+    const booking = combineDateTime(fields.date, fields.time);
+    if (isBeforeToday(booking)) return "Booking date cannot be in the past";
     return null;
   }
   const assigneeOptions = useMemo(() => {
@@ -164,6 +165,11 @@ export function EditConsultationModal({
   async function handleRescheduleConfirm() {
     if (isPending) return;
     setShowRescheduleConfirm(false);
+    const error = validateBookingDate();
+    if (error) {
+      toastError("Invalid booking date", error);
+      return;
+    }
     await submitForm(buildConsultationPayload());
   }
 
@@ -239,7 +245,7 @@ export function EditConsultationModal({
               isDisabled={fieldsDisabled}
             />
           </div>
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
           <div className={styles.column}>
             <TextField
               label="Concern"

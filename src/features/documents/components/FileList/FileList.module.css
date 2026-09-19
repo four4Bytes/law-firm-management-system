@@ -59,4 +59,11 @@
       font-size: var(--icon-size-ms);
     }
   }
+
+  .loadMoreRow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: var(--space-3xl);
+  }
 }

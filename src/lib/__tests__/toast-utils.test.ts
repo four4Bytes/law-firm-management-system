@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queue } from "@/components/ui/Toast/Toast";
 import { actionForbidden } from "@/lib/action-response";
+import { RBAC_DOCS_URL } from "@/lib/rbac";
 import {
   toastActionError,
   toastDenied,
@@ -46,6 +47,7 @@ describe("toast helpers", () => {
       {
         title: "Access denied",
         description: "You don't have permission to perform this action.",
+        link: { label: "Read the RBAC docs for more info.", href: RBAC_DOCS_URL },
       },
       { timeout: 5000 },
     );
@@ -70,6 +72,7 @@ describe("toast helpers", () => {
       {
         title: "Access denied",
         description: "You don't have permission to perform this action.",
+        link: { label: "Read the RBAC docs for more info.", href: RBAC_DOCS_URL },
       },
       { timeout: 5000 },
     );

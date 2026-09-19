@@ -7,6 +7,7 @@ import { Form } from "react-aria-components";
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { updateTaskAction, type TaskCapabilities } from "@/features/tasks/actions";
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
@@ -174,7 +175,7 @@ export function EditTaskModal({
             />
           </div>
 
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
 
           <div className={styles.column}>
             <TaskFilesSection
@@ -185,7 +186,7 @@ export function EditTaskModal({
             />
           </div>
 
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
 
           <div className={styles.column}>
             <TaskNotesSection

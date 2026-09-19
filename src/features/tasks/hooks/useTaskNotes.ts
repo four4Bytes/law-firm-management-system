@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getTaskNotesPaginatedAction } from "@/features/notes/actions";
 import type { NoteRow } from "@/features/notes/queries";
+import { appendPage } from "@/lib/pagination";
 import { toastError } from "@/lib/toast-utils";
 
 interface UseTaskNotesReturn {
@@ -54,7 +55,7 @@ export function useTaskNotes(taskId: string): UseTaskNotesReturn {
     };
   }, [taskId, reloadKey]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (loadingRef.current || !nextCursor) return;
     loadingRef.current = true;
     setIsLoadingMore(true);
@@ -68,7 +69,7 @@ export function useTaskNotes(taskId: string): UseTaskNotesReturn {
         cursor,
       });
       if (generation !== generationRef.current) return;
-      setNotes((prev) => [...prev, ...res.rows]);
+      setNotes((prev) => appendPage(prev, res.rows));
       setNextCursor(res.nextCursor);
     } catch {
       toastError("Failed to load more notes", "We couldn't load more notes. Please try again.");
@@ -76,7 +77,7 @@ export function useTaskNotes(taskId: string): UseTaskNotesReturn {
       loadingRef.current = false;
       setIsLoadingMore(false);
     }
-  };
+  }, [taskId, nextCursor]);
 
   return {
     notes,

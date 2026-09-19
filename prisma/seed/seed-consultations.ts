@@ -196,6 +196,15 @@ const consultations: ConsultationData[] = [
     daysAgo: -10,
     assigneeEmails: ["sofia.villanueva@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
+  {
+    clientEmail: "jose.mercado@email.com",
+    createdByEmail: "gina.reyes@aninolaw.com",
+    concern:
+      "Small claims — unpaid construction balance of PHP 180,000, contractor stopped answering calls two weeks ago",
+    status: "Scheduled",
+    daysAgo: 2,
+    assigneeEmails: ["gina.reyes@aninolaw.com"],
+  },
 ];
 
 export async function seedConsultations(

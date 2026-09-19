@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
-import { requireAuth } from "@/lib/auth-guards";
 import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
 import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { mockSessionUser } from "@/test-utils/fixtures";
+import { setupAuth } from "@/test-utils/test-setup";
 
 import {
   confirmDocumentUploadAction,
@@ -80,6 +81,14 @@ vi.mock("../mutations", () => ({
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
+const sessionLawyer = mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" });
+const sessionParalegal = mockSessionUser({
+  id: "u2",
+  email: "e2",
+  role: Role.Paralegal,
+  name: "n2",
+});
+
 const documentRecord = {
   id: "d1",
   file_path: "cases/c1/file.pdf",
@@ -97,12 +106,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.mocked(requireAuth).mockResolvedValue({
-    id: "u2",
-    email: "e2",
-    role: Role.Lawyer,
-    name: "n2",
-  });
+  setupAuth(sessionLawyer);
 });
 
 describe("getDocumentsPaginatedAction", () => {
@@ -132,12 +136,7 @@ describe("deleteDocumentAction", () => {
   });
 
   it("returns success when authorized", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
 
     const result = await deleteDocumentAction({ documentId: uuid });
@@ -150,12 +149,7 @@ describe("deleteDocumentAction", () => {
 
 describe("terminal record lock", () => {
   beforeEach(() => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(deleteDocumentWithParentCheck).mockResolvedValue({ id: uuid });
   });
@@ -329,12 +323,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
   };
 
   it("denies a non-task-attached Paralegal case member an upload URL", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
@@ -345,12 +334,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("allows a task-attached Paralegal an upload URL", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
@@ -368,12 +352,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("denies a non-task-attached Paralegal from confirming an upload", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
       status: "Pending" as const,
@@ -403,12 +382,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("denies a non-task-attached Paralegal uploader from deleting a task document", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getDocumentById).mockResolvedValue(taskDocRecord);
     vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(getTaskAccessContext).mockResolvedValue({
@@ -431,12 +405,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("allows a task-attached Paralegal uploader to delete a task document", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getDocumentById).mockResolvedValue(taskDocRecord);
     vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(getTaskAccessContext).mockResolvedValue({

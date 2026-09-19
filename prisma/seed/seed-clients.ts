@@ -170,6 +170,18 @@ const clients: SeedClient[] = [
     address: "753 West Ave., Brgy. West Triangle, Quezon City",
     phone: "09182345681",
   },
+  {
+    name: "Ramon D. Aquino",
+    email: "ramon.aquino@email.com",
+    address: "22 Kaimito St., Marikina City",
+    phone: "09193456782",
+  },
+  {
+    name: "Divina C. Torres",
+    email: "divina.torres@email.com",
+    address: "48 Ilang-Ilang St., Antipolo City",
+    phone: "09164567893",
+  },
 ];
 
 export async function seedClients(): Promise<{ id: string; email: string }[]> {

@@ -18,12 +18,6 @@
     gap: var(--space-lg);
   }
 
-  .divider {
-    width: 1px;
-    flex: 0 0 auto;
-    background: var(--color-border-subtle);
-  }
-
   .field {
     display: flex;
     flex-direction: column;

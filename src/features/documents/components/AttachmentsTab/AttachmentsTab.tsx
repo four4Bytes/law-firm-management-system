@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal/UploadDocumentModal";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
@@ -86,28 +87,37 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
           const doc = row as DocumentRow;
           return (
             <div className={styles.actions}>
-              <Button
-                variant="ghost"
-                aria-label="Preview attachment"
-                onPress={() => setPreviewDocument(doc)}
-              >
-                <FaEye className={styles.icon} />
-              </Button>
-              <Button
-                variant="ghost"
-                aria-label="Download attachment"
-                onPress={() => handleDownload(doc)}
-                isPending={pendingIds.has(doc.id)}
-              >
-                <FaDownload className={styles.icon} />
-              </Button>
-              <Button
-                variant="ghost"
-                aria-label="Delete attachment"
-                onPress={() => setDeleteTarget(doc)}
-              >
-                <FaTrashCan className={styles.icon} />
-              </Button>
+              <TooltipTrigger>
+                <Button
+                  variant="ghost"
+                  aria-label="Preview attachment"
+                  onPress={() => setPreviewDocument(doc)}
+                >
+                  <FaEye className={styles.icon} />
+                </Button>
+                <Tooltip>Preview attachment</Tooltip>
+              </TooltipTrigger>
+              <TooltipTrigger>
+                <Button
+                  variant="ghost"
+                  aria-label="Download attachment"
+                  onPress={() => handleDownload(doc)}
+                  isPending={pendingIds.has(doc.id)}
+                >
+                  <FaDownload className={styles.icon} />
+                </Button>
+                <Tooltip>Download attachment</Tooltip>
+              </TooltipTrigger>
+              <TooltipTrigger>
+                <Button
+                  variant="ghost"
+                  aria-label="Delete attachment"
+                  onPress={() => setDeleteTarget(doc)}
+                >
+                  <FaTrashCan className={styles.icon} />
+                </Button>
+                <Tooltip>Delete attachment</Tooltip>
+              </TooltipTrigger>
             </div>
           );
         },

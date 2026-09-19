@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
+import { mockDocument as mockBaseDocument } from "@/test-utils/fixtures";
 
 import { getDocumentById, getDocumentsPaginated } from "../queries";
 
@@ -9,17 +10,11 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 const mockDocument = (overrides: Record<string, unknown> = {}) => ({
-  id: "d1",
+  ...mockBaseDocument(),
   file_name: "complaint.pdf",
   file_path: "uploads/complaint.pdf",
-  file_type: "application/pdf",
   file_size: 2500000,
   case_id: "c1",
-  consultation_id: null,
-  task_id: null,
-  uploaded_by_user_id: "u1",
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
   uploadedBy: { name: "John Lawyer" },
   task: null,
   ...overrides,

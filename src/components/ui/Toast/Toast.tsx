@@ -15,10 +15,15 @@ import { Button } from "@/components/ui/Button/Button";
 
 import styles from "./Toast.module.css";
 
+export interface ToastLink {
+  label: string;
+  href: string;
+}
+
 export interface ToastContent {
   title: string;
-  /** Supporting line rendered under the title. Always present. */
   description: string;
+  link?: ToastLink;
 }
 
 export const queue = new ToastQueue<ToastContent>({
@@ -41,6 +46,16 @@ export function ToastRegion() {
           <AriaToastContent className={styles.content}>
             <span className={styles.title}>{toast.content.title}</span>
             <span className={styles.description}>{toast.content.description}</span>
+            {toast.content.link && (
+              <a
+                className={styles.link}
+                href={toast.content.link.href}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {toast.content.link.label}
+              </a>
+            )}
           </AriaToastContent>
           <Button slot="close" variant="ghost" aria-label="Close" className={styles.close}>
             <FaXmark />

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { deleteFile } from "@/lib/s3";
 
 import { seedAuditLogs } from "./seed-audit-logs";
 import { seedCases } from "./seed-cases";
@@ -10,10 +11,16 @@ import { seedNotes } from "./seed-notes";
 import { seedNotifications } from "./seed-notifications";
 import { seedPayments } from "./seed-payments";
 import { seedTasks } from "./seed-tasks";
+import { seedUserSettings } from "./seed-user-settings";
 import { seedUsers } from "./seed-users";
 
 async function cleanDatabase() {
   await prisma.auditLog.deleteMany();
+
+  const documents = await prisma.document.findMany({ select: { file_path: true } });
+  for (const document of documents) {
+    await deleteFile(document.file_path);
+  }
   await prisma.document.deleteMany();
   await prisma.note.deleteMany();
   await prisma.notification.deleteMany();
@@ -37,6 +44,7 @@ async function main() {
   await cleanDatabase();
 
   const userByEmail = await seedUsers();
+  await seedUserSettings(userByEmail);
   const clients = await seedClients();
   const consultations = await seedConsultations(userByEmail, clients);
   const cases = await seedCases(userByEmail, clients, consultations);

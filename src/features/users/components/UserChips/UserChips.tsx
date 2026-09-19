@@ -1,9 +1,11 @@
 import clsx from "clsx";
 
+import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
+
 import styles from "./UserChips.module.css";
 
 interface UserChipsProps {
-  users: { id: string; name: string }[];
+  users: { id: string; name: string; is_online: boolean }[];
   emptyText?: string;
   className?: string;
 }
@@ -15,8 +17,9 @@ export function UserChips({ users, emptyText = "—", className }: UserChipsProp
 
   return (
     <ul className={clsx(styles.chips, className)}>
-      {users.map(({ id, name }) => (
+      {users.map(({ id, name, is_online }) => (
         <li key={id} className={styles.chip}>
+          <StatusDot isOnline={is_online} />
           {name}
         </li>
       ))}

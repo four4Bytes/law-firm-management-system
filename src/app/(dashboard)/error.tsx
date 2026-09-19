@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { Link } from "@/components/ui/Link/Link";
+import { RBAC_DOCS_URL } from "@/lib/rbac";
 
 import styles from "./error.module.css";
 
@@ -29,6 +30,11 @@ export default function DashboardError({ error, unstable_retry }: ErrorProps) {
         </p>
         <div className={styles.actions}>
           {!isForbidden && <Link onPress={unstable_retry}>Try again</Link>}
+          {isForbidden && (
+            <Link href={RBAC_DOCS_URL} target="_blank" rel="noreferrer">
+              Read the RBAC for more info.
+            </Link>
+          )}
           <Link href="/dashboard">Go to Dashboard</Link>
         </div>
       </div>

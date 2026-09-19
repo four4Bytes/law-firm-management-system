@@ -404,6 +404,41 @@ const notes: NoteData[] = [
     createdByEmail: "gina.reyes@aninolaw.com",
     daysAgo: 1,
   },
+  {
+    content:
+      "Settlement reason: Both parties agreed to a PHP 850,000 compromise package — separation pay, backwages, and attorney's fees. Agreement executed before the Labor Arbiter, case concluded without further litigation.",
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    daysAgo: 2,
+  },
+  {
+    content:
+      "Client confirmed receipt of the settlement check. Released final billing and closed the file. Client expressed interest in retaining us for a MOA review next quarter.",
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    createdByEmail: "kevin.garcia@aninolaw.com",
+    daysAgo: 1,
+  },
+  {
+    content:
+      "Termination reason: Client instructed withdrawal after reaching an out-of-court family settlement with the heirs. Motion to withdraw filed with MTC Antipolo; filing fee refund processed.",
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    createdByEmail: "marco.lopez@aninolaw.com",
+    daysAgo: 4,
+  },
+  {
+    content:
+      "Demand letter served personally on all three heirs. Eldest heir indicated willingness to negotiate — endorsed to client for decision before filing.",
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    createdByEmail: "ramon.flores@aninolaw.com",
+    daysAgo: 30,
+  },
+  {
+    content:
+      "NLRC decision on similar primo-tabakada doctrine reviewed for the position paper. Doctrine applies squarely — employer failed to prove just cause with substantial evidence.",
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    createdByEmail: "kevin.garcia@aninolaw.com",
+    daysAgo: 20,
+  },
 ];
 
 export async function seedNotes(

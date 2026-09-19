@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createConsultationWithClientAction } from "@/features/consultations/actions";
@@ -181,7 +182,7 @@ export function AddConsultationModal({
               onChange={(v) => setClientField("address", v)}
               placeholder="Optional"
               isTextArea
-              rows={6}
+              rows={9}
               className={styles.addressField}
               validate={createFieldValidator(
                 ConsultationWithClientCreatePayloadSchema.shape.client.shape.address,
@@ -189,7 +190,7 @@ export function AddConsultationModal({
               isDisabled={isPending}
             />
           </div>
-          <div className={styles.divider} />
+          <Separator orientation="vertical" className={styles.divider} />
           <div className={styles.column}>
             <TextField
               label="Concern"

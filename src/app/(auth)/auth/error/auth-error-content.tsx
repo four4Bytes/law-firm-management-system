@@ -22,7 +22,7 @@ const errorMap: Record<string, { title: string; message: string }> = {
   [AuthError.AccessDenied]: {
     title: "Access Denied",
     message:
-      "You don't have permission to sign in with this account. If this is a mistake please contact your administrator",
+      "You don't have permission to sign in with this account. Your account may have been deactivated - if this is a mistake please contact your administrator.",
   },
   [AuthError.Verification]: {
     title: "Link expired",

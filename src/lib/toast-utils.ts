@@ -10,13 +10,20 @@
  *
  * @module lib/toast-utils
  */
-import { queue } from "@/components/ui/Toast/Toast";
+import { queue, type ToastLink } from "@/components/ui/Toast/Toast";
 import {
   actionForbidden,
   actionNotFound,
   unknownActionError,
   type ActionStatusResponse,
 } from "@/lib/action-response";
+import { RBAC_DOCS_URL } from "@/lib/rbac";
+
+/** Follow-up link attached to access-denied toasts. */
+const denialLink: ToastLink = {
+  label: "Read the RBAC docs for more info.",
+  href: RBAC_DOCS_URL,
+};
 
 /** Standard display duration (ms) for all toasts. */
 export const TOAST_TIMEOUT = 5000;
@@ -66,7 +73,14 @@ export function toastError(title: string, description: string): void {
  */
 export function toastActionError(response: ActionStatusResponse, operation: string): void {
   const error = response.error ?? unknownActionError(operation);
-  queue.add({ title: error.title, description: error.description }, { timeout: TOAST_TIMEOUT });
+  queue.add(
+    {
+      title: error.title,
+      description: error.description,
+      ...(error.code === "forbidden" ? { link: denialLink } : {}),
+    },
+    { timeout: TOAST_TIMEOUT },
+  );
 }
 
 /**
@@ -77,7 +91,10 @@ export function toastActionError(response: ActionStatusResponse, operation: stri
 export function toastDenied(): void {
   const { error } = actionForbidden();
   if (error)
-    queue.add({ title: error.title, description: error.description }, { timeout: TOAST_TIMEOUT });
+    queue.add(
+      { title: error.title, description: error.description, link: denialLink },
+      { timeout: TOAST_TIMEOUT },
+    );
 }
 
 /**

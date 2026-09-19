@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { getTaskNotesPaginatedAction } from "@/features/notes/actions";
 import type { NoteRow } from "@/features/notes/queries";
+import { appendPage } from "@/lib/pagination";
 import { toastError } from "@/lib/toast-utils";
 
 interface UseTaskNotesReturn {
@@ -68,7 +69,7 @@ export function useTaskNotes(taskId: string): UseTaskNotesReturn {
         cursor,
       });
       if (generation !== generationRef.current) return;
-      setNotes((prev) => [...prev, ...res.rows]);
+      setNotes((prev) => appendPage(prev, res.rows));
       setNextCursor(res.nextCursor);
     } catch {
       toastError("Failed to load more notes", "We couldn't load more notes. Please try again.");

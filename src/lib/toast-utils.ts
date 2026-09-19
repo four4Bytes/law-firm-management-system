@@ -21,7 +21,7 @@ import { RBAC_DOCS_URL } from "@/lib/rbac";
 
 /** Follow-up link attached to access-denied toasts. */
 const denialLink: ToastLink = {
-  label: "Read the RBAC for more info.",
+  label: "Read the RBAC docs for more info.",
   href: RBAC_DOCS_URL,
 };
 

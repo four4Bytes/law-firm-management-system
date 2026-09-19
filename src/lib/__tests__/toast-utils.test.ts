@@ -47,7 +47,7 @@ describe("toast helpers", () => {
       {
         title: "Access denied",
         description: "You don't have permission to perform this action.",
-        link: { label: "Read the RBAC docs", href: RBAC_DOCS_URL },
+        link: { label: "Read the RBAC docs for more info.", href: RBAC_DOCS_URL },
       },
       { timeout: 5000 },
     );
@@ -72,7 +72,7 @@ describe("toast helpers", () => {
       {
         title: "Access denied",
         description: "You don't have permission to perform this action.",
-        link: { label: "Read the RBAC docs", href: RBAC_DOCS_URL },
+        link: { label: "Read the RBAC docs for more info.", href: RBAC_DOCS_URL },
       },
       { timeout: 5000 },
     );

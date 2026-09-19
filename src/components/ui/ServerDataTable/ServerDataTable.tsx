@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
+import { appendPage } from "@/lib/pagination";
 import { toSortQuery } from "@/lib/sort";
 import { toastError } from "@/lib/toast-utils";
 import type { SortQuery } from "@/lib/types";
@@ -132,7 +133,7 @@ export function ServerDataTable<T extends { id: string }>({
         pageSize: 10,
       });
       if (gen !== generationRef.current) return;
-      setItems((prev) => [...prev, ...result.rows]);
+      setItems((prev) => appendPage(prev, result.rows));
       setCursor(result.nextCursor);
       setHasMore(result.nextCursor !== null);
     } catch {

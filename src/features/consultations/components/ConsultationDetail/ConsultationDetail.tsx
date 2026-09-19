@@ -276,7 +276,6 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
 
       {editData && (
         <EditConsultationModal
-          key={editData.consultation.id}
           isOpen={!!editData}
           onOpenChange={() => setEditData(null)}
           onSuccess={() => {

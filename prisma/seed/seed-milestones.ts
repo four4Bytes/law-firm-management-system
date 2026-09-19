@@ -409,6 +409,64 @@ const milestones: MilestoneData[] = [
     createdByEmail: "marco.lopez@aninolaw.com",
     notifyEmails: ["marco.lopez@aninolaw.com"],
   },
+  {
+    caseTitle: "Dela Cruz Property Title Transfer",
+    title: "BIR Tax Clearance Submission",
+    description:
+      "Submit capital gains tax return and secure BIR certificate authorizing registration — overdue, blocking the title transfer",
+    status: "Pending",
+    daysFromNow: -3,
+    createdByEmail: "david.tan@aninolaw.com",
+    notifyEmails: ["david.tan@aninolaw.com", "jessica.lim@aninolaw.com"],
+  },
+  {
+    caseTitle: "Gonzales Legal Separation",
+    title: "Parenting Plan Mediation",
+    description:
+      "Court-referred mediation on interim custody and support — overdue, needs immediate rescheduling",
+    status: "Pending",
+    daysFromNow: -5,
+    createdByEmail: "sofia.villanueva@aninolaw.com",
+    notifyEmails: ["sofia.villanueva@aninolaw.com", "kevin.garcia@aninolaw.com"],
+  },
+  {
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    title: "Mandatory Conciliation Conference",
+    description:
+      "Single-entry approach conference before the Labor Arbiter concluded with settlement",
+    status: "Done",
+    daysFromNow: -10,
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    notifyEmails: ["miguel.cruz@aninolaw.com", "kevin.garcia@aninolaw.com"],
+  },
+  {
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    title: "Settlement Agreement Signed",
+    description: "Compromise agreement for PHP 850,000 executed and submitted to the Labor Arbiter",
+    status: "Done",
+    daysFromNow: -2,
+    createdByEmail: "miguel.cruz@aninolaw.com",
+    notifyEmails: ["miguel.cruz@aninolaw.com"],
+  },
+  {
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    title: "Complaint Filed with MTC",
+    description:
+      "Verified complaint for unlawful detainer filed with MTC Antipolo before withdrawal",
+    status: "Done",
+    daysFromNow: -25,
+    createdByEmail: "marco.lopez@aninolaw.com",
+    notifyEmails: ["marco.lopez@aninolaw.com", "paolo.guerrero@aninolaw.com"],
+  },
+  {
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    title: "Pre-Trial Conference",
+    description: "Pre-trial cancelled after client instructed withdrawal of the case",
+    status: "Cancelled",
+    daysFromNow: 5,
+    createdByEmail: "marco.lopez@aninolaw.com",
+    notifyEmails: ["marco.lopez@aninolaw.com"],
+  },
 ];
 
 export async function seedMilestones(

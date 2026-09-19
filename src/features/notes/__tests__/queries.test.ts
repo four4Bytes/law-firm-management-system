@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
+import { mockNote as mockBaseNote } from "@/test-utils/fixtures";
 
 import {
   getCaseNotesPaginated,
@@ -16,14 +17,9 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 const mockNote = (overrides: Record<string, unknown> = {}) => ({
-  id: "n1",
+  ...mockBaseNote(),
   content: "Note content",
   case_id: "c1",
-  consultation_id: null,
-  task_id: null,
-  created_by_user_id: "u1",
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
   createdBy: { name: "John Lawyer" },
   ...overrides,
 });
@@ -81,7 +77,7 @@ describe("getNoteRowById", () => {
       id: "n1",
       content: "Note content",
       author: "John Lawyer",
-      created_at: new Date("2024-06-01"),
+      created_at: new Date("2024-06-05"),
     };
     expect(result).toEqual(expected);
   });
@@ -104,10 +100,9 @@ describe("getNoteRowById", () => {
 
 describe("getTaskNotesPaginated", () => {
   const mockNote = (overrides: Record<string, unknown> = {}) => ({
-    id: "n1",
+    ...mockBaseNote(),
     content: "Task note content",
     task_id: "t1",
-    created_at: new Date("2024-06-01"),
     createdBy: { name: "Bob Lawyer" },
     ...overrides,
   });
@@ -173,14 +168,8 @@ describe("getTaskNotesPaginated", () => {
 
 describe("getCaseNotesPaginated", () => {
   const mockNote = (overrides: Record<string, unknown> = {}) => ({
-    id: "n1",
+    ...mockBaseNote(),
     content: "Client called about the case",
-    case_id: "1",
-    consultation_id: null,
-    task_id: null,
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-01"),
-    updated_at: new Date("2024-06-01"),
     createdBy: { name: "Bob Lawyer" },
     ...overrides,
   });
@@ -236,14 +225,8 @@ describe("getCaseNotesPaginated", () => {
 
 describe("getCaseNotesWithTaskNotesPaginated", () => {
   const mockNote = (overrides: Record<string, unknown> = {}) => ({
-    id: "n1",
+    ...mockBaseNote(),
     content: "Client called about the case",
-    case_id: "1",
-    consultation_id: null,
-    task_id: null,
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-01"),
-    updated_at: new Date("2024-06-01"),
     createdBy: { name: "Bob Lawyer" },
     ...overrides,
   });

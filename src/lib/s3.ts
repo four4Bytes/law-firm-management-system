@@ -81,6 +81,29 @@ export function generateKey(parentType: string, parentId: string, fileName: stri
 }
 
 /**
+ * Uploads bytes directly to the given key. Intended for server-side flows
+ * (seeding, maintenance) — client uploads must use presigned URLs instead.
+ *
+ * @param key - The S3 object key to write.
+ * @param body - The file bytes to store.
+ * @param contentType - The MIME type stored alongside the object.
+ */
+export async function putFile(
+  key: string,
+  body: Uint8Array | string,
+  contentType: string,
+): Promise<void> {
+  await s3().send(
+    new PutObjectCommand({
+      Bucket: bucket(),
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+}
+
+/**
  * Deletes the object stored at the given key.
  *
  * @param key - The S3 object key to delete.

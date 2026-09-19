@@ -88,12 +88,25 @@ src/
 │   ├── useDebounce.ts                   # Debounce hook
 │   ├── useModalForm.ts                  # Modal form lifecycle hook
 │   └── developer-emails.ts              # Dev account allowlist
+├── test-utils/                          # Test-only shared code (fixtures, auth setup)
 ├── styles/
 │   └── variables.css                    # Design tokens (primitives → semantic)
 ├── stories/                             # Storybook stories
 ├── assets/                              # Static assets (images)
 └── types/                               # Type declarations (next-auth)
 ```
+
+### Shared library groups
+
+`src/lib/` stays flat by convention. The files fall into four groups:
+
+- **Infra** — `prisma.ts`, `auth.ts`, `s3.ts`, `email.ts`, `storage-cleanup.ts`, `row-locks.ts`
+- **Domain rules** — `rbac.ts`, `lifecycle.ts`, `auth-guards.ts`, `errors.ts`, `action-response.ts`,
+  `schemas.ts`, `developer-emails.ts`
+- **Pure utils** — `date.ts`, `sort.ts`, `path.ts`, `file-format.ts`, `file-types.ts`, `env.ts`,
+  `logger.ts`, `form-utils.ts`, `toast-utils.ts`, `email-templates.ts`, `types.ts`
+- **Hooks** (`use*`) — `useDebounce.ts`, `useFileUpload.ts`, `useModalForm.ts`, `usePendingFetch.ts`,
+  `useStatusWorkflow.ts`
 
 ## Data Flow
 

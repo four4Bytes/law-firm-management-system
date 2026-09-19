@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
+import { mockMilestone as mockBaseMilestone } from "@/test-utils/fixtures";
 
 import { getMilestoneById, getMilestoneRowById, type MilestoneRow } from "../queries";
 
@@ -8,15 +9,11 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { caseMilestone: { findUnique: vi.fn() } },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockMilestone = (overrides: Record<string, unknown> = {}): any => ({
-  id: "m1",
+const mockMilestone = (overrides: Record<string, unknown> = {}) => ({
+  ...mockBaseMilestone(),
   title: "Initial Filing",
   description: "File the initial paperwork",
   due_date: new Date("2024-07-15"),
-  status: "Pending",
-  case_id: "c1",
-  created_by_user_id: "u1",
   created_at: new Date("2024-07-15"),
   updated_at: new Date("2024-07-15"),
   ...overrides,

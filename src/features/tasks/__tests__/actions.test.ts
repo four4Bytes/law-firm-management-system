@@ -4,6 +4,8 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, ReviewDecision, Role } from "@/generated/prisma/browser";
 import { requireAuth } from "@/lib/auth-guards";
+import { mockSessionUser } from "@/test-utils/fixtures";
+import { setupAuth } from "@/test-utils/test-setup";
 
 import {
   addTaskReviewerAction,
@@ -86,6 +88,14 @@ vi.mock("../mutations", () => ({
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
+
+const sessionLawyer = mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" });
+const sessionParalegal = mockSessionUser({
+  id: "u2",
+  email: "e2",
+  role: Role.Paralegal,
+  name: "n2",
+});
 const uuid2 = "550e8400-e29b-41d4-a716-446655440001";
 
 const taskRecord = {
@@ -138,12 +148,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.mocked(requireAuth).mockResolvedValue({
-    id: "u2",
-    email: "e2",
-    role: Role.Lawyer,
-    name: "n2",
-  });
+  setupAuth(sessionLawyer);
 });
 
 describe("getTaskDetailRowByIdAction", () => {
@@ -152,12 +157,7 @@ describe("getTaskDetailRowByIdAction", () => {
   });
 
   it("returns canUpdate=false for a Paralegal assigned to the case but not the task", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
@@ -182,12 +182,7 @@ describe("getTaskDetailRowByIdAction", () => {
   });
 
   it("returns canUpdate=true for a Paralegal assigned to the specific task", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,

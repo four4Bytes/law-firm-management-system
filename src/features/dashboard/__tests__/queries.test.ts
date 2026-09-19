@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/prisma";
+import {
+  mockCase as mockBaseCase,
+  mockConsultation as mockBaseConsultation,
+  mockMilestone as mockBaseMilestone,
+} from "@/test-utils/fixtures";
 
 import {
   getDashboardStats,
@@ -19,45 +24,25 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 const mockCase = (overrides: Record<string, unknown> = {}) => ({
-  id: "1",
-  case_title: "Smith vs Jones",
-  case_type: "Civil",
-  status: "Open" as const,
-  client_id: "c1",
-  source_consultation_id: null,
-  parties_involved: null,
-  created_by_user_id: "u1",
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
+  ...mockBaseCase(),
   client: { name: "Alice Client" },
   ...overrides,
 });
 
 const mockConsultation = (overrides: Record<string, unknown> = {}) => ({
+  ...mockBaseConsultation(),
   id: "1",
   concern: "Legal advice",
-  booking_datetime: new Date("2024-06-01T10:00:00"),
-  status: "Scheduled" as const,
-  client_id: "c1",
-  created_by_user_id: "u1",
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
-  last_reminded_at: null,
   client: { name: "Jane Client" },
   ...overrides,
 });
 
 const mockMilestone = (overrides: Record<string, unknown> = {}) => ({
+  ...mockBaseMilestone(),
   id: "1",
-  title: "File complaint",
-  description: null,
   due_date: new Date("2099-01-01"),
-  status: "Pending" as const,
-  case_id: "c1",
-  created_by_user_id: "u1",
   created_at: new Date("2099-01-01"),
   updated_at: new Date("2099-01-01"),
-  last_reminded_at: null,
   case: { case_title: "Smith vs Jones" },
   ...overrides,
 });

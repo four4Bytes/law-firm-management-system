@@ -108,9 +108,14 @@ export function NoteList({
           </li>
         ))}
         {hasMore && (
-          <li ref={sentinelRef} className={styles.loadMoreRow} aria-hidden="true">
-            {isLoadingMore && <ProgressCircle aria-label="Loading more notes" />}
-          </li>
+          <>
+            <li ref={sentinelRef} className={styles.loadMoreRow} aria-hidden="true" />
+            {isLoadingMore && (
+              <li className={styles.loadMoreRow}>
+                <ProgressCircle aria-label="Loading more notes" />
+              </li>
+            )}
+          </>
         )}
       </ul>
       {viewNote && (

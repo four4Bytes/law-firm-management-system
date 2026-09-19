@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getEntityActivityLogPaginated } from "@/features/audit/queries";
 import { type Case } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import {
+  mockCase as mockBaseCase,
+  mockAuditLog as mockBaseLog,
+  mockMilestone as mockBaseMilestone,
+  mockTask as mockBaseTask,
+} from "@/test-utils/fixtures";
 
 import {
   getCaseEditData,
@@ -46,16 +52,7 @@ const caseSelect = {
 } as const;
 
 const mockCase = (overrides: Record<string, unknown> = {}) => ({
-  id: "1",
-  case_title: "Smith vs Jones",
-  case_type: "Civil",
-  status: "Open" as const,
-  client_id: "c1",
-  source_consultation_id: null,
-  parties_involved: null,
-  created_by_user_id: "u1",
-  created_at: new Date("2024-06-01"),
-  updated_at: new Date("2024-06-01"),
+  ...mockBaseCase(),
   client: { name: "Alice Client" },
   caseAssignments: [{ user: { name: "Bob Lawyer" } }],
   milestones: [{ title: "File complaint", status: "Pending" as const }],
@@ -228,16 +225,8 @@ describe("getCasesPaginated", () => {
 
 describe("getCaseOverviewById", () => {
   const mockFullCase = (overrides: Record<string, unknown> = {}) => ({
-    id: "1",
-    case_title: "Smith vs Jones",
-    case_type: "Civil",
-    status: "Open" as const,
-    client_id: "c1",
-    source_consultation_id: null,
+    ...mockBaseCase(),
     parties_involved: "Smith (Plaintiff), Jones (Defendant)",
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-01"),
-    updated_at: new Date("2024-06-01"),
     client: {
       id: "c1",
       name: "Alice Client",
@@ -341,13 +330,8 @@ describe("getCaseOverviewById", () => {
 
 describe("getCaseTasksPaginated", () => {
   const mockTask = (overrides: Record<string, unknown> = {}) => ({
-    id: "t1",
+    ...mockBaseTask(),
     title: "Draft complaint",
-    description: null,
-    status: "Pending" as const,
-    case_id: "1",
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-02"),
     taskAssignments: [{ user: { name: "Bob Lawyer" } }],
     taskReviewers: [],
@@ -466,17 +450,12 @@ describe("getCaseTasksPaginated", () => {
 
 describe("getCaseMilestonesPaginated", () => {
   const mockMilestone = (overrides: Record<string, unknown> = {}) => ({
+    ...mockBaseMilestone(),
     id: "m1",
     title: "File complaint",
-    description: null,
     due_date: new Date("2024-07-01"),
-    status: "Pending" as const,
     case_id: "1",
-    created_by_user_id: "u1",
-    created_at: new Date("2024-06-01"),
-    updated_at: new Date("2024-06-01"),
     reminder_days: null,
-    last_reminded_at: null,
     ...overrides,
   });
 
@@ -580,13 +559,12 @@ describe("getEntityActivityLogPaginated (Case)", () => {
   });
 
   const mockLog = (overrides: Record<string, unknown> = {}) => ({
+    ...mockBaseLog(),
     id: "l1",
     action: "CREATE",
-    actor_user_id: "u1",
     entity_type: "Case",
     entity_id: "1",
     details: "Case created",
-    created_at: new Date("2024-06-01"),
     actor: { name: "Bob Lawyer" },
     ...overrides,
   });

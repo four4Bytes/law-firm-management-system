@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { deleteFile, putFile } from "@/lib/s3";
 
 interface DocumentData {
   fileName: string;
@@ -385,6 +386,41 @@ const documents: DocumentData[] = [
     uploadedByEmail: "marco.lopez@aninolaw.com",
     daysAgo: 6,
   },
+  {
+    fileName: "Position-Paper-Aquino.pdf",
+    fileType: "application/pdf",
+    fileSize: 1950000,
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    taskTitle: "Draft Position Paper for Labor Arbiter",
+    uploadedByEmail: "kevin.garcia@aninolaw.com",
+    daysAgo: 18,
+  },
+  {
+    fileName: "Compromise-Agreement-Signed.pdf",
+    fileType: "application/pdf",
+    fileSize: 870000,
+    caseTitle: "Aquino Illegal Dismissal Settlement",
+    taskTitle: "Prepare Compromise Agreement",
+    uploadedByEmail: "miguel.cruz@aninolaw.com",
+    daysAgo: 2,
+  },
+  {
+    fileName: "Ejectment-Complaint-Draft.docx",
+    fileType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    fileSize: 310000,
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    taskTitle: "Draft Complaint for Ejectment",
+    uploadedByEmail: "paolo.guerrero@aninolaw.com",
+    daysAgo: 28,
+  },
+  {
+    fileName: "Demand-Letter-to-Vacate.pdf",
+    fileType: "application/pdf",
+    fileSize: 280000,
+    caseTitle: "Torres Ejectment Case — Withdrawn",
+    uploadedByEmail: "ramon.flores@aninolaw.com",
+    daysAgo: 30,
+  },
 ];
 
 export async function seedDocuments(
@@ -404,32 +440,52 @@ export async function seedDocuments(
 
   let count = 0;
   for (const d of documents) {
-    const data: Record<string, unknown> = {
-      file_name: d.fileName,
-      file_path: `uploads/${d.fileName}`,
-      file_type: d.fileType,
-      file_size: d.fileSize,
-      uploaded_by_user_id: userByEmail[d.uploadedByEmail],
-    };
+    const docDate = new Date();
+    docDate.setDate(docDate.getDate() - d.daysAgo);
 
-    if (d.caseTitle) {
-      data.case_id = caseByTitle[d.caseTitle];
+    const parent =
+      d.taskTitle !== undefined
+        ? { type: "tasks", id: taskByTitle[d.taskTitle] }
+        : d.caseTitle !== undefined
+          ? { type: "cases", id: caseByTitle[d.caseTitle] }
+          : {
+              type: "consultations",
+              id: clientIdToConId[clientByEmail[d.consultationClientEmail!]],
+            };
+    const key = `${parent.type}/${parent.id}/${d.fileName}`;
+    await putFile(key, seedPlaceholderBody(d.fileName), d.fileType);
+
+    try {
+      await prisma.document.create({
+        data: {
+          file_name: d.fileName,
+          file_path: key,
+          file_type: d.fileType,
+          file_size: d.fileSize,
+          uploaded_by_user_id: userByEmail[d.uploadedByEmail],
+          created_at: docDate,
+          ...(d.caseTitle ? { case_id: caseByTitle[d.caseTitle] } : {}),
+          ...(d.taskTitle ? { task_id: taskByTitle[d.taskTitle] } : {}),
+          ...(d.consultationClientEmail
+            ? { consultation_id: clientIdToConId[clientByEmail[d.consultationClientEmail]] }
+            : {}),
+        },
+      });
+    } catch (error) {
+      await deleteFile(key);
+      throw error;
     }
-
-    if (d.taskTitle) {
-      data.task_id = taskByTitle[d.taskTitle];
-    }
-
-    if (d.consultationClientEmail) {
-      const clientId = clientByEmail[d.consultationClientEmail];
-      data.consultation_id = clientIdToConId[clientId];
-    }
-
-    await prisma.document.create({
-      data: data as Parameters<typeof prisma.document.create>[0]["data"],
-    });
     count++;
   }
 
-  console.log(`Seeded ${count} documents.`);
+  console.log(`Seeded ${count} documents with storage objects.`);
+}
+
+function seedPlaceholderBody(fileName: string): string {
+  return [
+    "Anino Law — seeded placeholder document.",
+    `File: ${fileName}`,
+    "Replace with the real file; this stand-in exists so downloads work on a fresh seed.",
+    "",
+  ].join("\n");
 }

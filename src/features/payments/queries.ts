@@ -81,7 +81,7 @@ export const getPaymentsPaginated = cache(
 );
 
 export const getPaymentById = cache(async (id: string) => {
-  return prisma.payment.findUnique({
+  const payment = await prisma.payment.findUnique({
     where: { id },
     select: {
       id: true,
@@ -94,6 +94,8 @@ export const getPaymentById = cache(async (id: string) => {
       consultation_id: true,
     },
   });
+  if (!payment) return null;
+  return { ...payment, amount: Number(payment.amount) };
 });
 
 export const getPaymentRowById = cache(async (id: string): Promise<PaymentRow | null> => {

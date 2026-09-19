@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
-import { requireAuth } from "@/lib/auth-guards";
 import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { mockSessionUser } from "@/test-utils/fixtures";
+import { setupAuth } from "@/test-utils/test-setup";
 
 import {
   createNoteAction,
@@ -73,6 +74,14 @@ vi.mock("../mutations", () => ({
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
+const sessionLawyer = mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" });
+const sessionParalegal = mockSessionUser({
+  id: "u2",
+  email: "e2",
+  role: Role.Paralegal,
+  name: "n2",
+});
+
 const noteRecord = {
   id: "n1",
   content: "Initial note",
@@ -98,12 +107,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.mocked(requireAuth).mockResolvedValue({
-    id: "u2",
-    email: "e2",
-    role: Role.Lawyer,
-    name: "n2",
-  });
+  setupAuth(sessionLawyer);
 });
 
 describe("getNoteRowByIdAction", () => {
@@ -112,12 +116,7 @@ describe("getNoteRowByIdAction", () => {
   });
 
   it("returns canUpdate=false for a Paralegal on another user's note", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: false });
 
     const result = await getNoteRowByIdAction(uuid);
@@ -126,12 +125,7 @@ describe("getNoteRowByIdAction", () => {
   });
 
   it("returns canUpdate=true for the note owner who is assigned", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
 
     const result = await getNoteRowByIdAction(uuid);
@@ -189,12 +183,7 @@ describe("createNoteAction", () => {
   });
 
   it("returns success when authorized", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(createNote).mockResolvedValue(noteRecord);
 
@@ -217,12 +206,7 @@ describe("updateNoteAction", () => {
   });
 
   it("returns success when authorized", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(updateNoteWithParentCheck).mockResolvedValue(noteRecord);
 
@@ -245,12 +229,7 @@ describe("deleteNoteAction", () => {
   });
 
   it("returns success when authorized", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Lawyer,
-      name: "n2",
-    });
+    setupAuth(sessionLawyer);
     vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
     vi.mocked(deleteNoteWithParentCheck).mockResolvedValue(noteRecord);
 
@@ -409,12 +388,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
   };
 
   it("denies a non-task-attached Paralegal case member from creating a task note", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
       status: "Pending" as const,
@@ -440,12 +414,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("allows a task-attached Paralegal to create a task note", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
       status: "Pending" as const,
@@ -465,12 +434,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("denies a non-task-attached Paralegal from updating a task note", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
       status: "Pending" as const,
@@ -498,12 +462,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("allows an attached Paralegal note owner to delete a task note", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
       status: "Pending" as const,
@@ -525,12 +484,7 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
   });
 
   it("denies a task-attached Paralegal from deleting another user's task note", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      id: "u2",
-      email: "e2",
-      role: Role.Paralegal,
-      name: "n2",
-    });
+    setupAuth(sessionParalegal);
     vi.mocked(getTaskById).mockResolvedValue({
       id: uuid,
       status: "Pending" as const,

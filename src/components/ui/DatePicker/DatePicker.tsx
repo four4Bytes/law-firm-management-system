@@ -51,7 +51,7 @@ export function DatePicker<T extends DateValue>({
         </Text>
       )}
       <AriaFieldError className={styles.error}>{errorMessage}</AriaFieldError>
-      <Popover className={styles.popover} placement="bottom">
+      <Popover placement="bottom" width="content">
         <Calendar visibleDuration={visibleDuration} />
       </Popover>
     </AriaDatePicker>

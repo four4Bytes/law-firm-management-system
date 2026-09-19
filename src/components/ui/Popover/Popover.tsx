@@ -11,11 +11,19 @@ import styles from "./Popover.module.css";
 export interface PopoverProps extends Omit<AriaPopoverProps, "className"> {
   className?: string;
   children: React.ReactNode;
+  width?: "trigger" | "content";
 }
 
-export function Popover({ children, className, ...props }: PopoverProps) {
+export function Popover({ children, className, width = "trigger", ...props }: PopoverProps) {
   return (
-    <AriaPopover className={clsx(styles.popover, className)} {...props}>
+    <AriaPopover
+      className={clsx(
+        styles.popover,
+        width === "content" ? styles.fitContent : styles.matchTrigger,
+        className,
+      )}
+      {...props}
+    >
       {children}
     </AriaPopover>
   );

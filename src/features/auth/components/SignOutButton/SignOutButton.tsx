@@ -5,6 +5,7 @@ import { FaArrowRightFromBracket } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { logoutUser } from "@/features/auth/actions";
 
 import styles from "./SignOutButton.module.css";
@@ -14,9 +15,12 @@ export function SignOutButton() {
 
   return (
     <>
-      <Button variant="ghost" aria-label="Sign out" onPress={() => setOpen(true)}>
-        <FaArrowRightFromBracket className={styles.icon} />
-      </Button>
+      <TooltipTrigger>
+        <Button variant="ghost" aria-label="Sign out" onPress={() => setOpen(true)}>
+          <FaArrowRightFromBracket className={styles.icon} />
+        </Button>
+        <Tooltip>Sign out</Tooltip>
+      </TooltipTrigger>
       <ConfirmDialog
         isOpen={isOpen}
         onOpenChange={setOpen}

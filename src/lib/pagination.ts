@@ -11,7 +11,13 @@
 export function appendPage<T extends { id: string }>(prev: T[], rows: T[]): T[] {
   if (rows.length === 0) return prev;
   const seen = new Set(prev.map((row) => row.id));
-  const fresh = rows.filter((row) => !seen.has(row.id));
+  const fresh: T[] = [];
+  for (const row of rows) {
+    if (!seen.has(row.id)) {
+      seen.add(row.id);
+      fresh.push(row);
+    }
+  }
   if (fresh.length === 0) return prev;
   return [...prev, ...fresh];
 }

@@ -24,6 +24,14 @@ describe("appendPage", () => {
     ]);
   });
 
+  it("drops duplicate ids within the fetched page itself", () => {
+    expect(appendPage([{ id: "1" }], [{ id: "2" }, { id: "2" }, { id: "3" }])).toEqual([
+      { id: "1" },
+      { id: "2" },
+      { id: "3" },
+    ]);
+  });
+
   it("returns prev unchanged when the page adds nothing new", () => {
     const prev = [{ id: "1" }];
 

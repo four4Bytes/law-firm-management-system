@@ -20,6 +20,8 @@
   }
 
   .toast {
+    position: relative;
+    overflow: hidden;
     width: 280px;
     display: flex;
     align-items: center;
@@ -31,12 +33,52 @@
     border-radius: var(--radius-md);
     outline: none;
     forced-color-adjust: none;
-    animation: slide-up var(--transition-fast);
-    view-transition-name: auto;
+    animation: toast-slide-in var(--transition-slow);
+
+    &.success {
+      border-left-color: var(--color-success);
+
+      .icon {
+        color: var(--color-success);
+      }
+
+      .progress {
+        background: var(--color-success);
+      }
+    }
+
+    &.info {
+      border-left-color: var(--color-info);
+
+      .icon {
+        color: var(--color-info);
+      }
+
+      .progress {
+        background: var(--color-info);
+      }
+    }
+
+    &.error {
+      border-left-color: var(--color-danger);
+
+      .icon {
+        color: var(--color-danger);
+      }
+
+      .progress {
+        background: var(--color-danger);
+      }
+    }
 
     &[data-focus-visible] {
       outline: 2px solid var(--color-brand-accent--focus);
       outline-offset: 2px;
+    }
+
+    .icon {
+      flex: 0 0 auto;
+      font-size: var(--font-size-md);
     }
 
     .content {
@@ -81,10 +123,45 @@
       height: var(--space-2xl);
       padding: 0;
     }
+
+    .progress {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 2px;
+      width: 100%;
+      transform-origin: left center;
+      /* Must match TOAST_TIMEOUT in toast-utils.ts. */
+      animation: toast-progress 5000ms linear forwards;
+    }
+
+    &:hover .progress,
+    &:focus-within .progress {
+      animation-play-state: paused;
+    }
   }
 }
 
-@keyframes slide-up {
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-slide-out {
+  to {
+    translate: 100% 0;
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes toast-slide-up {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -93,6 +170,24 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* :global keeps the literal view-transition-class set inline in Toast.tsx. */
+:global(::view-transition-new(.toast):only-child) {
+  animation: toast-slide-in 300ms cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+
+:global(::view-transition-old(.toast):only-child) {
+  animation: toast-slide-out 250ms ease-in forwards;
 }
 
 /* Mobile overrides */
@@ -105,5 +200,36 @@
 
   .region .toast {
     width: 100%;
+    animation-name: toast-slide-up;
+  }
+
+  :global(::view-transition-new(.toast):only-child) {
+    animation-name: toast-slide-up;
+  }
+
+  :global(::view-transition-old(.toast):only-child) {
+    animation-name: toast-fade-out;
+  }
+}
+
+@keyframes toast-fade-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .region .toast {
+    animation: none;
+  }
+
+  .region .toast .progress {
+    animation: none;
+  }
+
+  :global(::view-transition-new(.toast)),
+  :global(::view-transition-old(.toast)) {
+    animation: none;
   }
 }

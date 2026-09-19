@@ -238,8 +238,8 @@ describe("getCaseOverviewById", () => {
     },
     createdBy: { name: "Bob Lawyer" },
     caseAssignments: [
-      { user: { id: "u1", name: "Bob Lawyer" } },
-      { user: { id: "u2", name: "Carol Paralegal" } },
+      { user: { id: "u1", name: "Bob Lawyer", last_seen_at: new Date(Date.now() - 30_000) } },
+      { user: { id: "u2", name: "Carol Paralegal", last_seen_at: null } },
     ],
     milestones: [
       {
@@ -280,8 +280,8 @@ describe("getCaseOverviewById", () => {
       },
       createdBy: { name: "Bob Lawyer" },
       assignTo: [
-        { id: "u1", name: "Bob Lawyer" },
-        { id: "u2", name: "Carol Paralegal" },
+        { id: "u1", name: "Bob Lawyer", is_online: true },
+        { id: "u2", name: "Carol Paralegal", is_online: false },
       ],
       latestMilestone: { title: "File complaint", status: "Pending" },
       sourceConsultation: { id: "con1", concern: "Breach of contract" },
@@ -293,7 +293,7 @@ describe("getCaseOverviewById", () => {
         createdBy: { select: { name: true } },
         caseAssignments: {
           where: { user: { is_active: true } },
-          include: { user: { select: { id: true, name: true } } },
+          include: { user: { select: { id: true, name: true, last_seen_at: true } } },
           orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
         },
         milestones: { orderBy: { created_at: "desc" }, take: 1 },

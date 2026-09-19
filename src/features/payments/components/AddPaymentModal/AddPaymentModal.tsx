@@ -6,7 +6,7 @@ import { Form } from "react-aria-components";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
-import { DateField } from "@/components/ui/DateField/DateField";
+import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
@@ -91,7 +91,7 @@ export function AddPaymentModal({
             validate={createFieldValidator(PaymentCreatePayloadSchema.shape.amount)}
             isDisabled={isPending}
           />
-          <DateField
+          <DatePicker
             label="Payment Date"
             value={paymentDate}
             onChange={(v) => v && setPaymentDate(v)}

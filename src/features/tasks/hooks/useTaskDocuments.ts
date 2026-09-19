@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
@@ -65,7 +65,7 @@ export function useTaskDocuments(taskId: string): UseTaskDocumentsReturn {
     };
   }, [taskId, reloadKey]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (loadingRef.current || !nextCursor) return;
     loadingRef.current = true;
     setIsLoadingMore(true);
@@ -88,7 +88,7 @@ export function useTaskDocuments(taskId: string): UseTaskDocumentsReturn {
       loadingRef.current = false;
       setIsLoadingMore(false);
     }
-  };
+  }, [taskId, nextCursor]);
 
   return {
     documents,

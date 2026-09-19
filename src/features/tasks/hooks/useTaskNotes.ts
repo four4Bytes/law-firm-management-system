@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getTaskNotesPaginatedAction } from "@/features/notes/actions";
 import type { NoteRow } from "@/features/notes/queries";
@@ -55,7 +55,7 @@ export function useTaskNotes(taskId: string): UseTaskNotesReturn {
     };
   }, [taskId, reloadKey]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (loadingRef.current || !nextCursor) return;
     loadingRef.current = true;
     setIsLoadingMore(true);
@@ -77,7 +77,7 @@ export function useTaskNotes(taskId: string): UseTaskNotesReturn {
       loadingRef.current = false;
       setIsLoadingMore(false);
     }
-  };
+  }, [taskId, nextCursor]);
 
   return {
     notes,

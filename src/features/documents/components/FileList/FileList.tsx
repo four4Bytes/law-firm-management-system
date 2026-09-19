@@ -183,9 +183,14 @@ export function FileList({
         </div>
       ))}
       {hasMore && (
-        <div ref={sentinelRef} className={styles.loadMoreRow} aria-hidden="true">
-          {isLoadingMore && <ProgressCircle aria-label="Loading more attachments" />}
-        </div>
+        <>
+          <div ref={sentinelRef} className={styles.loadMoreRow} aria-hidden="true" />
+          {isLoadingMore && (
+            <div className={styles.loadMoreRow}>
+              <ProgressCircle aria-label="Loading more attachments" />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

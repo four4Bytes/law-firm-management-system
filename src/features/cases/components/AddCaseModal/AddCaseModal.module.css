@@ -16,18 +16,9 @@
 
     .addressField {
       flex: 1;
-
-      textarea {
-        flex: 1;
-        max-height: none;
-      }
+      display: flex;
+      flex-direction: column;
     }
-  }
-
-  .divider {
-    width: 1px;
-    flex: 0 0 auto;
-    background: var(--color-border-subtle);
   }
 
   .actions {

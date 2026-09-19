@@ -247,8 +247,8 @@ describe("getConsultationOverviewById", () => {
     },
     createdBy: { name: "John Lawyer" },
     consultationAssignments: [
-      { user: { id: "u1", name: "John Lawyer" } },
-      { user: { id: "u2", name: "Alice Paralegal" } },
+      { user: { id: "u1", name: "John Lawyer", last_seen_at: new Date(Date.now() - 30_000) } },
+      { user: { id: "u2", name: "Alice Paralegal", last_seen_at: null } },
     ],
     cases: [{ id: "case1", case_title: "Jane vs Corp" }],
     ...overrides,
@@ -276,8 +276,8 @@ describe("getConsultationOverviewById", () => {
       },
       createdBy: { name: "John Lawyer" },
       assignTo: [
-        { id: "u1", name: "John Lawyer" },
-        { id: "u2", name: "Alice Paralegal" },
+        { id: "u1", name: "John Lawyer", is_online: true },
+        { id: "u2", name: "Alice Paralegal", is_online: false },
       ],
       relatedCase: { id: "case1", case_title: "Jane vs Corp" },
     });
@@ -288,7 +288,7 @@ describe("getConsultationOverviewById", () => {
         createdBy: { select: { name: true } },
         consultationAssignments: {
           where: { user: { is_active: true } },
-          include: { user: { select: { id: true, name: true } } },
+          include: { user: { select: { id: true, name: true, last_seen_at: true } } },
           orderBy: [{ created_at: "asc" }, { user: { name: "asc" } }, { user_id: "asc" }],
         },
         cases: { select: { id: true, case_title: true }, take: 1 },

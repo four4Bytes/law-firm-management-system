@@ -9,6 +9,9 @@
   overflow-y: auto;
 
   .chip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
     background: var(--color-surface-hover);
     color: var(--color-text-primary);
     padding: var(--space-xs) var(--space-sm);

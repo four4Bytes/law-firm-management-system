@@ -55,6 +55,23 @@
         font-size: var(--font-size-xs);
         color: var(--color-text-secondary);
       }
+
+      .link {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-brand-primary);
+        text-decoration: underline;
+        outline: none;
+
+        &:hover {
+          color: var(--color-brand-accent);
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--color-brand-accent--focus);
+          outline-offset: 2px;
+        }
+      }
     }
 
     .close {

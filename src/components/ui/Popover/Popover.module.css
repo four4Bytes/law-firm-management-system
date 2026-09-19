@@ -1,9 +1,18 @@
 .popover {
-  min-width: var(--trigger-width);
   padding: var(--space-sm);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
   background: var(--color-surface-bg);
   box-shadow: var(--shadow-md);
   outline: none;
+}
+
+.matchTrigger {
+  min-width: var(--trigger-width);
+}
+
+.fitContent {
+  min-width: 0;
+  width: fit-content;
+  padding: var(--space-md);
 }

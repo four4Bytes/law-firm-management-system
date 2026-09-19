@@ -16,6 +16,10 @@ import type { Role } from "@/generated/prisma/browser";
 /** Shared user-facing message for denied write actions. */
 export const FORBIDDEN_MESSAGE = "You don't have permission to perform this action.";
 
+/** Public URL of the RBAC permission model documentation. */
+export const RBAC_DOCS_URL =
+  "https://github.com/four4Bytes/law-firm-management-system/blob/main/documentation/RBAC.md";
+
 /**
  * Policy cell qualifiers used by the permission matrix. Mirrors the access
  * legend in `documentation/RBAC.md` (`YES`, `NO`, `ASSIGNED`, `OWN`, and the

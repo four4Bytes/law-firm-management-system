@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FaEye, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -31,6 +31,7 @@ import {
   toastNotFound,
   toastSuccess,
 } from "@/lib/toast-utils";
+import { usePendingFetch } from "@/lib/usePendingFetch";
 
 import styles from "./TasksTab.module.css";
 
@@ -66,12 +67,11 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   const [editCurrentUserId, setEditCurrentUserId] = useState<string | null>(null);
   const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
-  const [pendingEditId, setPendingEditId] = useState<string | null>(null);
-  const [pendingViewId, setPendingViewId] = useState<string | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const latestRequest = useRef(0);
+  const { pendingId: pendingEditId, run: runEditFetch, clear: clearEditFetch } = usePendingFetch();
+  const { pendingId: pendingViewId, run: runViewFetch, clear: clearViewFetch } = usePendingFetch();
 
   const canCreate = can(userRole, "task.create", access);
 
@@ -103,18 +103,15 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   }, []);
 
   async function handleView(task: TaskRow) {
-    const requestId = ++latestRequest.current;
-    setPendingViewId(task.id);
     try {
-      const data = await getTaskDetailRowByIdAction(task.id);
-      if (requestId !== latestRequest.current) return;
+      const data = await runViewFetch(task.id, () => getTaskDetailRowByIdAction(task.id));
+      if (!data) return;
       if (!data.row) {
         toastNotFound("Task");
         return;
       }
       setViewTask(data.row);
     } catch (error) {
-      if (requestId !== latestRequest.current) return;
       const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
       if (isForbidden) {
         toastDenied();
@@ -124,17 +121,13 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           "Something went wrong while loading this task. Please try again.",
         );
       }
-    } finally {
-      if (requestId === latestRequest.current) setPendingViewId(null);
     }
   }
 
   async function handleEdit(task: TaskRow) {
-    const requestId = ++latestRequest.current;
-    setPendingEditId(task.id);
     try {
-      const data = await getTaskDetailRowByIdAction(task.id);
-      if (requestId !== latestRequest.current) return;
+      const data = await runEditFetch(task.id, () => getTaskDetailRowByIdAction(task.id));
+      if (!data) return;
       if (!data.row) {
         toastNotFound("Task");
         return;
@@ -148,7 +141,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         toastDenied();
       }
     } catch (error) {
-      if (requestId !== latestRequest.current) return;
       const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
       if (isForbidden) {
         toastDenied();
@@ -158,8 +150,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
           "Something went wrong while loading this task. Please try again.",
         );
       }
-    } finally {
-      if (requestId === latestRequest.current) setPendingEditId(null);
     }
   }
 
@@ -209,9 +199,8 @@ export function TasksTab({ caseId, access, userRole }: Props) {
               variant="ghost"
               aria-label="Delete task"
               onPress={() => {
-                latestRequest.current++;
-                setPendingEditId(null);
-                setPendingViewId(null);
+                clearEditFetch();
+                clearViewFetch();
                 setDeleteTarget(task);
               }}
             >

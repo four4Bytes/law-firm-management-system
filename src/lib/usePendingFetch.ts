@@ -16,8 +16,8 @@ export interface UsePendingFetchResult {
  * Tracks the in-flight id of a row-level fetch (e.g. loading a record into an
  * edit modal) and guards against out-of-order responses.
  *
- * Shared primitive for the `pendingEditId + latestRequest` race-guard pattern
- * used by the tab components (adopted in NotesTab so far).
+ * Shared primitive for the row-level pending-fetch race-guard pattern used by
+ * the tab components (NotesTab, TasksTab, MilestonesTab, PaymentsTab).
  *
  * @returns The pending id plus `run` and `clear` helpers.
  */

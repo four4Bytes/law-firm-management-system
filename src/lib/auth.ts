@@ -14,8 +14,9 @@ import { isDeveloperEmail } from "@/lib/developer-emails";
  * NextAuth configuration (Google OAuth + Prisma adapter + JWT sessions).
  *
  * The `signIn` callback gates access by developer-email allowlist and
- * active-user status; the `jwt`/`session` callbacks project the database `id`
- * and `role` onto the token and session so downstream guards can read them.
+ * active-user status; the `jwt`/`session` callbacks project the database `id`,
+ * `role`, and `isActive` onto the token and session so downstream guards and
+ * the proxy can redirect deactivated users to the notice page.
  *
  * Exports the route `handlers`, `signIn`/`signOut` helpers, and the `auth()`
  * session getter.
@@ -66,11 +67,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token }) {
       if (token.email) {
         const dbUser = await getUserByEmail(token.email);
-        if (!dbUser || !dbUser.is_active) {
+        if (!dbUser) {
           return null;
         }
         token.role = dbUser.role;
         token.id = dbUser.id;
+        // Keep the token alive but flagged so the proxy can redirect
+        // deactivated users to the notice page instead of the login page.
+        token.isActive = dbUser.is_active;
       }
       return token;
     },
@@ -80,6 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.role = token.role ?? null;
         session.user.id = token.id ?? session.user.id;
         session.user.image = token.picture ?? null;
+        session.user.isActive = token.isActive;
       }
       return session;
     },

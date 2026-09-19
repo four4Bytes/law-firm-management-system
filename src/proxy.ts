@@ -7,6 +7,13 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const pathname = nextUrl.pathname;
 
+  // Deactivated users keep a flagged session so they can be sent to the
+  // notice page instead of being silently dropped to the login page.
+  const isDeactivated = isLoggedIn && req.auth?.user?.isActive === false;
+  if (isDeactivated && pathname !== "/deactivated") {
+    return NextResponse.redirect(new URL("/deactivated?reason=deactivated", nextUrl));
+  }
+
   // Protect private routes; "/deactivated" is reachable while signed out so the
   // post-deactivation notice can be displayed.
   if (

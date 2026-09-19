@@ -1,5 +1,6 @@
 import { Link } from "@/components/ui/Link/Link";
 
+import { DeactivatedSignOut } from "./deactivated-sign-out";
 import styles from "./deactivated.module.css";
 
 interface DeactivatedPageProps {
@@ -17,6 +18,7 @@ export default async function DeactivatedPage({ searchParams }: DeactivatedPageP
 
   return (
     <main className={styles.page}>
+      <DeactivatedSignOut />
       <div className={styles.content}>
         <h1 className={styles.title}>{title}</h1>
         <p className={styles.message}>{message}</p>

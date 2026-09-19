@@ -55,11 +55,12 @@ Override defaults in the wrapper only when a test depends on the value (e.g. a t
 
 ## Sessions
 
-Set auth state only via `setupAuth(...)`. Never inline session literals per test:
+Set auth state only via `setupAuth(...)` or `setupAuthError(...)`. Never inline session literals per
+test:
 
 ```ts
 import { mockSessionUser } from "@/test-utils/fixtures";
-import { setupAuth } from "@/test-utils/test-setup";
+import { setupAuth, setupAuthError } from "@/test-utils/test-setup";
 
 it("returns an error when unauthorized", async () => {
   setupAuthError(new UnauthorizedError());

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { putFile } from "@/lib/s3";
+import { deleteFile, putFile } from "@/lib/s3";
 
 interface DocumentData {
   fileName: string;
@@ -455,21 +455,26 @@ export async function seedDocuments(
     const key = `${parent.type}/${parent.id}/${d.fileName}`;
     await putFile(key, seedPlaceholderBody(d.fileName), d.fileType);
 
-    await prisma.document.create({
-      data: {
-        file_name: d.fileName,
-        file_path: key,
-        file_type: d.fileType,
-        file_size: d.fileSize,
-        uploaded_by_user_id: userByEmail[d.uploadedByEmail],
-        created_at: docDate,
-        ...(d.caseTitle ? { case_id: caseByTitle[d.caseTitle] } : {}),
-        ...(d.taskTitle ? { task_id: taskByTitle[d.taskTitle] } : {}),
-        ...(d.consultationClientEmail
-          ? { consultation_id: clientIdToConId[clientByEmail[d.consultationClientEmail]] }
-          : {}),
-      },
-    });
+    try {
+      await prisma.document.create({
+        data: {
+          file_name: d.fileName,
+          file_path: key,
+          file_type: d.fileType,
+          file_size: d.fileSize,
+          uploaded_by_user_id: userByEmail[d.uploadedByEmail],
+          created_at: docDate,
+          ...(d.caseTitle ? { case_id: caseByTitle[d.caseTitle] } : {}),
+          ...(d.taskTitle ? { task_id: taskByTitle[d.taskTitle] } : {}),
+          ...(d.consultationClientEmail
+            ? { consultation_id: clientIdToConId[clientByEmail[d.consultationClientEmail]] }
+            : {}),
+        },
+      });
+    } catch (error) {
+      await deleteFile(key);
+      throw error;
+    }
     count++;
   }
 

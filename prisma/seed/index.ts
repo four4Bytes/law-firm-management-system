@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { deleteFile } from "@/lib/s3";
 
 import { seedAuditLogs } from "./seed-audit-logs";
 import { seedCases } from "./seed-cases";
@@ -15,6 +16,11 @@ import { seedUsers } from "./seed-users";
 
 async function cleanDatabase() {
   await prisma.auditLog.deleteMany();
+
+  const documents = await prisma.document.findMany({ select: { file_path: true } });
+  for (const document of documents) {
+    await deleteFile(document.file_path);
+  }
   await prisma.document.deleteMany();
   await prisma.note.deleteMany();
   await prisma.notification.deleteMany();

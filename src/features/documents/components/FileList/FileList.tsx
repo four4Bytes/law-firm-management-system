@@ -5,6 +5,7 @@ import { FaCheck, FaDownload, FaEye, FaRegFileLines, FaXmark } from "react-icons
 
 import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import type { DocumentRow } from "@/features/documents/queries";
 import { formatFileSize, truncateFilename } from "@/lib/file-format";
 import { toastError } from "@/lib/toast-utils";
@@ -77,40 +78,49 @@ export function FileList({
           {showSize && <span className={styles.fileSize}>{formatFileSize(doc.file_size)}</span>}
 
           {onView && (
-            <Button
-              variant="ghost"
-              className={styles.removeButton}
-              aria-label={`View ${doc.file_name}`}
-              isDisabled={isBusy}
-              onPress={() => onView(doc)}
-            >
-              <FaEye />
-            </Button>
+            <TooltipTrigger>
+              <Button
+                variant="ghost"
+                className={styles.removeButton}
+                aria-label={`View ${doc.file_name}`}
+                isDisabled={isBusy}
+                onPress={() => onView(doc)}
+              >
+                <FaEye />
+              </Button>
+              <Tooltip>{`View ${doc.file_name}`}</Tooltip>
+            </TooltipTrigger>
           )}
 
           {onDownload && (
-            <Button
-              variant="ghost"
-              className={styles.removeButton}
-              aria-label={`Download ${doc.file_name}`}
-              isDisabled={isBusy}
-              isPending={downloadingIds.has(doc.id)}
-              onPress={() => handleDownload(doc)}
-            >
-              <FaDownload />
-            </Button>
+            <TooltipTrigger>
+              <Button
+                variant="ghost"
+                className={styles.removeButton}
+                aria-label={`Download ${doc.file_name}`}
+                isDisabled={isBusy}
+                isPending={downloadingIds.has(doc.id)}
+                onPress={() => handleDownload(doc)}
+              >
+                <FaDownload />
+              </Button>
+              <Tooltip>{`Download ${doc.file_name}`}</Tooltip>
+            </TooltipTrigger>
           )}
 
           {onDelete && (
-            <Button
-              variant="ghost"
-              className={styles.removeButton}
-              aria-label={`Delete ${doc.file_name}`}
-              isDisabled={isBusy}
-              onPress={() => onDelete(doc.id)}
-            >
-              <FaXmark />
-            </Button>
+            <TooltipTrigger>
+              <Button
+                variant="ghost"
+                className={styles.removeButton}
+                aria-label={`Delete ${doc.file_name}`}
+                isDisabled={isBusy}
+                onPress={() => onDelete(doc.id)}
+              >
+                <FaXmark />
+              </Button>
+              <Tooltip>{`Delete ${doc.file_name}`}</Tooltip>
+            </TooltipTrigger>
           )}
         </div>
       ))}
@@ -124,15 +134,18 @@ export function FileList({
           {showSize && <span className={styles.fileSize}>{formatFileSize(entry.file.size)}</span>}
 
           {entry.status === "pending" && (
-            <Button
-              variant="ghost"
-              className={styles.removeButton}
-              aria-label={`Remove ${entry.file.name}`}
-              isDisabled={isBusy}
-              onPress={() => onRemove(entry.id)}
-            >
-              <FaXmark />
-            </Button>
+            <TooltipTrigger>
+              <Button
+                variant="ghost"
+                className={styles.removeButton}
+                aria-label={`Remove ${entry.file.name}`}
+                isDisabled={isBusy}
+                onPress={() => onRemove(entry.id)}
+              >
+                <FaXmark />
+              </Button>
+              <Tooltip>{`Remove ${entry.file.name}`}</Tooltip>
+            </TooltipTrigger>
           )}
 
           {entry.status === "uploading" && (

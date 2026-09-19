@@ -5,6 +5,7 @@ import { FaEye, FaPen, FaRegNoteSticky, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { ViewNoteModal } from "@/features/notes/components/ViewNoteModal/ViewNoteModal";
 import type { NoteRow } from "@/features/notes/queries";
 
@@ -67,33 +68,42 @@ export function NoteList({
             <span className={styles.noteContent} title={note.content}>
               {note.content}
             </span>
-            <Button
-              variant="ghost"
-              className={styles.viewButton}
-              aria-label="View note"
-              onPress={() => setViewNote(note)}
-            >
-              <FaEye />
-            </Button>
-            {onEdit && (
+            <TooltipTrigger>
               <Button
                 variant="ghost"
-                className={styles.editButton}
-                aria-label={`Edit ${note.author}'s note`}
-                onPress={() => onEdit(note)}
+                className={styles.viewButton}
+                aria-label="View note"
+                onPress={() => setViewNote(note)}
               >
-                <FaPen />
+                <FaEye />
               </Button>
+              <Tooltip>View note</Tooltip>
+            </TooltipTrigger>
+            {onEdit && (
+              <TooltipTrigger>
+                <Button
+                  variant="ghost"
+                  className={styles.editButton}
+                  aria-label={`Edit ${note.author}'s note`}
+                  onPress={() => onEdit(note)}
+                >
+                  <FaPen />
+                </Button>
+                <Tooltip>{`Edit ${note.author}'s note`}</Tooltip>
+              </TooltipTrigger>
             )}
             {onDelete && (
-              <Button
-                variant="ghost"
-                className={styles.deleteButton}
-                aria-label={`Delete ${note.author}'s note`}
-                onPress={() => onDelete(note.id)}
-              >
-                <FaXmark />
-              </Button>
+              <TooltipTrigger>
+                <Button
+                  variant="ghost"
+                  className={styles.deleteButton}
+                  aria-label={`Delete ${note.author}'s note`}
+                  onPress={() => onDelete(note.id)}
+                >
+                  <FaXmark />
+                </Button>
+                <Tooltip>{`Delete ${note.author}'s note`}</Tooltip>
+              </TooltipTrigger>
             )}
           </li>
         ))}

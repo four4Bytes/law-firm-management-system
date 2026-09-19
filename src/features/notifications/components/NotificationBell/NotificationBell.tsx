@@ -8,6 +8,7 @@ import { FaBell } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button/Button";
 import { Popover } from "@/components/ui/Popover/Popover";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import {
   getUnreadNotificationsAction,
   markAllNotificationsReadAction,
@@ -112,62 +113,65 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
   }
 
   return (
-    <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button variant="ghost" aria-label="Notifications" className={styles.bellButton}>
-        <FaBell className={styles.bellIcon} />
-        {unreadCount > 0 && (
-          <span className={styles.badge}>{unreadCount > 99 ? "99+" : unreadCount}</span>
-        )}
-      </Button>
+    <TooltipTrigger>
+      <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
+        <Button variant="ghost" aria-label="Notifications" className={styles.bellButton}>
+          <FaBell className={styles.bellIcon} />
+          {unreadCount > 0 && (
+            <span className={styles.badge}>{unreadCount > 99 ? "99+" : unreadCount}</span>
+          )}
+        </Button>
 
-      <Popover placement="bottom end" className={styles.popover}>
-        <Dialog className={styles.dialog}>
-          <div className={styles.header}>
-            <Heading slot="title" className={styles.headerTitle}>
-              Notifications
-            </Heading>
-            {notifications.length > 0 && (
-              <Button
-                variant="ghost"
-                className={styles.markAllButton}
-                onPress={handleMarkAllRead}
-                isDisabled={isMarkingAllRead}
-                isPending={isMarkingAllRead}
-              >
-                Mark all read
-              </Button>
-            )}
-          </div>
-
-          <div className={styles.list}>
-            {isLoading ? (
-              <div className={styles.empty}>
-                <ProgressCircle aria-label="Loading..." />
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className={styles.empty}>No notifications</div>
-            ) : (
-              notifications.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  className={styles.item}
-                  disabled={pendingIds.has(n.id)}
-                  onClick={() => handleMarkRead(n.id, n.action_url)}
+        <Popover placement="bottom end" className={styles.popover}>
+          <Dialog className={styles.dialog}>
+            <div className={styles.header}>
+              <Heading slot="title" className={styles.headerTitle}>
+                Notifications
+              </Heading>
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  className={styles.markAllButton}
+                  onPress={handleMarkAllRead}
+                  isDisabled={isMarkingAllRead}
+                  isPending={isMarkingAllRead}
                 >
-                  <div className={styles.itemContent}>
-                    <span className={styles.itemTitle}>{n.title}</span>
-                    <span className={styles.itemMessage}>{n.message}</span>
-                    <time className={styles.itemTime} dateTime={n.created_at.toISOString()}>
-                      {timeAgo(n.created_at)}
-                    </time>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </Dialog>
-      </Popover>
-    </DialogTrigger>
+                  Mark all read
+                </Button>
+              )}
+            </div>
+
+            <div className={styles.list}>
+              {isLoading ? (
+                <div className={styles.empty}>
+                  <ProgressCircle aria-label="Loading..." />
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className={styles.empty}>No notifications</div>
+              ) : (
+                notifications.map((n) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    className={styles.item}
+                    disabled={pendingIds.has(n.id)}
+                    onClick={() => handleMarkRead(n.id, n.action_url)}
+                  >
+                    <div className={styles.itemContent}>
+                      <span className={styles.itemTitle}>{n.title}</span>
+                      <span className={styles.itemMessage}>{n.message}</span>
+                      <time className={styles.itemTime} dateTime={n.created_at.toISOString()}>
+                        {timeAgo(n.created_at)}
+                      </time>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </Dialog>
+        </Popover>
+      </DialogTrigger>
+      <Tooltip>Notifications</Tooltip>
+    </TooltipTrigger>
   );
 }

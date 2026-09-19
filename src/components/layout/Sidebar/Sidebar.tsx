@@ -18,6 +18,7 @@ import {
 
 import LogoBlackBckgd from "@/assets/images/LogoBlackBckgd.png";
 import { Button } from "@/components/ui/Button/Button";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { roleLabels } from "@/features/users/constants";
 import { Role } from "@/generated/prisma/browser";
@@ -81,13 +82,16 @@ export function Sidebar({ initialCollapsed = false, userName, userRole, userImag
     <>
       <aside className={clsx(styles.sidebar, collapsed && styles.collapsed)} data-open={isOpen}>
         <div className={styles.topRow}>
-          <Button
-            variant="ghost"
-            aria-label="Go to dashboard"
-            onPress={() => handleNavClick("/dashboard")}
-          >
-            <Image src={LogoBlackBckgd} alt="Anino Law" className={styles.logo} />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Go to dashboard"
+              onPress={() => handleNavClick("/dashboard")}
+            >
+              <Image src={LogoBlackBckgd} alt="Anino Law" className={styles.logo} />
+            </Button>
+            <Tooltip>Go to dashboard</Tooltip>
+          </TooltipTrigger>
           <Button
             variant="ghost"
             className={styles.closeButton}
@@ -96,14 +100,17 @@ export function Sidebar({ initialCollapsed = false, userName, userRole, userImag
           >
             <FaX />
           </Button>
-          <Button
-            variant="ghost"
-            className={styles.toggleButton}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onPress={handleToggle}
-          >
-            <FaBars />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              className={styles.toggleButton}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              onPress={handleToggle}
+            >
+              <FaBars />
+            </Button>
+            <Tooltip>{collapsed ? "Expand sidebar" : "Collapse sidebar"}</Tooltip>
+          </TooltipTrigger>
         </div>
         <div className={styles.textContainer}>
           <h1 className={styles.title}>Anino Law & Real Estate Firm</h1>

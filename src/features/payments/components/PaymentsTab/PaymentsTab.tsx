@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import {
   deletePaymentAction,
   getPaymentRowByIdAction,
@@ -110,25 +111,31 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
       const payment = row as PaymentRow;
       return (
         <div className={styles.actions}>
-          <Button
-            variant="ghost"
-            aria-label="Edit payment"
-            onPress={() => handleEdit(payment)}
-            isPending={pendingEditId === payment.id}
-          >
-            <FaPenToSquare className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Delete payment"
-            onPress={() => {
-              latestRequest.current++;
-              setPendingEditId(null);
-              setDeleteTarget(payment);
-            }}
-          >
-            <FaTrashCan className={styles.icon} />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Edit payment"
+              onPress={() => handleEdit(payment)}
+              isPending={pendingEditId === payment.id}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Tooltip>Edit payment</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Delete payment"
+              onPress={() => {
+                latestRequest.current++;
+                setPendingEditId(null);
+                setDeleteTarget(payment);
+              }}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+            <Tooltip>Delete payment</Tooltip>
+          </TooltipTrigger>
         </div>
       );
     },

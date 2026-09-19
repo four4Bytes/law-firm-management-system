@@ -5,6 +5,7 @@ import { FaGavel, FaPenToSquare, FaTrash } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { ConsultationStatus } from "@/generated/prisma/browser";
@@ -47,25 +48,25 @@ export function ConsultationOverview({
             <div className={styles.headerActions}>
               {workflowActions}
               {onEdit && (
-                <Button
-                  variant="ghost"
-                  aria-label="Edit consultation"
-                  title="Edit consultation"
-                  onPress={onEdit}
-                  isPending={isEditPending}
-                >
-                  <FaPenToSquare />
-                </Button>
+                <TooltipTrigger>
+                  <Button
+                    variant="ghost"
+                    aria-label="Edit consultation"
+                    onPress={onEdit}
+                    isPending={isEditPending}
+                  >
+                    <FaPenToSquare />
+                  </Button>
+                  <Tooltip>Edit consultation</Tooltip>
+                </TooltipTrigger>
               )}
               {onDelete && (
-                <Button
-                  variant="ghost"
-                  aria-label="Delete consultation"
-                  title="Delete consultation"
-                  onPress={onDelete}
-                >
-                  <FaTrash />
-                </Button>
+                <TooltipTrigger>
+                  <Button variant="ghost" aria-label="Delete consultation" onPress={onDelete}>
+                    <FaTrash />
+                  </Button>
+                  <Tooltip>Delete consultation</Tooltip>
+                </TooltipTrigger>
               )}
             </div>
           )}

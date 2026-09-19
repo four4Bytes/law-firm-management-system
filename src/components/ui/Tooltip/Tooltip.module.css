@@ -1,0 +1,60 @@
+.tooltip {
+  max-width: 15rem;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  box-shadow: var(--shadow-md);
+  outline: none;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform var(--transition-base),
+    opacity var(--transition-fast);
+
+  &[data-entering],
+  &[data-exiting] {
+    transform: var(--origin);
+    opacity: 0;
+  }
+
+  &[data-placement="top"] {
+    margin-bottom: var(--space-sm);
+    --origin: translateY(var(--space-xs));
+  }
+
+  &[data-placement="bottom"] {
+    margin-top: var(--space-sm);
+    --origin: translateY(calc(var(--space-xs) * -1));
+  }
+
+  &[data-placement="left"] {
+    margin-right: var(--space-sm);
+    --origin: translateX(var(--space-xs));
+  }
+
+  &[data-placement="right"] {
+    margin-left: var(--space-sm);
+    --origin: translateX(calc(var(--space-xs) * -1));
+  }
+
+  .arrow svg {
+    display: block;
+    width: var(--space-sm);
+    height: var(--space-sm);
+    fill: var(--color-bg-inverse);
+  }
+
+  &[data-placement="bottom"] .arrow svg {
+    transform: rotate(180deg);
+  }
+
+  &[data-placement="left"] .arrow svg {
+    transform: rotate(-90deg);
+  }
+
+  &[data-placement="right"] .arrow svg {
+    transform: rotate(90deg);
+  }
+}

@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
 import type { CaseMilestoneListRow } from "@/features/cases/queries";
 import { deleteMilestoneAction, getMilestoneRowByIdAction } from "@/features/milestones/actions";
@@ -129,25 +130,31 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
       const milestone = row as CaseMilestoneListRow;
       return (
         <div className={styles.actions}>
-          <Button
-            variant="ghost"
-            aria-label="Edit milestone"
-            onPress={() => handleEdit(milestone)}
-            isPending={pendingEditId === milestone.id}
-          >
-            <FaPenToSquare className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Delete milestone"
-            onPress={() => {
-              latestRequest.current++;
-              setPendingEditId(null);
-              setDeleteTarget(milestone);
-            }}
-          >
-            <FaTrashCan className={styles.icon} />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Edit milestone"
+              onPress={() => handleEdit(milestone)}
+              isPending={pendingEditId === milestone.id}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Tooltip>Edit milestone</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Delete milestone"
+              onPress={() => {
+                latestRequest.current++;
+                setPendingEditId(null);
+                setDeleteTarget(milestone);
+              }}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+            <Tooltip>Delete milestone</Tooltip>
+          </TooltipTrigger>
         </div>
       );
     },

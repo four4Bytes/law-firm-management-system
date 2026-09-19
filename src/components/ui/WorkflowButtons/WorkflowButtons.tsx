@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button/Button";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 
 import styles from "./WorkflowButtons.module.css";
 
@@ -28,18 +29,19 @@ export function WorkflowButtons<T extends string>({
   return (
     <div className={styles.actions}>
       {buttons.map((button) => (
-        <Button
-          key={button.value}
-          variant="ghost"
-          type="button"
-          aria-label={button.label}
-          title={button.label}
-          onPress={() => onSelect(button.value)}
-          isPending={isPending}
-          isDisabled={isPending}
-        >
-          {button.icon}
-        </Button>
+        <TooltipTrigger key={button.value}>
+          <Button
+            variant="ghost"
+            type="button"
+            aria-label={button.label}
+            onPress={() => onSelect(button.value)}
+            isPending={isPending}
+            isDisabled={isPending}
+          >
+            {button.icon}
+          </Button>
+          <Tooltip>{button.label}</Tooltip>
+        </TooltipTrigger>
       ))}
     </div>
   );

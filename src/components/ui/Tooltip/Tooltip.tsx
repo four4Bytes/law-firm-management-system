@@ -4,7 +4,9 @@ import clsx from "clsx";
 import {
   OverlayArrow as AriaOverlayArrow,
   Tooltip as AriaTooltip,
+  TooltipTrigger as AriaTooltipTrigger,
   type TooltipProps as AriaTooltipProps,
+  type TooltipTriggerComponentProps as AriaTooltipTriggerProps,
 } from "react-aria-components";
 
 import styles from "./Tooltip.module.css";
@@ -25,4 +27,8 @@ export function Tooltip({ children, className, offset = 8, ...props }: TooltipPr
       {children}
     </AriaTooltip>
   );
+}
+
+export function TooltipTrigger({ delay = 500, ...props }: AriaTooltipTriggerProps) {
+  return <AriaTooltipTrigger delay={delay} {...props} />;
 }

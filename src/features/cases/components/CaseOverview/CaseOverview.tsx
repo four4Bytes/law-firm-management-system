@@ -5,6 +5,7 @@ import { FaCalendarCheck, FaPenToSquare, FaTrash } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button/Button";
 import { RelatedLinkCard } from "@/components/ui/RelatedLinkCard/RelatedLinkCard";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import type { CaseOverviewData } from "@/features/cases/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { CaseStatus } from "@/generated/prisma/browser";
@@ -40,25 +41,25 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending, workflowAc
             <div className={styles.headerActions}>
               {workflowActions}
               {onEdit && (
-                <Button
-                  variant="ghost"
-                  aria-label="Edit case"
-                  title="Edit case"
-                  onPress={onEdit}
-                  isPending={isEditPending}
-                >
-                  <FaPenToSquare />
-                </Button>
+                <TooltipTrigger>
+                  <Button
+                    variant="ghost"
+                    aria-label="Edit case"
+                    onPress={onEdit}
+                    isPending={isEditPending}
+                  >
+                    <FaPenToSquare />
+                  </Button>
+                  <Tooltip>Edit case</Tooltip>
+                </TooltipTrigger>
               )}
               {onDelete && (
-                <Button
-                  variant="ghost"
-                  aria-label="Delete case"
-                  title="Delete case"
-                  onPress={onDelete}
-                >
-                  <FaTrash />
-                </Button>
+                <TooltipTrigger>
+                  <Button variant="ghost" aria-label="Delete case" onPress={onDelete}>
+                    <FaTrash />
+                  </Button>
+                  <Tooltip>Delete case</Tooltip>
+                </TooltipTrigger>
               )}
             </div>
           )}

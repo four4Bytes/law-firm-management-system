@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import {
   deleteTaskAction,
@@ -181,34 +182,43 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       const task = row as TaskRow;
       return (
         <div className={styles.actions}>
-          <Button
-            variant="ghost"
-            aria-label="View task"
-            onPress={() => handleView(task)}
-            isPending={pendingViewId === task.id}
-          >
-            <FaEye className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Edit task"
-            onPress={() => handleEdit(task)}
-            isPending={pendingEditId === task.id}
-          >
-            <FaPenToSquare className={styles.icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            aria-label="Delete task"
-            onPress={() => {
-              latestRequest.current++;
-              setPendingEditId(null);
-              setPendingViewId(null);
-              setDeleteTarget(task);
-            }}
-          >
-            <FaTrashCan className={styles.icon} />
-          </Button>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="View task"
+              onPress={() => handleView(task)}
+              isPending={pendingViewId === task.id}
+            >
+              <FaEye className={styles.icon} />
+            </Button>
+            <Tooltip>View task</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Edit task"
+              onPress={() => handleEdit(task)}
+              isPending={pendingEditId === task.id}
+            >
+              <FaPenToSquare className={styles.icon} />
+            </Button>
+            <Tooltip>Edit task</Tooltip>
+          </TooltipTrigger>
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              aria-label="Delete task"
+              onPress={() => {
+                latestRequest.current++;
+                setPendingEditId(null);
+                setPendingViewId(null);
+                setDeleteTarget(task);
+              }}
+            >
+              <FaTrashCan className={styles.icon} />
+            </Button>
+            <Tooltip>Delete task</Tooltip>
+          </TooltipTrigger>
         </div>
       );
     },

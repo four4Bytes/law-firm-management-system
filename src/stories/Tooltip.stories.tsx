@@ -1,11 +1,10 @@
 "use client";
 
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { TooltipTrigger } from "react-aria-components";
 import { FaPencil } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
-import { Tooltip } from "@/components/ui/Tooltip/Tooltip";
+import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 
 function TooltipWithTrigger({
   placement,

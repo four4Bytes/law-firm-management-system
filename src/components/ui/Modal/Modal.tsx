@@ -39,6 +39,7 @@ export function Modal({
           <Button
             variant="ghost"
             className={styles.closeButton}
+            aria-label="Close"
             onPress={() => onOpenChange?.(false)}
           >
             <FaXmark />

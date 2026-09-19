@@ -28,10 +28,13 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskF
   const {
     documents: serverDocuments,
     isLoading,
+    isLoadingMore,
+    nextCursor,
     previewDocument,
     setPreviewDocument,
     handleDownload,
     reload,
+    loadMore,
   } = useTaskDocuments(taskId);
   const { fileEntries, isUploading, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload(
     {
@@ -100,6 +103,9 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskF
         onDelete={editable ? handleRemoveDocument : undefined}
         isLoading={isLoading}
         showSize={false}
+        hasMore={nextCursor !== null}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMore}
       />
       {previewDocument && (
         <ViewAttachmentModal

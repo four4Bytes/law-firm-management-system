@@ -193,7 +193,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
               onChange={(v) => setCaseField("partiesInvolved", v)}
               placeholder="Optional..."
               isTextArea
-              rows={3}
+              rows={6}
               validate={createFieldValidator(
                 CaseWithClientCreatePayloadSchema.shape.case.shape.parties_involved,
               )}

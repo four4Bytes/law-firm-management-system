@@ -182,6 +182,48 @@ describe("getCasesPaginated", () => {
     );
   });
 
+  it("filters by a single status", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([mockCase()]);
+
+    await getCasesPaginated({ filters: { status: ["Open"] } });
+
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ["Open"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple statuses", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([mockCase()]);
+
+    await getCasesPaginated({ filters: { status: ["Open", "Settled"] } });
+
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ["Open", "Settled"] } },
+      }),
+    );
+  });
+
+  it("combines status filter with search", async () => {
+    vi.mocked(prisma.case.findMany).mockResolvedValue([mockCase()]);
+
+    await getCasesPaginated({ search: "patent", filters: { status: ["Closed"] } });
+
+    expect(prisma.case.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { case_title: { contains: "patent", mode: "insensitive" } },
+            { client: { name: { contains: "patent", mode: "insensitive" } } },
+          ],
+          status: { in: ["Closed"] },
+        },
+      }),
+    );
+  });
+
   it("sorts by case_title ascending", async () => {
     vi.mocked(prisma.case.findMany).mockResolvedValue([]);
     await getCasesPaginated({ sort: { column: "case_title", direction: "asc" } });

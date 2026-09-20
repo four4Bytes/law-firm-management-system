@@ -2,7 +2,15 @@ import { z } from "zod";
 
 import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
 import { optionalText, requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
-import { ClientDataSchema, SortQuerySchema } from "@/lib/schemas";
+import { ClientDataSchema, PageQuerySchema, SortQuerySchema } from "@/lib/schemas";
+
+export const ConsultationListQuerySchema = PageQuerySchema.extend({
+  filters: z
+    .object({
+      status: z.array(z.enum(ConsultationStatus)).max(10).optional(),
+    })
+    .optional(),
+});
 
 export const ConsultationPageQuerySchema = z.object({
   consultationId: z.uuid(),

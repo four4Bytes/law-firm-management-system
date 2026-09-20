@@ -41,7 +41,6 @@ import {
 } from "@/lib/auth-guards";
 import { toActionResponse } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
-import { PageQuerySchema } from "@/lib/schemas";
 
 import {
   createCase,
@@ -55,6 +54,7 @@ import {
 import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
+  CaseListQuerySchema,
   CaseOverviewIdSchema,
   CasePageQuerySchema,
   CaseStatusChangePayloadSchema,
@@ -82,13 +82,15 @@ async function hasCasePermission(
   return can(session.role, permission, access);
 }
 
-export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
+export async function getCasesPaginatedAction(
+  params: z.input<typeof CaseListQuerySchema>,
+): Promise<{
   cases: CaseRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = PageQuerySchema.safeParse(params);
+  const parsed = CaseListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }

@@ -4,6 +4,7 @@ import {
   AcceptConsultationWithCasePayloadSchema,
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
+  ConsultationListQuerySchema,
   ConsultationStatusChangePayloadSchema,
   ConsultationUpdatePayloadSchema,
 } from "../schemas";
@@ -178,6 +179,30 @@ describe("AcceptConsultationWithCasePayloadSchema", () => {
   it("rejects an invalid status", () => {
     expect(
       AcceptConsultationWithCasePayloadSchema.safeParse({ ...base, status: "Invalid" }).success,
+    ).toBe(false);
+  });
+});
+
+describe("ConsultationListQuerySchema", () => {
+  it("accepts an empty query", () => {
+    expect(ConsultationListQuerySchema.safeParse({}).success).toBe(true);
+  });
+
+  it("accepts a single status filter", () => {
+    const result = ConsultationListQuerySchema.safeParse({ filters: { status: ["Scheduled"] } });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple status filters", () => {
+    const result = ConsultationListQuerySchema.safeParse({
+      filters: { status: ["Scheduled", "Completed"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status filter", () => {
+    expect(
+      ConsultationListQuerySchema.safeParse({ filters: { status: ["Invalid"] } }).success,
     ).toBe(false);
   });
 });

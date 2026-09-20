@@ -39,7 +39,6 @@ import {
 import { isAfterToday, isBeforeToday } from "@/lib/date";
 import { StatusConflictError, toActionResponse } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
-import { PageQuerySchema } from "@/lib/schemas";
 
 import {
   acceptConsultationWithCase,
@@ -55,6 +54,7 @@ import {
   AcceptConsultationWithCasePayloadSchema,
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
+  ConsultationListQuerySchema,
   ConsultationOverviewIdSchema,
   ConsultationPageQuerySchema,
   ConsultationStatusChangePayloadSchema,
@@ -139,14 +139,14 @@ function mapAcceptMutationError(error: unknown): ActionStatusResponse | null {
 }
 
 export async function getConsultationsPaginatedAction(
-  params: z.input<typeof PageQuerySchema>,
+  params: z.input<typeof ConsultationListQuerySchema>,
 ): Promise<{
   consultations: ConsultationRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = PageQuerySchema.safeParse(params);
+  const parsed = ConsultationListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }

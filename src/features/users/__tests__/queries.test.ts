@@ -167,6 +167,51 @@ describe("getUsersPaginated", () => {
     await expect(getUsersPaginated({})).rejects.toThrow(error);
   });
 
+  it("filters by a single role", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser({ id: "1" })]);
+
+    await getUsersPaginated({ filters: { role: ["Lawyer"] } });
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { is_active: true, role: { in: ["Lawyer"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple roles", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser({ id: "1" })]);
+
+    await getUsersPaginated({ filters: { role: ["Lawyer", "Paralegal"] } });
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { is_active: true, role: { in: ["Lawyer", "Paralegal"] } },
+      }),
+    );
+  });
+
+  it("combines role filter with search", async () => {
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      mockUser({ id: "1", name: "Alice", email: "alice@b.com" }),
+    ]);
+
+    await getUsersPaginated({ search: "alice", filters: { role: ["Admin"] } });
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          is_active: true,
+          OR: [
+            { name: { contains: "alice", mode: "insensitive" } },
+            { email: { contains: "alice", mode: "insensitive" } },
+          ],
+          role: { in: ["Admin"] },
+        },
+      }),
+    );
+  });
+
   it("sorts by name ascending", async () => {
     vi.mocked(prisma.user.findMany).mockResolvedValue([]);
     await getUsersPaginated({ sort: { column: "name", direction: "asc" } });

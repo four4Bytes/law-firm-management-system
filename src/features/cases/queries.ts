@@ -3,7 +3,7 @@ import { cache } from "react";
 
 import type { TaskRow } from "@/features/tasks/queries";
 import { isUserOnline } from "@/features/users/onlineStatus";
-import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
+import type { Case, CaseMilestone, CaseStatus, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { CasePageQuery, PageQuery } from "@/lib/types";
@@ -42,9 +42,17 @@ export type CaseRow = {
   created_at: Date;
 };
 
+export interface CaseListFilters {
+  status?: CaseStatus[];
+}
+
+export interface CaseListQuery extends Omit<PageQuery, "filters"> {
+  filters?: CaseListFilters;
+}
+
 export const getCasesPaginated = cache(
   async (
-    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    { search = "", cursor, pageSize = 20, sort, filters }: CaseListQuery,
     assignedUserId?: string,
   ): Promise<{
     cases: CaseRow[];
@@ -59,6 +67,7 @@ export const getCasesPaginated = cache(
             ],
           }
         : {}),
+      ...(filters?.status && filters.status.length > 0 ? { status: { in: filters.status } } : {}),
       ...(assignedUserId ? { caseAssignments: { some: { user_id: assignedUserId } } } : {}),
     };
 

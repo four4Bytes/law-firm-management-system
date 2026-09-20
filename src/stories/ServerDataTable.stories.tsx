@@ -26,16 +26,21 @@ const mockFetch = async ({
   search,
   cursor,
   pageSize = 5,
+  filters,
 }: {
   search?: string;
   cursor?: string;
   pageSize?: number;
+  filters?: Record<string, string[]>;
 }) => {
   await new Promise((resolve) => setTimeout(resolve, 400));
 
-  const filtered = search
-    ? mockData.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
-    : [...mockData];
+  const roles = filters?.role ?? [];
+  const filtered = mockData.filter(
+    (d) =>
+      (!search || d.name.toLowerCase().includes(search.toLowerCase())) &&
+      (roles.length === 0 || roles.includes(d.role)),
+  );
 
   const startIndex = cursor ? filtered.findIndex((d) => d.id === cursor) + 1 : 0;
   const page = filtered.slice(startIndex, startIndex + pageSize);
@@ -83,6 +88,30 @@ export const NoAddButton: Story = {
       emptyContent="No users found"
       loadingMessage="Loading users..."
       searchLabel="Search users"
+    />
+  ),
+};
+
+export const WithFilters: Story = {
+  render: () => (
+    <ServerDataTable
+      fetchAction={mockFetch}
+      columns={columns}
+      searchPlaceholder="Search users..."
+      emptyContent="No users found"
+      loadingMessage="Loading users..."
+      searchLabel="Search users"
+      filters={[
+        {
+          key: "role",
+          label: "Role",
+          options: [
+            { value: "Admin", label: "Admin" },
+            { value: "Lawyer", label: "Lawyer" },
+            { value: "Paralegal", label: "Paralegal" },
+          ],
+        },
+      ]}
     />
   ),
 };

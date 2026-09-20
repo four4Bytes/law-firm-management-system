@@ -130,8 +130,13 @@ export type UserRow = Pick<User, "id" | "name" | "email" | "role" | "is_active" 
   is_online: boolean;
 };
 
-export interface UserPageQuery extends PageQuery {
+export interface UserListFilters {
+  role?: Role[];
+}
+
+export interface UserPageQuery extends Omit<PageQuery, "filters"> {
   includeInactive?: boolean;
+  filters?: UserListFilters;
 }
 
 export const getUsersPaginated = cache(
@@ -141,6 +146,7 @@ export const getUsersPaginated = cache(
     pageSize = 20,
     includeInactive = false,
     sort,
+    filters,
   }: UserPageQuery): Promise<{
     users: UserRow[];
     nextCursor: string | null;
@@ -156,7 +162,10 @@ export const getUsersPaginated = cache(
         }
       : {};
 
-    const where = { ...baseFilter, ...searchFilter };
+    const roleFilter =
+      filters?.role && filters.role.length > 0 ? { role: { in: filters.role } } : {};
+
+    const where = { ...baseFilter, ...searchFilter, ...roleFilter };
 
     const defaultOrderBy = { created_at: "desc" } as const;
 

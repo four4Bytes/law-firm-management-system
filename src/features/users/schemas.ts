@@ -10,6 +10,11 @@ export const UserPageQuerySchema = z.object({
   cursor: z.uuid().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
   sort: SortQuerySchema.optional(),
+  filters: z
+    .object({
+      role: z.array(z.enum(Role)).max(10).optional(),
+    })
+    .optional(),
 });
 
 const CreatableRoleSchema = requiredEnum(Role, "Role").refine(

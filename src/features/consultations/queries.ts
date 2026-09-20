@@ -3,7 +3,7 @@ import { cache } from "react";
 
 import type { NoteRow } from "@/features/notes/queries";
 import { isUserOnline } from "@/features/users/onlineStatus";
-import type { Consultation, Prisma } from "@/generated/prisma/browser";
+import type { Consultation, ConsultationStatus, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
@@ -150,9 +150,17 @@ export const getConsultationNotesPaginated = cache(
   },
 );
 
+export interface ConsultationListFilters {
+  status?: ConsultationStatus[];
+}
+
+export interface ConsultationListQuery extends Omit<PageQuery, "filters"> {
+  filters?: ConsultationListFilters;
+}
+
 export const getConsultationsPaginated = cache(
   async (
-    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    { search = "", cursor, pageSize = 20, sort, filters }: ConsultationListQuery,
     assignedUserId?: string,
   ): Promise<{
     consultations: ConsultationRow[];
@@ -167,6 +175,7 @@ export const getConsultationsPaginated = cache(
             ],
           }
         : {}),
+      ...(filters?.status && filters.status.length > 0 ? { status: { in: filters.status } } : {}),
       ...(assignedUserId ? { consultationAssignments: { some: { user_id: assignedUserId } } } : {}),
     };
 

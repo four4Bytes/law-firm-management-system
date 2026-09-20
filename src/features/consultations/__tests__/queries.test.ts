@@ -182,6 +182,48 @@ describe("getConsultationsPaginated", () => {
     );
   });
 
+  it("filters by a single status", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ filters: { status: ["Scheduled"] } });
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ["Scheduled"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple statuses", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ filters: { status: ["Scheduled", "Completed"] } });
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ["Scheduled", "Completed"] } },
+      }),
+    );
+  });
+
+  it("combines status filter with search", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ search: "tax", filters: { status: ["Completed"] } });
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { concern: { contains: "tax", mode: "insensitive" } },
+            { client: { name: { contains: "tax", mode: "insensitive" } } },
+          ],
+          status: { in: ["Completed"] },
+        },
+      }),
+    );
+  });
+
   it("sorts by concern ascending", async () => {
     vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
     await getConsultationsPaginated({ sort: { column: "concern", direction: "asc" } });

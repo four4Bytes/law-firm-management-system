@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
+  CaseListQuerySchema,
   CaseStatusChangePayloadSchema,
   CaseUpdatePayloadSchema,
   CaseWithClientCreatePayloadSchema,
@@ -208,6 +209,26 @@ describe("CaseWithClientPayloadSchemas", () => {
       case: duplicateCase,
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("CaseListQuerySchema", () => {
+  it("accepts an empty query", () => {
+    expect(CaseListQuerySchema.safeParse({}).success).toBe(true);
+  });
+
+  it("accepts a single status filter", () => {
+    const result = CaseListQuerySchema.safeParse({ filters: { status: ["Open"] } });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple status filters", () => {
+    const result = CaseListQuerySchema.safeParse({ filters: { status: ["Open", "Settled"] } });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status filter", () => {
+    expect(CaseListQuerySchema.safeParse({ filters: { status: ["Invalid"] } }).success).toBe(false);
   });
 });
 

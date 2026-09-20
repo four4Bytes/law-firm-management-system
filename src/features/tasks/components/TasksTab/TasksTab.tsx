@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
+import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import {
@@ -40,6 +41,17 @@ interface Props {
   access: AccessContext;
   userRole: Role | null;
 }
+
+const taskFilters: FilterDefinition[] = [
+  {
+    key: "status",
+    label: "Status",
+    options: Object.values(TaskStatus).map((status) => ({
+      value: status,
+      label: getTaskStatusLabel(status),
+    })),
+  },
+];
 
 const columns: ColumnDef<TaskRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
@@ -222,6 +234,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         emptyContent="No tasks yet"
         loadingMessage="Loading tasks..."
         searchLabel="Search tasks"
+        filters={taskFilters}
         selectionMode="none"
         collectionDependencies={[pendingEditId, pendingViewId]}
         renderAddButton={canCreate && currentUserId !== null}

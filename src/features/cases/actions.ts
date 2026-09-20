@@ -56,11 +56,12 @@ import {
   CaseDeletePayloadSchema,
   CaseListQuerySchema,
   CaseOverviewIdSchema,
-  CasePageQuerySchema,
   CaseStatusChangePayloadSchema,
   CaseUpdatePayloadSchema,
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
+  MilestoneListQuerySchema,
+  TaskListQuerySchema,
 } from "./schemas";
 import { describeCaseNextSteps, isValidCaseStatusTransition } from "./status";
 
@@ -118,14 +119,14 @@ export async function getCaseOverviewByIdAction(
 }
 
 export async function getCaseTasksPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
+  params: z.input<typeof TaskListQuerySchema>,
 ): Promise<{
   rows: TaskRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = CasePageQuerySchema.safeParse(params);
+  const parsed = TaskListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
@@ -136,14 +137,14 @@ export async function getCaseTasksPaginatedAction(
 }
 
 export async function getCaseMilestonesPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
+  params: z.input<typeof MilestoneListQuerySchema>,
 ): Promise<{
   rows: CaseMilestoneListRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = CasePageQuerySchema.safeParse(params);
+  const parsed = MilestoneListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }

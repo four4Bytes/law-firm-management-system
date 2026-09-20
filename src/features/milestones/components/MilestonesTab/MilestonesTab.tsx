@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
 import type { CaseMilestoneListRow } from "@/features/cases/queries";
@@ -40,6 +41,17 @@ const statusClassMap: Record<CaseMilestoneStatus, StatusBadgeVariant> = {
   Done: "done",
   Cancelled: "cancelled",
 };
+
+const milestoneFilters: FilterDefinition[] = [
+  {
+    key: "status",
+    label: "Status",
+    options: Object.values(CaseMilestoneStatus).map((status) => ({
+      value: status,
+      label: status,
+    })),
+  },
+];
 
 const columns: ColumnDef<CaseMilestoneListRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
@@ -167,6 +179,7 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
         emptyContent="No milestones yet"
         loadingMessage="Loading milestones..."
         searchLabel="Search milestones"
+        filters={milestoneFilters}
         selectionMode="none"
         collectionDependencies={[pendingEditId]}
         renderAddButton={canCreate}

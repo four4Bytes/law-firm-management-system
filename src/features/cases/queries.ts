@@ -3,7 +3,14 @@ import { cache } from "react";
 
 import type { TaskRow } from "@/features/tasks/queries";
 import { isUserOnline } from "@/features/users/onlineStatus";
-import type { Case, CaseMilestone, CaseStatus, Prisma } from "@/generated/prisma/browser";
+import type {
+  Case,
+  CaseMilestone,
+  CaseMilestoneStatus,
+  CaseStatus,
+  Prisma,
+  TaskStatus,
+} from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { CasePageQuery, PageQuery } from "@/lib/types";
@@ -192,6 +199,14 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
 
 // ----- Tasks -----
 
+export interface TaskListFilters {
+  status?: TaskStatus[];
+}
+
+export interface TaskListQuery extends Omit<CasePageQuery, "filters"> {
+  filters?: TaskListFilters;
+}
+
 export const getCaseTasksPaginated = cache(
   async ({
     caseId,
@@ -199,13 +214,15 @@ export const getCaseTasksPaginated = cache(
     cursor,
     pageSize = 20,
     sort,
-  }: CasePageQuery): Promise<{
+    filters,
+  }: TaskListQuery): Promise<{
     rows: TaskRow[];
     nextCursor: string | null;
   }> => {
     const where = {
       case_id: caseId,
       ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
+      ...(filters?.status && filters.status.length > 0 ? { status: { in: filters.status } } : {}),
     };
 
     const defaultOrderBy = { updated_at: "desc" } as const;
@@ -258,6 +275,14 @@ export type CaseMilestoneListRow = Pick<
   "id" | "title" | "description" | "due_date" | "status"
 >;
 
+export interface MilestoneListFilters {
+  status?: CaseMilestoneStatus[];
+}
+
+export interface MilestoneListQuery extends Omit<CasePageQuery, "filters"> {
+  filters?: MilestoneListFilters;
+}
+
 export const getCaseMilestonesPaginated = cache(
   async ({
     caseId,
@@ -265,13 +290,15 @@ export const getCaseMilestonesPaginated = cache(
     cursor,
     pageSize = 20,
     sort,
-  }: CasePageQuery): Promise<{
+    filters,
+  }: MilestoneListQuery): Promise<{
     rows: CaseMilestoneListRow[];
     nextCursor: string | null;
   }> => {
     const where = {
       case_id: caseId,
       ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
+      ...(filters?.status && filters.status.length > 0 ? { status: { in: filters.status } } : {}),
     };
 
     const defaultOrderBy = { due_date: "desc" } as const;

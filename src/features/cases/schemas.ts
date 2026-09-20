@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CaseStatus } from "@/generated/prisma/browser";
+import { CaseMilestoneStatus, CaseStatus, TaskStatus } from "@/generated/prisma/browser";
 import { optionalText, requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
 import { ClientDataSchema, PageQuerySchema, SortQuerySchema } from "@/lib/schemas";
 
@@ -18,6 +18,22 @@ export const CasePageQuerySchema = z.object({
   cursor: z.uuid().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
   sort: SortQuerySchema.optional(),
+});
+
+export const TaskListQuerySchema = CasePageQuerySchema.extend({
+  filters: z
+    .object({
+      status: z.array(z.enum(TaskStatus)).max(10).optional(),
+    })
+    .optional(),
+});
+
+export const MilestoneListQuerySchema = CasePageQuerySchema.extend({
+  filters: z
+    .object({
+      status: z.array(z.enum(CaseMilestoneStatus)).max(10).optional(),
+    })
+    .optional(),
 });
 
 export const CaseOverviewIdSchema = z.object({

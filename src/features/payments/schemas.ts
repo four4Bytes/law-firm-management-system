@@ -11,6 +11,11 @@ export const PaymentPageQuerySchema = z.object({
   cursor: z.uuid().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
   sort: SortQuerySchema.optional(),
+  filters: z
+    .object({
+      status: z.array(z.enum(PaymentStatus)).max(10).optional(),
+    })
+    .optional(),
 });
 
 export const PaymentIdSchema = z.object({

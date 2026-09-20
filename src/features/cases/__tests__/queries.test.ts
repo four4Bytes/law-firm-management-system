@@ -438,6 +438,50 @@ describe("getCaseTasksPaginated", () => {
     );
   });
 
+  it("filters by a single status", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([mockTask()]);
+
+    await getCaseTasksPaginated({ caseId: "1", filters: { status: ["Pending"] } });
+
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "1", status: { in: ["Pending"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple statuses", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([mockTask()]);
+
+    await getCaseTasksPaginated({ caseId: "1", filters: { status: ["Pending", "Done"] } });
+
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "1", status: { in: ["Pending", "Done"] } },
+      }),
+    );
+  });
+
+  it("combines status filter with search", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([mockTask()]);
+
+    await getCaseTasksPaginated({
+      caseId: "1",
+      search: "draft",
+      filters: { status: ["InReview"] },
+    });
+
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          case_id: "1",
+          title: { contains: "draft", mode: "insensitive" },
+          status: { in: ["InReview"] },
+        },
+      }),
+    );
+  });
+
   it("handles cursor pagination", async () => {
     const tasks = Array.from({ length: 4 }, (_, i) => mockTask({ id: String(i + 1) }));
     vi.mocked(prisma.task.findMany).mockResolvedValue(tasks);
@@ -528,6 +572,50 @@ describe("getCaseMilestonesPaginated", () => {
     expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { case_id: "1", title: { contains: "complaint", mode: "insensitive" } },
+      }),
+    );
+  });
+
+  it("filters by a single status", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([mockMilestone()]);
+
+    await getCaseMilestonesPaginated({ caseId: "1", filters: { status: ["Pending"] } });
+
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "1", status: { in: ["Pending"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple statuses", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([mockMilestone()]);
+
+    await getCaseMilestonesPaginated({ caseId: "1", filters: { status: ["Pending", "Done"] } });
+
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "1", status: { in: ["Pending", "Done"] } },
+      }),
+    );
+  });
+
+  it("combines status filter with search", async () => {
+    vi.mocked(prisma.caseMilestone.findMany).mockResolvedValue([mockMilestone()]);
+
+    await getCaseMilestonesPaginated({
+      caseId: "1",
+      search: "complaint",
+      filters: { status: ["Done"] },
+    });
+
+    expect(prisma.caseMilestone.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          case_id: "1",
+          title: { contains: "complaint", mode: "insensitive" },
+          status: { in: ["Done"] },
+        },
       }),
     );
   });

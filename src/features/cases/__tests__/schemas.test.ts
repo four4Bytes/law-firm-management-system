@@ -8,6 +8,8 @@ import {
   CaseUpdatePayloadSchema,
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
+  MilestoneListQuerySchema,
+  TaskListQuerySchema,
 } from "../schemas";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -229,6 +231,73 @@ describe("CaseListQuerySchema", () => {
 
   it("rejects an invalid status filter", () => {
     expect(CaseListQuerySchema.safeParse({ filters: { status: ["Invalid"] } }).success).toBe(false);
+  });
+});
+
+describe("TaskListQuerySchema", () => {
+  it("accepts a query without filters", () => {
+    expect(TaskListQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
+  });
+
+  it("accepts a single status filter", () => {
+    const result = TaskListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple status filters", () => {
+    const result = TaskListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending", "Done"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status filter", () => {
+    expect(
+      TaskListQuerySchema.safeParse({ caseId: uuid, filters: { status: ["Invalid"] } }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a missing caseId", () => {
+    expect(TaskListQuerySchema.safeParse({ filters: { status: ["Pending"] } }).success).toBe(false);
+  });
+});
+
+describe("MilestoneListQuerySchema", () => {
+  it("accepts a query without filters", () => {
+    expect(MilestoneListQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
+  });
+
+  it("accepts a single status filter", () => {
+    const result = MilestoneListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple status filters", () => {
+    const result = MilestoneListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending", "Cancelled"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status filter", () => {
+    expect(
+      MilestoneListQuerySchema.safeParse({ caseId: uuid, filters: { status: ["Invalid"] } })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a missing caseId", () => {
+    expect(MilestoneListQuerySchema.safeParse({ filters: { status: ["Pending"] } }).success).toBe(
+      false,
+    );
   });
 });
 

@@ -23,7 +23,7 @@ describe("toast helpers", () => {
     toastSuccess("Case created", "The case has been created.");
 
     expect(addSpy).toHaveBeenCalledWith(
-      { title: "Case created", description: "The case has been created." },
+      { title: "Case created", description: "The case has been created.", variant: "success" },
       { timeout: 5000 },
     );
   });
@@ -33,10 +33,15 @@ describe("toast helpers", () => {
     toastError("Upload failed", "Please try again.");
 
     expect(addSpy).toHaveBeenCalledTimes(2);
-    expect(addSpy.mock.calls[0][0]).toEqual({ title: "Heads up", description: "Context line." });
+    expect(addSpy.mock.calls[0][0]).toEqual({
+      title: "Heads up",
+      description: "Context line.",
+      variant: "info",
+    });
     expect(addSpy.mock.calls[1][0]).toEqual({
       title: "Upload failed",
       description: "Please try again.",
+      variant: "error",
     });
   });
 
@@ -47,6 +52,7 @@ describe("toast helpers", () => {
       {
         title: "Access denied",
         description: "You don't have permission to perform this action.",
+        variant: "error",
         link: { label: "Read the RBAC docs for more info.", href: RBAC_DOCS_URL },
       },
       { timeout: 5000 },
@@ -60,6 +66,7 @@ describe("toast helpers", () => {
       {
         title: "Failed to update task",
         description: "Something went wrong on our end. Please try again.",
+        variant: "error",
       },
       { timeout: 5000 },
     );
@@ -72,6 +79,7 @@ describe("toast helpers", () => {
       {
         title: "Access denied",
         description: "You don't have permission to perform this action.",
+        variant: "error",
         link: { label: "Read the RBAC docs for more info.", href: RBAC_DOCS_URL },
       },
       { timeout: 5000 },
@@ -85,6 +93,7 @@ describe("toast helpers", () => {
       {
         title: "Milestone not found",
         description: "The milestone may have been deleted by another user.",
+        variant: "error",
       },
       { timeout: 5000 },
     );

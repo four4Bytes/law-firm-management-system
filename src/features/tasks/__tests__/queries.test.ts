@@ -2,17 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TaskReviewer } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
+import { mockTask as mockBaseTask } from "@/test-utils/fixtures";
 
 import {
   getTaskById,
   getTaskDetailRowById,
   getTaskReviewers,
+  getTasksPaginated,
   type TaskDetailRow,
 } from "../queries";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    task: { findUnique: vi.fn() },
+    task: { findUnique: vi.fn(), findMany: vi.fn() },
     taskReviewer: { findMany: vi.fn() },
   },
 }));
@@ -187,5 +189,169 @@ describe("getTaskReviewers", () => {
     vi.mocked(prisma.taskReviewer.findMany).mockRejectedValue(error);
 
     await expect(getTaskReviewers("t1")).rejects.toThrow(error);
+  });
+});
+
+describe("getTasksPaginated", () => {
+  const mockTask = (overrides: Record<string, unknown> = {}) => ({
+    ...mockBaseTask(),
+    title: "Draft complaint",
+    updated_at: new Date("2024-06-02"),
+    taskAssignments: [{ user: { name: "Bob Lawyer" } }],
+    taskReviewers: [],
+    ...overrides,
+  });
+
+  it("returns mapped task rows", async () => {
+    const tasks = [
+      mockTask(),
+      mockTask({
+        id: "t2",
+        title: "Review evidence",
+        taskAssignments: [{ user: { name: "Carol Paralegal" } }],
+        taskReviewers: [
+          { reviewer: { name: "Alice Reviewer" } },
+          { reviewer: { name: "Bob Reviewer" } },
+        ],
+      }),
+    ];
+    vi.mocked(prisma.task.findMany).mockResolvedValue(tasks);
+
+    const result = await getTasksPaginated({ caseId: "1", pageSize: 10 });
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]).toEqual({
+      id: "t1",
+      title: "Draft complaint",
+      status: "Pending",
+      assignTo: "Bob Lawyer",
+      reviewers: "",
+      updated_at: tasks[0].updated_at,
+    });
+    expect(result.rows[1]).toEqual({
+      id: "t2",
+      title: "Review evidence",
+      status: "Pending",
+      assignTo: "Carol Paralegal",
+      reviewers: "Alice Reviewer, Bob Reviewer",
+      updated_at: tasks[1].updated_at,
+    });
+    expect(prisma.task.findMany).toHaveBeenCalledWith({
+      take: 11,
+      skip: 0,
+      where: { case_id: "1" },
+      orderBy: { updated_at: "desc" },
+      include: {
+        taskAssignments: { include: { user: { select: { name: true } } } },
+        taskReviewers: { include: { reviewer: { select: { name: true } } } },
+      },
+    });
+  });
+
+  it("filters by search term", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([mockTask()]);
+
+    await getTasksPaginated({ caseId: "1", search: "draft" });
+
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "1", title: { contains: "draft", mode: "insensitive" } },
+      }),
+    );
+  });
+
+  it("filters by a single status", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([mockTask()]);
+
+    await getTasksPaginated({ caseId: "1", filters: { status: ["Pending"] } });
+
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "1", status: { in: ["Pending"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple statuses", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([mockTask()]);
+
+    await getTasksPaginated({ caseId: "1", filters: { status: ["Pending", "Done"] } });
+
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "1", status: { in: ["Pending", "Done"] } },
+      }),
+    );
+  });
+
+  it("combines status filter with search", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([mockTask()]);
+
+    await getTasksPaginated({
+      caseId: "1",
+      search: "draft",
+      filters: { status: ["InReview"] },
+    });
+
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          case_id: "1",
+          title: { contains: "draft", mode: "insensitive" },
+          status: { in: ["InReview"] },
+        },
+      }),
+    );
+  });
+
+  it("handles cursor pagination", async () => {
+    const tasks = Array.from({ length: 4 }, (_, i) => mockTask({ id: String(i + 1) }));
+    vi.mocked(prisma.task.findMany).mockResolvedValue(tasks);
+
+    const result = await getTasksPaginated({ caseId: "1", pageSize: 3 });
+
+    expect(result.rows).toHaveLength(3);
+    expect(result.nextCursor).toBe("3");
+  });
+
+  it("returns empty array when no tasks", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+
+    const result = await getTasksPaginated({ caseId: "1" });
+
+    expect(result.rows).toEqual([]);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("sorts by title ascending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getTasksPaginated({ caseId: "1", sort: { column: "title", direction: "asc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ title: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by title descending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getTasksPaginated({ caseId: "1", sort: { column: "title", direction: "desc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ title: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by status ascending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getTasksPaginated({ caseId: "1", sort: { column: "status", direction: "asc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ status: "asc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by updated_at descending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getTasksPaginated({ caseId: "1", sort: { column: "updated_at", direction: "desc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ updated_at: "desc" }, { id: "asc" }] }),
+    );
   });
 });

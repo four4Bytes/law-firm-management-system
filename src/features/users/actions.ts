@@ -36,7 +36,7 @@ import {
   CreateUserSchema,
   DeactivateUserSchema,
   UpdateUserSchema,
-  UserPageQuerySchema,
+  UserListQuerySchema,
 } from "./schemas";
 
 export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
@@ -60,14 +60,14 @@ export async function touchLastSeenAction(): Promise<ActionStatusResponse> {
 }
 
 export async function getUsersPaginatedAction(
-  params: z.input<typeof UserPageQuerySchema>,
+  params: z.input<typeof UserListQuerySchema>,
 ): Promise<{
   users: UserRow[];
   nextCursor: string | null;
 }> {
   await requirePermission("user.read");
 
-  const parsed = UserPageQuerySchema.safeParse(params);
+  const parsed = UserListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }

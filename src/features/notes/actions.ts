@@ -31,6 +31,7 @@ import {
 import {
   getCaseNotesPaginated,
   getCaseNotesWithTaskNotesPaginated,
+  getConsultationNotesPaginated,
   getNoteAccessContext,
   getNoteById,
   getNoteRowById,
@@ -38,11 +39,12 @@ import {
   type NoteRow,
 } from "./queries";
 import {
-  CaseNotesPageQuerySchema,
+  CaseNotesListQuerySchema,
+  ConsultationNotesListQuerySchema,
   NoteCreatePayloadSchema,
   NoteIdSchema,
   NoteUpdatePayloadSchema,
-  TaskNotesPageQuerySchema,
+  TaskNotesListQuerySchema,
 } from "./schemas";
 
 export async function getNoteRowByIdAction(
@@ -80,14 +82,14 @@ export async function getNoteRowByIdAction(
 }
 
 export async function getTaskNotesPaginatedAction(
-  params: z.input<typeof TaskNotesPageQuerySchema>,
+  params: z.input<typeof TaskNotesListQuerySchema>,
 ): Promise<{
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = TaskNotesPageQuerySchema.safeParse(params);
+  const parsed = TaskNotesListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
@@ -101,14 +103,14 @@ export async function getTaskNotesPaginatedAction(
 }
 
 export async function getCaseNotesPaginatedAction(
-  params: z.input<typeof CaseNotesPageQuerySchema>,
+  params: z.input<typeof CaseNotesListQuerySchema>,
 ): Promise<{
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = CaseNotesPageQuerySchema.safeParse(params);
+  const parsed = CaseNotesListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
@@ -122,14 +124,14 @@ export async function getCaseNotesPaginatedAction(
 }
 
 export async function getCaseNotesWithTaskNotesPaginatedAction(
-  params: z.input<typeof CaseNotesPageQuerySchema>,
+  params: z.input<typeof CaseNotesListQuerySchema>,
 ): Promise<{
   rows: NoteRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = CaseNotesPageQuerySchema.safeParse(params);
+  const parsed = CaseNotesListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
@@ -140,6 +142,27 @@ export async function getCaseNotesWithTaskNotesPaginatedAction(
   }
 
   return getCaseNotesWithTaskNotesPaginated(parsed.data);
+}
+
+export async function getConsultationNotesPaginatedAction(
+  params: z.input<typeof ConsultationNotesListQuerySchema>,
+): Promise<{
+  rows: NoteRow[];
+  nextCursor: string | null;
+}> {
+  const session = await requireAuth();
+
+  const parsed = ConsultationNotesListQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  const access = await getConsultationAccessContext(session.id, parsed.data.consultationId);
+  if (!can(session.role, "note.read", access)) {
+    throw new ForbiddenError();
+  }
+
+  return getConsultationNotesPaginated(parsed.data);
 }
 
 export async function createNoteAction(

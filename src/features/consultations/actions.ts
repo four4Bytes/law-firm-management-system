@@ -9,7 +9,6 @@ import {
   getConsultationAccessContext,
   getConsultationAssigneeIds,
   getConsultationEditData,
-  getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationsPaginated,
   hasLinkedCase,
@@ -17,7 +16,6 @@ import {
   type ConsultationOverviewData,
   type ConsultationRow,
 } from "@/features/consultations/queries";
-import type { NoteRow } from "@/features/notes/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
@@ -39,7 +37,6 @@ import {
 import { isAfterToday, isBeforeToday } from "@/lib/date";
 import { StatusConflictError, toActionResponse } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
-import { PageQuerySchema } from "@/lib/schemas";
 
 import {
   acceptConsultationWithCase,
@@ -55,8 +52,8 @@ import {
   AcceptConsultationWithCasePayloadSchema,
   ConsultationCreatePayloadSchema,
   ConsultationDeletePayloadSchema,
+  ConsultationListQuerySchema,
   ConsultationOverviewIdSchema,
-  ConsultationPageQuerySchema,
   ConsultationStatusChangePayloadSchema,
   ConsultationUpdatePayloadSchema,
   ConsultationWithClientCreatePayloadSchema,
@@ -139,14 +136,14 @@ function mapAcceptMutationError(error: unknown): ActionStatusResponse | null {
 }
 
 export async function getConsultationsPaginatedAction(
-  params: z.input<typeof PageQuerySchema>,
+  params: z.input<typeof ConsultationListQuerySchema>,
 ): Promise<{
   consultations: ConsultationRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = PageQuerySchema.safeParse(params);
+  const parsed = ConsultationListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
@@ -171,24 +168,6 @@ export async function getConsultationOverviewByIdAction(
   const overview = await getConsultationOverviewById(consultationId);
 
   return { overview, access };
-}
-
-export async function getConsultationNotesPaginatedAction(
-  params: z.input<typeof ConsultationPageQuerySchema>,
-): Promise<{
-  rows: NoteRow[];
-  nextCursor: string | null;
-}> {
-  const session = await requireAuth();
-
-  const parsed = ConsultationPageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  await requireConsultationPermission(session, parsed.data.consultationId, "note.read");
-
-  return getConsultationNotesPaginated(parsed.data);
 }
 
 export async function getConsultationForEditAction(

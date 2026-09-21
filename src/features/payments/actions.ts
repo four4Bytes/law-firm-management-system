@@ -30,7 +30,7 @@ import {
 import {
   PaymentCreatePayloadSchema,
   PaymentIdSchema,
-  PaymentPageQuerySchema,
+  PaymentListQuerySchema,
   PaymentUpdatePayloadSchema,
 } from "./schemas";
 
@@ -46,14 +46,14 @@ export async function getPaymentRowByIdAction(paymentId: string): Promise<Paymen
 }
 
 export async function getPaymentsPaginatedAction(
-  params: z.input<typeof PaymentPageQuerySchema>,
+  params: z.input<typeof PaymentListQuerySchema>,
 ): Promise<{
   rows: PaymentRow[];
   nextCursor: string | null;
 }> {
   await requirePermission("payment.read");
 
-  const parsed = PaymentPageQuerySchema.safeParse(params);
+  const parsed = PaymentListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }

@@ -6,6 +6,7 @@ import { mockNote as mockBaseNote } from "@/test-utils/fixtures";
 import {
   getCaseNotesPaginated,
   getCaseNotesWithTaskNotesPaginated,
+  getConsultationNotesPaginated,
   getNoteById,
   getNoteRowById,
   getTaskNotesPaginated,
@@ -285,5 +286,67 @@ describe("getCaseNotesWithTaskNotesPaginated", () => {
 
     expect(result.rows).toEqual([]);
     expect(result.nextCursor).toBeNull();
+  });
+});
+
+describe("getConsultationNotesPaginated", () => {
+  const mockNote = (overrides: Record<string, unknown> = {}) => ({
+    ...mockBaseNote(),
+    content: "Client discussed settlement options",
+    consultation_id: "1",
+    createdBy: { name: "John Lawyer" },
+    ...overrides,
+  });
+
+  it("returns mapped note rows", async () => {
+    const notes = [
+      mockNote(),
+      mockNote({
+        id: "n2",
+        content: "Follow-up call scheduled",
+        createdBy: { name: "Alice Paralegal" },
+      }),
+    ];
+    vi.mocked(prisma.note.findMany).mockResolvedValue(notes);
+
+    const result = await getConsultationNotesPaginated({ consultationId: "1", pageSize: 10 });
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]).toEqual({
+      id: "n1",
+      content: "Client discussed settlement options",
+      author: "John Lawyer",
+      created_at: notes[0].created_at,
+    });
+  });
+
+  it("filters by search term", async () => {
+    vi.mocked(prisma.note.findMany).mockResolvedValue([mockNote()]);
+
+    await getConsultationNotesPaginated({ consultationId: "1", search: "settlement" });
+
+    expect(prisma.note.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { consultation_id: "1", content: { contains: "settlement", mode: "insensitive" } },
+      }),
+    );
+  });
+
+  it("handles cursor pagination", async () => {
+    const notes = Array.from({ length: 4 }, (_, i) => mockNote({ id: String(i + 1) }));
+    vi.mocked(prisma.note.findMany).mockResolvedValue(notes);
+
+    const result = await getConsultationNotesPaginated({ consultationId: "1", pageSize: 3 });
+
+    expect(result.rows).toHaveLength(3);
+    expect(result.nextCursor).toBe("3");
+  });
+
+  it("returns empty when none exist", async () => {
+    vi.mocked(prisma.note.findMany).mockResolvedValue([]);
+
+    const result = await getConsultationNotesPaginated({ consultationId: "1" });
+
+    expect(result.rows).toEqual([]);
   });
 });

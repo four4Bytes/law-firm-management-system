@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { EntityActivityLogQuerySchema } from "@/features/audit/schemas";
+import { EntityActivityLogListQuerySchema } from "@/features/audit/schemas";
 import { mockSessionUser } from "@/test-utils/fixtures";
 
 const mockUser = mockSessionUser({ id: "u1", email: "e", role: "Admin", name: "n" });
@@ -86,14 +86,14 @@ describe("getEntityActivityLogAction", () => {
     await expect(
       getEntityActivityLogAction({
         entityId: "550e8400-e29b-41d4-a716-446655440000",
-      } as unknown as z.input<typeof EntityActivityLogQuerySchema>),
+      } as unknown as z.input<typeof EntityActivityLogListQuerySchema>),
     ).rejects.toThrow("Invalid query parameters");
   });
 
   it("throws on missing entityId", async () => {
     await expect(
       getEntityActivityLogAction({ entityType: "Case" } as unknown as z.input<
-        typeof EntityActivityLogQuerySchema
+        typeof EntityActivityLogListQuerySchema
       >),
     ).rejects.toThrow("Invalid query parameters");
   });

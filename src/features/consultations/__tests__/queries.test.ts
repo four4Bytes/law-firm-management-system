@@ -5,13 +5,11 @@ import { prisma } from "@/lib/prisma";
 import {
   mockConsultation as mockBaseConsultation,
   mockAuditLog as mockBaseLog,
-  mockNote as mockBaseNote,
 } from "@/test-utils/fixtures";
 
 import {
   getConsultationAssigneeIds,
   getConsultationEditData,
-  getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationsPaginated,
 } from "../queries";
@@ -25,7 +23,6 @@ vi.mock("@/lib/prisma", () => ({
     auditLog: { findMany: vi.fn() },
     consultation: { findMany: vi.fn(), findUnique: vi.fn() },
     consultationAssignment: { findMany: vi.fn() },
-    note: { findMany: vi.fn() },
     payment: { findMany: vi.fn() },
   },
 }));
@@ -182,6 +179,48 @@ describe("getConsultationsPaginated", () => {
     );
   });
 
+  it("filters by a single status", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ filters: { status: ["Scheduled"] } });
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ["Scheduled"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple statuses", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ filters: { status: ["Scheduled", "Completed"] } });
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: { in: ["Scheduled", "Completed"] } },
+      }),
+    );
+  });
+
+  it("combines status filter with search", async () => {
+    vi.mocked(prisma.consultation.findMany).mockResolvedValue([mockConsultation()]);
+
+    await getConsultationsPaginated({ search: "tax", filters: { status: ["Completed"] } });
+
+    expect(prisma.consultation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { concern: { contains: "tax", mode: "insensitive" } },
+            { client: { name: { contains: "tax", mode: "insensitive" } } },
+          ],
+          status: { in: ["Completed"] },
+        },
+      }),
+    );
+  });
+
   it("sorts by concern ascending", async () => {
     vi.mocked(prisma.consultation.findMany).mockResolvedValue([]);
     await getConsultationsPaginated({ sort: { column: "concern", direction: "asc" } });
@@ -316,68 +355,6 @@ describe("getConsultationOverviewById", () => {
 
     await expect(getConsultationOverviewById("999")).rejects.toThrow("NEXT_NOT_FOUND");
     expect(notFoundMock).toHaveBeenCalledOnce();
-  });
-});
-
-describe("getConsultationNotesPaginated", () => {
-  const mockNote = (overrides: Record<string, unknown> = {}) => ({
-    ...mockBaseNote(),
-    content: "Client discussed settlement options",
-    consultation_id: "1",
-    createdBy: { name: "John Lawyer" },
-    ...overrides,
-  });
-
-  it("returns mapped note rows", async () => {
-    const notes = [
-      mockNote(),
-      mockNote({
-        id: "n2",
-        content: "Follow-up call scheduled",
-        createdBy: { name: "Alice Paralegal" },
-      }),
-    ];
-    vi.mocked(prisma.note.findMany).mockResolvedValue(notes);
-
-    const result = await getConsultationNotesPaginated({ consultationId: "1", pageSize: 10 });
-
-    expect(result.rows).toHaveLength(2);
-    expect(result.rows[0]).toEqual({
-      id: "n1",
-      content: "Client discussed settlement options",
-      author: "John Lawyer",
-      created_at: notes[0].created_at,
-    });
-  });
-
-  it("filters by search term", async () => {
-    vi.mocked(prisma.note.findMany).mockResolvedValue([mockNote()]);
-
-    await getConsultationNotesPaginated({ consultationId: "1", search: "settlement" });
-
-    expect(prisma.note.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { consultation_id: "1", content: { contains: "settlement", mode: "insensitive" } },
-      }),
-    );
-  });
-
-  it("handles cursor pagination", async () => {
-    const notes = Array.from({ length: 4 }, (_, i) => mockNote({ id: String(i + 1) }));
-    vi.mocked(prisma.note.findMany).mockResolvedValue(notes);
-
-    const result = await getConsultationNotesPaginated({ consultationId: "1", pageSize: 3 });
-
-    expect(result.rows).toHaveLength(3);
-    expect(result.nextCursor).toBe("3");
-  });
-
-  it("returns empty when none exist", async () => {
-    vi.mocked(prisma.note.findMany).mockResolvedValue([]);
-
-    const result = await getConsultationNotesPaginated({ consultationId: "1" });
-
-    expect(result.rows).toEqual([]);
   });
 });
 

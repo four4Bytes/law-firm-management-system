@@ -35,7 +35,7 @@ export const TOAST_TIMEOUT = 5000;
  * @param description - Full-sentence confirmation of what happened.
  */
 export function toastSuccess(title: string, description: string): void {
-  queue.add({ title, description }, { timeout: TOAST_TIMEOUT });
+  queue.add({ title, description, variant: "success" }, { timeout: TOAST_TIMEOUT });
 }
 
 /**
@@ -45,7 +45,7 @@ export function toastSuccess(title: string, description: string): void {
  * @param description - Full-sentence context or guidance.
  */
 export function toastInfo(title: string, description: string): void {
-  queue.add({ title, description }, { timeout: TOAST_TIMEOUT });
+  queue.add({ title, description, variant: "info" }, { timeout: TOAST_TIMEOUT });
 }
 
 /**
@@ -57,7 +57,7 @@ export function toastInfo(title: string, description: string): void {
  * @param description - Full-sentence explanation with a next step.
  */
 export function toastError(title: string, description: string): void {
-  queue.add({ title, description }, { timeout: TOAST_TIMEOUT });
+  queue.add({ title, description, variant: "error" }, { timeout: TOAST_TIMEOUT });
 }
 
 /**
@@ -77,6 +77,7 @@ export function toastActionError(response: ActionStatusResponse, operation: stri
     {
       title: error.title,
       description: error.description,
+      variant: "error",
       ...(error.code === "forbidden" ? { link: denialLink } : {}),
     },
     { timeout: TOAST_TIMEOUT },
@@ -92,7 +93,7 @@ export function toastDenied(): void {
   const { error } = actionForbidden();
   if (error)
     queue.add(
-      { title: error.title, description: error.description, link: denialLink },
+      { title: error.title, description: error.description, variant: "error", link: denialLink },
       { timeout: TOAST_TIMEOUT },
     );
 }
@@ -105,5 +106,8 @@ export function toastDenied(): void {
 export function toastNotFound(entity: string): void {
   const { error } = actionNotFound(entity);
   if (error)
-    queue.add({ title: error.title, description: error.description }, { timeout: TOAST_TIMEOUT });
+    queue.add(
+      { title: error.title, description: error.description, variant: "error" },
+      { timeout: TOAST_TIMEOUT },
+    );
 }

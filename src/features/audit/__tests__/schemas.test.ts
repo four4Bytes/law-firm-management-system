@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { AuditLogPageQuerySchema, EntityActivityLogQuerySchema } from "../schemas";
+import { AuditLogListQuerySchema, EntityActivityLogListQuerySchema } from "../schemas";
 
-describe("AuditLogPageQuerySchema", () => {
+describe("AuditLogListQuerySchema", () => {
   it("accepts empty params with defaults", () => {
-    const result = AuditLogPageQuerySchema.parse({});
+    const result = AuditLogListQuerySchema.parse({});
     expect(result.search).toBe("");
     expect(result.pageSize).toBe(20);
     expect(result.cursor).toBeUndefined();
   });
 
   it("accepts full params", () => {
-    const result = AuditLogPageQuerySchema.parse({
+    const result = AuditLogListQuerySchema.parse({
       search: "case.created",
       cursor: "550e8400-e29b-41d4-a716-446655440000",
       pageSize: 50,
@@ -22,23 +22,23 @@ describe("AuditLogPageQuerySchema", () => {
   });
 
   it("trims search", () => {
-    const result = AuditLogPageQuerySchema.parse({ search: "  foo  " });
+    const result = AuditLogListQuerySchema.parse({ search: "  foo  " });
     expect(result.search).toBe("foo");
   });
 
   it("clamps pageSize", () => {
-    expect(() => AuditLogPageQuerySchema.parse({ pageSize: 0 })).toThrow();
-    expect(() => AuditLogPageQuerySchema.parse({ pageSize: 101 })).toThrow();
+    expect(() => AuditLogListQuerySchema.parse({ pageSize: 0 })).toThrow();
+    expect(() => AuditLogListQuerySchema.parse({ pageSize: 101 })).toThrow();
   });
 
   it("rejects non-uuid cursor", () => {
-    expect(() => AuditLogPageQuerySchema.parse({ cursor: "not-a-uuid" })).toThrow();
+    expect(() => AuditLogListQuerySchema.parse({ cursor: "not-a-uuid" })).toThrow();
   });
 });
 
-describe("EntityActivityLogQuerySchema", () => {
+describe("EntityActivityLogListQuerySchema", () => {
   it("requires entityType and entityId", () => {
-    const result = EntityActivityLogQuerySchema.parse({
+    const result = EntityActivityLogListQuerySchema.parse({
       entityType: "Case",
       entityId: "550e8400-e29b-41d4-a716-446655440000",
     });
@@ -50,7 +50,7 @@ describe("EntityActivityLogQuerySchema", () => {
 
   it("rejects empty entityType", () => {
     expect(() =>
-      EntityActivityLogQuerySchema.parse({
+      EntityActivityLogListQuerySchema.parse({
         entityType: "",
         entityId: "550e8400-e29b-41d4-a716-446655440000",
       }),
@@ -58,6 +58,6 @@ describe("EntityActivityLogQuerySchema", () => {
   });
 
   it("rejects missing entityId", () => {
-    expect(() => EntityActivityLogQuerySchema.parse({ entityType: "Case" })).toThrow();
+    expect(() => EntityActivityLogListQuerySchema.parse({ entityType: "Case" })).toThrow();
   });
 });

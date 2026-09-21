@@ -8,7 +8,7 @@ import {
   SortQuerySchema,
 } from "@/lib/schemas";
 
-export const DocumentPageQuerySchema = z
+export const DocumentListQuerySchema = z
   .object({
     caseId: z.uuid().optional(),
     consultationId: z.uuid().optional(),

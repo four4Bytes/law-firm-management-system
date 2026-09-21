@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MilestoneCreatePayloadSchema,
   MilestoneIdSchema,
+  MilestoneListQuerySchema,
   MilestoneUpdatePayloadSchema,
 } from "../schemas";
 
@@ -173,5 +174,40 @@ describe("MilestoneUpdatePayloadSchema", () => {
       status: "Pending",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("MilestoneListQuerySchema", () => {
+  it("accepts a query without filters", () => {
+    expect(MilestoneListQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
+  });
+
+  it("accepts a single status filter", () => {
+    const result = MilestoneListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple status filters", () => {
+    const result = MilestoneListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending", "Cancelled"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status filter", () => {
+    expect(
+      MilestoneListQuerySchema.safeParse({ caseId: uuid, filters: { status: ["Invalid"] } })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a missing caseId", () => {
+    expect(MilestoneListQuerySchema.safeParse({ filters: { status: ["Pending"] } }).success).toBe(
+      false,
+    );
   });
 });

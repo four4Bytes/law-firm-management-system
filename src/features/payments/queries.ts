@@ -2,7 +2,7 @@ import { cache } from "react";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
-import type { Payment } from "@/generated/prisma/browser";
+import type { Payment, PaymentStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
@@ -14,9 +14,14 @@ export type PaymentRow = Pick<
   amount: number;
 };
 
-export interface PaymentPageQuery extends PageQuery {
+export interface PaymentListFilters {
+  status?: PaymentStatus[];
+}
+
+export interface PaymentListQuery extends Omit<PageQuery, "filters"> {
   caseId?: string;
   consultationId?: string;
+  filters?: PaymentListFilters;
 }
 
 export const getPaymentsPaginated = cache(
@@ -27,7 +32,8 @@ export const getPaymentsPaginated = cache(
     cursor,
     pageSize = 20,
     sort,
-  }: PaymentPageQuery): Promise<{
+    filters,
+  }: PaymentListQuery): Promise<{
     rows: PaymentRow[];
     nextCursor: string | null;
   }> => {
@@ -40,6 +46,9 @@ export const getPaymentsPaginated = cache(
         { status: { contains: search, mode: "insensitive" as const } },
         { receipt_number: { contains: search, mode: "insensitive" as const } },
       ];
+    }
+    if (filters?.status && filters.status.length > 0) {
+      where.status = { in: filters.status };
     }
 
     const defaultOrderBy = [{ payment_date: "desc" as const }, { id: "asc" as const }];

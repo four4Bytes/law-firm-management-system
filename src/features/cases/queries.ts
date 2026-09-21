@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import type { TaskRow } from "@/features/tasks/queries";
 import { isUserOnline } from "@/features/users/onlineStatus";
-import type { Case, CaseMilestone, Prisma } from "@/generated/prisma/browser";
+import type { Case, CaseStatus, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
-import type { CasePageQuery, PageQuery } from "@/lib/types";
+import type { PageQuery } from "@/lib/types";
 
 const caseSelect = {
   id: true,
@@ -42,9 +41,17 @@ export type CaseRow = {
   created_at: Date;
 };
 
+export interface CaseListFilters {
+  status?: CaseStatus[];
+}
+
+export interface CaseListQuery extends Omit<PageQuery, "filters"> {
+  filters?: CaseListFilters;
+}
+
 export const getCasesPaginated = cache(
   async (
-    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    { search = "", cursor, pageSize = 20, sort, filters }: CaseListQuery,
     assignedUserId?: string,
   ): Promise<{
     cases: CaseRow[];
@@ -59,6 +66,7 @@ export const getCasesPaginated = cache(
             ],
           }
         : {}),
+      ...(filters?.status && filters.status.length > 0 ? { status: { in: filters.status } } : {}),
       ...(assignedUserId ? { caseAssignments: { some: { user_id: assignedUserId } } } : {}),
     };
 
@@ -180,127 +188,6 @@ export const getCaseOverviewById = cache(async (id: string): Promise<CaseOvervie
     sourceConsultation: data.sourceConsultation,
   } satisfies CaseOverviewData;
 });
-
-// ----- Tasks -----
-
-export const getCaseTasksPaginated = cache(
-  async ({
-    caseId,
-    search = "",
-    cursor,
-    pageSize = 20,
-    sort,
-  }: CasePageQuery): Promise<{
-    rows: TaskRow[];
-    nextCursor: string | null;
-  }> => {
-    const where = {
-      case_id: caseId,
-      ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
-    };
-
-    const defaultOrderBy = { updated_at: "desc" } as const;
-
-    const orderBy =
-      sort?.column === "title"
-        ? [{ title: sort.direction }, { id: "asc" as const }]
-        : sort?.column === "status"
-          ? [{ status: sort.direction }, { id: "asc" as const }]
-          : sort?.column === "updated_at"
-            ? [{ updated_at: sort.direction }, { id: "asc" as const }]
-            : defaultOrderBy;
-
-    const tasks = await prisma.task.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy,
-      include: {
-        taskAssignments: {
-          include: { user: { select: { name: true } } },
-        },
-        taskReviewers: {
-          include: { reviewer: { select: { name: true } } },
-        },
-      },
-    });
-
-    const hasMore = tasks.length > pageSize;
-    if (hasMore) tasks.pop();
-
-    const rows: TaskRow[] = tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      assignTo: t.taskAssignments.map((a) => a.user.name).join(", "),
-      reviewers: t.taskReviewers.map((r) => r.reviewer.name).join(", "),
-      updated_at: t.updated_at,
-    }));
-
-    return { rows, nextCursor: hasMore ? tasks[tasks.length - 1].id : null };
-  },
-);
-
-// ----- Milestones -----
-
-export type CaseMilestoneListRow = Pick<
-  CaseMilestone,
-  "id" | "title" | "description" | "due_date" | "status"
->;
-
-export const getCaseMilestonesPaginated = cache(
-  async ({
-    caseId,
-    search = "",
-    cursor,
-    pageSize = 20,
-    sort,
-  }: CasePageQuery): Promise<{
-    rows: CaseMilestoneListRow[];
-    nextCursor: string | null;
-  }> => {
-    const where = {
-      case_id: caseId,
-      ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
-    };
-
-    const defaultOrderBy = { due_date: "desc" } as const;
-
-    const orderBy =
-      sort?.column === "title"
-        ? [{ title: sort.direction }, { id: "asc" as const }]
-        : sort?.column === "due_date"
-          ? [{ due_date: sort.direction }, { id: "asc" as const }]
-          : sort?.column === "status"
-            ? [{ status: sort.direction }, { id: "asc" as const }]
-            : defaultOrderBy;
-
-    const milestones = await prisma.caseMilestone.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy,
-    });
-
-    const hasMore = milestones.length > pageSize;
-    if (hasMore) milestones.pop();
-
-    const rows: CaseMilestoneListRow[] = milestones.map((m) => ({
-      id: m.id,
-      title: m.title,
-      description: m.description,
-      due_date: m.due_date,
-      status: m.status,
-    }));
-
-    return {
-      rows,
-      nextCursor: hasMore ? milestones[milestones.length - 1].id : null,
-    };
-  },
-);
 
 // ----- Case edit data -----
 

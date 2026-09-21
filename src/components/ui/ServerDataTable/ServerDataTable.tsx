@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/Button/Button";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
+import { TableFilter, type FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { appendPage } from "@/lib/pagination";
 import { toSortQuery } from "@/lib/sort";
 import { toastError } from "@/lib/toast-utils";
-import type { SortQuery } from "@/lib/types";
+import type { FilterValues, SortQuery } from "@/lib/types";
 import { useDebounce } from "@/lib/useDebounce";
 
 import styles from "./ServerDataTable.module.css";
@@ -22,12 +23,14 @@ interface ServerDataTableProps<T extends { id: string }> {
     cursor?: string;
     pageSize?: number;
     sort?: SortQuery;
+    filters?: FilterValues;
   }) => Promise<{ rows: T[]; nextCursor: string | null }>;
   columns: ColumnDef<T>[];
   searchPlaceholder?: string;
   emptyContent?: string;
   loadingMessage?: string;
   searchLabel?: string;
+  filters?: FilterDefinition[];
   renderAddButton?: boolean;
   addButtonLabel?: string;
   onAddButtonPress?: () => void;
@@ -47,6 +50,7 @@ export function ServerDataTable<T extends { id: string }>({
   emptyContent = "No items yet",
   loadingMessage = "Loading...",
   searchLabel = "Search",
+  filters,
   renderAddButton = false,
   addButtonLabel = "Add",
   onAddButtonPress,
@@ -65,6 +69,7 @@ export function ServerDataTable<T extends { id: string }>({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
+  const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [isFetching, setIsFetching] = useState(false);
 
   const isLoading = isFetching || isLoadingMore;
@@ -95,6 +100,7 @@ export function ServerDataTable<T extends { id: string }>({
           search: debouncedSearch,
           sort: toSortQuery(sortDescriptor),
           pageSize: 10,
+          filters: filterValues,
         });
         if (cancelled) return;
         setItems(result.rows);
@@ -118,7 +124,7 @@ export function ServerDataTable<T extends { id: string }>({
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, sortDescriptor, refreshTrigger]);
+  }, [debouncedSearch, sortDescriptor, filterValues, refreshTrigger]);
 
   const handleLoadMore = useCallback(async () => {
     if (isLoading || !hasMore || !cursor) return;
@@ -131,6 +137,7 @@ export function ServerDataTable<T extends { id: string }>({
         cursor,
         sort: toSortQuery(sortDescriptor),
         pageSize: 10,
+        filters: filterValues,
       });
       if (gen !== generationRef.current) return;
       setItems((prev) => appendPage(prev, result.rows));
@@ -141,14 +148,23 @@ export function ServerDataTable<T extends { id: string }>({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoading, hasMore, cursor, debouncedSearch, sortDescriptor]);
+  }, [isLoading, hasMore, cursor, debouncedSearch, sortDescriptor, filterValues]);
 
-  const computedEmptyContent =
-    debouncedSearch && items.length === 0 && !isLoading
-      ? `No results matching "${debouncedSearch}"`
-      : items.length === 0 && !isLoading
-        ? emptyContent
-        : undefined;
+  const hasActiveFilters = Object.values(filterValues).some((selected) => selected.length > 0);
+
+  let computedEmptyContent: string | undefined;
+  if (items.length === 0 && !isLoading) {
+    computedEmptyContent = emptyContent;
+    if (hasActiveFilters) {
+      computedEmptyContent = "No results matching the current filters";
+    }
+    if (debouncedSearch) {
+      computedEmptyContent = `No results matching "${debouncedSearch}"`;
+    }
+    if (debouncedSearch && hasActiveFilters) {
+      computedEmptyContent = `No results matching "${debouncedSearch}" with the current filters`;
+    }
+  }
 
   return (
     <div className={styles.content}>
@@ -159,6 +175,14 @@ export function ServerDataTable<T extends { id: string }>({
           placeholder={searchPlaceholder}
           aria-label={searchLabel}
         />
+        {filters && filters.length > 0 && (
+          <TableFilter
+            filters={filters}
+            values={filterValues}
+            onChange={setFilterValues}
+            onClear={() => setFilterValues({})}
+          />
+        )}
         {renderAddButton && (
           <Button
             variant="secondary"

@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import {
   deletePaymentAction,
@@ -35,6 +36,17 @@ const statusClassMap: Record<PaymentStatus, StatusBadgeVariant> = {
   Paid: "done",
   Refunded: "cancelled",
 };
+
+const paymentFilters: FilterDefinition[] = [
+  {
+    key: "status",
+    label: "Status",
+    options: Object.values(PaymentStatus).map((status) => ({
+      value: status,
+      label: status,
+    })),
+  },
+];
 
 const columns: ColumnDef<PaymentRow>[] = [
   {
@@ -144,6 +156,7 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
         emptyContent="No payments yet"
         loadingMessage="Loading payments..."
         searchLabel="Search payments"
+        filters={paymentFilters}
         selectionMode="none"
         collectionDependencies={[pendingEditId]}
         renderAddButton

@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
@@ -22,6 +23,14 @@ const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
   Terminated: "danger",
   Settled: "info",
 };
+
+const caseFilters: FilterDefinition[] = [
+  {
+    key: "status",
+    label: "Status",
+    options: Object.values(CaseStatus).map((status) => ({ value: status, label: status })),
+  },
+];
 
 const columns: ColumnDef<CaseRow>[] = [
   {
@@ -101,6 +110,7 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
         emptyContent="No cases yet"
         loadingMessage="Loading cases..."
         searchLabel="Search cases"
+        filters={caseFilters}
         selectionMode="single"
         selectionBehavior="replace"
         onRowAction={(id) => {

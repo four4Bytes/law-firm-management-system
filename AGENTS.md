@@ -358,6 +358,9 @@ ButtonProps)`) to facilitate direct application of rest parameter extraction and
 
 ### 11.4 Code patterns
 
+- Prefer ternaries for simple two-way choices; prefer if/early returns for complex or multi-branch logic.
+  Avoid nested ternaries.
+
 Avoid this signature clutter:
 
 ```typescript
@@ -423,6 +426,8 @@ fields, or reshaping the data.
 
 - Idiomatic, modular code is the top priority in this project, not a collection of hacks and
   workarounds.
+- Prefer readability over cleverness; if a compact expression requires mental parsing, write it as
+  straightforward sequential code instead.
 - Named exports only — no default exports, except for Next.js special files (`page.tsx`,
   `layout.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`, `route.tsx` etc.)
   which require a default export. Use inline `export default function` for these files.

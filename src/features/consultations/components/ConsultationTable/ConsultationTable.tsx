@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
@@ -26,6 +27,17 @@ const statusClassMap: Record<ConsultationStatus, StatusBadgeVariant> = {
   Rejected: "danger",
   Cancelled: "cancelled",
 };
+
+const consultationFilters: FilterDefinition[] = [
+  {
+    key: "status",
+    label: "Status",
+    options: Object.values(ConsultationStatus).map((status) => ({
+      value: status,
+      label: status,
+    })),
+  },
+];
 
 const columns: ColumnDef<ConsultationRow>[] = [
   {
@@ -122,6 +134,7 @@ export function ConsultationTable({
         emptyContent="No consultations yet"
         loadingMessage="Loading consultations..."
         searchLabel="Search consultations"
+        filters={consultationFilters}
         selectionMode="single"
         selectionBehavior="replace"
         onRowAction={(id) => {

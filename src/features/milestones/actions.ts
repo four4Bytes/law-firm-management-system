@@ -16,7 +16,7 @@ import {
   type ActionDataResponse,
   type ActionStatusResponse,
 } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
+import { assertRecordPermission, requireAuth } from "@/lib/auth-guards";
 import { isAfterToday, isBeforeToday } from "@/lib/date";
 import { ForbiddenError, toActionResponse } from "@/lib/errors";
 import { can } from "@/lib/rbac";
@@ -26,11 +26,14 @@ import {
   getMilestoneAccessContext,
   getMilestoneById,
   getMilestoneRowById,
+  getMilestonesPaginated,
+  type MilestoneListRow,
   type MilestoneRow,
 } from "./queries";
 import {
   MilestoneCreatePayloadSchema,
   MilestoneIdSchema,
+  MilestoneListQuerySchema,
   MilestoneUpdatePayloadSchema,
 } from "./schemas";
 import { describeMilestoneNextSteps, isValidMilestoneStatusTransition } from "./status";
@@ -59,6 +62,25 @@ export async function getMilestoneRowByIdAction(
     row,
     canUpdate: row !== null && can(session.role, "milestone.update", access),
   };
+}
+
+export async function getMilestonesPaginatedAction(
+  params: z.input<typeof MilestoneListQuerySchema>,
+): Promise<{
+  rows: MilestoneListRow[];
+  nextCursor: string | null;
+}> {
+  const session = await requireAuth();
+
+  const parsed = MilestoneListQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  const access = await getCaseAccessContext(session.id, parsed.data.caseId);
+  assertRecordPermission(session, "milestone.read", access);
+
+  return getMilestonesPaginated(parsed.data);
 }
 
 export async function createMilestoneAction(

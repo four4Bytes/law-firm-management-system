@@ -17,7 +17,7 @@ export type DocumentRow = {
   task?: { id: string; title: string; case_id: string } | null;
 };
 
-export interface DocumentPageQuery extends PageQuery {
+export interface DocumentListQuery extends PageQuery {
   caseId?: string;
   consultationId?: string;
   taskId?: string;
@@ -37,7 +37,7 @@ export const getDocumentsPaginated = cache(
     cursor,
     pageSize = 20,
     sort,
-  }: DocumentPageQuery): Promise<{
+  }: DocumentListQuery): Promise<{
     rows: DocumentRow[];
     nextCursor: string | null;
   }> => {

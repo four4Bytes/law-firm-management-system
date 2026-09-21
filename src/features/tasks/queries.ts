@@ -1,13 +1,28 @@
 import { cache } from "react";
 
-import type { ReviewDecision, Task, TaskAssignmentStatus } from "@/generated/prisma/browser";
+import type {
+  ReviewDecision,
+  Task,
+  TaskAssignmentStatus,
+  TaskStatus,
+} from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
+import type { PageQuery } from "@/lib/types";
 
 export type TaskRow = Pick<Task, "id" | "title" | "status" | "updated_at"> & {
   assignTo: string;
   reviewers: string;
 };
+
+export interface TaskListFilters {
+  status?: TaskStatus[];
+}
+
+export interface TaskListQuery extends Omit<PageQuery, "filters"> {
+  caseId: string;
+  filters?: TaskListFilters;
+}
 
 export type TaskReviewerRow = {
   id: string;
@@ -23,6 +38,69 @@ export type TaskDetailRow = Omit<TaskRow, "assignTo" | "reviewers"> &
     assignee_ids: string[];
     reviewers: TaskReviewerRow[];
   };
+
+// ----- Task list -----
+
+export const getTasksPaginated = cache(
+  async ({
+    caseId,
+    search = "",
+    cursor,
+    pageSize = 20,
+    sort,
+    filters,
+  }: TaskListQuery): Promise<{
+    rows: TaskRow[];
+    nextCursor: string | null;
+  }> => {
+    const where = {
+      case_id: caseId,
+      ...(search ? { title: { contains: search, mode: "insensitive" as const } } : {}),
+      ...(filters?.status && filters.status.length > 0 ? { status: { in: filters.status } } : {}),
+    };
+
+    const defaultOrderBy = { updated_at: "desc" } as const;
+
+    const orderBy =
+      sort?.column === "title"
+        ? [{ title: sort.direction }, { id: "asc" as const }]
+        : sort?.column === "status"
+          ? [{ status: sort.direction }, { id: "asc" as const }]
+          : sort?.column === "updated_at"
+            ? [{ updated_at: sort.direction }, { id: "asc" as const }]
+            : defaultOrderBy;
+
+    const tasks = await prisma.task.findMany({
+      take: pageSize + 1,
+      skip: cursor ? 1 : 0,
+      ...(cursor ? { cursor: { id: cursor } } : {}),
+      where,
+      orderBy,
+      include: {
+        taskAssignments: {
+          include: { user: { select: { name: true } } },
+        },
+        taskReviewers: {
+          include: { reviewer: { select: { name: true } } },
+        },
+      },
+    });
+
+    const hasMore = tasks.length > pageSize;
+    if (hasMore) tasks.pop();
+
+    const rows: TaskRow[] = tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      assignTo: t.taskAssignments.map((a) => a.user.name).join(", "),
+      reviewers: t.taskReviewers.map((r) => r.reviewer.name).join(", "),
+      updated_at: t.updated_at,
+    }));
+
+    return { rows, nextCursor: hasMore ? tasks[tasks.length - 1].id : null };
+  },
+);
 
 export const getTaskById = cache(async (id: string) => {
   return prisma.task.findUnique({

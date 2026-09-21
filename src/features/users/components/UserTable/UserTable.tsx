@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
+import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { logoutUser } from "@/features/auth/actions";
 import { deactivateUserAction, getUsersPaginatedAction } from "@/features/users/actions";
@@ -37,6 +38,17 @@ const roleClassMap: Record<Role, string> = {
 };
 
 type ModalTarget = { type: "add" } | { type: "edit"; user: UserRow } | null;
+
+const userFilters: FilterDefinition[] = [
+  {
+    key: "role",
+    label: "Role",
+    options: Object.values(Role).map((role) => ({
+      value: role,
+      label: roleLabels[role] ?? role,
+    })),
+  },
+];
 
 export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
   const canCreate = can(sessionUserRole, "user.create");
@@ -125,6 +137,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         emptyContent="No users yet"
         loadingMessage="Loading users..."
         searchLabel="Search users"
+        filters={userFilters}
         selectionMode="none"
         renderAddButton={canCreate}
         addButtonLabel="Add User"

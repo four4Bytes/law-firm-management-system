@@ -43,7 +43,7 @@ import {
 import {
   DocumentConfirmPayloadSchema,
   DocumentIdSchema,
-  DocumentPageQuerySchema,
+  DocumentListQuerySchema,
   DocumentUploadPayloadSchema,
 } from "./schemas";
 
@@ -73,14 +73,14 @@ async function getDocumentParentAccessContext({
 }
 
 export async function getDocumentsPaginatedAction(
-  params: z.input<typeof DocumentPageQuerySchema>,
+  params: z.input<typeof DocumentListQuerySchema>,
 ): Promise<{
   rows: DocumentRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = DocumentPageQuerySchema.safeParse(params);
+  const parsed = DocumentListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }

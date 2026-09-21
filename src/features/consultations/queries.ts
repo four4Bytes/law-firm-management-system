@@ -1,16 +1,11 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import type { NoteRow } from "@/features/notes/queries";
 import { isUserOnline } from "@/features/users/onlineStatus";
-import type { Consultation, Prisma } from "@/generated/prisma/browser";
+import type { Consultation, ConsultationStatus, Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
 import type { PageQuery } from "@/lib/types";
-
-export interface ConsultationPageQuery extends PageQuery {
-  consultationId: string;
-}
 
 const consultationSelect = {
   id: true,
@@ -108,51 +103,17 @@ export const getConsultationOverviewById = cache(
   },
 );
 
-// ----- Notes -----
+export interface ConsultationListFilters {
+  status?: ConsultationStatus[];
+}
 
-export const getConsultationNotesPaginated = cache(
-  async ({
-    consultationId,
-    search = "",
-    cursor,
-    pageSize = 20,
-  }: ConsultationPageQuery): Promise<{
-    rows: NoteRow[];
-    nextCursor: string | null;
-  }> => {
-    const where = {
-      consultation_id: consultationId,
-      ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
-    };
-
-    const notes = await prisma.note.findMany({
-      take: pageSize + 1,
-      skip: cursor ? 1 : 0,
-      ...(cursor ? { cursor: { id: cursor } } : {}),
-      where,
-      orderBy: { created_at: "desc" },
-      include: {
-        createdBy: { select: { name: true } },
-      },
-    });
-
-    const hasMore = notes.length > pageSize;
-    if (hasMore) notes.pop();
-
-    const rows: NoteRow[] = notes.map((n) => ({
-      id: n.id,
-      content: n.content,
-      author: n.createdBy.name,
-      created_at: n.created_at,
-    }));
-
-    return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
-  },
-);
+export interface ConsultationListQuery extends Omit<PageQuery, "filters"> {
+  filters?: ConsultationListFilters;
+}
 
 export const getConsultationsPaginated = cache(
   async (
-    { search = "", cursor, pageSize = 20, sort }: PageQuery,
+    { search = "", cursor, pageSize = 20, sort, filters }: ConsultationListQuery,
     assignedUserId?: string,
   ): Promise<{
     consultations: ConsultationRow[];
@@ -167,6 +128,7 @@ export const getConsultationsPaginated = cache(
             ],
           }
         : {}),
+      ...(filters?.status && filters.status.length > 0 ? { status: { in: filters.status } } : {}),
       ...(assignedUserId ? { consultationAssignments: { some: { user_id: assignedUserId } } } : {}),
     };
 

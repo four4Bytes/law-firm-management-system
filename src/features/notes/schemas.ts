@@ -1,11 +1,7 @@
 import { z } from "zod";
 
 import { requiredText } from "@/lib/form-utils";
-import { exactlyOneParentRefinement, PageQuerySchema } from "@/lib/schemas";
-
-export const NotePageQuerySchema = PageQuerySchema.extend({
-  noteId: z.uuid(),
-});
+import { exactlyOneParentRefinement } from "@/lib/schemas";
 
 export const NoteCreatePayloadSchema = z
   .object({
@@ -27,15 +23,22 @@ export const NoteIdSchema = z.object({
   noteId: z.uuid(),
 });
 
-export const TaskNotesPageQuerySchema = z.object({
+export const TaskNotesListQuerySchema = z.object({
   taskId: z.uuid(),
   search: z.string().trim().max(500).optional().default(""),
   cursor: z.uuid().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
 });
 
-export const CaseNotesPageQuerySchema = z.object({
+export const CaseNotesListQuerySchema = z.object({
   caseId: z.uuid(),
+  search: z.string().trim().max(500).optional().default(""),
+  cursor: z.uuid().optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+});
+
+export const ConsultationNotesListQuerySchema = z.object({
+  consultationId: z.uuid(),
   search: z.string().trim().max(500).optional().default(""),
   cursor: z.uuid().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),

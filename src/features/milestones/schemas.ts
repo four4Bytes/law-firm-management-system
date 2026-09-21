@@ -2,9 +2,19 @@ import { z } from "zod";
 
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
 import { optionalText, requiredEnum, requiredText } from "@/lib/form-utils";
+import { PageQuerySchema } from "@/lib/schemas";
 
 export const MilestoneIdSchema = z.object({
   milestoneId: z.uuid(),
+});
+
+export const MilestoneListQuerySchema = PageQuerySchema.extend({
+  caseId: z.uuid(),
+  filters: z
+    .object({
+      status: z.array(z.enum(CaseMilestoneStatus)).max(10).optional(),
+    })
+    .optional(),
 });
 
 export const MilestoneCreatePayloadSchema = z.object({

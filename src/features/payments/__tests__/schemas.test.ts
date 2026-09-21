@@ -3,10 +3,39 @@ import { describe, expect, it } from "vitest";
 import {
   PaymentCreatePayloadSchema,
   PaymentIdSchema,
+  PaymentListQuerySchema,
   PaymentUpdatePayloadSchema,
 } from "../schemas";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
+
+describe("PaymentListQuerySchema", () => {
+  it("accepts a query without filters", () => {
+    expect(PaymentListQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
+  });
+
+  it("accepts a single status filter", () => {
+    const result = PaymentListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Paid"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple status filters", () => {
+    const result = PaymentListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Paid", "Partial"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status filter", () => {
+    expect(
+      PaymentListQuerySchema.safeParse({ caseId: uuid, filters: { status: ["Invalid"] } }).success,
+    ).toBe(false);
+  });
+});
 
 describe("PaymentIdSchema", () => {
   it("accepts a valid uuid", () => {

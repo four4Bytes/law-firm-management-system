@@ -17,7 +17,7 @@ import {
   type ActionDataResponse,
   type ActionStatusResponse,
 } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
+import { assertRecordPermission, requireAuth } from "@/lib/auth-guards";
 import { ForbiddenError, toActionResponse } from "@/lib/errors";
 import { logError } from "@/lib/logger";
 import { can } from "@/lib/rbac";
@@ -37,12 +37,15 @@ import {
   getTaskById,
   getTaskDetailRowById,
   getTaskReviewers,
+  getTasksPaginated,
   type TaskDetailRow,
+  type TaskRow,
 } from "./queries";
 import {
   TaskAddReviewerSchema,
   TaskCreatePayloadSchema,
   TaskIdSchema,
+  TaskListQuerySchema,
   TaskRemoveReviewerSchema,
   TaskReviewSchema,
   TaskSubmitSchema,
@@ -116,6 +119,25 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
   };
 
   return { row, canUpdate, capabilities, currentUserId: session.id };
+}
+
+export async function getTasksPaginatedAction(
+  params: z.input<typeof TaskListQuerySchema>,
+): Promise<{
+  rows: TaskRow[];
+  nextCursor: string | null;
+}> {
+  const session = await requireAuth();
+
+  const parsed = TaskListQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  const access = await getCaseAccessContext(session.id, parsed.data.caseId);
+  assertRecordPermission(session, "task.read", access);
+
+  return getTasksPaginated(parsed.data);
 }
 
 export async function createTaskAction(

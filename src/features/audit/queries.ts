@@ -81,13 +81,13 @@ async function enrichEntityExistence(rows: AuditLogRow[]): Promise<void> {
   }
 }
 
-export interface AuditLogPageQuery {
+export interface AuditLogListQuery {
   search?: string;
   cursor?: string;
   pageSize?: number;
 }
 
-export interface EntityActivityLogQuery {
+export interface EntityActivityLogListQuery {
   entityType: string;
   entityId: string;
   search?: string;
@@ -96,7 +96,7 @@ export interface EntityActivityLogQuery {
 }
 
 export async function getAuditLogPaginated(
-  params: AuditLogPageQuery,
+  params: AuditLogListQuery,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
   const { search = "", cursor, pageSize = 20 } = params;
 
@@ -109,7 +109,7 @@ export async function getAuditLogPaginated(
 }
 
 export async function getEntityActivityLogPaginated(
-  params: EntityActivityLogQuery,
+  params: EntityActivityLogListQuery,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
   const { entityType, entityId, search = "", cursor, pageSize = 20 } = params;
 

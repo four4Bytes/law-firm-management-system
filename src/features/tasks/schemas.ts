@@ -1,10 +1,20 @@
 import { z } from "zod";
 
-import { ReviewDecision, TaskAssignmentStatus } from "@/generated/prisma/browser";
+import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 import { optionalText, requiredText, uniqueUuidArray } from "@/lib/form-utils";
+import { PageQuerySchema } from "@/lib/schemas";
 
 export const TaskIdSchema = z.object({
   taskId: z.uuid(),
+});
+
+export const TaskListQuerySchema = PageQuerySchema.extend({
+  caseId: z.uuid(),
+  filters: z
+    .object({
+      status: z.array(z.enum(TaskStatus)).max(10).optional(),
+    })
+    .optional(),
 });
 
 export const TaskCreatePayloadSchema = z.object({

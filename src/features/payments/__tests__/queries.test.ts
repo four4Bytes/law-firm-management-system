@@ -191,6 +191,54 @@ describe("getPaymentsPaginated", () => {
     );
   });
 
+  it("filters by a single status", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([mockPayment()] as never[]);
+
+    await getPaymentsPaginated({ caseId: "c1", filters: { status: ["Paid"] } });
+
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "c1", status: { in: ["Paid"] } },
+      }),
+    );
+  });
+
+  it("filters by multiple statuses", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([mockPayment()] as never[]);
+
+    await getPaymentsPaginated({ caseId: "c1", filters: { status: ["Paid", "Partial"] } });
+
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { case_id: "c1", status: { in: ["Paid", "Partial"] } },
+      }),
+    );
+  });
+
+  it("combines status filter with search", async () => {
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([mockPayment()] as never[]);
+
+    await getPaymentsPaginated({
+      caseId: "c1",
+      search: "GCash",
+      filters: { status: ["Paid"] },
+    });
+
+    expect(prisma.payment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          case_id: "c1",
+          OR: [
+            { payment_method: { contains: "GCash", mode: "insensitive" } },
+            { status: { contains: "GCash", mode: "insensitive" } },
+            { receipt_number: { contains: "GCash", mode: "insensitive" } },
+          ],
+          status: { in: ["Paid"] },
+        },
+      }),
+    );
+  });
+
   it("filters by search across multiple fields", async () => {
     vi.mocked(prisma.payment.findMany).mockResolvedValue([mockPayment()] as never[]);
 

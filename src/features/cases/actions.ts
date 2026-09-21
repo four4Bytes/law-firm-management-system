@@ -10,19 +10,15 @@ import {
   getCaseAssigneeIds,
   getCaseBySourceConsultationId,
   getCaseEditData,
-  getCaseMilestonesPaginated,
   getCaseOverviewById,
   getCasesPaginated,
-  getCaseTasksPaginated,
   type CaseEditData,
-  type CaseMilestoneListRow,
   type CaseOverviewData,
   type CaseRow,
 } from "@/features/cases/queries";
 import { getConsultationEditData } from "@/features/consultations/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
-import type { TaskRow } from "@/features/tasks/queries";
 import { CaseStatus, ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
 import {
@@ -41,7 +37,6 @@ import {
 } from "@/lib/auth-guards";
 import { toActionResponse } from "@/lib/errors";
 import { can, type AccessContext, type Permission } from "@/lib/rbac";
-import { PageQuerySchema } from "@/lib/schemas";
 
 import {
   createCase,
@@ -55,8 +50,8 @@ import {
 import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
+  CaseListQuerySchema,
   CaseOverviewIdSchema,
-  CasePageQuerySchema,
   CaseStatusChangePayloadSchema,
   CaseUpdatePayloadSchema,
   CaseWithClientCreatePayloadSchema,
@@ -82,13 +77,15 @@ async function hasCasePermission(
   return can(session.role, permission, access);
 }
 
-export async function getCasesPaginatedAction(params: z.input<typeof PageQuerySchema>): Promise<{
+export async function getCasesPaginatedAction(
+  params: z.input<typeof CaseListQuerySchema>,
+): Promise<{
   cases: CaseRow[];
   nextCursor: string | null;
 }> {
   const session = await requireAuth();
 
-  const parsed = PageQuerySchema.safeParse(params);
+  const parsed = CaseListQuerySchema.safeParse(params);
   if (!parsed.success) {
     throw new Error("Invalid query parameters");
   }
@@ -113,42 +110,6 @@ export async function getCaseOverviewByIdAction(
   const overview = await getCaseOverviewById(caseId);
 
   return { overview, access };
-}
-
-export async function getCaseTasksPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: TaskRow[];
-  nextCursor: string | null;
-}> {
-  const session = await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  await requireCasePermission(session, parsed.data.caseId, "task.read");
-
-  return getCaseTasksPaginated(parsed.data);
-}
-
-export async function getCaseMilestonesPaginatedAction(
-  params: z.input<typeof CasePageQuerySchema>,
-): Promise<{
-  rows: CaseMilestoneListRow[];
-  nextCursor: string | null;
-}> {
-  const session = await requireAuth();
-
-  const parsed = CasePageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  await requireCasePermission(session, parsed.data.caseId, "milestone.read");
-
-  return getCaseMilestonesPaginated(parsed.data);
 }
 
 export async function getCaseForEditAction(id: string): Promise<CaseEditData | null> {

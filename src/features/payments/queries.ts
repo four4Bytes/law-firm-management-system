@@ -18,7 +18,7 @@ export interface PaymentListFilters {
   status?: PaymentStatus[];
 }
 
-export interface PaymentPageQuery extends Omit<PageQuery, "filters"> {
+export interface PaymentListQuery extends Omit<PageQuery, "filters"> {
   caseId?: string;
   consultationId?: string;
   filters?: PaymentListFilters;
@@ -33,7 +33,7 @@ export const getPaymentsPaginated = cache(
     pageSize = 20,
     sort,
     filters,
-  }: PaymentPageQuery): Promise<{
+  }: PaymentListQuery): Promise<{
     rows: PaymentRow[];
     nextCursor: string | null;
   }> => {

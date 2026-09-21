@@ -134,7 +134,7 @@ export interface UserListFilters {
   role?: Role[];
 }
 
-export interface UserPageQuery extends Omit<PageQuery, "filters"> {
+export interface UserListQuery extends Omit<PageQuery, "filters"> {
   includeInactive?: boolean;
   filters?: UserListFilters;
 }
@@ -147,7 +147,7 @@ export const getUsersPaginated = cache(
     includeInactive = false,
     sort,
     filters,
-  }: UserPageQuery): Promise<{
+  }: UserListQuery): Promise<{
     users: UserRow[];
     nextCursor: string | null;
   }> => {

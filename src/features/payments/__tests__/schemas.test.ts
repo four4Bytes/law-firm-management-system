@@ -3,19 +3,19 @@ import { describe, expect, it } from "vitest";
 import {
   PaymentCreatePayloadSchema,
   PaymentIdSchema,
-  PaymentPageQuerySchema,
+  PaymentListQuerySchema,
   PaymentUpdatePayloadSchema,
 } from "../schemas";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
-describe("PaymentPageQuerySchema", () => {
+describe("PaymentListQuerySchema", () => {
   it("accepts a query without filters", () => {
-    expect(PaymentPageQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
+    expect(PaymentListQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
   });
 
   it("accepts a single status filter", () => {
-    const result = PaymentPageQuerySchema.safeParse({
+    const result = PaymentListQuerySchema.safeParse({
       caseId: uuid,
       filters: { status: ["Paid"] },
     });
@@ -23,7 +23,7 @@ describe("PaymentPageQuerySchema", () => {
   });
 
   it("accepts multiple status filters", () => {
-    const result = PaymentPageQuerySchema.safeParse({
+    const result = PaymentListQuerySchema.safeParse({
       caseId: uuid,
       filters: { status: ["Paid", "Partial"] },
     });
@@ -32,7 +32,7 @@ describe("PaymentPageQuerySchema", () => {
 
   it("rejects an invalid status filter", () => {
     expect(
-      PaymentPageQuerySchema.safeParse({ caseId: uuid, filters: { status: ["Invalid"] } }).success,
+      PaymentListQuerySchema.safeParse({ caseId: uuid, filters: { status: ["Invalid"] } }).success,
     ).toBe(false);
   });
 });

@@ -9,7 +9,6 @@ import {
   getConsultationAccessContext,
   getConsultationAssigneeIds,
   getConsultationEditData,
-  getConsultationNotesPaginated,
   getConsultationOverviewById,
   getConsultationsPaginated,
   hasLinkedCase,
@@ -17,7 +16,6 @@ import {
   type ConsultationOverviewData,
   type ConsultationRow,
 } from "@/features/consultations/queries";
-import type { NoteRow } from "@/features/notes/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
@@ -56,7 +54,6 @@ import {
   ConsultationDeletePayloadSchema,
   ConsultationListQuerySchema,
   ConsultationOverviewIdSchema,
-  ConsultationPageQuerySchema,
   ConsultationStatusChangePayloadSchema,
   ConsultationUpdatePayloadSchema,
   ConsultationWithClientCreatePayloadSchema,
@@ -171,24 +168,6 @@ export async function getConsultationOverviewByIdAction(
   const overview = await getConsultationOverviewById(consultationId);
 
   return { overview, access };
-}
-
-export async function getConsultationNotesPaginatedAction(
-  params: z.input<typeof ConsultationPageQuerySchema>,
-): Promise<{
-  rows: NoteRow[];
-  nextCursor: string | null;
-}> {
-  const session = await requireAuth();
-
-  const parsed = ConsultationPageQuerySchema.safeParse(params);
-  if (!parsed.success) {
-    throw new Error("Invalid query parameters");
-  }
-
-  await requireConsultationPermission(session, parsed.data.consultationId, "note.read");
-
-  return getConsultationNotesPaginated(parsed.data);
 }
 
 export async function getConsultationForEditAction(

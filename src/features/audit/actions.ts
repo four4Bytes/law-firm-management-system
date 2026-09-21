@@ -9,25 +9,25 @@ import { ForbiddenError } from "@/lib/errors";
 import { can } from "@/lib/rbac";
 
 import { AuditLogRow, getAuditLogPaginated, getEntityActivityLogPaginated } from "./queries";
-import { AuditLogPageQuerySchema, EntityActivityLogQuerySchema } from "./schemas";
+import { AuditLogListQuerySchema, EntityActivityLogListQuerySchema } from "./schemas";
 
 export async function getAuditLogAction(
-  params: z.input<typeof AuditLogPageQuerySchema>,
+  params: z.input<typeof AuditLogListQuerySchema>,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
   await requirePermission("activity.read");
 
-  const parsed = AuditLogPageQuerySchema.safeParse(params);
+  const parsed = AuditLogListQuerySchema.safeParse(params);
   if (!parsed.success) throw new Error("Invalid query parameters");
 
   return getAuditLogPaginated(parsed.data);
 }
 
 export async function getEntityActivityLogAction(
-  params: z.input<typeof EntityActivityLogQuerySchema>,
+  params: z.input<typeof EntityActivityLogListQuerySchema>,
 ): Promise<{ rows: AuditLogRow[]; nextCursor: string | null }> {
   const session = await requireAuth();
 
-  const parsed = EntityActivityLogQuerySchema.safeParse(params);
+  const parsed = EntityActivityLogListQuerySchema.safeParse(params);
   if (!parsed.success) throw new Error("Invalid query parameters");
 
   const { entityType, entityId } = parsed.data;

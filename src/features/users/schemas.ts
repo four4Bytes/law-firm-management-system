@@ -5,7 +5,7 @@ import { Role } from "@/generated/prisma/browser";
 import { emailText, requiredEnum } from "@/lib/form-utils";
 import { SortQuerySchema } from "@/lib/schemas";
 
-export const UserPageQuerySchema = z.object({
+export const UserListQuerySchema = z.object({
   search: z.string().trim().max(500).optional().default(""),
   cursor: z.uuid().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),

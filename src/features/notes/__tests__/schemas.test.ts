@@ -1,23 +1,45 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CaseNotesListQuerySchema,
+  ConsultationNotesListQuerySchema,
   NoteCreatePayloadSchema,
   NoteIdSchema,
-  NotePageQuerySchema,
   NoteUpdatePayloadSchema,
+  TaskNotesListQuerySchema,
 } from "../schemas";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
-describe("NotePageQuerySchema", () => {
-  it("accepts a valid uuid", () => {
-    const result = NotePageQuerySchema.safeParse({ noteId: uuid });
-    expect(result.success).toBe(true);
+describe("TaskNotesListQuerySchema", () => {
+  it("accepts a valid query", () => {
+    expect(TaskNotesListQuerySchema.safeParse({ taskId: uuid }).success).toBe(true);
   });
 
-  it("rejects a non-uuid string", () => {
-    const result = NotePageQuerySchema.safeParse({ noteId: "abc" });
-    expect(result.success).toBe(false);
+  it("rejects a non-uuid taskId", () => {
+    expect(TaskNotesListQuerySchema.safeParse({ taskId: "abc" }).success).toBe(false);
+  });
+});
+
+describe("CaseNotesListQuerySchema", () => {
+  it("accepts a valid query", () => {
+    expect(CaseNotesListQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
+  });
+
+  it("rejects a non-uuid caseId", () => {
+    expect(CaseNotesListQuerySchema.safeParse({ caseId: "abc" }).success).toBe(false);
+  });
+});
+
+describe("ConsultationNotesListQuerySchema", () => {
+  it("accepts a valid query", () => {
+    expect(ConsultationNotesListQuerySchema.safeParse({ consultationId: uuid }).success).toBe(true);
+  });
+
+  it("rejects a non-uuid consultationId", () => {
+    expect(ConsultationNotesListQuerySchema.safeParse({ consultationId: "abc" }).success).toBe(
+      false,
+    );
   });
 });
 

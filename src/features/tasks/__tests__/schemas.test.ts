@@ -4,6 +4,7 @@ import {
   TaskAddReviewerSchema,
   TaskCreatePayloadSchema,
   TaskIdSchema,
+  TaskListQuerySchema,
   TaskReviewSchema,
   TaskSubmitSchema,
   TaskUpdatePayloadSchema,
@@ -179,5 +180,37 @@ describe("TaskAddReviewerSchema", () => {
   it("rejects an invalid reviewer id", () => {
     const result = TaskAddReviewerSchema.safeParse({ taskId: uuid, reviewerUserId: "abc" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("TaskListQuerySchema", () => {
+  it("accepts a query without filters", () => {
+    expect(TaskListQuerySchema.safeParse({ caseId: uuid }).success).toBe(true);
+  });
+
+  it("accepts a single status filter", () => {
+    const result = TaskListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts multiple status filters", () => {
+    const result = TaskListQuerySchema.safeParse({
+      caseId: uuid,
+      filters: { status: ["Pending", "Done"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid status filter", () => {
+    expect(
+      TaskListQuerySchema.safeParse({ caseId: uuid, filters: { status: ["Invalid"] } }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a missing caseId", () => {
+    expect(TaskListQuerySchema.safeParse({ filters: { status: ["Pending"] } }).success).toBe(false);
   });
 });

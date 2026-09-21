@@ -10,10 +10,10 @@ import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable
 import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
 import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
-import { getCaseTasksPaginatedAction } from "@/features/cases/actions";
 import {
   deleteTaskAction,
   getTaskDetailRowByIdAction,
+  getTasksPaginatedAction,
   type TaskCapabilities,
 } from "@/features/tasks/actions";
 import { AddTaskModal } from "@/features/tasks/components/AddTaskModal/AddTaskModal";
@@ -228,7 +228,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   return (
     <>
       <ServerDataTable
-        fetchAction={(p) => getCaseTasksPaginatedAction({ caseId, ...p })}
+        fetchAction={(p) => getTasksPaginatedAction({ caseId, ...p })}
         columns={[...columns, actionColumn]}
         searchPlaceholder="Search tasks..."
         emptyContent="No tasks yet"

@@ -4,7 +4,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { prisma } from "@/lib/prisma";
 import type { AccessContext } from "@/lib/rbac";
-import type { CasePageQuery, TaskPageQuery } from "@/lib/types";
+import type { PageQuery } from "@/lib/types";
 
 export type NoteRow = {
   id: string;
@@ -12,6 +12,18 @@ export type NoteRow = {
   author: string;
   created_at: Date;
 };
+
+export interface TaskNotesListQuery extends Omit<PageQuery, "filters"> {
+  taskId: string;
+}
+
+export interface CaseNotesListQuery extends Omit<PageQuery, "filters"> {
+  caseId: string;
+}
+
+export interface ConsultationNotesListQuery extends Omit<PageQuery, "filters"> {
+  consultationId: string;
+}
 
 export const getNoteById = cache(async (id: string) => {
   return prisma.note.findUnique({
@@ -91,7 +103,7 @@ export const getTaskNotesPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
-  }: TaskPageQuery): Promise<{
+  }: TaskNotesListQuery): Promise<{
     rows: NoteRow[];
     nextCursor: string | null;
   }> => {
@@ -133,7 +145,7 @@ export const getCaseNotesPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
-  }: CasePageQuery): Promise<{
+  }: CaseNotesListQuery): Promise<{
     rows: NoteRow[];
     nextCursor: string | null;
   }> => {
@@ -175,7 +187,7 @@ export const getCaseNotesWithTaskNotesPaginated = cache(
     search = "",
     cursor,
     pageSize = 20,
-  }: CasePageQuery): Promise<{
+  }: CaseNotesListQuery): Promise<{
     rows: NoteRow[];
     nextCursor: string | null;
   }> => {
@@ -192,6 +204,46 @@ export const getCaseNotesWithTaskNotesPaginated = cache(
       ...(cursor ? { cursor: { id: cursor } } : {}),
       where,
       orderBy,
+      include: {
+        createdBy: { select: { name: true } },
+      },
+    });
+
+    const hasMore = notes.length > pageSize;
+    if (hasMore) notes.pop();
+
+    const rows: NoteRow[] = notes.map((n) => ({
+      id: n.id,
+      content: n.content,
+      author: n.createdBy.name,
+      created_at: n.created_at,
+    }));
+
+    return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
+  },
+);
+
+export const getConsultationNotesPaginated = cache(
+  async ({
+    consultationId,
+    search = "",
+    cursor,
+    pageSize = 20,
+  }: ConsultationNotesListQuery): Promise<{
+    rows: NoteRow[];
+    nextCursor: string | null;
+  }> => {
+    const where = {
+      consultation_id: consultationId,
+      ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
+    };
+
+    const notes = await prisma.note.findMany({
+      take: pageSize + 1,
+      skip: cursor ? 1 : 0,
+      ...(cursor ? { cursor: { id: cursor } } : {}),
+      where,
+      orderBy: { created_at: "desc" },
       include: {
         createdBy: { select: { name: true } },
       },

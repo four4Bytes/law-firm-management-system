@@ -10,12 +10,14 @@ import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
-import { getCaseMilestonesPaginatedAction } from "@/features/cases/actions";
-import type { CaseMilestoneListRow } from "@/features/cases/queries";
-import { deleteMilestoneAction, getMilestoneRowByIdAction } from "@/features/milestones/actions";
+import {
+  deleteMilestoneAction,
+  getMilestoneRowByIdAction,
+  getMilestonesPaginatedAction,
+} from "@/features/milestones/actions";
 import { AddMilestoneModal } from "@/features/milestones/components/AddMilestoneModal/AddMilestoneModal";
 import { EditMilestoneModal } from "@/features/milestones/components/EditMilestoneModal/EditMilestoneModal";
-import type { MilestoneRow } from "@/features/milestones/queries";
+import type { MilestoneListRow, MilestoneRow } from "@/features/milestones/queries";
 import { CaseMilestoneStatus, type Role } from "@/generated/prisma/browser";
 import { formatDateTime, isBeforeToday } from "@/lib/date";
 import { can, type AccessContext } from "@/lib/rbac";
@@ -53,7 +55,7 @@ const milestoneFilters: FilterDefinition[] = [
   },
 ];
 
-const columns: ColumnDef<CaseMilestoneListRow>[] = [
+const columns: ColumnDef<MilestoneListRow>[] = [
   { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
   {
     id: "description",
@@ -90,7 +92,7 @@ const columns: ColumnDef<CaseMilestoneListRow>[] = [
 export function MilestonesTab({ caseId, access, userRole }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editMilestone, setEditMilestone] = useState<MilestoneRow | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<CaseMilestoneListRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MilestoneListRow | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const {
     pendingId: pendingEditId,
@@ -104,7 +106,7 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
     setRefreshTrigger((n) => n + 1);
   }
 
-  async function handleEdit(milestone: CaseMilestoneListRow) {
+  async function handleEdit(milestone: MilestoneListRow) {
     try {
       const data = await runEditFetch(milestone.id, () => getMilestoneRowByIdAction(milestone.id));
       if (!data) return;
@@ -134,11 +136,11 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
     }
   }
 
-  const actionColumn: ColumnDef<CaseMilestoneListRow> = {
+  const actionColumn: ColumnDef<MilestoneListRow> = {
     id: "id" as const,
     name: "Action" as const,
     render: (_value: unknown, row: unknown) => {
-      const milestone = row as CaseMilestoneListRow;
+      const milestone = row as MilestoneListRow;
       return (
         <div className={styles.actions}>
           <TooltipTrigger>
@@ -173,7 +175,7 @@ export function MilestonesTab({ caseId, access, userRole }: Props) {
   return (
     <>
       <ServerDataTable
-        fetchAction={(p) => getCaseMilestonesPaginatedAction({ caseId, ...p })}
+        fetchAction={(p) => getMilestonesPaginatedAction({ caseId, ...p })}
         columns={[...columns, actionColumn]}
         searchPlaceholder="Search milestones..."
         emptyContent="No milestones yet"

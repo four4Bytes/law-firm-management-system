@@ -17,11 +17,3 @@ export interface PageQuery {
   sort?: SortQuery;
   filters?: FilterValues;
 }
-
-export interface TaskPageQuery extends PageQuery {
-  taskId: string;
-}
-
-export interface CasePageQuery extends PageQuery {
-  caseId: string;
-}

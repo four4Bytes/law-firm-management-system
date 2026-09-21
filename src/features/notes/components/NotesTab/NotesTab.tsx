@@ -8,10 +8,10 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
-import { getConsultationNotesPaginatedAction } from "@/features/consultations/actions";
 import {
   deleteNoteAction,
   getCaseNotesWithTaskNotesPaginatedAction,
+  getConsultationNotesPaginatedAction,
   getNoteRowByIdAction,
 } from "@/features/notes/actions";
 import { AddNoteModal } from "@/features/notes/components/AddNoteModal/AddNoteModal";

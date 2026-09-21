@@ -47,6 +47,15 @@ function ToastExample() {
       >
         Show Action Error Toast
       </Button>
+      <Button
+        variant="secondary"
+        onPress={() => {
+          for (let index = 1; index <= 6; index += 1)
+            toastInfo(`Reminder ${index}`, "Only four toasts show at once; the rest queue up.");
+        }}
+      >
+        Show Burst (Stacking Cap)
+      </Button>
       <ToastRegion />
     </div>
   );

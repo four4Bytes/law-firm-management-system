@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { actionDeactivated, actionForbidden, actionRecordLocked } from "@/lib/action-response";
+import {
+  actionDeactivated,
+  actionForbidden,
+  actionRecordLocked,
+} from "@/lib/security/action-response";
 import {
   DeactivatedError,
   ForbiddenError,
@@ -9,7 +13,7 @@ import {
   TaskLockedError,
   toActionResponse,
   UnauthorizedError,
-} from "@/lib/errors";
+} from "@/lib/security/errors";
 
 const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 

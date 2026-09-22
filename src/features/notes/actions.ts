@@ -8,17 +8,17 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
+import { getParentPath } from "@/lib/domain/path";
 import {
   actionForbidden,
   actionInvalid,
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, toActionResponse } from "@/lib/errors";
-import { getParentPath } from "@/lib/path";
-import { can } from "@/lib/rbac";
+} from "@/lib/security/action-response";
+import { requireAuth } from "@/lib/security/auth-guards";
+import { ForbiddenError, toActionResponse } from "@/lib/security/errors";
+import { can } from "@/lib/security/rbac";
 
 import {
   createNote,

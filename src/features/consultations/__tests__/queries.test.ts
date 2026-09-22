@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getEntityActivityLogPaginated } from "@/features/audit/queries";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import {
   mockConsultation as mockBaseConsultation,
   mockAuditLog as mockBaseLog,
@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
   notFound: vi.fn(),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     auditLog: { findMany: vi.fn() },
     consultation: { findMany: vi.fn(), findUnique: vi.fn() },

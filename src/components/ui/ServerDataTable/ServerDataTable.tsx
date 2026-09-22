@@ -9,11 +9,11 @@ import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { SearchField } from "@/components/ui/SearchField/SearchField";
 import { TableFilter, type FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
-import { appendPage } from "@/lib/pagination";
-import { toSortQuery } from "@/lib/sort";
-import { toastError } from "@/lib/toast-utils";
-import type { FilterValues, SortQuery } from "@/lib/types";
-import { useDebounce } from "@/lib/useDebounce";
+import { appendPage } from "@/lib/domain/pagination";
+import { toSortQuery } from "@/lib/domain/sort";
+import { toastError } from "@/lib/hooks/toast-utils";
+import { useDebounce } from "@/lib/hooks/useDebounce";
+import type { FilterValues, SortQuery } from "@/lib/primitives/types";
 
 import styles from "./ServerDataTable.module.css";
 

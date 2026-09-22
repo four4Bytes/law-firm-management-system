@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import { mockAuditLog as mockBaseLog } from "@/test-utils/fixtures";
 
 import { getAuditLogPaginated, getEntityActivityLogPaginated } from "../queries";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     auditLog: { findMany: vi.fn() },
     case: { findMany: vi.fn() },

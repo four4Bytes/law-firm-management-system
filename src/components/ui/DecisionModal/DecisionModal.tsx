@@ -7,8 +7,8 @@ import type { ZodType } from "zod";
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { createFieldValidator, optionalString } from "@/lib/form-utils";
-import { toastError } from "@/lib/toast-utils";
+import { toastError } from "@/lib/hooks/toast-utils";
+import { createFieldValidator, optionalString } from "@/lib/validation/form-utils";
 
 import styles from "./DecisionModal.module.css";
 

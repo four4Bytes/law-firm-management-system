@@ -2,7 +2,7 @@
  * Manually triggers the reminder scheduler outside of cron.
  *
  * All inputs come from env (no CLI args) so it mirrors production:
- * - DATABASE_URL (required) via `src/lib/prisma`
+ * - DATABASE_URL (required) via `src/lib/infra/prisma`
  * - APP_TIMEZONE / NEXT_PUBLIC_APP_TIMEZONE → `getAppTimeZone()` (defaults to Asia/Manila for PH; set to any IANA zone for worldwide)
  * - NOTIFICATION_RETENTION_DAYS → prune cutoff (defaults to 90)
  *
@@ -16,8 +16,8 @@
  */
 import "dotenv/config";
 
-import { getAppTimeZone } from "@/lib/date";
-import { getOptionalInteger } from "@/lib/env";
+import { getOptionalInteger } from "@/lib/infra/env";
+import { getAppTimeZone } from "@/lib/primitives/date";
 
 async function main(): Promise<void> {
   const timeZone = getAppTimeZone();

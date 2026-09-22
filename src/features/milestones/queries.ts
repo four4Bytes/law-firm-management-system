@@ -1,9 +1,9 @@
 import { cache } from "react";
 
 import type { CaseMilestone, CaseMilestoneStatus } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
-import type { AccessContext } from "@/lib/rbac";
-import type { PageQuery } from "@/lib/types";
+import { prisma } from "@/lib/infra/prisma";
+import type { PageQuery } from "@/lib/primitives/types";
+import type { AccessContext } from "@/lib/security/rbac";
 
 export type MilestoneRow = Pick<
   CaseMilestone,

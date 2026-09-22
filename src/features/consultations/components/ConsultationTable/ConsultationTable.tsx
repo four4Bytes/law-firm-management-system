@@ -14,9 +14,9 @@ import type { ConsultationRow } from "@/features/consultations/queries";
 import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
-import { formatDateTime, isBeforeToday } from "@/lib/date";
-import { can } from "@/lib/rbac";
-import { toastError } from "@/lib/toast-utils";
+import { toastError } from "@/lib/hooks/toast-utils";
+import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
+import { can } from "@/lib/security/rbac";
 
 import styles from "./ConsultationTable.module.css";
 

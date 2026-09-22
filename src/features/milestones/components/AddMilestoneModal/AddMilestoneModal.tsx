@@ -13,9 +13,9 @@ import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createMilestoneAction } from "@/features/milestones/actions";
 import { MilestoneCreatePayloadSchema } from "@/features/milestones/schemas";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
-import { combineDateTime, isBeforeToday } from "@/lib/date";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+import { useModalForm } from "@/lib/hooks/useModalForm";
+import { combineDateTime, isBeforeToday } from "@/lib/primitives/date";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./AddMilestoneModal.module.css";
 

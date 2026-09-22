@@ -1,5 +1,5 @@
-import { logError } from "@/lib/logger";
-import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/infra/logger";
+import { prisma } from "@/lib/infra/prisma";
 
 export interface AuditLogPayload {
   actorUserId: string;

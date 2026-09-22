@@ -1,7 +1,7 @@
 import { CalendarDate, Time } from "@internationalized/date";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { combineDateTime, getAppTimeZone, getStartOfDay } from "@/lib/date";
+import { combineDateTime, getAppTimeZone, getStartOfDay } from "@/lib/primitives/date";
 
 const originalAppTimeZone = process.env.APP_TIMEZONE;
 

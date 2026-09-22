@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
-import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
-import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/security/errors";
+import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
@@ -22,7 +22,7 @@ import {
 } from "../mutations";
 import { getDocumentAccessContext, getDocumentById } from "../queries";
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }),
 }));
 
@@ -51,18 +51,18 @@ vi.mock("next/server", () => ({
   after: vi.fn(),
 }));
 
-vi.mock("@/lib/path", () => ({
+vi.mock("@/lib/domain/path", () => ({
   getParentPath: vi.fn(),
 }));
 
-vi.mock("@/lib/s3", () => ({
+vi.mock("@/lib/infra/s3", () => ({
   generateKey: vi.fn(),
   getPresignedDownloadUrl: vi.fn(),
   getPresignedUploadUrl: vi.fn(),
   objectExists: vi.fn(),
 }));
 
-vi.mock("@/lib/storage-cleanup", () => ({
+vi.mock("@/lib/files/storage-cleanup", () => ({
   deleteDocumentFiles: vi.fn(),
 }));
 

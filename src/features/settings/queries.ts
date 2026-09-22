@@ -1,7 +1,7 @@
 import { cache } from "react";
 
 import type { UserSettings } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 export type NotificationPreferences = Pick<
   UserSettings,

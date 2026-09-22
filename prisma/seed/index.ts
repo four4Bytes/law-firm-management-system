@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
-import { deleteFile } from "@/lib/s3";
+import { prisma } from "@/lib/infra/prisma";
+import { deleteFile } from "@/lib/infra/s3";
 
 import { seedAuditLogs } from "./seed-audit-logs";
 import { seedCases } from "./seed-cases";

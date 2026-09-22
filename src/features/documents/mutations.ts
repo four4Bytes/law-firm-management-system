@@ -1,9 +1,9 @@
 import { TaskStatus } from "@/generated/prisma/browser";
-import { RecordLockedError, TaskLockedError } from "@/lib/errors";
-import { isSubdataLocked } from "@/lib/lifecycle";
-import { prisma, type TransactionClient } from "@/lib/prisma";
-import { lockCaseRow, lockConsultationRow, lockTaskRow } from "@/lib/row-locks";
-import { deleteFile, listObjects } from "@/lib/s3";
+import { isSubdataLocked } from "@/lib/domain/lifecycle";
+import { lockCaseRow, lockConsultationRow, lockTaskRow } from "@/lib/domain/row-locks";
+import { prisma, type TransactionClient } from "@/lib/infra/prisma";
+import { deleteFile, listObjects } from "@/lib/infra/s3";
+import { RecordLockedError, TaskLockedError } from "@/lib/security/errors";
 
 export interface DocumentCreatePayload {
   file_name: string;

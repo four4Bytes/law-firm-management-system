@@ -1,4 +1,4 @@
-import { logError } from "@/lib/logger";
+import { logError } from "@/lib/infra/logger";
 
 import { dispatchNotifications } from "./dispatch";
 import type { NotificationDispatchPayload } from "./schemas";

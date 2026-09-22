@@ -8,9 +8,9 @@ import { FileList } from "@/features/documents/components/FileList/FileList";
 import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
 import type { DocumentRow } from "@/features/documents/queries";
 import { useTaskDocuments } from "@/features/tasks/hooks/useTaskDocuments";
-import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
-import { toastActionError, toastSuccess } from "@/lib/toast-utils";
-import { useFileUpload } from "@/lib/useFileUpload";
+import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/files/file-types";
+import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { useFileUpload } from "@/lib/hooks/useFileUpload";
 
 import styles from "./TaskFilesSection.module.css";
 

@@ -1,5 +1,5 @@
 import { Role } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 export interface UserUpdatePayload {
   email?: string;

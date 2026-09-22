@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { FileList } from "@/features/documents/components/FileList/FileList";
-import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/file-types";
-import { toastError, toastSuccess } from "@/lib/toast-utils";
-import { useFileUpload } from "@/lib/useFileUpload";
+import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/files/file-types";
+import { toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { useFileUpload } from "@/lib/hooks/useFileUpload";
 
 import styles from "./UploadDocumentModal.module.css";
 

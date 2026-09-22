@@ -19,7 +19,7 @@ import {
   formatFileSize,
   truncateFilename,
   type FileCategory,
-} from "@/lib/file-format";
+} from "@/lib/files/file-format";
 
 import styles from "./FilePreviewCard.module.css";
 

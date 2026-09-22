@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 
 import { Checkbox } from "@/components/ui/Checkbox/Checkbox";
 import { updateNotificationPreferencesAction } from "@/features/settings/actions";
-import { toastActionError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
 
 import styles from "./NotificationPreferencesForm.module.css";
 

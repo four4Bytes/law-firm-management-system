@@ -41,20 +41,20 @@ The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email a
 
 On startup, `src/instrumentation.ts` reads `DEVELOPER_EMAILS` and creates `Dev`-role users for any emails not yet in the database. This ensures the bootstrap flow works even when the app is deployed fresh.
 
-See `src/lib/developer-emails.ts` and `src/features/users/mutations.ts:upsertDeveloperUser`.
+See `src/lib/messaging/developer-emails.ts` and `src/features/users/mutations.ts:upsertDeveloperUser`.
 
 ## Authorization
 
 ### Guard Functions
 
-Defined in `src/lib/auth-guards.ts`.
+Defined in `src/lib/security/auth-guards.ts`.
 
-| Function                       | Throws           | Description                                                                                                                                               |
-| ------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `requireAuth()`                | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user.                                                 |
-| `requirePermission(...)`       | `"Forbidden"`    | Calls `requireAuth()`, then checks the user holds at least one of the given permissions via the RBAC matrix (`src/lib/rbac.ts`). Context-free cells only. |
-| `requirePermissionOrNull(...)` | `null` on denial | Same as `requirePermission`, but returns `null` instead of throwing. Use in write actions that return `ActionStatusResponse`.                             |
-| `assertRecordPermission(...)`  | `"Forbidden"`    | Evaluates a record-scoped permission against an `AccessContext` and throws `"Forbidden"` when denied. Use after loading the record's access context.      |
+| Function                       | Throws           | Description                                                                                                                                                        |
+| ------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `requireAuth()`                | `"Unauthorized"` | Ensures a valid session with `id`, `email`, `role`, `name`. Used for any action needing the current user.                                                          |
+| `requirePermission(...)`       | `"Forbidden"`    | Calls `requireAuth()`, then checks the user holds at least one of the given permissions via the RBAC matrix (`src/lib/security/rbac.ts`). Context-free cells only. |
+| `requirePermissionOrNull(...)` | `null` on denial | Same as `requirePermission`, but returns `null` instead of throwing. Use in write actions that return `ActionStatusResponse`.                                      |
+| `assertRecordPermission(...)`  | `"Forbidden"`    | Evaluates a record-scoped permission against an `AccessContext` and throws `"Forbidden"` when denied. Use after loading the record's access context.               |
 
 **Usage pattern** — every Server Action calls one of these at the top, then evaluates record-scoped permissions per record via `can(role, permission, accessContext)`:
 
@@ -68,13 +68,13 @@ export async function createCaseAction(payload: CasePayload): Promise<ActionStat
 
 ### Role-Based Access Control (RBAC)
 
-RBAC is enforced from the declarative matrix in `src/lib/rbac.ts`, which mirrors [RBAC.md](./RBAC.md) cell-for-cell. Server Actions guard context-free writes via `requirePermission(...)`, and record-scoped writes and reads via `requireAuth()` + `can(role, permission, access)` after loading the record's access context (`getCaseAccessContext`, `getConsultationAccessContext`, `getTaskAccessContext`, etc.).
+RBAC is enforced from the declarative matrix in `src/lib/security/rbac.ts`, which mirrors [RBAC.md](./RBAC.md) cell-for-cell. Server Actions guard context-free writes via `requirePermission(...)`, and record-scoped writes and reads via `requireAuth()` + `can(role, permission, access)` after loading the record's access context (`getCaseAccessContext`, `getConsultationAccessContext`, `getTaskAccessContext`, etc.).
 
 The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManager`, `Lawyer`, `Paralegal`, `ProcessServer`.
 
 ### Lifecycle Guards (the _when_ axis)
 
-RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules live in `src/lib/lifecycle.ts` (transition tables + `canTransition` / `isTerminalStatus` / `isSubdataLocked`) and are enforced in Server Actions and mutations next to the state machine — never in the RBAC matrix. Terminal records (done tasks, closed consultations/cases) are append-only: notes and files can be added but existing ones refuse update/delete (`RecordLockedError` → `locked` envelope). See [Lifecycle](./lifecycle.md).
+RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules live in `src/lib/domain/lifecycle.ts` (transition tables + `canTransition` / `isTerminalStatus` / `isSubdataLocked`) and are enforced in Server Actions and mutations next to the state machine — never in the RBAC matrix. Terminal records (done tasks, closed consultations/cases) are append-only: notes and files can be added but existing ones refuse update/delete (`RecordLockedError` → `locked` envelope). See [Lifecycle](./lifecycle.md).
 
 ## Input Validation
 
@@ -82,7 +82,7 @@ RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules
 
 Every Server Action validates its input via `z.safeParse()` before executing any business logic. Schemas are declared in feature `schemas.ts` files and imported by actions and client forms.
 
-Key validation conventions (see `src/lib/form-utils.ts`):
+Key validation conventions (see `src/lib/validation/form-utils.ts`):
 
 | Builder                        | Purpose                                                                      |
 | ------------------------------ | ---------------------------------------------------------------------------- |
@@ -110,7 +110,7 @@ Client components pass typed objects to actions, not raw `FormData`. Any form-to
 | Read (queries, paginated fetches) | Data directly (e.g. `Promise<{ rows: T[]; nextCursor: string }>`) | Throw for unrecoverable errors — framework error boundary handles display.                              |
 | Write (create, update, delete)    | `ActionStatusResponse` or `ActionDataResponse<T>`                 | Wrapped in `try/catch`. On failure: `{ success: false, error: "message" }`. Never leaks raw exceptions. |
 
-Defined in `src/lib/action-response.ts`:
+Defined in `src/lib/security/action-response.ts`:
 
 ```ts
 interface ActionStatusResponse {
@@ -156,7 +156,7 @@ MinIO SSE-S3 encrypts every object on write. The application never sets encrypti
 
 ## Environment Variable Safety
 
-All `process.env` reads go through typed accessors in `src/lib/env.ts`:
+All `process.env` reads go through typed accessors in `src/lib/infra/env.ts`:
 
 | Accessor                             | Behavior                                   |
 | ------------------------------------ | ------------------------------------------ |

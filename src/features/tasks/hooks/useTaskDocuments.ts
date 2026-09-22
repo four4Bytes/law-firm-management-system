@@ -5,8 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getDocumentsPaginatedAction } from "@/features/documents/actions";
 import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
-import { appendPage } from "@/lib/pagination";
-import { toastError } from "@/lib/toast-utils";
+import { appendPage } from "@/lib/domain/pagination";
+import { toastError } from "@/lib/hooks/toast-utils";
 
 interface UseTaskDocumentsReturn {
   documents: DocumentRow[];

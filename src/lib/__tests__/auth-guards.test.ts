@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Role } from "@/generated/prisma/browser";
-import { requirePermission } from "@/lib/auth-guards";
-import { DeactivatedError, ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import { requirePermission } from "@/lib/security/auth-guards";
+import { DeactivatedError, ForbiddenError, UnauthorizedError } from "@/lib/security/errors";
 
 const { auth: authMock } = vi.hoisted(() => ({ auth: vi.fn() }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/lib/infra/auth", () => ({
   auth: authMock,
 }));
 

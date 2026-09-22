@@ -10,7 +10,7 @@ import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNot
 import { NoteList } from "@/features/notes/components/NoteList/NoteList";
 import type { NoteRow } from "@/features/notes/queries";
 import { useTaskNotes } from "@/features/tasks/hooks/useTaskNotes";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
 
 import styles from "./TaskNotesSection.module.css";
 

@@ -19,7 +19,8 @@
 import "dotenv/config";
 
 import { NotificationType } from "@/generated/prisma/browser";
-import { sendEmail, verifyEmailConnection } from "@/lib/email";
+import { getRequiredEnvVar } from "@/lib/infra/env";
+import { sendEmail, verifyEmailConnection } from "@/lib/messaging/email";
 import {
   caseAssignedTemplate,
   consultationAssignedTemplate,
@@ -29,8 +30,7 @@ import {
   statusChangeTemplate,
   taskAssignedTemplate,
   type TemplateContext,
-} from "@/lib/email-templates";
-import { getRequiredEnvVar } from "@/lib/env";
+} from "@/lib/messaging/email-templates";
 
 const DEBUG_EMAIL_ENV = "DEBUG_EMAIL";
 

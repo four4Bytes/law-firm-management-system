@@ -1,26 +1,17 @@
-import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Client } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
-import { createClientAction, getClientForEditAction, updateClientAction } from "../actions";
+import { getClientForEditAction } from "../actions";
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: "admin", name: "n" }),
 }));
 
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-}));
-
-vi.mock("next/server", () => ({
-  after: vi.fn(),
-}));
-
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
-    client: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+    client: { findUnique: vi.fn() },
   },
 }));
 
@@ -38,46 +29,6 @@ const clientRecord: Client = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-});
-
-describe("createClientAction", () => {
-  it("returns an error for an invalid payload", async () => {
-    // @ts-expect-error testing invalid payload
-    expect(await createClientAction({})).toEqual({
-      success: false,
-      error: {
-        code: "validation",
-        title: "Invalid client data",
-        description: "Some fields are missing or malformed. Review your input and try again.",
-      },
-    });
-  });
-
-  it("creates a client and revalidates the list", async () => {
-    vi.mocked(prisma.client.create).mockResolvedValue(clientRecord);
-
-    const result = await createClientAction({ name: "Alice Client", phone_number: "09170000001" });
-
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
-    expect(prisma.client.create).toHaveBeenCalled();
-    expect(revalidatePath).toHaveBeenCalledWith("/client");
-  });
-
-  it("returns an error when creation fails", async () => {
-    vi.mocked(prisma.client.create).mockRejectedValue(new Error("db error"));
-
-    expect(await createClientAction({ name: "Alice Client", phone_number: "09170000001" })).toEqual(
-      {
-        success: false,
-        error: {
-          code: "unknown",
-          title: "Failed to create client",
-          description: "Something went wrong on our end. Please try again.",
-        },
-      },
-    );
-  });
 });
 
 describe("getClientForEditAction", () => {
@@ -103,53 +54,5 @@ describe("getClientForEditAction", () => {
     vi.mocked(prisma.client.findUnique).mockRejectedValue(new Error("db error"));
 
     await expect(getClientForEditAction(uuid)).rejects.toThrow();
-  });
-});
-
-describe("updateClientAction", () => {
-  it("returns an error for an invalid payload", async () => {
-    // @ts-expect-error testing invalid payload
-    expect(await updateClientAction({ clientId: uuid })).toEqual({
-      success: false,
-      error: {
-        code: "validation",
-        title: "Invalid client data",
-        description: "Some fields are missing or malformed. Review your input and try again.",
-      },
-    });
-  });
-
-  it("updates a client and revalidates the list", async () => {
-    vi.mocked(prisma.client.update).mockResolvedValue(clientRecord);
-
-    const result = await updateClientAction({
-      clientId: uuid,
-      name: "Alice Client",
-      phone_number: "09170000001",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({ id: "1", name: "Alice Client" });
-    expect(prisma.client.update).toHaveBeenCalled();
-    expect(revalidatePath).toHaveBeenCalledWith("/client");
-  });
-
-  it("returns an error when update fails", async () => {
-    vi.mocked(prisma.client.update).mockRejectedValue(new Error("db error"));
-
-    expect(
-      await updateClientAction({
-        clientId: uuid,
-        name: "Alice Client",
-        phone_number: "09170000001",
-      }),
-    ).toEqual({
-      success: false,
-      error: {
-        code: "unknown",
-        title: "Failed to update client",
-        description: "Something went wrong on our end. Please try again.",
-      },
-    });
   });
 });

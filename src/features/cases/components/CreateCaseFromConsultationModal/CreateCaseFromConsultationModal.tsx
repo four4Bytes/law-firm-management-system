@@ -12,8 +12,8 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./CreateCaseFromConsultationModal.module.css";
 

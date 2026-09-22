@@ -6,9 +6,9 @@ import type {
   TaskAssignmentStatus,
   TaskStatus,
 } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
-import type { AccessContext } from "@/lib/rbac";
-import type { PageQuery } from "@/lib/types";
+import { prisma } from "@/lib/infra/prisma";
+import type { PageQuery } from "@/lib/primitives/types";
+import type { AccessContext } from "@/lib/security/rbac";
 
 export type TaskRow = Pick<Task, "id" | "title" | "status" | "updated_at"> & {
   assignTo: string;

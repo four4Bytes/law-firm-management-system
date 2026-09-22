@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
-import { optionalText, requiredText, uniqueUuidArray } from "@/lib/form-utils";
-import { PageQuerySchema } from "@/lib/schemas";
+import { optionalText, requiredText, uniqueUuidArray } from "@/lib/validation/form-utils";
+import { PageQuerySchema } from "@/lib/validation/schemas";
 
 export const TaskIdSchema = z.object({
   taskId: z.uuid(),

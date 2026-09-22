@@ -17,13 +17,13 @@ import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
 import {
   createFieldValidator,
   firstIssueMessage,
   optionalString,
   requiredString,
-} from "@/lib/form-utils";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
+} from "@/lib/validation/form-utils";
 
 import { TaskMetadataFields } from "./components/TaskMetadataFields/TaskMetadataFields";
 import { TaskWorkflowSection } from "./components/TaskWorkflowSection/TaskWorkflowSection";

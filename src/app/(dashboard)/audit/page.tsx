@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AuditTable } from "@/features/audit/components/AuditTable/AuditTable";
-import { requirePermission } from "@/lib/auth-guards";
+import { requirePermission } from "@/lib/security/auth-guards";
 
 import styles from "./page.module.css";
 

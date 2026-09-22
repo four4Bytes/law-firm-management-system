@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import { isAcceptedFileExtension } from "@/lib/file-types";
-import { requiredText } from "@/lib/form-utils";
-import { exactlyOneOf, SortQuerySchema } from "@/lib/schemas";
+import { isAcceptedFileExtension } from "@/lib/files/file-types";
+import { requiredText } from "@/lib/validation/form-utils";
+import { exactlyOneOf, SortQuerySchema } from "@/lib/validation/schemas";
 
 export const DocumentListQuerySchema = z
   .object({

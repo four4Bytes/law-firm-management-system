@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queue } from "@/components/ui/Toast/Toast";
-import { actionForbidden } from "@/lib/action-response";
-import { RBAC_DOCS_URL } from "@/lib/rbac";
 import {
   toastActionError,
   toastDenied,
@@ -10,7 +8,9 @@ import {
   toastInfo,
   toastNotFound,
   toastSuccess,
-} from "@/lib/toast-utils";
+} from "@/lib/hooks/toast-utils";
+import { actionForbidden } from "@/lib/security/action-response";
+import { RBAC_DOCS_URL } from "@/lib/security/rbac";
 
 const addSpy = vi.spyOn(queue, "add").mockImplementation(() => "toast-key");
 

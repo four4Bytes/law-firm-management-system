@@ -17,8 +17,8 @@ import { UserFormModal } from "@/features/users/components/UserFormModal/UserFor
 import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
-import { can } from "@/lib/rbac";
-import { toastActionError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { can } from "@/lib/security/rbac";
 
 import styles from "./UserTable.module.css";
 

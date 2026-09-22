@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Client } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 import { getClientForEditAction } from "../actions";
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: "admin", name: "n" }),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     client: { findUnique: vi.fn() },
   },

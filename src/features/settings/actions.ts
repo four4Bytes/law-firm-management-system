@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { actionInvalid, type ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
-import { toActionResponse } from "@/lib/errors";
+import { actionInvalid, type ActionStatusResponse } from "@/lib/security/action-response";
+import { requireAuth } from "@/lib/security/auth-guards";
+import { toActionResponse } from "@/lib/security/errors";
 
 import { upsertDeadlineReminderPreferences, upsertNotificationPreferences } from "./mutations";
 import { getDeadlineReminderPreferences, getNotificationPreferences } from "./queries";

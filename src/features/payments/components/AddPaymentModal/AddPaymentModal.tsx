@@ -13,13 +13,13 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { createPaymentAction } from "@/features/payments/actions";
 import { PaymentCreatePayloadSchema } from "@/features/payments/schemas";
 import { PaymentStatus } from "@/generated/prisma/browser";
+import { useModalForm } from "@/lib/hooks/useModalForm";
 import {
   createFieldValidator,
   optionalString,
   selectEnumHandler,
   toDateValue,
-} from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+} from "@/lib/validation/form-utils";
 
 import styles from "./AddPaymentModal.module.css";
 

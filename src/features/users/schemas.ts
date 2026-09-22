@@ -2,8 +2,8 @@ import { z } from "zod";
 
 import { CREATABLE_ROLES } from "@/features/users/constants";
 import { Role } from "@/generated/prisma/browser";
-import { emailText, requiredEnum } from "@/lib/form-utils";
-import { SortQuerySchema } from "@/lib/schemas";
+import { emailText, requiredEnum } from "@/lib/validation/form-utils";
+import { SortQuerySchema } from "@/lib/validation/schemas";
 
 export const UserListQuerySchema = z.object({
   search: z.string().trim().max(500).optional().default(""),

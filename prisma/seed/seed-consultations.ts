@@ -1,5 +1,5 @@
 import { ConsultationStatus } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 interface ConsultationData {
   clientEmail: string;

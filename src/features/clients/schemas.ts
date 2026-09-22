@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { emailText, optionalText, phoneNumberText, requiredText } from "@/lib/form-utils";
+import {
+  emailText,
+  optionalText,
+  phoneNumberText,
+  requiredText,
+} from "@/lib/validation/form-utils";
 
 export const ClientDataSchema = z.object({
   name: requiredText(255, "Client name"),

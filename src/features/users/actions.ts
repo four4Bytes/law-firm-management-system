@@ -21,16 +21,16 @@ import {
   type UserRow,
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
+import { isDeveloperEmail } from "@/lib/messaging/developer-emails";
 import {
   actionConflict,
   actionInvalid,
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { requireAuth, requirePermission } from "@/lib/auth-guards";
-import { isDeveloperEmail } from "@/lib/developer-emails";
-import { toActionResponse } from "@/lib/errors";
+} from "@/lib/security/action-response";
+import { requireAuth, requirePermission } from "@/lib/security/auth-guards";
+import { toActionResponse } from "@/lib/security/errors";
 
 import {
   CreateUserSchema,

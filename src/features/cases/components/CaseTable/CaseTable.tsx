@@ -14,8 +14,8 @@ import type { CaseRow } from "@/features/cases/queries";
 import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus, type Role } from "@/generated/prisma/browser";
-import { can } from "@/lib/rbac";
-import { toastError } from "@/lib/toast-utils";
+import { toastError } from "@/lib/hooks/toast-utils";
+import { can } from "@/lib/security/rbac";
 
 const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
   Open: "info",

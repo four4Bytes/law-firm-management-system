@@ -1,4 +1,4 @@
-import { prisma, type TransactionClient } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/infra/prisma";
 
 import type { NotificationDispatchPayload } from "./schemas";
 

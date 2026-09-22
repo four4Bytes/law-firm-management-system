@@ -10,9 +10,9 @@ import {
   type UpcomingConsultationRow,
   type UpcomingMilestoneRow,
 } from "@/features/dashboard/queries";
-import { requireAuth } from "@/lib/auth-guards";
-import { can } from "@/lib/rbac";
-import { LimitSchema } from "@/lib/schemas";
+import { requireAuth } from "@/lib/security/auth-guards";
+import { can } from "@/lib/security/rbac";
+import { LimitSchema } from "@/lib/validation/schemas";
 
 export async function getDashboardStatsAction(): Promise<DashboardStats> {
   const session = await requireAuth();

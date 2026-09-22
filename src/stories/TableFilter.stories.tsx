@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
 import { TableFilter, type FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
-import type { FilterValues } from "@/lib/types";
+import type { FilterValues } from "@/lib/primitives/types";
 
 const statusFilters: FilterDefinition[] = [
   {

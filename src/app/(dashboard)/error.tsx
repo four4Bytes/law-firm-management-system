@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { Link } from "@/components/ui/Link/Link";
-import { RBAC_DOCS_URL } from "@/lib/rbac";
+import { RBAC_DOCS_URL } from "@/lib/security/rbac";
 
 import styles from "./error.module.css";
 

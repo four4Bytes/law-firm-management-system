@@ -28,15 +28,15 @@ import {
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
+} from "@/lib/security/action-response";
 import {
   assertRecordPermission,
   requireAuth,
   requirePermission,
   type AuthenticatedUser,
-} from "@/lib/auth-guards";
-import { toActionResponse } from "@/lib/errors";
-import { can, type AccessContext, type Permission } from "@/lib/rbac";
+} from "@/lib/security/auth-guards";
+import { toActionResponse } from "@/lib/security/errors";
+import { can, type AccessContext, type Permission } from "@/lib/security/rbac";
 
 import {
   createCase,

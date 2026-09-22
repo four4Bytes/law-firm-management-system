@@ -1,5 +1,5 @@
-import { logError } from "@/lib/logger";
-import { deleteFile } from "@/lib/s3";
+import { logError } from "@/lib/infra/logger";
+import { deleteFile } from "@/lib/infra/s3";
 
 /**
  * Best-effort deletion of the S3 objects backing a set of document files.

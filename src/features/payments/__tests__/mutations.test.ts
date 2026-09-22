@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 import { createPayment, deletePayment, updatePayment } from "../mutations";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: { payment: { create: vi.fn(), update: vi.fn(), delete: vi.fn() } },
 }));
 

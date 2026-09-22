@@ -7,7 +7,7 @@
  * email clients.
  */
 
-import { getRequiredEnvVar } from "@/lib/env";
+import { getRequiredEnvVar } from "@/lib/infra/env";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

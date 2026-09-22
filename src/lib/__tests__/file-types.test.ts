@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ACCEPTED_FILE_EXTENSIONS, isAcceptedFileExtension } from "../file-types";
+import { ACCEPTED_FILE_EXTENSIONS, isAcceptedFileExtension } from "@/lib/files/file-types";
 
 describe("isAcceptedFileExtension", () => {
   it("accepts every extension in the shared allowlist (case-insensitive)", () => {

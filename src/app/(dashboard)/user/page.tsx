@@ -1,6 +1,6 @@
 import { getUsersPaginatedAction } from "@/features/users/actions";
 import { UserTable } from "@/features/users/components/UserTable/UserTable";
-import { requirePermission } from "@/lib/auth-guards";
+import { requirePermission } from "@/lib/security/auth-guards";
 
 import styles from "./page.module.css";
 

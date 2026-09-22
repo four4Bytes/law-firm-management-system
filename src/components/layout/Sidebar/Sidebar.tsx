@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
 import { roleLabels } from "@/features/users/constants";
 import { Role } from "@/generated/prisma/browser";
-import { can, type Permission } from "@/lib/rbac";
+import { can, type Permission } from "@/lib/security/rbac";
 
 import { toggleSidebarAction } from "./actions";
 import { useSidebar } from "./sidebar-context";

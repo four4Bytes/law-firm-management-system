@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, ReviewDecision, Role } from "@/generated/prisma/browser";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth } from "@/lib/security/auth-guards";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
@@ -39,7 +39,7 @@ afterEach(async () => {
   await flushAfterCallbacks();
 });
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }),
 }));
 

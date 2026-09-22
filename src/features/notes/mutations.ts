@@ -1,8 +1,8 @@
 import { TaskStatus } from "@/generated/prisma/browser";
-import { RecordLockedError, TaskLockedError } from "@/lib/errors";
-import { isSubdataLocked } from "@/lib/lifecycle";
-import { prisma, type TransactionClient } from "@/lib/prisma";
-import { lockCaseRow, lockConsultationRow, lockTaskRow } from "@/lib/row-locks";
+import { isSubdataLocked } from "@/lib/domain/lifecycle";
+import { lockCaseRow, lockConsultationRow, lockTaskRow } from "@/lib/domain/row-locks";
+import { prisma, type TransactionClient } from "@/lib/infra/prisma";
+import { RecordLockedError, TaskLockedError } from "@/lib/security/errors";
 
 export interface NoteCreateData {
   content: string;

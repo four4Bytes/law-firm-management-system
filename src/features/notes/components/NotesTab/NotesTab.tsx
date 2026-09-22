@@ -19,16 +19,16 @@ import { EditNoteModal } from "@/features/notes/components/EditNoteModal/EditNot
 import { ViewNoteModal } from "@/features/notes/components/ViewNoteModal/ViewNoteModal";
 import type { NoteRow } from "@/features/notes/queries";
 import type { Role } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
-import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
   toastDenied,
   toastError,
   toastNotFound,
   toastSuccess,
-} from "@/lib/toast-utils";
-import { usePendingFetch } from "@/lib/usePendingFetch";
+} from "@/lib/hooks/toast-utils";
+import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
+import { formatDateTime } from "@/lib/primitives/date";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 import styles from "./NotesTab.module.css";
 

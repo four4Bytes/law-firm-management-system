@@ -7,7 +7,7 @@ import {
   CONSULTATION_TRANSITIONS,
   isSubdataLocked,
   isTerminalStatus,
-} from "@/lib/lifecycle";
+} from "@/lib/domain/lifecycle";
 
 describe("canTransition", () => {
   it("allows consultation edges", () => {

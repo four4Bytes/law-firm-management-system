@@ -2,9 +2,9 @@ import { createCase } from "@/features/cases/mutations";
 import { createEmbeddedClient, updateEmbeddedClient } from "@/features/clients/mutations";
 import { getDocumentFilePathsByConsultationId } from "@/features/documents/queries";
 import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
-import { StatusConflictError } from "@/lib/errors";
-import { prisma, type TransactionClient } from "@/lib/prisma";
-import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import { prisma, type TransactionClient } from "@/lib/infra/prisma";
+import { StatusConflictError } from "@/lib/security/errors";
 
 import type {
   ConsultationCreatePayload,

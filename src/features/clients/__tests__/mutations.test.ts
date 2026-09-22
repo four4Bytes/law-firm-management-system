@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { TransactionClient } from "@/lib/prisma";
+import type { TransactionClient } from "@/lib/infra/prisma";
 
 import { createEmbeddedClient, updateEmbeddedClient } from "../mutations";
 import type { EmbeddedClientData } from "../schemas";

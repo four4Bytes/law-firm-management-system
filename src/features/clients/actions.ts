@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth } from "@/lib/security/auth-guards";
 
 import { getClientForEdit, type ClientEditData } from "./queries";
 import { ClientIdSchema } from "./schemas";

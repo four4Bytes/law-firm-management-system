@@ -68,7 +68,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - Auth: NextAuth v5 beta (`next-auth@5.0.0-beta.32`) with Google OAuth, JWT sessions, PrismaAdapter.
 - Data: Prisma 7 + PostgreSQL via `@prisma/adapter-pg`. Adapter pattern:
   `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`. Generated client at
-  `src/generated/prisma/`. Singleton at `src/lib/prisma.ts`. Prisma config at `prisma.config.ts`.
+  `src/generated/prisma/`. Singleton at `src/lib/infra/prisma.ts`. Prisma config at `prisma.config.ts`.
 - Storage: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` for managing document storage
   attachments via secure, server-generated presigned URLs.
 - Package Manager: pnpm (pinned `pnpm@11.10.0`), Node `>=22.0.0`.
@@ -94,8 +94,11 @@ Conventions for AI coding agents working in this repo. Read this file before wri
   - Feature-specific components live in `src/features/{domain}/components/`.
 - `src/components/{ui,layout}/` — shared primitives (ui) and app chrome (layout). Domain-agnostic;
   reusable across features.
-- `src/lib/` — shared utilities: `prisma.ts` (singleton), `auth.ts` (NextAuth config), `s3.ts` (S3
-  client instance initialization), etc.
+- `src/lib/` — shared code grouped by role (`infra/`, `security/`, `validation/`, `domain/`,
+  `primitives/`, `files/`, `messaging/`, `hooks/`): e.g. `infra/prisma.ts` (singleton), `infra/auth.ts`
+  (NextAuth config), `infra/s3.ts` (S3 client instance initialization). New shared modules go in
+  the matching group — no new root-level files. `src/lib/` must not import from `src/features/`
+  (ESLint-enforced) except `infra/auth.ts` and `hooks/useFileUpload.ts`.
 - `src/test-utils/` — test-only shared code (fixtures, auth setup). Never imported by production code.
 - `src/styles/` — design tokens (`variables.css`: primitives → semantic tokens).
 - `src/stories/` — Storybook stories for UI components, imported via `@/` aliases.
@@ -174,7 +177,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - Cascade document cleanup: Deleting a Case, Consultation, or Task must also purge its attached S3
   document blobs, not just the cascaded `Document` rows. The database is the source of truth, so
   each delete mutation deletes the `Document` rows (via `onDelete: Cascade`) **before** calling
-  `deleteDocumentFiles` (in `src/lib/storage-cleanup.ts`). `deleteDocumentFiles` is best-effort and
+  `deleteDocumentFiles` (in `src/lib/files/storage-cleanup.ts`). `deleteDocumentFiles` is best-effort and
   idempotent: it deletes each S3 object and logs but does not propagate individual failures, because
   the records are already gone. This guarantees no dangling `Document` rows pointing at missing
   files. Any S3 objects left behind by a cleanup failure are harmless orphans reclaimed by the
@@ -196,7 +199,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
   cells) or `requireAuth()` + `can(...)` (record-scoped cells).
 - RBAC actions: Do **not** hide per-record action buttons (Edit, Delete, View, etc.) with
   client-side RBAC checks. Always render the action and let the Server Action return an
-  `ActionStatusResponse`; surface the result via the shared helpers in `src/lib/toast-utils.ts`
+  `ActionStatusResponse`; surface the result via the shared helpers in `src/lib/hooks/toast-utils.ts`
   (e.g. `toastActionError`). The server owns access-context decisions, and users should see why an
   action failed rather than having buttons silently disappear. Reserve client-side `can()` gating for
   coarse, context-free UI (e.g. tabs or Add buttons), not row actions. If hiding an action is clearly
@@ -209,7 +212,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 ### 7.6 Lifecycle (the second axis)
 
 - RBAC answers _who may act_; record state answers _when_. Transition tables live in
-  `src/lib/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`);
+  `src/lib/domain/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`);
   feature `status.ts` modules re-export them plus entity copy (`isValid*Transition`,
   `describe*NextSteps`). Never add status conditions to the RBAC matrix. Enforce legality server-side
   via the transition evaluators (`canTransition`, `isTerminalStatus`), and sub-data locks via
@@ -262,7 +265,7 @@ permission, accessContext)` (throws `"Forbidden"`) or `can(role, permission, acc
 - Typed payloads over raw FormData: client components must pass clean, typed objects to actions
   instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client
   side before triggering the transition boundary. Shared normalization/validation helpers live in
-  `src/lib/form-utils.ts` (`optionalString`, `requiredString`, `toDateValue`, `selectEnumHandler`,
+  `src/lib/validation/form-utils.ts` (`optionalString`, `requiredString`, `toDateValue`, `selectEnumHandler`,
   `keysToSet`, `createFieldValidator`) and the `useModalForm` hook — reuse these instead of ad-hoc
   trimming or `as` casts.
 - Modal form validation: use React Aria's default `validationBehavior="native"`. Wrap a modal's
@@ -282,11 +285,11 @@ permission, accessContext)` (throws `"Forbidden"`) or `can(role, permission, acc
 ### 9.1 Structured envelopes
 
 - Write actions never return raw string errors. Failures use `ActionStatusResponse.error = { code,
-title, description }` from `src/lib/action-response.ts`. `description` is mandatory — every
+title, description }` from `src/lib/security/action-response.ts`. `description` is mandatory — every
   user-facing failure explains what happened and what to do next.
 - Factory presets only: build failures with `actionForbidden()`, `actionNotFound(entity)`,
   `actionInvalid(entity)`, `actionConflict(title, description)`, `actionLocked()`,
-  `actionUnauthorized()` from `src/lib/action-response.ts`. Hand-rolled `{ success: false, error: ...
+  `actionUnauthorized()` from `src/lib/security/action-response.ts`. Hand-rolled `{ success: false, error: ...
 }` literals in actions are banned.
 - Reads remain throwing: read actions throw (`ForbiddenError` digests drive the access-denied
   boundary); only write actions return envelopes.
@@ -294,8 +297,8 @@ title, description }` from `src/lib/action-response.ts`. `description` is mandat
 ### 9.2 Catch path and logging
 
 - Single catch path: route caught exceptions through `toActionResponse(error, operation, conflict?)`
-  from `src/lib/errors.ts`. It classifies known errors (`ForbiddenError`, `UnauthorizedError`,
-  `TaskLockedError`, Prisma `P2002`) into presets, logs unclassified causes via `src/lib/logger.ts`
+  from `src/lib/security/errors.ts`. It classifies known errors (`ForbiddenError`, `UnauthorizedError`,
+  `TaskLockedError`, Prisma `P2002`) into presets, logs unclassified causes via `src/lib/infra/logger.ts`
   (`logError(context, error)`), and returns a sanitized unknown envelope. Bare `catch {}` that
   discards the error is banned.
 - Log/client split: full error details stay in server logs; the client only ever receives the
@@ -303,7 +306,7 @@ title, description }` from `src/lib/action-response.ts`. `description` is mandat
 
 ### 9.3 Toasts and copy style
 
-- Toast helpers: client components enqueue toasts exclusively via `src/lib/toast-utils.ts`
+- Toast helpers: client components enqueue toasts exclusively via `src/lib/hooks/toast-utils.ts`
   (`toastSuccess`, `toastInfo`, `toastError`, `toastActionError(response, operation)`, `toastDenied`,
   `toastNotFound`). Ad-hoc `queue.add(...)` calls in feature code are banned. Every toast carries both
   a title and a description; timeouts are standardized by the helpers.
@@ -317,7 +320,7 @@ title, description }` from `src/lib/action-response.ts`. `description` is mandat
   `.then()/.catch()` only when it is the idiomatic, clearer, or required approach for the specific
   code pattern.
 - Never let a promise rejection go unhandled. In client components, surface failures through the
-  shared toast helpers in `src/lib/toast-utils.ts` (`toastError`, `toastActionError`, etc.) or
+  shared toast helpers in `src/lib/hooks/toast-utils.ts` (`toastError`, `toastActionError`, etc.) or
   appropriate error UI. In Server Actions, follow the Action Response Convention (§8.2) — catch and
   return a structured `ActionStatusResponse`.
 - Inside `useEffect`, wrap async work in a locally-scoped `async function` and invoke it (use `void`
@@ -441,7 +444,7 @@ validate && pnpm test`.
 ## 14. Documentation (TSDoc)
 
 - TSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`,
-  plus a module-level doc on the infra/config files (`auth.ts`, `prisma.ts`, `s3.ts`).
+  plus a module-level doc on the infra/config files (`infra/auth.ts`, `infra/prisma.ts`, `infra/s3.ts`).
 - Use `@param`, `@returns`, and `@typeParam` where applicable; keep descriptions terse and within the
   100-char print width (Prettier reformats).
 - This convention is **scoped to `src/lib/` only**. Do not add TSDoc to feature or component code —

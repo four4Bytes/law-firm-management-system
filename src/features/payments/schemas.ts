@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import { PaymentStatus } from "@/generated/prisma/browser";
-import { optionalText, positiveNumber, requiredEnum } from "@/lib/form-utils";
-import { exactlyOneOf, SortQuerySchema } from "@/lib/schemas";
+import { optionalText, positiveNumber, requiredEnum } from "@/lib/validation/form-utils";
+import { exactlyOneOf, SortQuerySchema } from "@/lib/validation/schemas";
 
 export const PaymentListQuerySchema = z.object({
   caseId: z.uuid().optional(),

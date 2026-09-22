@@ -29,15 +29,15 @@ import { TasksTab } from "@/features/tasks/components/TasksTab/TasksTab";
 import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus, type Role } from "@/generated/prisma/browser";
-import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
   toastDenied,
   toastError,
   toastNotFound,
   toastSuccess,
-} from "@/lib/toast-utils";
-import { useStatusWorkflow } from "@/lib/useStatusWorkflow";
+} from "@/lib/hooks/toast-utils";
+import { useStatusWorkflow } from "@/lib/hooks/useStatusWorkflow";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 import { CaseOverview } from "../CaseOverview/CaseOverview";
 import styles from "./CaseDetail.module.css";

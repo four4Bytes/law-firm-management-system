@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import { mockNote as mockBaseNote } from "@/test-utils/fixtures";
 
 import {
@@ -13,7 +13,7 @@ import {
   type NoteRow,
 } from "../queries";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: { note: { findUnique: vi.fn(), findMany: vi.fn() } },
 }));
 

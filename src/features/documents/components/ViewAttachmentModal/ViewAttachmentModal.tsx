@@ -3,7 +3,7 @@
 import { FilePreviewCard } from "@/components/ui/FilePreviewCard/FilePreviewCard";
 import { Modal } from "@/components/ui/Modal/Modal";
 import type { DocumentRow } from "@/features/documents/queries";
-import { truncateFilename } from "@/lib/file-format";
+import { truncateFilename } from "@/lib/files/file-format";
 
 import styles from "./ViewAttachmentModal.module.css";
 

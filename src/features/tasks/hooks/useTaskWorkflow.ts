@@ -6,7 +6,7 @@ import { reviewTaskAction, submitTaskAction } from "@/features/tasks/actions";
 import { getTaskStatusHint } from "@/features/tasks/display";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
 
 export interface TaskWorkflowInput {
   task: TaskDetailRow;

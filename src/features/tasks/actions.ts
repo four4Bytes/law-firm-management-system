@@ -9,6 +9,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType, TaskStatus } from "@/generated/prisma/browser";
+import { logError } from "@/lib/infra/logger";
 import {
   actionConflict,
   actionForbidden,
@@ -16,11 +17,10 @@ import {
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { assertRecordPermission, requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, toActionResponse } from "@/lib/errors";
-import { logError } from "@/lib/logger";
-import { can } from "@/lib/rbac";
+} from "@/lib/security/action-response";
+import { assertRecordPermission, requireAuth } from "@/lib/security/auth-guards";
+import { ForbiddenError, toActionResponse } from "@/lib/security/errors";
+import { can } from "@/lib/security/rbac";
 
 import { getTaskStatusLabel } from "./display";
 import {

@@ -1,6 +1,6 @@
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { CaseTable } from "@/features/cases/components/CaseTable/CaseTable";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/infra/auth";
 
 import styles from "./page.module.css";
 

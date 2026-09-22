@@ -1,6 +1,6 @@
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { ConsultationTable } from "@/features/consultations/components/ConsultationTable/ConsultationTable";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/infra/auth";
 
 import styles from "./page.module.css";
 

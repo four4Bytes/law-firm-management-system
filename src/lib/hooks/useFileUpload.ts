@@ -6,7 +6,7 @@ import {
   confirmDocumentUploadAction,
   getDocumentUploadUrlAction,
 } from "@/features/documents/actions";
-import { toastError } from "@/lib/toast-utils";
+import { toastError } from "@/lib/hooks/toast-utils";
 
 /** A single file in the client upload queue. */
 export interface FileEntry {

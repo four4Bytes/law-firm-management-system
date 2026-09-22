@@ -65,29 +65,46 @@ src/
 │   ├── audit/                           # Audit log queries
 │   └── settings/                        # Per-user settings (UserSettings + notification email toggles at /settings)
 ├── generated/prisma/                    # Generated Prisma client (gitignored)
-├── lib/                                 # Shared utilities
-│   ├── prisma.ts                        # Prisma singleton
-│   ├── auth.ts                          # NextAuth config
-│   ├── auth-guards.ts                   # requireAuth(), requirePermission()
-│   ├── rbac.ts                          # Permission matrix (RBAC)
-│   ├── s3.ts                            # S3 presigned URL helpers
-│   ├── email.ts                         # Transactional email sender
-│   ├── email-templates.ts               # HTML email templates
-│   ├── form-utils.ts                    # Form validation helpers
-│   ├── schemas.ts                       # Shared Zod schemas
-│   ├── action-response.ts               # ActionStatusResponse types + error factories
-│   ├── errors.ts                        # Custom error classes + toActionResponse catch-mapper
-│   ├── logger.ts                        # Server-side structured logging (logError/logWarn)
-│   ├── env.ts                           # Environment variable accessors
-│   ├── date.ts                          # Date formatting helpers
-│   ├── file-format.ts                   # File size/type formatting
-│   ├── path.ts                          # Navigation path helpers
-│   ├── sort.ts                          # Sort descriptor conversion
-│   ├── toast-utils.ts                   # Shared toast helpers (title + description always)
-│   ├── types.ts                         # Shared type definitions
-│   ├── useDebounce.ts                   # Debounce hook
-│   ├── useModalForm.ts                  # Modal form lifecycle hook
-│   └── developer-emails.ts              # Dev account allowlist
+├── lib/                                 # Shared utilities (grouped; no new root-level files)
+│   ├── infra/                           # Singletons, config, cross-cutting services
+│   │   ├── prisma.ts                    # Prisma singleton
+│   │   ├── auth.ts                      # NextAuth config
+│   │   ├── s3.ts                        # S3 presigned URL helpers
+│   │   ├── env.ts                       # Environment variable accessors
+│   │   └── logger.ts                    # Server-side structured logging
+│   ├── security/                        # Enforcement + error envelopes
+│   │   ├── auth-guards.ts               # requireAuth(), requirePermission()
+│   │   ├── rbac.ts                      # Permission matrix (RBAC)
+│   │   ├── errors.ts                    # Custom error classes + toActionResponse catch-mapper
+│   │   └── action-response.ts           # ActionStatusResponse types + error factories
+│   ├── validation/                      # Zod builders + shared schemas
+│   │   ├── form-utils.ts                # Form validation helpers
+│   │   └── schemas.ts                   # Shared Zod schemas
+│   ├── domain/                          # DB/business-adjacent shared logic
+│   │   ├── lifecycle.ts                 # Status transition tables
+│   │   ├── row-locks.ts                 # Advisory row locks
+│   │   ├── pagination.ts                # Pagination helpers
+│   │   ├── path.ts                      # Entity navigation path helpers
+│   │   └── sort.ts                      # Sort descriptor conversion
+│   ├── primitives/                      # Dependency-free primitives
+│   │   ├── date.ts                      # Date formatting helpers
+│   │   └── types.ts                     # Shared type definitions
+│   ├── files/                           # File/storage helpers
+│   │   ├── file-types.ts                # Accepted extensions + MIME checks
+│   │   ├── file-format.ts               # File size/type formatting
+│   │   └── storage-cleanup.ts           # Best-effort S3 orphan purge
+│   ├── messaging/                       # Outbound comms
+│   │   ├── email.ts                     # Transactional email sender
+│   │   ├── email-templates.ts           # HTML email templates
+│   │   └── developer-emails.ts          # Dev account allowlist
+│   ├── hooks/                           # Client-only UI helpers
+│   │   ├── useDebounce.ts               # Debounce hook
+│   │   ├── useFileUpload.ts             # File picker + presigned-upload hook
+│   │   ├── useModalForm.ts              # Modal form lifecycle hook
+│   │   ├── usePendingFetch.ts           # Pending-fetch tracking hook
+│   │   ├── useStatusWorkflow.ts         # Status workflow hook
+│   │   └── toast-utils.ts               # Shared toast helpers (title + description always)
+│   └── __tests__/                       # Unit tests (flat; import paths only)
 ├── test-utils/                          # Test-only shared code (fixtures, auth setup)
 ├── styles/
 │   └── variables.css                    # Design tokens (primitives → semantic)
@@ -98,15 +115,22 @@ src/
 
 ### Shared library groups
 
-`src/lib/` stays flat by convention. The files fall into four groups:
+`src/lib/` is grouped by role (no barrels — import the deep path, e.g.
+`@/lib/security/rbac`). New shared modules go in the matching group; no new root-level
+files (only `__tests__/`, which stays flat):
 
-- **Infra** — `prisma.ts`, `auth.ts`, `s3.ts`, `email.ts`, `storage-cleanup.ts`, `row-locks.ts`
-- **Domain rules** — `rbac.ts`, `lifecycle.ts`, `auth-guards.ts`, `errors.ts`, `action-response.ts`,
-  `schemas.ts`, `developer-emails.ts`
-- **Pure utils** — `date.ts`, `sort.ts`, `path.ts`, `file-format.ts`, `file-types.ts`, `env.ts`,
-  `logger.ts`, `form-utils.ts`, `toast-utils.ts`, `email-templates.ts`, `types.ts`
-- **Hooks** (`use*`) — `useDebounce.ts`, `useFileUpload.ts`, `useModalForm.ts`, `usePendingFetch.ts`,
-  `useStatusWorkflow.ts`
+- **infra/** — singletons, config, cross-cutting services (`prisma`, `auth`, `s3`, `env`, `logger`)
+- **security/** — enforcement + error envelopes (`auth-guards`, `rbac`, `errors`, `action-response`)
+- **validation/** — Zod builders + shared schemas (`form-utils`, `schemas`)
+- **domain/** — DB/business-adjacent logic (`lifecycle`, `row-locks`, `pagination`, `path`, `sort`)
+- **primitives/** — dependency-free primitives (`date`, `types`)
+- **files/** — file/storage helpers (`file-types`, `file-format`, `storage-cleanup`)
+- **messaging/** — outbound comms (`email`, `email-templates`, `developer-emails`)
+- **hooks/** — client-only UI helpers (`use*` hooks, `toast-utils`)
+
+Layering: `lib/` must not import from `features/` — enforced by ESLint
+(`no-restricted-imports`). The only exceptions are `infra/auth.ts` (NextAuth needs user
+lookup) and `hooks/useFileUpload.ts` (upload hook shared by documents + tasks).
 
 ## Data Flow
 
@@ -144,16 +168,16 @@ File uploads never stream through the Next.js runtime:
 
 ## Security Boundaries
 
-| Concern              | Mechanism                                                                                                                                                                                                                                                                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth**             | `requireAuth()` — centralized, returns verified session                                                                                                                                                                                                                                      |
-| **Role enforcement** | `requirePermission(...)` for context-free cells; `requireAuth()` + `can(role, permission, accessContext)` per record — matrix in `src/lib/rbac.ts` (mirrors RBAC.md)                                                                                                                         |
-| **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                                                                                                                                                                          |
-| **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                                                                                                                                                                           |
-| **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                                                                                                                                                                                    |
-| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                                                                                                                                                                                   |
-| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` with a structured `{ code, title, description }` error built via `src/lib/action-response.ts` factories and the `toActionResponse` catch-mapper (unknown causes logged server-side, never leaked) |
-| **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                                                                                                                                                                                        |
+| Concern              | Mechanism                                                                                                                                                                                                                                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth**             | `requireAuth()` — centralized, returns verified session                                                                                                                                                                                                                                               |
+| **Role enforcement** | `requirePermission(...)` for context-free cells; `requireAuth()` + `can(role, permission, accessContext)` per record — matrix in `src/lib/security/rbac.ts` (mirrors RBAC.md)                                                                                                                         |
+| **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                                                                                                                                                                                   |
+| **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                                                                                                                                                                                    |
+| **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                                                                                                                                                                                             |
+| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                                                                                                                                                                                            |
+| **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` with a structured `{ code, title, description }` error built via `src/lib/security/action-response.ts` factories and the `toActionResponse` catch-mapper (unknown causes logged server-side, never leaked) |
+| **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                                                                                                                                                                                                 |
 
 ## Conventions
 

@@ -1,5 +1,5 @@
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { canTransition, CONSULTATION_TRANSITIONS, isTerminalStatus } from "@/lib/lifecycle";
+import { canTransition, CONSULTATION_TRANSITIONS, isTerminalStatus } from "@/lib/domain/lifecycle";
 
 /** Allowed transitions for each consultation status. */
 export const CONSULTATION_STATUS_TRANSITIONS = CONSULTATION_TRANSITIONS;

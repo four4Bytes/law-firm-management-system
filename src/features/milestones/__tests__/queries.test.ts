@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import { mockMilestone as mockBaseMilestone } from "@/test-utils/fixtures";
 
 import {
@@ -10,7 +10,7 @@ import {
   type MilestoneRow,
 } from "../queries";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: { caseMilestone: { findUnique: vi.fn(), findMany: vi.fn() } },
 }));
 

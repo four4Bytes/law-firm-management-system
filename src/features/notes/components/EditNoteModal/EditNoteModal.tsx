@@ -9,8 +9,8 @@ import { TextField } from "@/components/ui/TextField/TextField";
 import { updateNoteAction } from "@/features/notes/actions";
 import type { NoteRow } from "@/features/notes/queries";
 import { NoteUpdatePayloadSchema } from "@/features/notes/schemas";
-import { createFieldValidator, requiredString } from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+import { useModalForm } from "@/lib/hooks/useModalForm";
+import { createFieldValidator, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./EditNoteModal.module.css";
 

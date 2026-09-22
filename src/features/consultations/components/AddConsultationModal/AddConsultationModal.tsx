@@ -18,14 +18,14 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { combineDateTime, isAfterToday, isBeforeToday } from "@/lib/date";
+import { useModalForm } from "@/lib/hooks/useModalForm";
+import { combineDateTime, isAfterToday, isBeforeToday } from "@/lib/primitives/date";
 import {
   createFieldValidator,
   optionalString,
   requiredString,
   selectEnumHandler,
-} from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+} from "@/lib/validation/form-utils";
 
 import styles from "./AddConsultationModal.module.css";
 

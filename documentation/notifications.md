@@ -163,7 +163,7 @@ At the start of each `runReminderCheck()`, `pruneNotifications(retentionDays)` d
 
 ## 7. Email Templates
 
-All templates live in `src/lib/email-templates.ts`. Every dispatched type maps to one:
+All templates live in `src/lib/messaging/email-templates.ts`. Every dispatched type maps to one:
 
 | Notification type           | Template                     | Email subject (heading)        |
 | --------------------------- | ---------------------------- | ------------------------------ |

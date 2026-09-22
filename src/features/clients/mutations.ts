@@ -1,4 +1,4 @@
-import type { TransactionClient } from "@/lib/prisma";
+import type { TransactionClient } from "@/lib/infra/prisma";
 
 import type { EmbeddedClientData, EmbeddedClientUpdatePayload } from "./schemas";
 

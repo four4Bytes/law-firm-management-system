@@ -1,4 +1,5 @@
 import { createCase } from "@/features/cases/mutations";
+import { createEmbeddedClient, updateEmbeddedClient } from "@/features/clients/mutations";
 import { getDocumentFilePathsByConsultationId } from "@/features/documents/queries";
 import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
 import { StatusConflictError } from "@/lib/errors";
@@ -214,14 +215,7 @@ export async function createConsultationWithClient(
   data: ConsultationWithClientCreatePayload & { created_by_user_id: string },
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    const newClient = await tx.client.create({
-      data: {
-        name: data.client.name,
-        email: data.client.email || undefined,
-        phone_number: data.client.phone_number,
-        address: data.client.address || undefined,
-      },
-    });
+    const newClient = await createEmbeddedClient(tx, data.client);
 
     return createConsultation(
       {
@@ -255,15 +249,7 @@ export async function updateConsultationWithClient(
       throw new Error("Consultation not found or does not belong to the specified client");
     }
 
-    await tx.client.update({
-      where: { id: data.client_id },
-      data: {
-        name: data.client.name,
-        email: data.client.email || undefined,
-        phone_number: data.client.phone_number,
-        address: data.client.address || undefined,
-      },
-    });
+    await updateEmbeddedClient(tx, { clientId: data.client_id, client: data.client });
 
     return updateConsultation(
       {

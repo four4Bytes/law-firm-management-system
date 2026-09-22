@@ -1,3 +1,4 @@
+import { createEmbeddedClient, updateEmbeddedClient } from "@/features/clients/mutations";
 import { getDocumentFilePathsForCaseDeletion } from "@/features/documents/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { StatusConflictError } from "@/lib/errors";
@@ -141,14 +142,7 @@ export async function createCaseWithClient(
   data: CaseWithClientCreatePayload & { created_by_user_id: string },
 ): Promise<{ id: string }> {
   return prisma.$transaction(async (tx) => {
-    const newClient = await tx.client.create({
-      data: {
-        name: data.client.name,
-        email: data.client.email || undefined,
-        phone_number: data.client.phone_number,
-        address: data.client.address || undefined,
-      },
-    });
+    const newClient = await createEmbeddedClient(tx, data.client);
 
     return createCase(
       {
@@ -178,15 +172,7 @@ export async function updateCaseWithClient(
       throw new Error("Case not found or does not belong to the specified client");
     }
 
-    await tx.client.update({
-      where: { id: data.client_id },
-      data: {
-        name: data.client.name,
-        email: data.client.email ?? null,
-        phone_number: data.client.phone_number,
-        address: data.client.address ?? null,
-      },
-    });
+    await updateEmbeddedClient(tx, { clientId: data.client_id, client: data.client });
 
     return updateCase(
       {

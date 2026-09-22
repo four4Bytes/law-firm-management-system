@@ -19,42 +19,14 @@ export const PageQuerySchema = z.object({
 /** Optional integer limit (1–100) used by bounded list queries. */
 export const LimitSchema = z.coerce.number().int().min(1).max(100).optional();
 
-/** Payload that must reference exactly one parent resource (snake_case). */
-interface ParentRefinementPayload {
-  case_id?: string | null;
-  consultation_id?: string | null;
-  task_id?: string | null;
-}
-
 /**
- * Zod refinement asserting that exactly one parent (`case_id`,
- * `consultation_id`, or `task_id`) is present.
+ * Asserts that exactly one of the given keys holds a set value.
  *
- * @param payload - The parent identifiers; must include exactly one of `case_id`, `consultation_id`, or `task_id`.
- * @returns True when exactly one parent is provided, false when more than one or none are set.
+ * @typeParam T - The parsed payload object type.
+ * @param payload - The parsed payload to inspect.
+ * @param keys - The mutually exclusive keys; exactly one must be truthy.
+ * @returns True when exactly one listed key is set, false otherwise.
  */
-export function exactlyOneParentRefinement(payload: ParentRefinementPayload): boolean {
-  const count =
-    Number(!!payload.case_id) + Number(!!payload.consultation_id) + Number(!!payload.task_id);
-  return count === 1;
-}
-
-/** Payload that must reference exactly one parent resource (camelCase). */
-interface ParentRefinementPayloadCamel {
-  caseId?: string | null;
-  consultationId?: string | null;
-  taskId?: string | null;
-}
-
-/**
- * Zod refinement asserting that exactly one parent (`caseId`,
- * `consultationId`, or `taskId`) is present.
- *
- * @param payload - The parent identifiers; must include exactly one of `caseId`, `consultationId`, or `taskId`.
- * @returns True when exactly one parent is provided, false when more than one or none are set.
- */
-export function exactlyOneParentRefinementCamel(payload: ParentRefinementPayloadCamel): boolean {
-  const count =
-    Number(!!payload.caseId) + Number(!!payload.consultationId) + Number(!!payload.taskId);
-  return count === 1;
+export function exactlyOneOf<T extends object>(payload: T, keys: readonly (keyof T)[]): boolean {
+  return keys.filter((key) => !!payload[key]).length === 1;
 }

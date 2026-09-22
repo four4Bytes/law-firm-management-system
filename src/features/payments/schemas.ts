@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { PaymentStatus } from "@/generated/prisma/browser";
 import { optionalText, positiveNumber, requiredEnum } from "@/lib/form-utils";
-import { exactlyOneParentRefinement, SortQuerySchema } from "@/lib/schemas";
+import { exactlyOneOf, SortQuerySchema } from "@/lib/schemas";
 
 export const PaymentListQuerySchema = z.object({
   caseId: z.uuid().optional(),
@@ -32,7 +32,7 @@ export const PaymentCreatePayloadSchema = z
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
   })
-  .refine(exactlyOneParentRefinement, {
+  .refine((data) => exactlyOneOf(data, ["case_id", "consultation_id"]), {
     message: "Provide exactly one of case_id or consultation_id",
   });
 

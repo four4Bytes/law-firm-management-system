@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 
-import type { ActionStatusResponse } from "@/lib/action-response";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import type { ActionStatusResponse } from "@/lib/security/action-response";
 
 /** Options for {@link useStatusWorkflow}. */
 interface UseStatusWorkflowOptions {

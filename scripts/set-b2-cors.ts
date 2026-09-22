@@ -11,7 +11,7 @@ import "dotenv/config";
 
 import { PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
 
-import { getRequiredEnvVar } from "../src/lib/env";
+import { getRequiredEnvVar } from "../src/lib/infra/env";
 
 const S3_SECRET_KEY = getRequiredEnvVar("S3_SECRET_KEY");
 const S3_ACCESS_KEY_ID = getRequiredEnvVar("S3_ACCESS_KEY_ID");

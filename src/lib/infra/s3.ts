@@ -9,7 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { getEnvBoolean, getRequiredEnvVar } from "@/lib/env";
+import { getEnvBoolean, getRequiredEnvVar } from "@/lib/infra/env";
 
 /**
  * S3-compatible object storage client.

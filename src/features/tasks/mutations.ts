@@ -1,9 +1,9 @@
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { TaskAssignmentStatus, TaskStatus, type ReviewDecision } from "@/generated/prisma/browser";
-import { TaskLockedError, TaskValidationError } from "@/lib/errors";
-import { prisma, type TransactionClient } from "@/lib/prisma";
-import { lockTaskRow } from "@/lib/row-locks";
-import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { lockTaskRow } from "@/lib/domain/row-locks";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import { prisma, type TransactionClient } from "@/lib/infra/prisma";
+import { TaskLockedError, TaskValidationError } from "@/lib/security/errors";
 
 import { hasAssigneeReviewerOverlap, wouldLeaveNoReviewer } from "./validation";
 

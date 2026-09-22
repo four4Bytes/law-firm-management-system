@@ -42,7 +42,7 @@ storage as a best-effort cleanup.
 
 **Cascade delete flow** (case, consultation, or task): the database is the source of truth.
 The parent delete mutation cascades the `Document` rows first, then invokes
-`deleteDocumentFiles` (in `src/lib/storage-cleanup.ts`) to reclaim the S3 blobs. This cleanup
+`deleteDocumentFiles` (in `src/lib/files/storage-cleanup.ts`) to reclaim the S3 blobs. This cleanup
 is best-effort and idempotent — failures are logged but never abort the delete. Any orphaned
 S3 objects left behind are harmless and reclaimed by the storage GC sweep
 (`src/app/api/cron/storage-gc/route.ts`).
@@ -55,7 +55,7 @@ genuine database error (record not found, constraint violation, etc.).
 Allowed upload types are **centralized** so the client and server enforce the same constraint
 from a single source of truth:
 
-- **Source of truth**: `ACCEPTED_FILE_EXTENSIONS` in `src/lib/file-types.ts`. This list feeds
+- **Source of truth**: `ACCEPTED_FILE_EXTENSIONS` in `src/lib/files/file-types.ts`. This list feeds
   the `acceptedFileTypes` prop on the `DropZone` / `FileTrigger` UI (browser file-picker filter)
   and is imported by the document schemas.
 - **Server enforcement**: `DocumentUploadPayloadSchema` and `DocumentConfirmPayloadSchema`

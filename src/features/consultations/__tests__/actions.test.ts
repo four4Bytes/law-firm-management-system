@@ -9,12 +9,12 @@ import {
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Consultation } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
-import { requireAuth, requirePermission } from "@/lib/auth-guards";
-import { getStartOfDay } from "@/lib/date";
-import { ForbiddenError } from "@/lib/errors";
-import { prisma } from "@/lib/prisma";
-import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
-import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import { prisma } from "@/lib/infra/prisma";
+import { getStartOfDay } from "@/lib/primitives/date";
+import { requireAuth, requirePermission } from "@/lib/security/auth-guards";
+import { ForbiddenError } from "@/lib/security/errors";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
@@ -43,7 +43,7 @@ afterEach(async () => {
   await flushAfterCallbacks();
 });
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
   requirePermission: vi
     .fn()
@@ -77,7 +77,7 @@ vi.mock("@/features/documents/queries", () => ({
   getDocumentFilePathsByConsultationId: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("@/lib/storage-cleanup", () => ({
+vi.mock("@/lib/files/storage-cleanup", () => ({
   deleteDocumentFiles: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -107,7 +107,7 @@ interface MockConsultationActionPrisma {
   $transaction: ReturnType<typeof vi.fn>;
 }
 
-vi.mock("@/lib/prisma", () => {
+vi.mock("@/lib/infra/prisma", () => {
   const consultation = {
     create: vi.fn(),
     update: vi.fn(),

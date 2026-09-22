@@ -9,7 +9,7 @@ import { ToastRegion } from "@/components/ui/Toast/Toast";
 import { NavigationProvider } from "@/components/ui/TopProgressBar/navigation-context";
 import { TopProgressBar } from "@/components/ui/TopProgressBar/TopProgressBar";
 import { getUnreadNotificationCount } from "@/features/notifications/queries";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/infra/auth";
 
 import styles from "./layout.module.css";
 

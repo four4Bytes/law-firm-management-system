@@ -1,17 +1,17 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
-import { deleteFile, listObjects } from "@/lib/s3";
+import { prisma } from "@/lib/infra/prisma";
+import { deleteFile, listObjects } from "@/lib/infra/s3";
 
 import { createDocument, deleteDocument, runStorageGc } from "../mutations";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     document: { create: vi.fn(), delete: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
   },
 }));
 
-vi.mock("@/lib/s3", () => ({
+vi.mock("@/lib/infra/s3", () => ({
   deleteFile: vi.fn(),
   listObjects: vi.fn(),
 }));

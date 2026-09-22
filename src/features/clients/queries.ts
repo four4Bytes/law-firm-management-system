@@ -1,7 +1,7 @@
 import { cache } from "react";
 
 import type { Client } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 export type ClientEditData = Pick<Client, "id" | "name" | "email" | "phone_number" | "address">;
 

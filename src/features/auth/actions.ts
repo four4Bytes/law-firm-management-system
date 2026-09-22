@@ -1,6 +1,6 @@
 "use server";
 
-import { auth, signIn, signOut } from "@/lib/auth";
+import { auth, signIn, signOut } from "@/lib/infra/auth";
 
 export async function loginWithGoogle(): Promise<void> {
   await signIn("google", { redirectTo: "/dashboard" });

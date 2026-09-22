@@ -2,8 +2,8 @@ import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Role } from "@/generated/prisma/browser";
-import { requireAuth } from "@/lib/auth-guards";
-import { UnauthorizedError } from "@/lib/errors";
+import { requireAuth } from "@/lib/security/auth-guards";
+import { UnauthorizedError } from "@/lib/security/errors";
 
 import {
   getDeadlineReminderPreferencesAction,
@@ -16,7 +16,7 @@ import { getDeadlineReminderPreferences, getNotificationPreferences } from "../q
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn(),
 }));
 

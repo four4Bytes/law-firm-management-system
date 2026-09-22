@@ -30,6 +30,28 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-deprecated": "warn",
     },
   },
+  // Layering: src/lib must not depend on src/features (except documented cases).
+  {
+    files: ["src/lib/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/features/*"],
+              message:
+                "src/lib must not import from src/features (layering). Exceptions: infra/auth.ts (NextAuth user lookup) and hooks/useFileUpload.ts (shared upload hook).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/lib/infra/auth.ts", "src/lib/hooks/useFileUpload.ts"],
+    rules: { "no-restricted-imports": "off" },
+  },
 ]);
 
 export default eslintConfig;

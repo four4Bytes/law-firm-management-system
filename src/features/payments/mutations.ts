@@ -1,5 +1,5 @@
 import { type PaymentStatus } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 export interface PaymentCreateData {
   amount: number;

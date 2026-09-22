@@ -1,5 +1,5 @@
-import { getStartOfDay } from "@/lib/date";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
+import { getStartOfDay } from "@/lib/primitives/date";
 
 // Far-future sentinel persisted to `last_reminded_at` to retire an overdue reminder.
 export const REMINDER_SUPPRESSED_AT = new Date("9999-12-31T23:59:59.000Z");

@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
-import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/errors";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/security/errors";
+import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
@@ -24,7 +24,7 @@ import {
 } from "../mutations";
 import { getNoteAccessContext, getNoteById, getNoteRowById } from "../queries";
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }),
 }));
 
@@ -53,7 +53,7 @@ vi.mock("next/server", () => ({
   after: vi.fn(),
 }));
 
-vi.mock("@/lib/path", () => ({
+vi.mock("@/lib/domain/path", () => ({
   getParentPath: vi.fn(),
 }));
 

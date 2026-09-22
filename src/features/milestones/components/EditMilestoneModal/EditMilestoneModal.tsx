@@ -16,20 +16,20 @@ import type { MilestoneRow } from "@/features/milestones/queries";
 import { MilestoneUpdatePayloadSchema } from "@/features/milestones/schemas";
 import { milestoneStatusOptions } from "@/features/milestones/status";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
+import { useModalForm } from "@/lib/hooks/useModalForm";
 import {
   combineDateTime,
   isAfterToday,
   isBeforeToday,
   toCalendarDate,
   toTimeValue,
-} from "@/lib/date";
+} from "@/lib/primitives/date";
 import {
   createFieldValidator,
   optionalString,
   requiredString,
   selectEnumHandler,
-} from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+} from "@/lib/validation/form-utils";
 
 import styles from "./EditMilestoneModal.module.css";
 

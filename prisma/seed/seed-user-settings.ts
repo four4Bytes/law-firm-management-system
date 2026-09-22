@@ -1,5 +1,5 @@
 import { ReminderFrequency, type UserSettings } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 type SettingsOverride = Partial<
   Pick<

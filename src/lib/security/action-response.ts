@@ -9,8 +9,8 @@
  * @module lib/action-response
  */
 
-import { TASK_LOCKED_MESSAGE } from "@/lib/errors";
-import { FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { TASK_LOCKED_MESSAGE } from "@/lib/security/errors";
+import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 
 /** Machine-readable failure category carried by every {@link ActionError}. */
 export type ActionErrorCode =

@@ -25,7 +25,7 @@ import {
   type TaskReviewer,
   type User,
 } from "@/generated/prisma/browser";
-import type { AuthenticatedUser } from "@/lib/auth-guards";
+import type { AuthenticatedUser } from "@/lib/security/auth-guards";
 
 export function mockUser(overrides: Partial<User> = {}): User {
   return {

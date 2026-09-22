@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { requiredText } from "@/lib/form-utils";
-import { exactlyOneParentRefinement } from "@/lib/schemas";
+import { requiredText } from "@/lib/validation/form-utils";
+import { exactlyOneOf } from "@/lib/validation/schemas";
 
 export const NoteCreatePayloadSchema = z
   .object({
@@ -10,7 +10,7 @@ export const NoteCreatePayloadSchema = z
     consultation_id: z.uuid().nullable().optional(),
     task_id: z.uuid().nullable().optional(),
   })
-  .refine(exactlyOneParentRefinement, {
+  .refine((data) => exactlyOneOf(data, ["case_id", "consultation_id", "task_id"]), {
     message: "Provide exactly one of case_id, consultation_id, or task_id",
   });
 

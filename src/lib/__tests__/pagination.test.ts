@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { appendPage } from "@/lib/pagination";
+import { appendPage } from "@/lib/domain/pagination";
 
 describe("appendPage", () => {
   it("appends fresh rows preserving order", () => {

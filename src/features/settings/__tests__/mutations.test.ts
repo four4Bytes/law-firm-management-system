@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 import { upsertDeadlineReminderPreferences, upsertNotificationPreferences } from "../mutations";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: { userSettings: { upsert: vi.fn() } },
 }));
 

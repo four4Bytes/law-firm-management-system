@@ -1,5 +1,5 @@
-import { getStartOfDay } from "@/lib/date";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
+import { getStartOfDay } from "@/lib/primitives/date";
 
 export interface MilestoneReminderCandidate {
   id: string;

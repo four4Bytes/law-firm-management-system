@@ -4,16 +4,16 @@
 
 Authorization has two independent axes, enforced in different layers:
 
-| Axis | Question                                 | Source of truth        | Mirror doc        |
-| ---- | ---------------------------------------- | ---------------------- | ----------------- |
-| Who  | May this user act?                       | `src/lib/rbac.ts`      | [RBAC](./RBAC.md) |
-| When | Is the record in a legal state for this? | `src/lib/lifecycle.ts` | This file         |
+| Axis | Question                                 | Source of truth               | Mirror doc        |
+| ---- | ---------------------------------------- | ----------------------------- | ----------------- |
+| Who  | May this user act?                       | `src/lib/security/rbac.ts`    | [RBAC](./RBAC.md) |
+| When | Is the record in a legal state for this? | `src/lib/domain/lifecycle.ts` | This file         |
 
 Never add status conditions to the RBAC matrix — it would multiply every cell and split lifecycle truth. Lifecycle predicates live next to the state machines they guard.
 
 ## 2. Transition tables
 
-Single source of truth in `src/lib/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`); feature `status.ts` modules re-export them plus entity copy. Tasks have no transition table — status is derived (`deriveTaskStatus`), never set.
+Single source of truth in `src/lib/domain/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`); feature `status.ts` modules re-export them plus entity copy. Tasks have no transition table — status is derived (`deriveTaskStatus`), never set.
 
 | Entity       | Table                                                                                       | Terminal meaning                                                                                                                                                           |
 | ------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

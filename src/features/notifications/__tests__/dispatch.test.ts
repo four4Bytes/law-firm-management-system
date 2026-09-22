@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getNotificationPreferencesByUserIds } from "@/features/settings/queries";
 import { getActiveUserIds, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import { sendEmail } from "@/lib/email";
-import { consultationAssignedTemplate, statusChangeTemplate } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/messaging/email";
+import {
+  consultationAssignedTemplate,
+  statusChangeTemplate,
+} from "@/lib/messaging/email-templates";
 
 import { dispatchNotifications } from "../dispatch";
 import { createNotifications } from "../mutations";
@@ -24,11 +27,11 @@ vi.mock("@/features/settings/queries", () => ({
   getNotificationPreferences: vi.fn(),
 }));
 
-vi.mock("@/lib/email", () => ({
+vi.mock("@/lib/messaging/email", () => ({
   sendEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/lib/email-templates", () => ({
+vi.mock("@/lib/messaging/email-templates", () => ({
   consultationAssignedTemplate: vi.fn(() => "<html/>"),
   consultationOverdueTemplate: vi.fn(() => "<html/>"),
   consultationReminderTemplate: vi.fn(() => "<html/>"),

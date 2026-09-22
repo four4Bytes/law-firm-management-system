@@ -1,8 +1,8 @@
 import { cache } from "react";
 
 import type { Prisma } from "@/generated/prisma/browser";
-import { getStartOfDay } from "@/lib/date";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
+import { getStartOfDay } from "@/lib/primitives/date";
 
 export type DashboardStats = {
   openCases: number;

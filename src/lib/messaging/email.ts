@@ -7,7 +7,7 @@
 
 import nodemailer from "nodemailer";
 
-import { getEnvBoolean, getOptionalInteger, getRequiredEnvVar } from "@/lib/env";
+import { getEnvBoolean, getOptionalInteger, getRequiredEnvVar } from "@/lib/infra/env";
 
 /**
  * Assembles the SMTP configuration object from environment variables.

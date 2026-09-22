@@ -8,8 +8,8 @@ import { Modal } from "@/components/ui/Modal/Modal";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createNoteAction } from "@/features/notes/actions";
 import { NoteCreatePayloadSchema } from "@/features/notes/schemas";
-import { createFieldValidator, requiredString } from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+import { useModalForm } from "@/lib/hooks/useModalForm";
+import { createFieldValidator, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./AddNoteModal.module.css";
 

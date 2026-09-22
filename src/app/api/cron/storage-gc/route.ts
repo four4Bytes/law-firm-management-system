@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getRequiredEnvVar } from "@/lib/env";
+import { getRequiredEnvVar } from "@/lib/infra/env";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const authHeader = request.headers.get("authorization");

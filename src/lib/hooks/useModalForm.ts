@@ -3,9 +3,9 @@
 import { useState } from "react";
 import type { ZodType } from "zod";
 
-import type { ActionDataResponse, ActionStatusResponse } from "@/lib/action-response";
-import { logError } from "@/lib/logger";
-import { toastError, toastSuccess } from "@/lib/toast-utils";
+import { toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { logError } from "@/lib/infra/logger";
+import type { ActionDataResponse, ActionStatusResponse } from "@/lib/security/action-response";
 
 /** Configuration for {@link useModalForm}. */
 interface UseModalFormOptions<TArgs, TData> {

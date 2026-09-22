@@ -1,8 +1,8 @@
 import { cache } from "react";
 
 import { Role, type User } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
-import type { PageQuery } from "@/lib/types";
+import { prisma } from "@/lib/infra/prisma";
+import type { PageQuery } from "@/lib/primitives/types";
 
 import { isUserOnline } from "./onlineStatus";
 

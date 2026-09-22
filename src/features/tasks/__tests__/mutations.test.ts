@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
-import { TaskLockedError } from "@/lib/errors";
-import { prisma } from "@/lib/prisma";
-import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import { prisma } from "@/lib/infra/prisma";
+import { TaskLockedError } from "@/lib/security/errors";
 import { mockTask, mockTaskAssignment, mockTaskReviewer } from "@/test-utils/fixtures";
 
 import {
@@ -17,7 +17,7 @@ import {
   updateTask,
 } from "../mutations";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
     task: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
@@ -37,7 +37,7 @@ vi.mock("@/features/documents/queries", () => ({
   getDocumentFilePathsByTaskId: vi.fn(),
 }));
 
-vi.mock("@/lib/storage-cleanup", () => ({
+vi.mock("@/lib/files/storage-cleanup", () => ({
   deleteDocumentFiles: vi.fn(),
 }));
 

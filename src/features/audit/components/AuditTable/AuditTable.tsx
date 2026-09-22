@@ -7,7 +7,7 @@ import { Link } from "@/components/ui/Link/Link";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { getAuditLogAction } from "@/features/audit/actions";
 import type { AuditLogRow } from "@/features/audit/queries";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/primitives/date";
 
 import styles from "./AuditTable.module.css";
 

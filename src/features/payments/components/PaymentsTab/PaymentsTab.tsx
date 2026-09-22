@@ -19,9 +19,9 @@ import { AddPaymentModal } from "@/features/payments/components/AddPaymentModal/
 import { EditPaymentModal } from "@/features/payments/components/EditPaymentModal/EditPaymentModal";
 import type { PaymentRow } from "@/features/payments/queries";
 import { PaymentStatus } from "@/generated/prisma/browser";
-import { formatDate } from "@/lib/date";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
-import { usePendingFetch } from "@/lib/usePendingFetch";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
+import { formatDate } from "@/lib/primitives/date";
 
 import styles from "./PaymentsTab.module.css";
 

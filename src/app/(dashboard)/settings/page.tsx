@@ -4,7 +4,7 @@ import {
 } from "@/features/settings/actions";
 import { DeadlineReminderForm } from "@/features/settings/components/DeadlineReminderForm/DeadlineReminderForm";
 import { NotificationPreferencesForm } from "@/features/settings/components/NotificationPreferencesForm/NotificationPreferencesForm";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireAuth } from "@/lib/security/auth-guards";
 
 import styles from "./page.module.css";
 

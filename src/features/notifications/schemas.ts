@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import { NotificationType } from "@/generated/prisma/browser";
-import { optionalText, requiredEnum, requiredText } from "@/lib/form-utils";
-import { LimitSchema } from "@/lib/schemas";
+import { optionalText, requiredEnum, requiredText } from "@/lib/validation/form-utils";
+import { LimitSchema } from "@/lib/validation/schemas";
 
 export const NotificationMarkReadSchema = z.object({
   notificationId: z.uuid(),

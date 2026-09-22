@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getStartOfDay } from "@/lib/date";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
+import { getStartOfDay } from "@/lib/primitives/date";
 
 import {
   claimConsultationReminder,
@@ -15,7 +15,7 @@ import {
   unclaimMilestoneReminder,
 } from "../mutations";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     caseMilestone: { updateMany: vi.fn() },
     consultation: { updateMany: vi.fn() },

@@ -14,14 +14,14 @@ import { updatePaymentAction } from "@/features/payments/actions";
 import type { PaymentRow } from "@/features/payments/queries";
 import { PaymentUpdatePayloadSchema } from "@/features/payments/schemas";
 import { PaymentStatus } from "@/generated/prisma/browser";
-import { toCalendarDate } from "@/lib/date";
+import { useModalForm } from "@/lib/hooks/useModalForm";
+import { toCalendarDate } from "@/lib/primitives/date";
 import {
   createFieldValidator,
   optionalString,
   selectEnumHandler,
   toDateValue,
-} from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+} from "@/lib/validation/form-utils";
 
 import styles from "./EditPaymentModal.module.css";
 

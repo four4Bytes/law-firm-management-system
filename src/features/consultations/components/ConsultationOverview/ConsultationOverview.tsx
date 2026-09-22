@@ -9,7 +9,7 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import type { ConsultationOverviewData } from "@/features/consultations/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { ConsultationStatus } from "@/generated/prisma/browser";
-import { formatDateTime, isBeforeToday } from "@/lib/date";
+import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
 
 import styles from "./ConsultationOverview.module.css";
 

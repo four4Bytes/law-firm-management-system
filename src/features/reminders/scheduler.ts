@@ -7,15 +7,15 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
 import { getDeadlineReminderPreferencesByUserIds } from "@/features/settings/queries";
 import { NotificationType } from "@/generated/prisma/browser";
+import { getOptionalInteger } from "@/lib/infra/env";
+import { logError } from "@/lib/infra/logger";
 import {
   formatDate,
   formatDateTime,
   getAppTimeZone,
   getStartOfDay,
   isBeforeToday,
-} from "@/lib/date";
-import { getOptionalInteger } from "@/lib/env";
-import { logError } from "@/lib/logger";
+} from "@/lib/primitives/date";
 
 import {
   claimConsultationReminder,

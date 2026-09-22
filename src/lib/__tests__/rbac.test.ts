@@ -7,7 +7,7 @@ import {
   type AccessContext,
   type AccessQualifier,
   type Permission,
-} from "@/lib/rbac";
+} from "@/lib/security/rbac";
 
 /**
  * Superset lattice over qualifiers: for adjacent roles in the documented

@@ -3,7 +3,7 @@
 import { Text } from "@/components/ui/Content/Content";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
-import { keysToSet } from "@/lib/form-utils";
+import { keysToSet } from "@/lib/validation/form-utils";
 
 import styles from "./UserSelect.module.css";
 

@@ -14,8 +14,8 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus } from "@/generated/prisma/browser";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
-import { useModalForm } from "@/lib/useModalForm";
+import { useModalForm } from "@/lib/hooks/useModalForm";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./AddCaseModal.module.css";
 

@@ -1,8 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { getDocumentFilePathsForCaseDeletion } from "@/features/documents/queries";
-import { prisma } from "@/lib/prisma";
-import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import { prisma } from "@/lib/infra/prisma";
 
 import {
   createCase,
@@ -23,7 +23,7 @@ interface MockCasePrisma {
   $transaction: ReturnType<typeof vi.fn>;
 }
 
-vi.mock("@/lib/prisma", () => {
+vi.mock("@/lib/infra/prisma", () => {
   const caseModel = { create: vi.fn(), update: vi.fn(), updateMany: vi.fn(), delete: vi.fn() };
   const note = { create: vi.fn() };
   const prisma: MockCasePrisma = {
@@ -38,7 +38,7 @@ vi.mock("@/features/documents/queries", () => ({
   getDocumentFilePathsForCaseDeletion: vi.fn(),
 }));
 
-vi.mock("@/lib/storage-cleanup", () => ({
+vi.mock("@/lib/files/storage-cleanup", () => ({
   deleteDocumentFiles: vi.fn(),
 }));
 

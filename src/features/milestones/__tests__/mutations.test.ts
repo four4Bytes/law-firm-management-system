@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 import { createMilestone, deleteMilestone, updateMilestone } from "../mutations";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: { caseMilestone: { create: vi.fn(), update: vi.fn(), delete: vi.fn() } },
 }));
 

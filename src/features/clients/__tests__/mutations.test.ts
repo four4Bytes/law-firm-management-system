@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TransactionClient } from "@/lib/prisma";
 
-import { createEmbeddedClient, updateEmbeddedClient, type EmbeddedClientData } from "../mutations";
+import { createEmbeddedClient, updateEmbeddedClient } from "../mutations";
+import type { EmbeddedClientData } from "../schemas";
 
 function setupTx() {
   const tx = {

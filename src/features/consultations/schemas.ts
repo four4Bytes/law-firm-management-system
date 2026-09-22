@@ -1,8 +1,9 @@
 import { z } from "zod";
 
+import { ClientDataSchema } from "@/features/clients/schemas";
 import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
 import { optionalText, requiredEnum, requiredText, uniqueUuidArray } from "@/lib/form-utils";
-import { ClientDataSchema, PageQuerySchema } from "@/lib/schemas";
+import { PageQuerySchema } from "@/lib/schemas";
 
 export const ConsultationListQuerySchema = PageQuerySchema.extend({
   filters: z

@@ -1,8 +1,6 @@
 import { z } from "zod";
 
-import { emailText, optionalText, phoneNumberText, requiredText } from "@/lib/form-utils";
-
-/** Reusable Zod schemas for pagination, sorting, and embedded client data. */
+/** Reusable Zod schemas for pagination, sorting, and bounded limits. */
 
 /** Sort descriptor for a single column (used by paginated queries). */
 export const SortQuerySchema = z.object({
@@ -20,14 +18,6 @@ export const PageQuerySchema = z.object({
 
 /** Optional integer limit (1–100) used by bounded list queries. */
 export const LimitSchema = z.coerce.number().int().min(1).max(100).optional();
-
-/** Validated shape for an embedded/inlined client record. */
-export const ClientDataSchema = z.object({
-  name: requiredText(255, "Client name"),
-  email: emailText("Email").optional(),
-  phone_number: phoneNumberText(),
-  address: optionalText(500, "Address"),
-});
 
 /** Payload that must reference exactly one parent resource (snake_case). */
 interface ParentRefinementPayload {

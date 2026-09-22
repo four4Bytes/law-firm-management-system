@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ClientDataSchema } from "@/lib/schemas";
+import { ClientDataSchema } from "../schemas";
 
 describe("ClientDataSchema", () => {
   it("reports a friendly required message for an empty client name", () => {

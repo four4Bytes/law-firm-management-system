@@ -1,14 +1,6 @@
-import type { z } from "zod";
-
 import type { TransactionClient } from "@/lib/prisma";
-import { ClientDataSchema } from "@/lib/schemas";
 
-export type EmbeddedClientData = z.infer<typeof ClientDataSchema>;
-
-export interface EmbeddedClientUpdatePayload {
-  clientId: string;
-  client: EmbeddedClientData;
-}
+import type { EmbeddedClientData, EmbeddedClientUpdatePayload } from "./schemas";
 
 export async function createEmbeddedClient(
   tx: TransactionClient,

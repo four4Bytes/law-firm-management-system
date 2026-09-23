@@ -45,7 +45,7 @@ export function searchParamsToFilterValues(
   const values: FilterValues = {};
   for (const { key, options } of allowlists) {
     const allowed = new Set(options.map((option) => option.value));
-    const selected = params.getAll(key).filter((value) => allowed.has(value));
+    const selected = [...new Set(params.getAll(key))].filter((value) => allowed.has(value));
     if (selected.length > 0) {
       values[key] = selected;
     }

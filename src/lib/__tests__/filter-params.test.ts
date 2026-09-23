@@ -41,6 +41,13 @@ describe("searchParamsToFilterValues", () => {
     expect(searchParamsToFilterValues(params, allowlists)).toEqual({ status: ["Open"] });
   });
 
+  it("collapses repeated keys into unique values", () => {
+    const params = new URLSearchParams("status=Open&status=Open&status=Settled");
+    expect(searchParamsToFilterValues(params, allowlists)).toEqual({
+      status: ["Open", "Settled"],
+    });
+  });
+
   it("ignores params outside the allowlists", () => {
     const params = new URLSearchParams("status=Open&tab=milestones");
     expect(searchParamsToFilterValues(params, allowlists)).toEqual({ status: ["Open"] });

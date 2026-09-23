@@ -8,7 +8,7 @@ import {
   requiredText,
   uniqueUuidArray,
 } from "@/lib/validation/form-utils";
-import { PageQuerySchema } from "@/lib/validation/schemas";
+import { enumFilterParamSchema, PageQuerySchema } from "@/lib/validation/schemas";
 
 export const ConsultationListQuerySchema = PageQuerySchema.extend({
   filters: z
@@ -22,14 +22,9 @@ export const ConsultationListQuerySchema = PageQuerySchema.extend({
  * `?status=` URL search param for deep-linking into a pre-filtered consultation list.
  * Unknown values are dropped so hand-crafted URLs never break the page.
  */
-export const ConsultationStatusFilterParamSchema = z
-  .union([z.string(), z.array(z.string())])
-  .optional()
-  .transform((value) => {
-    const values = value === undefined ? [] : Array.isArray(value) ? value : [value];
-    const validStatuses = Object.values(ConsultationStatus) as string[];
-    return values.filter((status): status is ConsultationStatus => validStatuses.includes(status));
-  });
+export const ConsultationStatusFilterParamSchema = enumFilterParamSchema(
+  Object.values(ConsultationStatus),
+);
 
 export const ConsultationOverviewIdSchema = z.object({
   consultationId: z.uuid(),

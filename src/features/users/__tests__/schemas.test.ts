@@ -35,6 +35,13 @@ describe("UserRoleFilterParamSchema", () => {
     expect(UserRoleFilterParamSchema.parse(["Lawyer", "Bogus"])).toEqual(["Lawyer"]);
   });
 
+  it("deduplicates repeated values", () => {
+    expect(UserRoleFilterParamSchema.parse(["Lawyer", "Lawyer", "Admin"])).toEqual([
+      "Lawyer",
+      "Admin",
+    ]);
+  });
+
   it("parses a missing param as no filter", () => {
     expect(UserRoleFilterParamSchema.parse(undefined)).toEqual([]);
   });

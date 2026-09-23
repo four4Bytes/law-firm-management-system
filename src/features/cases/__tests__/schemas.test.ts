@@ -246,6 +246,13 @@ describe("CaseStatusFilterParamSchema", () => {
     expect(CaseStatusFilterParamSchema.parse(["Open", "Bogus"])).toEqual(["Open"]);
   });
 
+  it("deduplicates repeated values", () => {
+    expect(CaseStatusFilterParamSchema.parse(["Open", "Open", "Settled"])).toEqual([
+      "Open",
+      "Settled",
+    ]);
+  });
+
   it("parses a missing param as no filter", () => {
     expect(CaseStatusFilterParamSchema.parse(undefined)).toEqual([]);
   });

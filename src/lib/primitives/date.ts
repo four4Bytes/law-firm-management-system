@@ -175,28 +175,42 @@ export function formatDateTime(date: Date | string): string {
 }
 
 /**
- * Returns a time-of-day greeting for the given instant in local time.
- * Morning is before 12:00, afternoon is 12:00–17:59, evening is 18:00 onward.
+ * Returns a time-of-day greeting for the given instant, evaluated in the
+ * given timezone. Morning is before 12:00, afternoon is 12:00–17:59,
+ * evening is 18:00 onward. Defaults to the app timezone so server rendering
+ * and client hydration agree on the same greeting.
  *
  * @param now - The reference instant (defaults to the current time).
+ * @param timeZone - The IANA timezone to read the hour in (defaults to the app timezone).
  * @returns "Good morning", "Good afternoon", or "Good evening".
  */
-export function getDaypartGreeting(now: Date = new Date()): string {
-  const hour = now.getHours();
+export function getDaypartGreeting(
+  now: Date = new Date(),
+  timeZone: string = getAppTimeZone(),
+): string {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", hourCycle: "h23" }).format(now),
+  );
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
 
 /**
- * Formats the given instant as a long date string in local time,
- * e.g. "Tuesday, September 23, 2026".
+ * Formats the given instant as a long date string in the given timezone,
+ * e.g. "Wednesday, September 23, 2026". Defaults to the app timezone so
+ * server rendering and client hydration agree on the same date.
  *
  * @param now - The reference instant (defaults to the current time).
+ * @param timeZone - The IANA timezone to format in (defaults to the app timezone).
  * @returns A long-form date string.
  */
-export function formatTodayLong(now: Date = new Date()): string {
+export function formatTodayLong(
+  now: Date = new Date(),
+  timeZone: string = getAppTimeZone(),
+): string {
   return now.toLocaleDateString("en-US", {
+    timeZone,
     weekday: "long",
     month: "long",
     day: "numeric",

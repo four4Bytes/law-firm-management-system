@@ -226,6 +226,12 @@ describe("ConsultationStatusFilterParamSchema", () => {
     ]);
   });
 
+  it("deduplicates repeated values", () => {
+    expect(
+      ConsultationStatusFilterParamSchema.parse(["Scheduled", "Scheduled", "Completed"]),
+    ).toEqual(["Scheduled", "Completed"]);
+  });
+
   it("parses a missing param as no filter", () => {
     expect(ConsultationStatusFilterParamSchema.parse(undefined)).toEqual([]);
   });

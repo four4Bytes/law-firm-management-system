@@ -71,7 +71,7 @@ export function DashboardContent({
             {firstName ? `, ${firstName}` : ""}
           </h2>
           <p className={styles.date}>
-            {formatTodayLong()} — here&apos;s what needs your attention today.
+            {formatTodayLong()} - here&apos;s what needs your attention today.
           </p>
         </div>
         <div className={styles.actions}>

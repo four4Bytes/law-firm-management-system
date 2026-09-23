@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import { requireAuth, requirePermission, type AuthenticatedUser } from "@/lib/auth-guards";
+import { requireAuth, requirePermission, type AuthenticatedUser } from "@/lib/security/auth-guards";
 
 import { mockSessionUser } from "./fixtures";
 

@@ -1,5 +1,5 @@
 import { TaskStatus } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 interface TaskData {
   caseTitle: string;

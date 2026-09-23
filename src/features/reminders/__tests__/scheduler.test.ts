@@ -5,7 +5,7 @@ import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
 import { getDeadlineReminderPreferencesByUserIds } from "@/features/settings/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import { getOptionalInteger } from "@/lib/env";
+import { getOptionalInteger } from "@/lib/infra/env";
 
 import {
   claimConsultationReminder,
@@ -20,7 +20,7 @@ import {
 import { getConsultationsNeedingReminder, getMilestonesNeedingReminder } from "../queries";
 import { __testHelpers, runReminderCheck } from "../scheduler";
 
-vi.mock("@/lib/env", () => ({
+vi.mock("@/lib/infra/env", () => ({
   getOptionalInteger: vi.fn((name: string) => (name === "NOTIFICATION_RETENTION_DAYS" ? 90 : 3)),
   getOptionalEnvVar: vi.fn().mockReturnValue("UTC"),
 }));

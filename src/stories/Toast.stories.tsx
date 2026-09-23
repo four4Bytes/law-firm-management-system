@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ToastRegion } from "@/components/ui/Toast/Toast";
-import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/hooks/toast-utils";
 
 function ToastExample() {
   return (

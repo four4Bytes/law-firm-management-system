@@ -7,10 +7,10 @@ import {
   getUsers,
   getUsersPaginated,
 } from "@/features/users/queries";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import { mockUser } from "@/test-utils/fixtures";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: { user: { findUnique: vi.fn(), findMany: vi.fn() } },
 }));
 

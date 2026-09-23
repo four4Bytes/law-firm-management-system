@@ -8,6 +8,7 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { CaseMilestoneStatus, NotificationType } from "@/generated/prisma/browser";
+import { isAfterToday, isBeforeToday } from "@/lib/primitives/date";
 import {
   actionConflict,
   actionForbidden,
@@ -15,11 +16,10 @@ import {
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { assertRecordPermission, requireAuth } from "@/lib/auth-guards";
-import { isAfterToday, isBeforeToday } from "@/lib/date";
-import { ForbiddenError, toActionResponse } from "@/lib/errors";
-import { can } from "@/lib/rbac";
+} from "@/lib/security/action-response";
+import { assertRecordPermission, requireAuth } from "@/lib/security/auth-guards";
+import { ForbiddenError, toActionResponse } from "@/lib/security/errors";
+import { can } from "@/lib/security/rbac";
 
 import { createMilestone, deleteMilestone, updateMilestone } from "./mutations";
 import {

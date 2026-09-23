@@ -1,6 +1,6 @@
 import { REMINDER_SUPPRESSED_AT } from "@/features/reminders/mutations";
 import { CaseMilestoneStatus, NotificationType } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 interface MilestoneData {
   caseTitle: string;

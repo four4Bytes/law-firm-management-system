@@ -19,16 +19,16 @@ import { AddMilestoneModal } from "@/features/milestones/components/AddMilestone
 import { EditMilestoneModal } from "@/features/milestones/components/EditMilestoneModal/EditMilestoneModal";
 import type { MilestoneListRow, MilestoneRow } from "@/features/milestones/queries";
 import { CaseMilestoneStatus, type Role } from "@/generated/prisma/browser";
-import { formatDateTime, isBeforeToday } from "@/lib/date";
-import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
   toastDenied,
   toastError,
   toastNotFound,
   toastSuccess,
-} from "@/lib/toast-utils";
-import { usePendingFetch } from "@/lib/usePendingFetch";
+} from "@/lib/hooks/toast-utils";
+import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
+import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 import styles from "./MilestonesTab.module.css";
 

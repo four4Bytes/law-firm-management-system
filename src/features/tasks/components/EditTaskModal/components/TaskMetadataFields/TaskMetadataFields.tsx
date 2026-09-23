@@ -6,7 +6,7 @@ import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeRevi
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { createFieldValidator } from "@/lib/form-utils";
+import { createFieldValidator } from "@/lib/validation/form-utils";
 
 export interface TaskMetadataFieldsProps {
   task: TaskDetailRow;

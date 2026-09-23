@@ -14,10 +14,10 @@ import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachm
 import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
 import type { Role } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
-import { formatFileSize, formatFileType } from "@/lib/file-format";
-import { can, type AccessContext } from "@/lib/rbac";
-import { toastActionError, toastSuccess } from "@/lib/toast-utils";
+import { formatFileSize, formatFileType } from "@/lib/files/file-format";
+import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { formatDateTime } from "@/lib/primitives/date";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 import styles from "./AttachmentsTab.module.css";
 

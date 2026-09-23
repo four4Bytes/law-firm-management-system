@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
-import { optionalText, requiredEnum, requiredText } from "@/lib/form-utils";
-import { PageQuerySchema } from "@/lib/schemas";
+import { optionalText, requiredEnum, requiredText } from "@/lib/validation/form-utils";
+import { PageQuerySchema } from "@/lib/validation/schemas";
 
 export const MilestoneIdSchema = z.object({
   milestoneId: z.uuid(),

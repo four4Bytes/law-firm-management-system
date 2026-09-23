@@ -1,32 +1,39 @@
-import { prisma } from "@/lib/prisma";
+import type { TransactionClient } from "@/lib/infra/prisma";
 
-import type { ClientCreatePayload, ClientUpdatePayload } from "./schemas";
+import type { EmbeddedClientData, EmbeddedClientUpdatePayload } from "./schemas";
 
-export async function createClient(
-  data: ClientCreatePayload,
-): Promise<{ id: string; name: string }> {
-  return prisma.client.create({
+export async function createEmbeddedClient(
+  tx: TransactionClient,
+  data: EmbeddedClientData,
+): Promise<{ id: string }> {
+  const { name, email, phone_number, address } = data;
+
+  return tx.client.create({
     data: {
-      name: data.name,
-      email: data.email || undefined,
-      phone_number: data.phone_number,
-      address: data.address || undefined,
+      name,
+      email: email || undefined,
+      phone_number,
+      address: address || undefined,
     },
-    select: { id: true, name: true },
+    select: { id: true },
   });
 }
 
-export async function updateClient(
-  data: ClientUpdatePayload,
-): Promise<{ id: string; name: string }> {
-  return prisma.client.update({
-    where: { id: data.clientId },
+export async function updateEmbeddedClient(
+  tx: TransactionClient,
+  payload: EmbeddedClientUpdatePayload,
+): Promise<{ id: string }> {
+  const { clientId, client } = payload;
+  const { name, email, phone_number, address } = client;
+
+  return tx.client.update({
+    where: { id: clientId },
     data: {
-      name: data.name,
-      email: data.email ? data.email : null,
-      phone_number: data.phone_number,
-      address: data.address ? data.address : null,
+      name,
+      email: email ?? null,
+      phone_number,
+      address: address ?? null,
     },
-    select: { id: true, name: true },
+    select: { id: true },
   });
 }

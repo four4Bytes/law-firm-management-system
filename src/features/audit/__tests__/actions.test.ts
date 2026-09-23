@@ -6,7 +6,7 @@ import { mockSessionUser } from "@/test-utils/fixtures";
 
 const mockUser = mockSessionUser({ id: "u1", email: "e", role: "Admin", name: "n" });
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue(mockUser),
   requirePermission: vi.fn().mockResolvedValue(mockUser),
 }));

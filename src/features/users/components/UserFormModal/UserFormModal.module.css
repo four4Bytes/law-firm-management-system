@@ -1,0 +1,29 @@
+.modal {
+  width: 400px;
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    text-align: left;
+  }
+
+  .field {
+    width: 100%;
+  }
+
+  .actions {
+    display: flex;
+    gap: var(--space-lg);
+    justify-content: flex-end;
+
+    .button {
+      width: 100%;
+    }
+  }
+
+  .formError {
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+  }
+}

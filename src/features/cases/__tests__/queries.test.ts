@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getEntityActivityLogPaginated } from "@/features/audit/queries";
 import { type Case } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import { mockCase as mockBaseCase, mockAuditLog as mockBaseLog } from "@/test-utils/fixtures";
 
 import { getCaseEditData, getCaseOverviewById, getCasesPaginated } from "../queries";
@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
   notFound: vi.fn(),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     auditLog: { findMany: vi.fn() },
     case: { findMany: vi.fn(), findUnique: vi.fn() },

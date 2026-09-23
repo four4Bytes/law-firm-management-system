@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { TaskReviewer } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import { mockTask as mockBaseTask } from "@/test-utils/fixtures";
 
 import {
@@ -12,7 +12,7 @@ import {
   type TaskDetailRow,
 } from "../queries";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     task: { findUnique: vi.fn(), findMany: vi.fn() },
     taskReviewer: { findMany: vi.fn() },

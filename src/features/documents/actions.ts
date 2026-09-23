@@ -9,24 +9,24 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
+import { getParentPath } from "@/lib/domain/path";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import {
+  generateKey,
+  getPresignedDownloadUrl,
+  getPresignedUploadUrl,
+  objectExists,
+} from "@/lib/infra/s3";
 import {
   actionForbidden,
   actionInvalid,
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError, TaskLockedError, toActionResponse } from "@/lib/errors";
-import { getParentPath } from "@/lib/path";
-import { can, type AccessContext } from "@/lib/rbac";
-import {
-  generateKey,
-  getPresignedDownloadUrl,
-  getPresignedUploadUrl,
-  objectExists,
-} from "@/lib/s3";
-import { deleteDocumentFiles } from "@/lib/storage-cleanup";
+} from "@/lib/security/action-response";
+import { requireAuth } from "@/lib/security/auth-guards";
+import { ForbiddenError, TaskLockedError, toActionResponse } from "@/lib/security/errors";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 import {
   createDocument,

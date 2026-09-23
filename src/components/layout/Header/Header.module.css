@@ -106,16 +106,23 @@
     padding: 0 var(--space-lg);
 
     .leftGroup {
+      min-width: 0;
+      flex: 1;
       .hamburgerButton {
         display: flex;
       }
 
       .pageTitle {
-        display: none;
+        font-size: var(--font-size-md);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
 
     .rightSection {
+      flex-shrink: 0;
+
       .userSection {
         .nameRoleContainer {
           display: none;

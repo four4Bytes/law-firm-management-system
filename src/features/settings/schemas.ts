@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ReminderFrequency } from "@/generated/prisma/browser";
-import { nonNegativeInteger, requiredEnum } from "@/lib/form-utils";
+import { nonNegativeInteger, requiredEnum } from "@/lib/validation/form-utils";
 
 export const NotificationPreferencesSchema = z.object({
   notify_email_case_assigned: z.boolean(),

@@ -1,5 +1,5 @@
 import { CaseStatus } from "@/generated/prisma/browser";
-import { canTransition, CASE_TRANSITIONS } from "@/lib/lifecycle";
+import { canTransition, CASE_TRANSITIONS } from "@/lib/domain/lifecycle";
 
 /** Allowed transitions for each case status. */
 export const CASE_STATUS_TRANSITIONS = CASE_TRANSITIONS;

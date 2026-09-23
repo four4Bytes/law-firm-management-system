@@ -20,6 +20,7 @@ import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { ConsultationStatus, NotificationType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
+import { isAfterToday, isBeforeToday } from "@/lib/primitives/date";
 import {
   actionConflict,
   actionForbidden,
@@ -27,16 +28,15 @@ import {
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
+} from "@/lib/security/action-response";
 import {
   assertRecordPermission,
   requireAuth,
   requirePermission,
   type AuthenticatedUser,
-} from "@/lib/auth-guards";
-import { isAfterToday, isBeforeToday } from "@/lib/date";
-import { StatusConflictError, toActionResponse } from "@/lib/errors";
-import { can, type AccessContext, type Permission } from "@/lib/rbac";
+} from "@/lib/security/auth-guards";
+import { StatusConflictError, toActionResponse } from "@/lib/security/errors";
+import { can, type AccessContext, type Permission } from "@/lib/security/rbac";
 
 import {
   acceptConsultationWithCase,

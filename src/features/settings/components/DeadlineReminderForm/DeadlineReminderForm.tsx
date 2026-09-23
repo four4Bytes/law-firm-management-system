@@ -7,7 +7,7 @@ import { Radio, RadioGroup } from "@/components/ui/RadioGroup/RadioGroup";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { updateDeadlineReminderPreferencesAction } from "@/features/settings/actions";
 import { ReminderFrequency } from "@/generated/prisma/browser";
-import { toastActionError, toastSuccess } from "@/lib/toast-utils";
+import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
 
 import styles from "./DeadlineReminderForm.module.css";
 

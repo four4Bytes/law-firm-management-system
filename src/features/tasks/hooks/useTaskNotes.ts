@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getTaskNotesPaginatedAction } from "@/features/notes/actions";
 import type { NoteRow } from "@/features/notes/queries";
-import { appendPage } from "@/lib/pagination";
-import { toastError } from "@/lib/toast-utils";
+import { appendPage } from "@/lib/domain/pagination";
+import { toastError } from "@/lib/hooks/toast-utils";
 
 interface UseTaskNotesReturn {
   notes: NoteRow[];

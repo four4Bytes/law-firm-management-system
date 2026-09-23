@@ -22,6 +22,8 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus } from "@/generated/prisma/browser";
+import { toastError } from "@/lib/hooks/toast-utils";
+import { useModalForm } from "@/lib/hooks/useModalForm";
 import {
   combineDateTime,
   formatDateTime,
@@ -29,10 +31,8 @@ import {
   toCalendarDate,
   toMinuteEpoch,
   toTimeValue,
-} from "@/lib/date";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/form-utils";
-import { toastError } from "@/lib/toast-utils";
-import { useModalForm } from "@/lib/useModalForm";
+} from "@/lib/primitives/date";
+import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./EditConsultationModal.module.css";
 

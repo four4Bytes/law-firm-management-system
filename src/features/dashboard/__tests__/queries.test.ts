@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 import {
   mockCase as mockBaseCase,
   mockConsultation as mockBaseConsultation,
@@ -14,7 +14,7 @@ import {
   getUpcomingMilestones,
 } from "../queries";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     case: { count: vi.fn(), findMany: vi.fn() },
     consultation: { count: vi.fn(), findMany: vi.fn() },

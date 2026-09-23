@@ -1,5 +1,5 @@
 import { Role } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 interface SeedUser {
   name: string;

@@ -1,7 +1,7 @@
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-  const { parseDeveloperEmails } = await import("@/lib/developer-emails");
+  const { parseDeveloperEmails } = await import("@/lib/messaging/developer-emails");
   const { getUserByEmail } = await import("@/features/users/queries");
   const { createUser } = await import("@/features/users/mutations");
   const { Role } = await import("@/generated/prisma/client");
@@ -17,7 +17,7 @@ export async function register(): Promise<void> {
 
   if (!process.env.VERCEL) {
     const cron = await import("node-cron");
-    const { getAppTimeZone } = await import("@/lib/date");
+    const { getAppTimeZone } = await import("@/lib/primitives/date");
 
     const REMINDER_CRON_SCHEDULE = "0 0 * * *";
     const { runReminderCheck } = await import("@/features/reminders/scheduler");

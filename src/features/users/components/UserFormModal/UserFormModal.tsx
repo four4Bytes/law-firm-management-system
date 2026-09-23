@@ -13,9 +13,13 @@ import { CREATABLE_ROLES, roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { CreateUserSchema, UpdateUserSchema } from "@/features/users/schemas";
 import type { Role } from "@/generated/prisma/browser";
-import { createFieldValidator, requiredString, selectEnumHandler } from "@/lib/form-utils";
-import { toastActionError, toastError, toastSuccess } from "@/lib/toast-utils";
-import { useModalForm } from "@/lib/useModalForm";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { useModalForm } from "@/lib/hooks/useModalForm";
+import {
+  createFieldValidator,
+  requiredString,
+  selectEnumHandler,
+} from "@/lib/validation/form-utils";
 
 import styles from "./UserFormModal.module.css";
 

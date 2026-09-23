@@ -9,7 +9,7 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import type { CaseOverviewData } from "@/features/cases/queries";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { CaseStatus } from "@/generated/prisma/browser";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/primitives/date";
 
 import styles from "./CaseOverview.module.css";
 

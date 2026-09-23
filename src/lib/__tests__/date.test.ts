@@ -1,7 +1,13 @@
 import { CalendarDate, Time } from "@internationalized/date";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { combineDateTime, getAppTimeZone, getStartOfDay } from "@/lib/date";
+import {
+  combineDateTime,
+  formatTodayLong,
+  getAppTimeZone,
+  getDaypartGreeting,
+  getStartOfDay,
+} from "@/lib/primitives/date";
 
 const originalAppTimeZone = process.env.APP_TIMEZONE;
 
@@ -48,5 +54,40 @@ describe("combineDateTime", () => {
     process.env.APP_TIMEZONE = "UTC";
     const result = combineDateTime(new CalendarDate(2026, 8, 9), new Time(9, 30));
     expect(result.toISOString()).toBe("2026-08-09T09:30:00.000Z");
+  });
+});
+
+describe("getDaypartGreeting", () => {
+  it.each([
+    // Instants expressed in UTC; Manila (UTC+8) dayparts in comments.
+    ["2026-09-22T16:00:00.000Z", "Good morning"], // Wed 00:00 Manila
+    ["2026-09-23T03:59:00.000Z", "Good morning"], // Wed 11:59 Manila
+    ["2026-09-23T04:00:00.000Z", "Good afternoon"], // Wed 12:00 Manila
+    ["2026-09-23T09:59:00.000Z", "Good afternoon"], // Wed 17:59 Manila
+    ["2026-09-23T10:00:00.000Z", "Good evening"], // Wed 18:00 Manila
+    ["2026-09-23T15:59:00.000Z", "Good evening"], // Wed 23:59 Manila
+  ])("greets %s with %s in the app timezone", (iso, expected) => {
+    process.env.APP_TIMEZONE = "Asia/Manila";
+    expect(getDaypartGreeting(new Date(iso))).toBe(expected);
+  });
+
+  it("reads the hour in the given timezone", () => {
+    expect(getDaypartGreeting(new Date("2026-09-23T04:00:00.000Z"), "UTC")).toBe("Good morning");
+  });
+});
+
+describe("formatTodayLong", () => {
+  it("formats the calendar date in the app timezone", () => {
+    process.env.APP_TIMEZONE = "Asia/Manila";
+    // 20:00 UTC is already the next day in Manila.
+    expect(formatTodayLong(new Date("2026-09-23T20:00:00.000Z"))).toBe(
+      "Thursday, September 24, 2026",
+    );
+  });
+
+  it("formats the calendar date in the given timezone", () => {
+    expect(formatTodayLong(new Date("2026-09-23T20:00:00.000Z"), "UTC")).toBe(
+      "Wednesday, September 23, 2026",
+    );
   });
 });

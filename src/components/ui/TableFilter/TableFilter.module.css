@@ -87,3 +87,10 @@
     }
   }
 }
+
+/* Mobile overrides */
+@media (max-width: 48rem) {
+  .popover {
+    width: min(21.875rem, calc(100vw - var(--space-2xl)));
+  }
+}

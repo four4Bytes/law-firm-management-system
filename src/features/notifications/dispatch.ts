@@ -6,7 +6,8 @@ import type { NotificationDispatchPayload } from "@/features/notifications/schem
 import { getNotificationPreferencesByUserIds } from "@/features/settings/queries";
 import { getActiveUserIds, getUserNameById, getUsersByIds } from "@/features/users/queries";
 import { NotificationType } from "@/generated/prisma/browser";
-import { sendEmail } from "@/lib/email";
+import { logError } from "@/lib/infra/logger";
+import { sendEmail } from "@/lib/messaging/email";
 import {
   caseAssignedTemplate,
   consultationAssignedTemplate,
@@ -15,8 +16,7 @@ import {
   milestoneTemplate,
   statusChangeTemplate,
   taskAssignedTemplate,
-} from "@/lib/email-templates";
-import { logError } from "@/lib/logger";
+} from "@/lib/messaging/email-templates";
 
 /** Compile-time exhaustiveness guard — `value` must be `never` at this point. */
 function assertNever(value: never): never {

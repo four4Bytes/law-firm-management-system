@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
-import { deleteFile, putFile } from "@/lib/s3";
+import { prisma } from "@/lib/infra/prisma";
+import { deleteFile, putFile } from "@/lib/infra/s3";
 
 interface DocumentData {
   fileName: string;

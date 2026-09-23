@@ -175,6 +175,36 @@ export function formatDateTime(date: Date | string): string {
 }
 
 /**
+ * Returns a time-of-day greeting for the given instant in local time.
+ * Morning is before 12:00, afternoon is 12:00–17:59, evening is 18:00 onward.
+ *
+ * @param now - The reference instant (defaults to the current time).
+ * @returns "Good morning", "Good afternoon", or "Good evening".
+ */
+export function getDaypartGreeting(now: Date = new Date()): string {
+  const hour = now.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+/**
+ * Formats the given instant as a long date string in local time,
+ * e.g. "Tuesday, September 23, 2026".
+ *
+ * @param now - The reference instant (defaults to the current time).
+ * @returns A long-form date string.
+ */
+export function formatTodayLong(now: Date = new Date()): string {
+  return now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/**
  * Formats a `Date` as a compact relative time string.
  * Examples: "5m ago", "2h ago", "3d ago", "Jul 14, 2026".
  *

@@ -8,7 +8,7 @@ import {
   upsertDeveloperUser,
 } from "@/features/users/mutations";
 import { getUserByEmail } from "@/features/users/queries";
-import { isDeveloperEmail } from "@/lib/developer-emails";
+import { isDeveloperEmail } from "@/lib/messaging/developer-emails";
 
 /**
  * NextAuth configuration (Google OAuth + Prisma adapter + JWT sessions).

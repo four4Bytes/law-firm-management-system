@@ -2,10 +2,10 @@
 
 import { z } from "zod";
 
-import { actionInvalid, type ActionStatusResponse } from "@/lib/action-response";
-import { requireAuth } from "@/lib/auth-guards";
-import { toActionResponse } from "@/lib/errors";
-import { PageQuerySchema } from "@/lib/schemas";
+import { actionInvalid, type ActionStatusResponse } from "@/lib/security/action-response";
+import { requireAuth } from "@/lib/security/auth-guards";
+import { toActionResponse } from "@/lib/security/errors";
+import { PageQuerySchema } from "@/lib/validation/schemas";
 
 import { markAllNotificationsRead, markNotificationRead } from "./mutations";
 import {

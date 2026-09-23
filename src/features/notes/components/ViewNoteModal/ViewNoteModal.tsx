@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/Modal/Modal";
 import type { NoteRow } from "@/features/notes/queries";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/primitives/date";
 
 import styles from "./ViewNoteModal.module.css";
 

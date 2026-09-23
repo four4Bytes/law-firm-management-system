@@ -7,17 +7,17 @@ import { z } from "zod";
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
+import { getParentPath } from "@/lib/domain/path";
 import {
   actionForbidden,
   actionInvalid,
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { requirePermission } from "@/lib/auth-guards";
-import { toActionResponse } from "@/lib/errors";
-import { getParentPath } from "@/lib/path";
-import { can } from "@/lib/rbac";
+} from "@/lib/security/action-response";
+import { requirePermission } from "@/lib/security/auth-guards";
+import { toActionResponse } from "@/lib/security/errors";
+import { can } from "@/lib/security/rbac";
 
 import { createPayment, deletePayment, updatePayment } from "./mutations";
 import {

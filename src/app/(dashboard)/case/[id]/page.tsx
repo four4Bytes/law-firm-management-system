@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { getCaseOverviewByIdAction } from "@/features/cases/actions";
 import { CaseDetail } from "@/features/cases/components/CaseDetail/CaseDetail";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/infra/auth";
 
 import styles from "./page.module.css";
 

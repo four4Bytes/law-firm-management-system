@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/Button/Button";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import type { DocumentRow } from "@/features/documents/queries";
-import { formatFileSize, truncateFilename } from "@/lib/file-format";
-import { toastError } from "@/lib/toast-utils";
-import type { FileEntry } from "@/lib/useFileUpload";
+import { formatFileSize, truncateFilename } from "@/lib/files/file-format";
+import { toastError } from "@/lib/hooks/toast-utils";
+import type { FileEntry } from "@/lib/hooks/useFileUpload";
 
 import styles from "./FileList.module.css";
 

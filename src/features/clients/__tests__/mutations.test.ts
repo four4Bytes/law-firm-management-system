@@ -1,82 +1,132 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { prisma } from "@/lib/prisma";
+import type { TransactionClient } from "@/lib/infra/prisma";
 
-import { createClient, updateClient } from "../mutations";
+import { createEmbeddedClient, updateEmbeddedClient } from "../mutations";
+import type { EmbeddedClientData } from "../schemas";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
+function setupTx() {
+  const tx = {
     client: { create: vi.fn(), update: vi.fn() },
-  },
-}));
+  };
+  return tx as unknown as TransactionClient;
+}
+
+function mockTxClient(tx: TransactionClient) {
+  return tx.client as unknown as {
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+}
+
+const clientData: EmbeddedClientData = {
+  name: "Alice Client",
+  phone_number: "09170000001",
+};
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+describe("createEmbeddedClient", () => {
+  it("creates the client and returns its id", async () => {
+    const tx = setupTx();
+    mockTxClient(tx).create.mockResolvedValue({ id: "c1" });
 
-it("createClient passes required phone_number through and selects id and name", async () => {
-  await createClient({ name: "Alice", email: "", phone_number: "09170000001", address: "" });
-
-  expect(prisma.client.create).toHaveBeenCalledWith({
-    data: { name: "Alice", email: undefined, phone_number: "09170000001", address: undefined },
-    select: { id: true, name: true },
-  });
-});
-
-it("createClient passes provided optional fields through", async () => {
-  await createClient({
-    name: "Alice",
-    email: "alice@email.com",
-    phone_number: "09170000001",
-    address: "123 Rizal St.",
-  });
-
-  expect(prisma.client.create).toHaveBeenCalledWith({
-    data: {
-      name: "Alice",
+    const result = await createEmbeddedClient(tx, {
+      ...clientData,
       email: "alice@email.com",
-      phone_number: "09170000001",
       address: "123 Rizal St.",
-    },
-    select: { id: true, name: true },
+    });
+
+    expect(result).toEqual({ id: "c1" });
+    expect(mockTxClient(tx).create).toHaveBeenCalledWith({
+      data: {
+        name: "Alice Client",
+        email: "alice@email.com",
+        phone_number: "09170000001",
+        address: "123 Rizal St.",
+      },
+      select: { id: true },
+    });
+  });
+
+  it("maps missing optional fields to undefined", async () => {
+    const tx = setupTx();
+    mockTxClient(tx).create.mockResolvedValue({ id: "c1" });
+
+    await createEmbeddedClient(tx, clientData);
+
+    expect(mockTxClient(tx).create).toHaveBeenCalledWith({
+      data: {
+        name: "Alice Client",
+        email: undefined,
+        phone_number: "09170000001",
+        address: undefined,
+      },
+      select: { id: true },
+    });
   });
 });
 
-it("updateClient passes provided fields through and does not null phone_number", async () => {
-  await updateClient({
-    clientId: uuid,
-    name: "Alice",
-    email: "",
-    phone_number: "09170000001",
-    address: "",
+describe("updateEmbeddedClient", () => {
+  it("updates the client and returns its id", async () => {
+    const tx = setupTx();
+    mockTxClient(tx).update.mockResolvedValue({ id: uuid });
+
+    const result = await updateEmbeddedClient(tx, {
+      client: {
+        ...clientData,
+        email: "alice@email.com",
+        address: "123 Rizal St.",
+      },
+      clientId: uuid,
+    });
+
+    expect(result).toEqual({ id: uuid });
   });
 
-  expect(prisma.client.update).toHaveBeenCalledWith({
-    where: { id: uuid },
-    data: { name: "Alice", email: null, phone_number: "09170000001", address: null },
-    select: { id: true, name: true },
-  });
-});
+  it("clears optional fields to null when omitted", async () => {
+    const tx = setupTx();
+    mockTxClient(tx).update.mockResolvedValue({ id: uuid });
 
-it("updateClient passes provided fields through", async () => {
-  await updateClient({
-    clientId: uuid,
-    name: "Alice",
-    email: "alice@email.com",
-    phone_number: "09170000001",
-    address: "123 Rizal St.",
+    await updateEmbeddedClient(tx, {
+      client: clientData,
+      clientId: uuid,
+    });
+
+    expect(mockTxClient(tx).update).toHaveBeenCalledWith({
+      where: { id: uuid },
+      data: {
+        name: "Alice Client",
+        email: null,
+        phone_number: "09170000001",
+        address: null,
+      },
+      select: { id: true },
+    });
   });
 
-  expect(prisma.client.update).toHaveBeenCalledWith({
-    where: { id: uuid },
-    data: {
-      name: "Alice",
-      email: "alice@email.com",
-      phone_number: "09170000001",
-      address: "123 Rizal St.",
-    },
-    select: { id: true, name: true },
+  it("passes provided optional fields through", async () => {
+    const tx = setupTx();
+    mockTxClient(tx).update.mockResolvedValue({ id: uuid });
+
+    await updateEmbeddedClient(tx, {
+      client: {
+        ...clientData,
+        email: "alice@email.com",
+        address: "123 Rizal St.",
+      },
+      clientId: uuid,
+    });
+
+    expect(mockTxClient(tx).update).toHaveBeenCalledWith({
+      where: { id: uuid },
+      data: {
+        name: "Alice Client",
+        email: "alice@email.com",
+        phone_number: "09170000001",
+        address: "123 Rizal St.",
+      },
+      select: { id: true },
+    });
   });
 });

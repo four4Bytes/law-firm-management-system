@@ -1,12 +1,8 @@
 import { z } from "zod";
 
-import { isAcceptedFileExtension } from "@/lib/file-types";
-import { requiredText } from "@/lib/form-utils";
-import {
-  exactlyOneParentRefinement,
-  exactlyOneParentRefinementCamel,
-  SortQuerySchema,
-} from "@/lib/schemas";
+import { isAcceptedFileExtension } from "@/lib/files/file-types";
+import { requiredText } from "@/lib/validation/form-utils";
+import { exactlyOneOf, SortQuerySchema } from "@/lib/validation/schemas";
 
 export const DocumentListQuerySchema = z
   .object({
@@ -18,7 +14,7 @@ export const DocumentListQuerySchema = z
     pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
     sort: SortQuerySchema.optional(),
   })
-  .refine(exactlyOneParentRefinementCamel, {
+  .refine((data) => exactlyOneOf(data, ["caseId", "consultationId", "taskId"]), {
     message: "Provide exactly one of caseId, consultationId, or taskId",
   });
 
@@ -30,7 +26,7 @@ export const DocumentUploadPayloadSchema = z
     consultation_id: z.uuid().nullable().optional(),
     task_id: z.uuid().nullable().optional(),
   })
-  .refine(exactlyOneParentRefinement, {
+  .refine((data) => exactlyOneOf(data, ["case_id", "consultation_id", "task_id"]), {
     message: "Provide exactly one of case_id, consultation_id, or task_id",
   })
   .refine((data) => isAcceptedFileExtension(data.file_name), {
@@ -48,7 +44,7 @@ export const DocumentConfirmPayloadSchema = z
     consultation_id: z.uuid().nullable().optional(),
     task_id: z.uuid().nullable().optional(),
   })
-  .refine(exactlyOneParentRefinement, {
+  .refine((data) => exactlyOneOf(data, ["case_id", "consultation_id", "task_id"]), {
     message: "Provide exactly one of case_id, consultation_id, or task_id",
   })
   .refine((data) => isAcceptedFileExtension(data.file_name), {

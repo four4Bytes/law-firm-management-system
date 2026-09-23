@@ -3,9 +3,9 @@ import { cache } from "react";
 
 import { isUserOnline } from "@/features/users/onlineStatus";
 import type { Case, CaseStatus, Prisma } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
-import type { AccessContext } from "@/lib/rbac";
-import type { PageQuery } from "@/lib/types";
+import { prisma } from "@/lib/infra/prisma";
+import type { PageQuery } from "@/lib/primitives/types";
+import type { AccessContext } from "@/lib/security/rbac";
 
 const caseSelect = {
   id: true,

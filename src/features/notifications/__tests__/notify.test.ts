@@ -3,13 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { NotificationType } from "@/generated/prisma/browser";
-import { logError } from "@/lib/logger";
+import { logError } from "@/lib/infra/logger";
 
 vi.mock("@/features/notifications/dispatch", () => ({
   dispatchNotifications: vi.fn().mockResolvedValue({ count: 0 }),
 }));
 
-vi.mock("@/lib/logger", () => ({
+vi.mock("@/lib/infra/logger", () => ({
   logError: vi.fn(),
 }));
 

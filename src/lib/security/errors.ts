@@ -7,6 +7,7 @@
  * @module lib/errors
  */
 
+import { logError } from "@/lib/infra/logger";
 import {
   actionConflict,
   actionDeactivated,
@@ -16,8 +17,7 @@ import {
   actionUnauthorized,
   unknownActionError,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { logError } from "@/lib/logger";
+} from "@/lib/security/action-response";
 
 /**
  * Error thrown when a user lacks permission for an action.

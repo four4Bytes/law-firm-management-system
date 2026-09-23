@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getConsultationEditData } from "@/features/consultations/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Case } from "@/generated/prisma/browser";
-import { requireAuth } from "@/lib/auth-guards";
-import { ForbiddenError } from "@/lib/errors";
-import { prisma } from "@/lib/prisma";
-import { can, FORBIDDEN_MESSAGE } from "@/lib/rbac";
+import { prisma } from "@/lib/infra/prisma";
+import { requireAuth } from "@/lib/security/auth-guards";
+import { ForbiddenError } from "@/lib/security/errors";
+import { can, FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
@@ -48,7 +48,7 @@ afterEach(async () => {
   await flushAfterCallbacks();
 });
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u1", email: "e", role: Role.Admin, name: "n" }),
   requirePermission: vi
     .fn()
@@ -82,7 +82,7 @@ vi.mock("@/features/notifications/dispatch", () => ({
   dispatchNotifications: vi.fn().mockResolvedValue({ count: 0 }),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     case: {
       create: vi.fn(),

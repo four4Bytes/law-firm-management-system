@@ -4,9 +4,9 @@ import { z } from "zod";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
-import { requireAuth, requirePermission } from "@/lib/auth-guards";
-import { ForbiddenError } from "@/lib/errors";
-import { can } from "@/lib/rbac";
+import { requireAuth, requirePermission } from "@/lib/security/auth-guards";
+import { ForbiddenError } from "@/lib/security/errors";
+import { can } from "@/lib/security/rbac";
 
 import { AuditLogRow, getAuditLogPaginated, getEntityActivityLogPaginated } from "./queries";
 import { AuditLogListQuerySchema, EntityActivityLogListQuerySchema } from "./schemas";

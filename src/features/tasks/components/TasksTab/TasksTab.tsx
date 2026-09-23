@@ -24,15 +24,15 @@ import type { TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { getActiveUsersAction, getSessionUserIdAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
-import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
   toastDenied,
   toastError,
   toastNotFound,
   toastSuccess,
-} from "@/lib/toast-utils";
-import { usePendingFetch } from "@/lib/usePendingFetch";
+} from "@/lib/hooks/toast-utils";
+import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 import styles from "./TasksTab.module.css";
 

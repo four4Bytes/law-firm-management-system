@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Client } from "@/generated/prisma/browser";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/infra/prisma";
 
 import { getClientForEdit } from "../queries";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/infra/prisma", () => ({
   prisma: {
     client: { findUnique: vi.fn() },
   },

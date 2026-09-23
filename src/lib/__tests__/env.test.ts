@@ -8,7 +8,7 @@ import {
   getRequiredEnvVar,
   getRequiredFloat,
   getRequiredInteger,
-} from "@/lib/env";
+} from "@/lib/infra/env";
 
 const ORIGINAL_ENV = { ...process.env };
 

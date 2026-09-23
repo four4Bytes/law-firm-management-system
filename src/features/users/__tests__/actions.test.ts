@@ -13,9 +13,9 @@ import {
   getUserById,
 } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
-import { requireAuth, requirePermission } from "@/lib/auth-guards";
-import { isDeveloperEmail } from "@/lib/developer-emails";
-import { UnauthorizedError } from "@/lib/errors";
+import { isDeveloperEmail } from "@/lib/messaging/developer-emails";
+import { requireAuth, requirePermission } from "@/lib/security/auth-guards";
+import { UnauthorizedError } from "@/lib/security/errors";
 import { mockSessionUser } from "@/test-utils/fixtures";
 
 import {
@@ -31,12 +31,12 @@ vi.mock("next/server", () => ({
   after: vi.fn(),
 }));
 
-vi.mock("@/lib/auth-guards", () => ({
+vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn(),
   requirePermission: vi.fn(),
 }));
 
-vi.mock("@/lib/developer-emails", () => ({
+vi.mock("@/lib/messaging/developer-emails", () => ({
   isDeveloperEmail: vi.fn().mockReturnValue(false),
 }));
 

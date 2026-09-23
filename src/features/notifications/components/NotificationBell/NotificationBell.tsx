@@ -16,8 +16,8 @@ import {
 } from "@/features/notifications/actions";
 import { useUnreadCount } from "@/features/notifications/hooks/useUnreadCount";
 import type { NotificationRow } from "@/features/notifications/queries";
-import { timeAgo } from "@/lib/date";
-import { toastActionError, toastError } from "@/lib/toast-utils";
+import { toastActionError, toastError } from "@/lib/hooks/toast-utils";
+import { timeAgo } from "@/lib/primitives/date";
 
 import styles from "./NotificationBell.module.css";
 

@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { getDocumentDownloadUrlAction } from "@/features/documents/actions";
 import type { DocumentRow } from "@/features/documents/queries";
-import { toastError } from "@/lib/toast-utils";
+import { toastError } from "@/lib/hooks/toast-utils";
 
 interface UseDocumentDownloadReturn {
   handleDownload: (doc: Pick<DocumentRow, "id">) => Promise<void>;

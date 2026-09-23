@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { Checkbox } from "@/components/ui/Checkbox/Checkbox";
 import { Popover } from "@/components/ui/Popover/Popover";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
-import type { FilterValues } from "@/lib/types";
+import type { FilterValues } from "@/lib/primitives/types";
 
 import styles from "./TableFilter.module.css";
 

@@ -31,15 +31,15 @@ import { PaymentsTab } from "@/features/payments/components/PaymentsTab/Payments
 import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
-import { can, type AccessContext } from "@/lib/rbac";
 import {
   toastActionError,
   toastDenied,
   toastError,
   toastNotFound,
   toastSuccess,
-} from "@/lib/toast-utils";
-import { useStatusWorkflow } from "@/lib/useStatusWorkflow";
+} from "@/lib/hooks/toast-utils";
+import { useStatusWorkflow } from "@/lib/hooks/useStatusWorkflow";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 import { ConsultationOverview } from "../ConsultationOverview/ConsultationOverview";
 import styles from "./ConsultationDetail.module.css";

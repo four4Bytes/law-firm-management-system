@@ -1,6 +1,6 @@
 import type { SortDescriptor } from "react-aria-components";
 
-import type { SortQuery } from "./types";
+import type { SortQuery } from "@/lib/primitives/types";
 
 /** Maps a React Aria `SortDescriptor` to the backend-neutral {@link SortQuery}. */
 

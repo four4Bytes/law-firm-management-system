@@ -16,8 +16,8 @@ import {
   actionNotFound,
   unknownActionError,
   type ActionStatusResponse,
-} from "@/lib/action-response";
-import { RBAC_DOCS_URL } from "@/lib/rbac";
+} from "@/lib/security/action-response";
+import { RBAC_DOCS_URL } from "@/lib/security/rbac";
 
 /** Follow-up link attached to access-denied toasts. */
 const denialLink: ToastLink = {

@@ -4,7 +4,7 @@ import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { getEntityActivityLogAction } from "@/features/audit/actions";
 import type { AuditLogRow } from "@/features/audit/queries";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/primitives/date";
 
 interface Props {
   entityType: "Case" | "Consultation";

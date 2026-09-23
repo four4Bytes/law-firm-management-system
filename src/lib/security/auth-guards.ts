@@ -1,7 +1,7 @@
 import { type Role } from "@/generated/prisma/browser";
-import { auth } from "@/lib/auth";
-import { DeactivatedError, ForbiddenError, UnauthorizedError } from "@/lib/errors";
-import { can, type AccessContext, type Permission } from "@/lib/rbac";
+import { auth } from "@/lib/infra/auth";
+import { DeactivatedError, ForbiddenError, UnauthorizedError } from "@/lib/security/errors";
+import { can, type AccessContext, type Permission } from "@/lib/security/rbac";
 
 /** Minimal authenticated-user projection shared by the auth guards. */
 export interface AuthenticatedUser {

@@ -1,5 +1,5 @@
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
-import { canTransition, MILESTONE_TRANSITIONS } from "@/lib/lifecycle";
+import { canTransition, MILESTONE_TRANSITIONS } from "@/lib/domain/lifecycle";
 
 /** Allowed transitions for each milestone status. */
 export const MILESTONE_STATUS_TRANSITIONS = MILESTONE_TRANSITIONS;

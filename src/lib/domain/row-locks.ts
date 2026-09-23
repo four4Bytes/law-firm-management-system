@@ -8,7 +8,7 @@
  * @module lib/row-locks
  */
 
-import type { TransactionClient } from "@/lib/prisma";
+import type { TransactionClient } from "@/lib/infra/prisma";
 
 /**
  * Locks a task row for the duration of the surrounding transaction.

@@ -3,9 +3,9 @@ import { cache } from "react";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import type { TaskStatus } from "@/generated/prisma/browser";
-import { prisma, type TransactionClient } from "@/lib/prisma";
-import type { AccessContext } from "@/lib/rbac";
-import type { PageQuery } from "@/lib/types";
+import { prisma, type TransactionClient } from "@/lib/infra/prisma";
+import type { PageQuery } from "@/lib/primitives/types";
+import type { AccessContext } from "@/lib/security/rbac";
 
 export type DocumentRow = {
   id: string;

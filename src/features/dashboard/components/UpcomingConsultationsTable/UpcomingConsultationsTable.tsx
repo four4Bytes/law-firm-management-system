@@ -6,8 +6,9 @@ import { useEffect, useState, useTransition } from "react";
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation-context";
+import { DashboardSection } from "@/features/dashboard/components/DashboardSection/DashboardSection";
 import type { UpcomingConsultationRow } from "@/features/dashboard/queries";
-import { formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/primitives/date";
 
 import styles from "./UpcomingConsultationsTable.module.css";
 
@@ -17,11 +18,19 @@ interface UpcomingConsultationsTableProps {
 
 const columns: ColumnDef<UpcomingConsultationRow>[] = [
   { id: "clientName", name: "Client Name", isRowHeader: true },
-  { id: "concern", name: "Concern" },
+  {
+    id: "concern",
+    name: "Concern",
+    render: (value) => (
+      <span className={styles.clamp} title={String(value ?? "")}>
+        {String(value ?? "")}
+      </span>
+    ),
+  },
   {
     id: "booking_datetime",
     name: "Date & Time",
-    render: (value) => formatDateTime(value as Date),
+    render: (value) => <span className={styles.dateCell}>{formatDateTime(value as Date)}</span>,
   },
 ];
 
@@ -36,29 +45,38 @@ export function UpcomingConsultationsTable({ consultations }: UpcomingConsultati
 
   if (!isClient) {
     return (
-      <div className={styles.wrapper}>
-        <h3 className={styles.heading}>Upcoming Consultations</h3>
+      <DashboardSection
+        title="Upcoming Consultations"
+        count={consultations.length}
+        className={styles.section}
+      >
         <div className={styles.loadingContainer}>
           <ProgressCircle aria-label="Loading upcoming consultations..." />
         </div>
-      </div>
+      </DashboardSection>
     );
   }
 
   return (
-    <div className={styles.wrapper}>
-      <h3 className={styles.heading}>Upcoming Consultations</h3>
+    <DashboardSection
+      title="Upcoming Consultations"
+      count={consultations.length}
+      viewAllHref="/consultation?status=Scheduled"
+      viewAllLabel="View scheduled"
+      className={styles.section}
+    >
       <DataTable
         columns={columns}
         rows={consultations}
-        emptyContent={"No data yet"}
+        emptyContent="No upcoming consultations. Enjoy the quiet."
         selectionMode="single"
         selectionBehavior="replace"
         onRowAction={(id) => {
           startLoading();
           router.push(`/consultation/${id}`);
         }}
+        className={styles.table}
       />
-    </div>
+    </DashboardSection>
   );
 }

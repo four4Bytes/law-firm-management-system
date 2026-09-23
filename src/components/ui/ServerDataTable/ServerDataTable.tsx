@@ -189,6 +189,7 @@ export function ServerDataTable<T extends { id: string }>({
           onChange={setSearch}
           placeholder={searchPlaceholder}
           aria-label={searchLabel}
+          className={styles.searchField}
         />
         {filters && filters.length > 0 && (
           <TableFilter

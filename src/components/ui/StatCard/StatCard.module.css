@@ -16,7 +16,6 @@
     justify-content: center;
     flex-shrink: 0;
     font-size: var(--font-size-xl);
-    color: var(--color-text-secondary);
   }
 
   .text {

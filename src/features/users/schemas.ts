@@ -3,7 +3,7 @@ import { z } from "zod";
 import { CREATABLE_ROLES } from "@/features/users/constants";
 import { Role } from "@/generated/prisma/browser";
 import { emailText, requiredEnum } from "@/lib/validation/form-utils";
-import { SortQuerySchema } from "@/lib/validation/schemas";
+import { enumFilterParamSchema, SortQuerySchema } from "@/lib/validation/schemas";
 
 export const UserListQuerySchema = z.object({
   search: z.string().trim().max(500).optional().default(""),
@@ -16,6 +16,12 @@ export const UserListQuerySchema = z.object({
     })
     .optional(),
 });
+
+/**
+ * `?role=` URL search param for deep-linking into a pre-filtered user list.
+ * Unknown values are dropped so hand-crafted URLs never break the page.
+ */
+export const UserRoleFilterParamSchema = enumFilterParamSchema(Object.values(Role));
 
 const CreatableRoleSchema = requiredEnum(Role, "Role").refine(
   (r) => (CREATABLE_ROLES as readonly Role[]).includes(r),

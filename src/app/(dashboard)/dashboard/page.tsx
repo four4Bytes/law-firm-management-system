@@ -5,6 +5,7 @@ import {
   getUpcomingMilestonesAction,
 } from "@/features/dashboard/actions";
 import { DashboardContent } from "@/features/dashboard/components/DashboardContent/DashboardContent";
+import { auth } from "@/lib/infra/auth";
 
 import styles from "./page.module.css";
 
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
   const recentCases = fulfilledOrNull(recentCasesResult);
   const upcomingConsultations = fulfilledOrNull(upcomingConsultationsResult);
   const upcomingMilestones = fulfilledOrNull(upcomingMilestonesResult);
+  const session = await auth();
 
   return (
     <div className={styles.wrapper}>
@@ -33,6 +35,8 @@ export default async function DashboardPage() {
         recentCases={recentCases}
         upcomingConsultations={upcomingConsultations}
         upcomingMilestones={upcomingMilestones}
+        userName={session?.user?.name}
+        userRole={session?.user?.role ?? null}
       />
     </div>
   );

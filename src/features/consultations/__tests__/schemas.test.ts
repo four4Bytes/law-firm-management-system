@@ -6,6 +6,7 @@ import {
   ConsultationDeletePayloadSchema,
   ConsultationListQuerySchema,
   ConsultationStatusChangePayloadSchema,
+  ConsultationStatusFilterParamSchema,
   ConsultationUpdatePayloadSchema,
 } from "../schemas";
 
@@ -204,6 +205,35 @@ describe("ConsultationListQuerySchema", () => {
     expect(
       ConsultationListQuerySchema.safeParse({ filters: { status: ["Invalid"] } }).success,
     ).toBe(false);
+  });
+});
+
+describe("ConsultationStatusFilterParamSchema", () => {
+  it("parses a single status value", () => {
+    expect(ConsultationStatusFilterParamSchema.parse("Scheduled")).toEqual(["Scheduled"]);
+  });
+
+  it("parses multiple status values", () => {
+    expect(ConsultationStatusFilterParamSchema.parse(["Scheduled", "Completed"])).toEqual([
+      "Scheduled",
+      "Completed",
+    ]);
+  });
+
+  it("drops unknown values instead of failing", () => {
+    expect(ConsultationStatusFilterParamSchema.parse(["Scheduled", "Bogus"])).toEqual([
+      "Scheduled",
+    ]);
+  });
+
+  it("deduplicates repeated values", () => {
+    expect(
+      ConsultationStatusFilterParamSchema.parse(["Scheduled", "Scheduled", "Completed"]),
+    ).toEqual(["Scheduled", "Completed"]);
+  });
+
+  it("parses a missing param as no filter", () => {
+    expect(ConsultationStatusFilterParamSchema.parse(undefined)).toEqual([]);
   });
 });
 

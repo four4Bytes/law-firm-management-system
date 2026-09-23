@@ -1,0 +1,127 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  gap: var(--space-2xl);
+  height: 100%;
+  min-height: 0;
+
+  .pageHeader {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-xl);
+
+    .headingText {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      min-width: 0;
+    }
+
+    .greeting {
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semi-bold);
+      color: var(--color-text-primary);
+      line-height: var(--line-height-tight);
+    }
+
+    .date {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-normal);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-normal);
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: row;
+      gap: var(--space-md);
+      flex-shrink: 0;
+    }
+
+    .actionContent {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+  }
+
+  .statsRow {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-xl);
+  }
+
+  .errorMessage {
+    padding: var(--space-xl);
+    color: var(--color-text-danger);
+    background-color: var(--color-bg-danger);
+    border-radius: var(--radius-md);
+    text-align: center;
+    font-size: var(--font-size-sm);
+  }
+
+  .tablesWrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: var(--space-2xl);
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+
+    .primaryColumn {
+      display: flex;
+      flex-direction: column;
+      flex: 1.15;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .secondaryColumn {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2xl);
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+    }
+  }
+}
+
+/* Mobile overrides */
+@media (max-width: 48rem) {
+  .dashboard {
+    height: auto;
+    min-height: auto;
+    gap: var(--space-xl);
+
+    .pageHeader {
+      flex-direction: column;
+      align-items: stretch;
+
+      .actions {
+        flex-direction: column;
+      }
+    }
+
+    .tablesWrapper {
+      flex-direction: column;
+      flex: none;
+      min-height: auto;
+
+      .primaryColumn {
+        flex: none;
+        min-height: auto;
+      }
+
+      .secondaryColumn {
+        flex: none;
+        min-height: auto;
+      }
+    }
+  }
+}

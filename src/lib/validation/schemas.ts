@@ -20,6 +20,32 @@ export const PageQuerySchema = z.object({
 export const LimitSchema = z.coerce.number().int().min(1).max(100).optional();
 
 /**
+ * Builds a `?key=` URL search-param schema for deep-linking into a
+ * pre-filtered list. Accepts a single value or repeated keys, drops unknown
+ * values so hand-crafted URLs degrade instead of breaking the page, and
+ * deduplicates so repeats never inflate toward list-query limits.
+ *
+ * @typeParam T - The permitted value type (a Prisma const-object enum).
+ * @param allowed - The permitted values (e.g. `Object.values(CaseStatus)`).
+ * @returns A schema parsing to the unique, allowlisted values in first-seen order.
+ */
+export function enumFilterParamSchema<T extends string>(allowed: readonly T[]) {
+  return z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .transform((value) => {
+      const items = value === undefined ? [] : Array.isArray(value) ? value : [value];
+      const seen = new Set<T>();
+      for (const item of items) {
+        if ((allowed as readonly string[]).includes(item)) {
+          seen.add(item as T);
+        }
+      }
+      return [...seen];
+    });
+}
+
+/**
  * Asserts that exactly one of the given keys holds a set value.
  *
  * @typeParam T - The parsed payload object type.

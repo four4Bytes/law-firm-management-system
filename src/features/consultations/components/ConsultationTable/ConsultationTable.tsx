@@ -15,6 +15,7 @@ import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
 import { toastError } from "@/lib/hooks/toast-utils";
+import { useUrlFilters } from "@/lib/hooks/useUrlFilters";
 import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
 import { can } from "@/lib/security/rbac";
 
@@ -102,6 +103,7 @@ export function ConsultationTable({
 }: ConsultationTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
+  const [urlFilters, setUrlFilters] = useUrlFilters(consultationFilters);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
@@ -130,6 +132,8 @@ export function ConsultationTable({
         columns={columns}
         initialRows={initialConsultations}
         initialCursor={initialCursor}
+        filtersValue={urlFilters}
+        onFiltersChange={setUrlFilters}
         searchPlaceholder="Search consultations..."
         emptyContent="No consultations yet"
         loadingMessage="Loading consultations..."

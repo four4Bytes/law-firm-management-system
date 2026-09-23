@@ -19,11 +19,15 @@
   overflow-wrap: anywhere;
 }
 
+.dateCell {
+  white-space: nowrap;
+}
+
 .loadingContainer {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1;
-  min-height: 12rem;
+  min-height: 10rem;
   background: var(--color-surface-bg);
 }

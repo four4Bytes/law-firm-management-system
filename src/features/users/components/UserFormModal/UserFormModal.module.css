@@ -1,5 +1,5 @@
 .modal {
-  min-width: 400px;
+  width: 400px;
 
   .form {
     display: flex;

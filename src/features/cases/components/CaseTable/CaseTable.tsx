@@ -15,6 +15,7 @@ import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { CaseStatus, type Role } from "@/generated/prisma/browser";
 import { toastError } from "@/lib/hooks/toast-utils";
+import { useUrlFilters } from "@/lib/hooks/useUrlFilters";
 import { can } from "@/lib/security/rbac";
 
 const statusClassMap: Record<CaseStatus, StatusBadgeVariant> = {
@@ -78,6 +79,7 @@ interface CaseTableProps {
 export function CaseTable({ initialCases, initialCursor, userRole }: CaseTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
+  const [urlFilters, setUrlFilters] = useUrlFilters(caseFilters);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
@@ -106,6 +108,8 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
         columns={columns}
         initialRows={initialCases}
         initialCursor={initialCursor}
+        filtersValue={urlFilters}
+        onFiltersChange={setUrlFilters}
         searchPlaceholder="Search cases..."
         emptyContent="No cases yet"
         loadingMessage="Loading cases..."

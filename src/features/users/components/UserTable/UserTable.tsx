@@ -18,6 +18,7 @@ import { roleLabels } from "@/features/users/constants";
 import type { UserRow } from "@/features/users/queries";
 import { Role } from "@/generated/prisma/browser";
 import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { useUrlFilters } from "@/lib/hooks/useUrlFilters";
 import { can } from "@/lib/security/rbac";
 
 import styles from "./UserTable.module.css";
@@ -52,6 +53,7 @@ const userFilters: FilterDefinition[] = [
 
 export function UserTable({ users, initialCursor, sessionUserRole }: UserTableProps) {
   const canCreate = can(sessionUserRole, "user.create");
+  const [urlFilters, setUrlFilters] = useUrlFilters(userFilters);
 
   const [modalTarget, setModalTarget] = useState<ModalTarget>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
@@ -133,6 +135,8 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
         columns={columns}
         initialRows={users}
         initialCursor={initialCursor}
+        filtersValue={urlFilters}
+        onFiltersChange={setUrlFilters}
         searchPlaceholder="Search users..."
         emptyContent="No users yet"
         loadingMessage="Loading users..."

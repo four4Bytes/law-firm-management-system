@@ -5,6 +5,7 @@ import {
   CaseDeletePayloadSchema,
   CaseListQuerySchema,
   CaseStatusChangePayloadSchema,
+  CaseStatusFilterParamSchema,
   CaseUpdatePayloadSchema,
   CaseWithClientCreatePayloadSchema,
   CaseWithClientUpdatePayloadSchema,
@@ -229,6 +230,24 @@ describe("CaseListQuerySchema", () => {
 
   it("rejects an invalid status filter", () => {
     expect(CaseListQuerySchema.safeParse({ filters: { status: ["Invalid"] } }).success).toBe(false);
+  });
+});
+
+describe("CaseStatusFilterParamSchema", () => {
+  it("parses a single status value", () => {
+    expect(CaseStatusFilterParamSchema.parse("Open")).toEqual(["Open"]);
+  });
+
+  it("parses multiple status values", () => {
+    expect(CaseStatusFilterParamSchema.parse(["Open", "Settled"])).toEqual(["Open", "Settled"]);
+  });
+
+  it("drops unknown values instead of failing", () => {
+    expect(CaseStatusFilterParamSchema.parse(["Open", "Bogus"])).toEqual(["Open"]);
+  });
+
+  it("parses a missing param as no filter", () => {
+    expect(CaseStatusFilterParamSchema.parse(undefined)).toEqual([]);
   });
 });
 

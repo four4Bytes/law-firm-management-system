@@ -18,6 +18,19 @@ export const ConsultationListQuerySchema = PageQuerySchema.extend({
     .optional(),
 });
 
+/**
+ * `?status=` URL search param for deep-linking into a pre-filtered consultation list.
+ * Unknown values are dropped so hand-crafted URLs never break the page.
+ */
+export const ConsultationStatusFilterParamSchema = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    const values = value === undefined ? [] : Array.isArray(value) ? value : [value];
+    const validStatuses = Object.values(ConsultationStatus) as string[];
+    return values.filter((status): status is ConsultationStatus => validStatuses.includes(status));
+  });
+
 export const ConsultationOverviewIdSchema = z.object({
   consultationId: z.uuid(),
 });

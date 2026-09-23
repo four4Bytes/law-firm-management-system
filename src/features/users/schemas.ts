@@ -17,6 +17,19 @@ export const UserListQuerySchema = z.object({
     .optional(),
 });
 
+/**
+ * `?role=` URL search param for deep-linking into a pre-filtered user list.
+ * Unknown values are dropped so hand-crafted URLs never break the page.
+ */
+export const UserRoleFilterParamSchema = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    const values = value === undefined ? [] : Array.isArray(value) ? value : [value];
+    const validRoles = Object.values(Role) as string[];
+    return values.filter((role): role is Role => validRoles.includes(role));
+  });
+
 const CreatableRoleSchema = requiredEnum(Role, "Role").refine(
   (r) => (CREATABLE_ROLES as readonly Role[]).includes(r),
   { message: "Role is not creatable" },

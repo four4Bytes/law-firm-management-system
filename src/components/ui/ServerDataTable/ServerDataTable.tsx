@@ -40,6 +40,8 @@ interface ServerDataTableProps<T extends { id: string }> {
   refreshTrigger?: number;
   initialRows?: T[];
   initialCursor?: string | null;
+  filtersValue?: FilterValues;
+  onFiltersChange?: (values: FilterValues) => void;
   collectionDependencies?: unknown[];
 }
 
@@ -60,6 +62,8 @@ export function ServerDataTable<T extends { id: string }>({
   refreshTrigger,
   initialRows,
   initialCursor,
+  filtersValue,
+  onFiltersChange,
   collectionDependencies,
 }: ServerDataTableProps<T>) {
   const [items, setItems] = useState<T[]>(initialRows ?? []);
@@ -69,8 +73,19 @@ export function ServerDataTable<T extends { id: string }>({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
-  const [filterValues, setFilterValues] = useState<FilterValues>({});
+  const [internalFilters, setInternalFilters] = useState<FilterValues>({});
+  const filterValues = filtersValue ?? internalFilters;
   const [isFetching, setIsFetching] = useState(false);
+
+  const handleFiltersChange = useCallback(
+    (next: FilterValues) => {
+      if (filtersValue === undefined) {
+        setInternalFilters(next);
+      }
+      onFiltersChange?.(next);
+    },
+    [filtersValue, onFiltersChange],
+  );
 
   const isLoading = isFetching || isLoadingMore;
   const debouncedSearch = useDebounce(search, 300);
@@ -179,8 +194,8 @@ export function ServerDataTable<T extends { id: string }>({
           <TableFilter
             filters={filters}
             values={filterValues}
-            onChange={setFilterValues}
-            onClear={() => setFilterValues({})}
+            onChange={handleFiltersChange}
+            onClear={() => handleFiltersChange({})}
           />
         )}
         {renderAddButton && (

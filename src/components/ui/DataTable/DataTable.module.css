@@ -1,0 +1,27 @@
+.container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+
+  .loadMoreWrapper {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+.card {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl);
+  background: var(--color-surface-bg);
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  font-style: italic;
+}

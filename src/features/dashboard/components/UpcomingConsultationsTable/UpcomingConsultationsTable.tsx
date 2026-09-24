@@ -76,6 +76,7 @@ export function UpcomingConsultationsTable({ consultations }: UpcomingConsultati
           router.push(`/consultation/${id}`);
         }}
         className={styles.table}
+        variant="plain"
       />
     </DashboardSection>
   );

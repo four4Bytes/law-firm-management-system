@@ -87,6 +87,7 @@ export function UpcomingMilestonesTable({ milestones }: UpcomingMilestonesTableP
           }
         }}
         className={styles.table}
+        variant="plain"
       />
     </DashboardSection>
   );

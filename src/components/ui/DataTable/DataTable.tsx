@@ -43,6 +43,7 @@ export interface DataTableProps<T extends { id: string }> {
   emptyContent?: React.ReactNode;
   collectionDependencies?: unknown[];
   className?: string;
+  variant?: "card" | "plain";
 }
 
 export function DataTable<T extends { id: string }>({
@@ -61,10 +62,12 @@ export function DataTable<T extends { id: string }>({
   emptyContent,
   collectionDependencies,
   className,
+  variant = "card",
 }: DataTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
+  const variantClassName = variant === "plain" ? undefined : styles.card;
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
@@ -76,13 +79,15 @@ export function DataTable<T extends { id: string }>({
   if (rows.length === 0) {
     if (isLoading) {
       return (
-        <div className={clsx(styles.container, styles.loadingContainer, className)}>
+        <div
+          className={clsx(styles.container, variantClassName, styles.loadingContainer, className)}
+        >
           <ProgressCircle aria-label="Loading data..." />
         </div>
       );
     }
     return (
-      <div className={clsx(styles.container, styles.loadingContainer, className)}>
+      <div className={clsx(styles.container, variantClassName, styles.loadingContainer, className)}>
         {emptyContent ?? null}
       </div>
     );
@@ -93,7 +98,7 @@ export function DataTable<T extends { id: string }>({
       ref={containerRef}
       onScroll={handleScroll}
       {...(isScrolled ? { "data-scrolled": true } : {})}
-      className={clsx(styles.container, className)}
+      className={clsx(styles.container, variantClassName, className)}
     >
       <Table
         aria-label="Data table"

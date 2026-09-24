@@ -84,6 +84,7 @@ export function RecentCasesTable({ cases }: RecentCasesTableProps) {
           router.push(`/case/${id}`);
         }}
         className={styles.table}
+        variant="plain"
       />
     </DashboardSection>
   );

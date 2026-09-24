@@ -54,6 +54,33 @@ export function searchParamsToFilterValues(
 }
 
 /**
+ * Compares two filter-value maps order-insensitively. Selection order is a
+ * UI artifact (append-on-toggle), so `{ status: ["Open", "Settled"] }` equals
+ * `{ status: ["Settled", "Open"] }`.
+ *
+ * @param a - The first filter selections to compare.
+ * @param b - The second filter selections to compare.
+ * @returns Whether both maps hold the same keys with the same value sets.
+ */
+export function areFilterValuesEqual(a: FilterValues, b: FilterValues): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const key of aKeys) {
+    const aSelected = a[key];
+    const bSelected = b[key];
+    if (bSelected === undefined) return false;
+    const aSet = new Set(aSelected);
+    const bSet = new Set(bSelected);
+    if (aSet.size !== bSet.size) return false;
+    for (const value of aSet) {
+      if (!bSet.has(value)) return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Merges filter values into existing URL params. Filter-owned keys (those in
  * the allowlists) are replaced wholesale; every other param (e.g. `tab`)
  * passes through untouched. Clearing all filters removes the filter keys.

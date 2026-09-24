@@ -205,16 +205,18 @@ function sanitizeFilename(name: string): string {
 }
 
 /**
- * Generates a presigned GET URL the client uses to download a file directly.
+ * Generates a presigned GET URL the client uses to fetch a file directly.
  *
- * @param key - The S3 object key to download.
- * @param fileName - Optional download filename (sets Content-Disposition).
+ * @param key - The S3 object key to fetch.
+ * @param fileName - Optional filename (sets Content-Disposition).
+ * @param disposition - `attachment` to force a download, `inline` to render in-browser.
  * @param expiresIn - Expiry in seconds (default 3600).
  * @returns A presigned URL string.
  */
-export async function getPresignedDownloadUrl(
+export async function getPresignedFileUrl(
   key: string,
   fileName?: string,
+  disposition: "attachment" | "inline" = "attachment",
   expiresIn = DOWNLOAD_URL_EXPIRY_S,
 ): Promise<string> {
   return getSignedUrl(
@@ -223,7 +225,9 @@ export async function getPresignedDownloadUrl(
       Bucket: bucket(),
       Key: key,
       ...(fileName
-        ? { ResponseContentDisposition: `attachment; filename="${sanitizeFilename(fileName)}"` }
+        ? {
+            ResponseContentDisposition: `${disposition}; filename="${sanitizeFilename(fileName)}"`,
+          }
         : {}),
     }),
     { expiresIn },

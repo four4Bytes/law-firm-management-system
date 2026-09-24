@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  areFilterValuesEqual,
   filterValuesToSearchParams,
   searchParamsToFilterValues,
   withFilterValues,
@@ -77,5 +78,29 @@ describe("withFilterValues", () => {
     const current = new URLSearchParams("status=Open");
     withFilterValues(current, { status: ["Settled"] }, allowlists);
     expect(current.getAll("status")).toEqual(["Open"]);
+  });
+});
+
+describe("areFilterValuesEqual", () => {
+  it("matches identical selections", () => {
+    expect(areFilterValuesEqual({ status: ["Open"] }, { status: ["Open"] })).toBe(true);
+  });
+
+  it("ignores selection order", () => {
+    expect(
+      areFilterValuesEqual({ status: ["Open", "Settled"] }, { status: ["Settled", "Open"] }),
+    ).toBe(true);
+  });
+
+  it("detects a missing key", () => {
+    expect(areFilterValuesEqual({ status: ["Open"] }, {})).toBe(false);
+  });
+
+  it("detects a differing value", () => {
+    expect(areFilterValuesEqual({ status: ["Open"] }, { status: ["Settled"] })).toBe(false);
+  });
+
+  it("detects a differing selection size", () => {
+    expect(areFilterValuesEqual({ status: ["Open", "Settled"] }, { status: ["Open"] })).toBe(false);
   });
 });

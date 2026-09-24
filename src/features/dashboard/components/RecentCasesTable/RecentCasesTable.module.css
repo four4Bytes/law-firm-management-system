@@ -4,9 +4,6 @@
 }
 
 .table {
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
   flex: 1;
   min-height: 0;
 }

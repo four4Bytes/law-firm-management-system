@@ -70,9 +70,10 @@ export function areFilterValuesEqual(a: FilterValues, b: FilterValues): boolean 
     const aSelected = a[key];
     const bSelected = b[key];
     if (bSelected === undefined) return false;
-    if (aSelected.length !== bSelected.length) return false;
+    const aSet = new Set(aSelected);
     const bSet = new Set(bSelected);
-    for (const value of aSelected) {
+    if (aSet.size !== bSet.size) return false;
+    for (const value of aSet) {
       if (!bSet.has(value)) return false;
     }
   }

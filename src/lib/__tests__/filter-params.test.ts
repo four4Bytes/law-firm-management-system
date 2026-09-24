@@ -103,4 +103,10 @@ describe("areFilterValuesEqual", () => {
   it("detects a differing selection size", () => {
     expect(areFilterValuesEqual({ status: ["Open", "Settled"] }, { status: ["Open"] })).toBe(false);
   });
+
+  it("detects differing unique selections when one selection contains duplicates", () => {
+    expect(
+      areFilterValuesEqual({ status: ["Open", "Open"] }, { status: ["Open", "Settled"] }),
+    ).toBe(false);
+  });
 });

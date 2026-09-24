@@ -52,7 +52,11 @@ export function useUrlFilters(
         allowlists,
       );
       const query = merged.toString();
-      window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
+      window.history.replaceState(
+        null,
+        "",
+        `${query ? `${pathname}?${query}` : pathname}${window.location.hash}`,
+      );
     },
     [pathname, allowlists],
   );

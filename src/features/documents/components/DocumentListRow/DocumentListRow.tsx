@@ -43,13 +43,13 @@ export function DocumentListRow({
               <Button
                 variant="ghost"
                 className={styles.actionButton}
-                aria-label={`View details of ${file_name}`}
+                aria-label="View document details"
                 isDisabled={isBusy}
                 onPress={() => onView(document)}
               >
                 <FaEye />
               </Button>
-              <Tooltip>{`View details of ${file_name}`}</Tooltip>
+              <Tooltip>View document details</Tooltip>
             </TooltipTrigger>
           )}
 
@@ -58,11 +58,11 @@ export function DocumentListRow({
               href={`/document/preview/${id}`}
               target="_blank"
               className={styles.actionButton}
-              aria-label={`Open ${file_name} in a new page`}
+              aria-label="Open document in a new page"
             >
               <FaArrowUpRightFromSquare />
             </Link>
-            <Tooltip>{`Open ${file_name} in a new page`}</Tooltip>
+            <Tooltip>Open document in a new page</Tooltip>
           </TooltipTrigger>
 
           {onDownload && (
@@ -70,14 +70,14 @@ export function DocumentListRow({
               <Button
                 variant="ghost"
                 className={styles.actionButton}
-                aria-label={`Download ${file_name}`}
+                aria-label="Download document"
                 isDisabled={isBusy}
                 isPending={isDownloading}
                 onPress={() => onDownload(document)}
               >
                 <FaDownload />
               </Button>
-              <Tooltip>{`Download ${file_name}`}</Tooltip>
+              <Tooltip>Download document</Tooltip>
             </TooltipTrigger>
           )}
 
@@ -86,13 +86,13 @@ export function DocumentListRow({
               <Button
                 variant="ghost"
                 className={styles.actionButton}
-                aria-label={`Delete ${file_name}`}
+                aria-label="Delete document"
                 isDisabled={isBusy}
                 onPress={() => onDelete(id)}
               >
                 <FaXmark />
               </Button>
-              <Tooltip>{`Delete ${file_name}`}</Tooltip>
+              <Tooltip>Delete document</Tooltip>
             </TooltipTrigger>
           )}
         </>

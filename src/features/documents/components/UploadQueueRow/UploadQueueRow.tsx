@@ -49,13 +49,13 @@ export function UploadQueueRow({
         <Button
           variant="ghost"
           className={styles.actionButton}
-          aria-label={`Remove ${file.name}`}
+          aria-label="Remove file"
           isDisabled={isBusy}
           onPress={() => onRemove(entry.id)}
         >
           <FaXmark />
         </Button>
-        <Tooltip>{`Remove ${file.name}`}</Tooltip>
+        <Tooltip>Remove file</Tooltip>
       </TooltipTrigger>
     ) : null;
 

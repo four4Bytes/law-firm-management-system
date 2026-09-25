@@ -43,13 +43,13 @@ export function DocumentListRow({
               <Button
                 variant="ghost"
                 className={styles.actionButton}
-                aria-label="View document details"
+                aria-label="View file details"
                 isDisabled={isBusy}
                 onPress={() => onView(document)}
               >
                 <FaEye />
               </Button>
-              <Tooltip>View document details</Tooltip>
+              <Tooltip>View file details</Tooltip>
             </TooltipTrigger>
           )}
 
@@ -60,11 +60,11 @@ export function DocumentListRow({
               rel="noopener noreferrer"
               variant="ghost"
               className={styles.actionButton}
-              aria-label="Open document in a new page"
+              aria-label="Open file in a new page"
             >
               <FaArrowUpRightFromSquare />
             </ButtonLink>
-            <Tooltip>Open document in a new page</Tooltip>
+            <Tooltip>Open file in a new page</Tooltip>
           </TooltipTrigger>
 
           {onDownload && (
@@ -72,14 +72,14 @@ export function DocumentListRow({
               <Button
                 variant="ghost"
                 className={styles.actionButton}
-                aria-label="Download document"
+                aria-label="Download file"
                 isDisabled={isBusy}
                 isPending={isDownloading}
                 onPress={() => onDownload(document)}
               >
                 <FaDownload />
               </Button>
-              <Tooltip>Download document</Tooltip>
+              <Tooltip>Download file</Tooltip>
             </TooltipTrigger>
           )}
 
@@ -88,13 +88,13 @@ export function DocumentListRow({
               <Button
                 variant="ghost"
                 className={styles.actionButton}
-                aria-label="Delete document"
+                aria-label="Delete file"
                 isDisabled={isBusy}
                 onPress={() => onDelete(id)}
               >
                 <FaXmark />
               </Button>
-              <Tooltip>Delete document</Tooltip>
+              <Tooltip>Delete file</Tooltip>
             </TooltipTrigger>
           )}
         </>

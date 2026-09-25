@@ -90,12 +90,12 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
               <TooltipTrigger>
                 <Button
                   variant="ghost"
-                  aria-label={"View document details"}
+                  aria-label="View file details"
                   onPress={() => setDetailsDocument(doc)}
                 >
                   <FaEye className={styles.icon} />
                 </Button>
-                <Tooltip>{"View document details"}</Tooltip>
+                <Tooltip>View file details</Tooltip>
               </TooltipTrigger>
               <TooltipTrigger>
                 <ButtonLink
@@ -103,28 +103,32 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
                   target="_blank"
                   rel="noopener noreferrer"
                   variant="ghost"
-                  aria-label="Open document in a new page"
+                  aria-label="Open file in a new page"
                 >
                   <FaArrowUpRightFromSquare className={styles.icon} />
                 </ButtonLink>
-                <Tooltip>Open document in a new page</Tooltip>
+                <Tooltip>Open file in a new page</Tooltip>
               </TooltipTrigger>
               <TooltipTrigger>
                 <Button
                   variant="ghost"
-                  aria-label={"Download"}
+                  aria-label="Download file"
                   onPress={() => handleDownload(doc)}
                   isPending={pendingIds.has(doc.id)}
                 >
                   <FaDownload className={styles.icon} />
                 </Button>
-                <Tooltip>{"Download"}</Tooltip>
+                <Tooltip>Download file</Tooltip>
               </TooltipTrigger>
               <TooltipTrigger>
-                <Button variant="ghost" aria-label={"Delete"} onPress={() => setDeleteTarget(doc)}>
+                <Button
+                  variant="ghost"
+                  aria-label="Delete file"
+                  onPress={() => setDeleteTarget(doc)}
+                >
                   <FaTrashCan className={styles.icon} />
                 </Button>
-                <Tooltip>{"Delete"}</Tooltip>
+                <Tooltip>Delete file</Tooltip>
               </TooltipTrigger>
             </div>
           );

@@ -241,7 +241,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         filters={taskFilters}
         selectionMode="none"
         collectionDependencies={[pendingEditId, pendingViewId]}
-        renderAddButton={canCreate}
+        renderAddButton={canCreate && currentUserId !== null && !isLoadingUsers}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}
         refreshTrigger={refreshTrigger}

@@ -18,6 +18,7 @@ export interface UserSelectProps {
   selectedIds: Set<string>;
   onChange: (ids: Set<string>) => void;
   isDisabled?: boolean;
+  isLoading?: boolean;
   label?: string;
   placeholder?: string;
   disabledKeys?: Set<string>;
@@ -29,6 +30,7 @@ export function UserSelect({
   selectedIds,
   onChange,
   isDisabled,
+  isLoading = false,
   label = "Assignees",
   placeholder = "Select assignees...",
   disabledKeys,
@@ -43,6 +45,7 @@ export function UserSelect({
       placeholder={placeholder}
       items={users}
       isDisabled={isDisabled}
+      isLoading={isLoading}
       disabledKeys={disabledKeys}
       validate={
         validate

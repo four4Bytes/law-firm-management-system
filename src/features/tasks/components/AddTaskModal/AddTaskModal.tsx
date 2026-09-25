@@ -31,7 +31,8 @@ interface AddTaskModalProps {
   onSuccess: () => void;
   caseId: string;
   users: ActiveUserSummary[];
-  currentUserId: string;
+  currentUserId: string | null;
+  isLoading?: boolean;
 }
 
 export function AddTaskModal({
@@ -41,11 +42,14 @@ export function AddTaskModal({
   caseId,
   users,
   currentUserId,
+  isLoading = false,
 }: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
-  const [reviewerIds, setReviewerIds] = useState<Set<string>>(() => new Set([currentUserId]));
+  const [reviewerIds, setReviewerIds] = useState<Set<string>>(() =>
+    currentUserId ? new Set([currentUserId]) : new Set<string>(),
+  );
   const [isPending, setIsPending] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
   const [addedReviewerIds, setAddedReviewerIds] = useState<Set<string>>(new Set());
@@ -57,7 +61,7 @@ export function AddTaskModal({
     setTitle("");
     setDescription("");
     setAssigneeIds(new Set());
-    setReviewerIds(new Set([currentUserId]));
+    setReviewerIds(currentUserId ? new Set([currentUserId]) : new Set<string>());
     setCreatedTaskId(null);
     setAddedReviewerIds(new Set());
     resetFiles();
@@ -71,7 +75,7 @@ export function AddTaskModal({
 
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
-    if (isPending) return;
+    if (isPending || isLoading || !currentUserId) return;
 
     const parsed = TaskCreatePayloadSchema.safeParse({
       title: requiredString(title),
@@ -168,7 +172,7 @@ export function AddTaskModal({
               onChange={setTitle}
               placeholder="Enter task title..."
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.title)}
-              isDisabled={isPending}
+              isDisabled={isPending || isLoading}
             />
             <TextField
               label="Description"
@@ -178,7 +182,7 @@ export function AddTaskModal({
               onChange={setDescription}
               placeholder="Optional description..."
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.description)}
-              isDisabled={isPending}
+              isDisabled={isPending || isLoading}
             />
             <AssigneeReviewerPicker
               users={users}
@@ -186,9 +190,11 @@ export function AddTaskModal({
               onAssigneeIdsChange={setAssigneeIds}
               reviewerIds={reviewerIds}
               onReviewerIdsChange={setReviewerIds}
-              creatorUserId={currentUserId}
-              isAssigneeDisabled={isPending}
-              isReviewerDisabled={isPending}
+              creatorUserId={currentUserId ?? ""}
+              isAssigneeDisabled={isPending || isLoading}
+              isReviewerDisabled={isPending || isLoading}
+              isAssigneeLoading={isLoading}
+              isReviewerLoading={isLoading}
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.assignee_ids)}
             />
           </div>
@@ -200,7 +206,7 @@ export function AddTaskModal({
               allowsMultiple
               onFileSelect={addFiles}
               acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
-              isDisabled={isPending}
+              isDisabled={isPending || isLoading}
               label="Drop files or click to upload"
               description="Supported: PDF, DOC, XLS, images, TXT, CSV"
             />
@@ -212,7 +218,11 @@ export function AddTaskModal({
           <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
             Cancel
           </Button>
-          <Button type="submit" isDisabled={isPending} isPending={isPending}>
+          <Button
+            type="submit"
+            isDisabled={isPending || isLoading || !currentUserId}
+            isPending={isPending}
+          >
             Create Task
           </Button>
         </div>

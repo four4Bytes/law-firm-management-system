@@ -73,35 +73,6 @@
     justify-content: flex-end;
     gap: var(--space-md);
   }
-
-  .openPageLink.openPageLink {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    line-height: var(--line-height-normal);
-    color: var(--color-brand-accent);
-    background-color: var(--color-brand-primary);
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-sm);
-    text-decoration: none;
-    transition:
-      background-color var(--transition-base),
-      box-shadow var(--transition-base);
-
-    &[data-hovered] {
-      background-color: var(--color-brand-primary--hover);
-    }
-
-    &[data-focus-visible] {
-      outline: 2px solid var(--color-brand-accent--focus);
-      outline-offset: 2px;
-    }
-  }
 }
 
 /* Mobile overrides */

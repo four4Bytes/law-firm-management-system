@@ -3,6 +3,7 @@
 import { FaArrowUpRightFromSquare, FaDownload } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink/ButtonLink";
 import { Link } from "@/components/ui/Link/Link";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { FileIcon } from "@/features/documents/components/FileIcon/FileIcon";
@@ -91,13 +92,14 @@ export function DocumentDetailsModal({
           >
             <FaDownload aria-hidden="true" /> Download
           </Button>
-          <Link
+          <ButtonLink
             href={`/document/preview/${document.id}`}
             target="_blank"
-            className={styles.openPageLink}
+            rel="noopener noreferrer"
+            variant="primary"
           >
             <FaArrowUpRightFromSquare aria-hidden="true" /> Open in new page
-          </Link>
+          </ButtonLink>
         </div>
       </div>
     </Modal>

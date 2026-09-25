@@ -1,7 +1,7 @@
 import { FaArrowUpRightFromSquare, FaDownload, FaEye, FaXmark } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
-import { Link } from "@/components/ui/Link/Link";
+import { ButtonLink } from "@/components/ui/ButtonLink/ButtonLink";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { FileRow } from "@/features/documents/components/FileRow/FileRow";
 import type { DocumentRow } from "@/features/documents/queries";
@@ -54,14 +54,16 @@ export function DocumentListRow({
           )}
 
           <TooltipTrigger>
-            <Link
+            <ButtonLink
               href={`/document/preview/${id}`}
               target="_blank"
+              rel="noopener noreferrer"
+              variant="ghost"
               className={styles.actionButton}
               aria-label="Open document in a new page"
             >
               <FaArrowUpRightFromSquare />
-            </Link>
+            </ButtonLink>
             <Tooltip>Open document in a new page</Tooltip>
           </TooltipTrigger>
 

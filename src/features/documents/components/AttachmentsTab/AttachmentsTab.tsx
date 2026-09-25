@@ -1,16 +1,17 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { FaDownload, FaEye, FaTrashCan } from "react-icons/fa6";
+import { FaArrowUpRightFromSquare, FaDownload, FaEye, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
+import { Link } from "@/components/ui/Link/Link";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
+import { DocumentDetailsModal } from "@/features/documents/components/DocumentDetailsModal/DocumentDetailsModal";
 import { UploadDocumentModal } from "@/features/documents/components/UploadDocumentModal/UploadDocumentModal";
-import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
 import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
 import type { Role } from "@/generated/prisma/browser";
@@ -32,9 +33,8 @@ interface Props {
 export function AttachmentsTab({ caseId, consultationId, taskId, access, userRole }: Props) {
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
+  const [detailsDocument, setDetailsDocument] = useState<DocumentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
-
   const canCreate = can(userRole, "attachment.create", access);
 
   const handleRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -90,33 +90,44 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
               <TooltipTrigger>
                 <Button
                   variant="ghost"
-                  aria-label="Preview attachment"
-                  onPress={() => setPreviewDocument(doc)}
+                  aria-label={`View details of ${doc.file_name}`}
+                  onPress={() => setDetailsDocument(doc)}
                 >
                   <FaEye className={styles.icon} />
                 </Button>
-                <Tooltip>Preview attachment</Tooltip>
+                <Tooltip>{`View details of ${doc.file_name}`}</Tooltip>
+              </TooltipTrigger>
+              <TooltipTrigger>
+                <Link
+                  href={`/document/preview/${doc.id}`}
+                  target="_blank"
+                  className={styles.openPageLink}
+                  aria-label={`Open ${doc.file_name} in a new page`}
+                >
+                  <FaArrowUpRightFromSquare className={styles.icon} />
+                </Link>
+                <Tooltip>{`Open ${doc.file_name} in a new page`}</Tooltip>
               </TooltipTrigger>
               <TooltipTrigger>
                 <Button
                   variant="ghost"
-                  aria-label="Download attachment"
+                  aria-label={`Download ${doc.file_name}`}
                   onPress={() => handleDownload(doc)}
                   isPending={pendingIds.has(doc.id)}
                 >
                   <FaDownload className={styles.icon} />
                 </Button>
-                <Tooltip>Download attachment</Tooltip>
+                <Tooltip>{`Download ${doc.file_name}`}</Tooltip>
               </TooltipTrigger>
               <TooltipTrigger>
                 <Button
                   variant="ghost"
-                  aria-label="Delete attachment"
+                  aria-label={`Delete ${doc.file_name}`}
                   onPress={() => setDeleteTarget(doc)}
                 >
                   <FaTrashCan className={styles.icon} />
                 </Button>
-                <Tooltip>Delete attachment</Tooltip>
+                <Tooltip>{`Delete ${doc.file_name}`}</Tooltip>
               </TooltipTrigger>
             </div>
           );
@@ -150,11 +161,11 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
         consultationId={consultationId}
         taskId={taskId}
       />
-      {previewDocument && (
-        <ViewAttachmentModal
-          isOpen={!!previewDocument}
-          onOpenChange={() => setPreviewDocument(null)}
-          document={previewDocument}
+      {detailsDocument && (
+        <DocumentDetailsModal
+          isOpen={!!detailsDocument}
+          onOpenChange={() => setDetailsDocument(null)}
+          document={detailsDocument}
         />
       )}
       <ConfirmDialog

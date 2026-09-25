@@ -13,7 +13,7 @@ import { getParentPath } from "@/lib/domain/path";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import {
   generateKey,
-  getPresignedDownloadUrl,
+  getPresignedFileUrl,
   getPresignedUploadUrl,
   objectExists,
 } from "@/lib/infra/s3";
@@ -24,7 +24,7 @@ import {
   type ActionDataResponse,
   type ActionStatusResponse,
 } from "@/lib/security/action-response";
-import { requireAuth } from "@/lib/security/auth-guards";
+import { requireAuth, type AuthenticatedUser } from "@/lib/security/auth-guards";
 import { ForbiddenError, TaskLockedError, toActionResponse } from "@/lib/security/errors";
 import { can, type AccessContext } from "@/lib/security/rbac";
 
@@ -35,6 +35,7 @@ import {
   deleteDocumentWithParentCheck,
 } from "./mutations";
 import {
+  getAuthorizedDocument,
   getDocumentAccessContext,
   getDocumentById,
   getDocumentsPaginated,
@@ -214,38 +215,33 @@ export async function confirmDocumentUploadAction(
   }
 }
 
-export async function getDocumentDownloadUrlAction(documentId: string): Promise<{
-  url: string;
-  file_name: string;
-}> {
-  const session = await requireAuth();
-
+async function authorizeDocumentAccess(
+  session: AuthenticatedUser,
+  documentId: string,
+): Promise<{ file_path: string; file_name: string }> {
   const parsed = DocumentIdSchema.safeParse({ documentId });
   if (!parsed.success) {
     throw new Error("Invalid document ID");
   }
 
-  const doc = await getDocumentById(parsed.data.documentId);
-  if (!doc) throw new Error("Document not found");
+  const document = await getAuthorizedDocument(parsed.data.documentId, session);
+  if (!document) throw new Error("Document not found");
 
-  if (doc.task_id) {
-    const taskAccess = await getTaskAccessContext(session.id, doc.task_id);
-    if (!can(session.role, "task.read", taskAccess)) {
-      throw new ForbiddenError();
-    }
-  }
-
-  const access = await getDocumentAccessContext(session.id, doc.id);
-  if (!can(session.role, "attachment.read", access)) {
-    throw new ForbiddenError();
-  }
-
-  const exists = await objectExists(doc.file_path);
+  const exists = await objectExists(document.file_path);
   if (!exists) throw new Error("This file no longer exists in storage. It may have been deleted.");
 
-  const url = await getPresignedDownloadUrl(doc.file_path, doc.file_name);
+  return { file_path: document.file_path, file_name: document.file_name };
+}
 
-  return { url, file_name: doc.file_name };
+export async function getDocumentDownloadUrlAction(documentId: string): Promise<{
+  url: string;
+  file_name: string;
+}> {
+  const session = await requireAuth();
+  const { file_path, file_name } = await authorizeDocumentAccess(session, documentId);
+  const url = await getPresignedFileUrl(file_path, file_name);
+
+  return { url, file_name };
 }
 
 export async function deleteDocumentAction(

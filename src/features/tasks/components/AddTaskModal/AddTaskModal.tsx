@@ -8,7 +8,7 @@ import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
-import { FileList } from "@/features/documents/components/FileList/FileList";
+import { UploadQueue } from "@/features/documents/components/UploadQueue/UploadQueue";
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
@@ -204,7 +204,7 @@ export function AddTaskModal({
               label="Drop files or click to upload"
               description="Supported: PDF, DOC, XLS, images, TXT, CSV"
             />
-            <FileList entries={fileEntries} isBusy={isPending} onRemove={removeFile} />
+            <UploadQueue entries={fileEntries} isBusy={isPending} onRemove={removeFile} />
           </div>
         </div>
 

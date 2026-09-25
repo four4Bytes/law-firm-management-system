@@ -3,7 +3,21 @@
   gap: var(--space-xs);
 
   .icon {
+    display: inline-flex;
+    align-items: center;
     width: var(--icon-size-sm);
     height: auto;
+  }
+
+  .openPageLink {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-xs);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+
+    &[data-hovered] {
+      background: var(--color-surface-hover);
+    }
   }
 }

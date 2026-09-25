@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { FaDownload } from "react-icons/fa6";
 
@@ -86,7 +87,18 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
   }, [src, isText]);
 
   if (category === "img") {
-    return <img src={src} alt={file_name} className={styles.image} />;
+    return (
+      <div className={styles.imageFrame}>
+        <Image
+          src={src}
+          alt={file_name}
+          fill
+          sizes="(max-width: 48rem) 100vw, 90vw"
+          unoptimized
+          className={styles.image}
+        />
+      </div>
+    );
   }
 
   if (category === "video") {

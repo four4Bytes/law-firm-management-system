@@ -134,6 +134,22 @@ export async function objectExists(key: string): Promise<boolean> {
 }
 
 /**
+ * Reads the stored object's byte length without downloading its contents.
+ *
+ * @param key - The S3 object key to inspect.
+ * @returns The verified byte length, or `null` when the object or length is missing.
+ */
+export async function getObjectSize(key: string): Promise<number | null> {
+  try {
+    const response = await s3().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
+    return response.ContentLength ?? null;
+  } catch (error) {
+    if (error instanceof NotFound) return null;
+    throw error;
+  }
+}
+
+/**
  * Metadata for a single object in the bucket.
  */
 export interface ObjectSummary {

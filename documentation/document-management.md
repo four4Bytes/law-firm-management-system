@@ -22,8 +22,8 @@ the [Data Models](./models.md) reference.
 2. The server validates auth, RBAC (`attachment.create`), the parent reference, and the
    allowed file type, then generates an object key and a presigned **PUT** URL.
 3. The browser performs a native `fetch` PUT of the raw `File` directly to the bucket.
-4. On success the client calls `confirmDocumentUploadAction`, which persists the `Document`
-   row and audits the upload.
+4. On success the client calls `confirmDocumentUploadAction`. The server checks the stored object's
+   size with S3 before persisting the `Document` row and auditing the upload.
 
 No presigned URL is issued for a disallowed type, and no `Document` row is created on confirm
 unless the type still passes validation — see [Validation](#file-type-validation).
@@ -74,16 +74,17 @@ Alongside file type, `src/lib/files/upload-policy.ts` centralizes the size cap a
 detection so the client and server share one policy.
 
 - **Size cap**: `getAppMaxUploadBytes()` returns the maximum permitted upload size, defaulting to
-  `DEFAULT_MAX_UPLOAD_BYTES` (500 MB). It reads `APP_MAX_UPLOAD_BYTES` on the server and the
-  inlined `NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES` in the browser, so the same limit is applied on both
-  sides of the upload boundary. `isWithinUploadSizeLimit(bytes)` is the predicate.
+  `DEFAULT_MAX_UPLOAD_BYTES` (500 MB). Set `NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES` to configure the
+  same limit on the server and in the browser bundle. `APP_MAX_UPLOAD_BYTES` is not used.
+  `isWithinUploadSizeLimit(bytes)` is the predicate.
 - **Where it is enforced**:
   - The upload modal rejects over-sized files client-side and toasts the limit via
     `getAppMaxUploadBytes()`.
-  - `DocumentConfirmPayloadSchema` (`src/features/documents/schemas.ts`) enforces the cap
-    server-side on `file_size` (message: `"File is larger than the maximum upload size"`).
+  - `DocumentConfirmPayloadSchema` (`src/features/documents/schemas.ts`) checks the client-reported
+    `file_size`. `confirmDocumentUploadAction` also reads S3 `ContentLength`, rejects a missing or
+    oversized object, and saves that verified size in the document row.
   - The presign (`DocumentUploadPayloadSchema`) step does not carry a `file_size`, so the size is
-    not checked until confirm; the confirm-time check is what actually gates the `Document` row.
+    not checked until confirm; the storage-backed check gates the `Document` row.
 - **Duplicates**: `findDuplicateFiles(incoming, queued)` compares files by a
   `name:size:lastModified` identity so re-selecting or re-dropping the same file is reported
   instead of being silently queued twice. It detects both matches against already-queued files and

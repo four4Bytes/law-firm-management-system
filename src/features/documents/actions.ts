@@ -11,8 +11,10 @@ import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { TaskStatus } from "@/generated/prisma/browser";
 import { getParentPath } from "@/lib/domain/path";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
+import { isWithinUploadSizeLimit } from "@/lib/files/upload-policy";
 import {
   generateKey,
+  getObjectSize,
   getPresignedFileUrl,
   getPresignedUploadUrl,
   objectExists,
@@ -149,8 +151,7 @@ export async function confirmDocumentUploadAction(
   const parsed = DocumentConfirmPayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("upload confirmation");
 
-  const { file_name, file_type, file_size, file_path, case_id, consultation_id, task_id } =
-    parsed.data;
+  const { file_name, file_type, file_path, case_id, consultation_id, task_id } = parsed.data;
 
   try {
     const parentAccess = await getDocumentParentAccessContext({
@@ -161,6 +162,16 @@ export async function confirmDocumentUploadAction(
     });
     if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
       return actionForbidden();
+    }
+
+    const file_size = await getObjectSize(file_path);
+    if (
+      !Number.isSafeInteger(file_size) ||
+      file_size === null ||
+      file_size <= 0 ||
+      !isWithinUploadSizeLimit(file_size)
+    ) {
+      return actionInvalid("upload confirmation");
     }
 
     let doc: { id: string };

@@ -7,6 +7,37 @@ export const TEXT_PREVIEW_MAX_CHARS = 4000;
 export const TEXT_PREVIEW_MAX_BYTES = 1024 * 1024;
 
 /**
+ * Reads preview text while enforcing the byte limit on each streamed chunk.
+ *
+ * @param response - The fetched text response.
+ * @returns The decoded text when the response fits within the preview limit.
+ */
+export async function readTextPreview(response: Response): Promise<string> {
+  if (!response.body) throw new Error("Text preview response has no body");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let bytes = 0;
+  let text = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > TEXT_PREVIEW_MAX_BYTES) {
+        await reader.cancel();
+        throw new Error("Text preview exceeds the size limit");
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    return text + decoder.decode();
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/**
  * Whether a file is small enough to fetch for an inline text preview.
  * Oversized files are offered a download instead of a doomed transfer.
  *

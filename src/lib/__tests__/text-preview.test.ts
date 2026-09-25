@@ -1,10 +1,43 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   canPreviewTextInline,
+  readTextPreview,
   sliceTextPreview,
   TEXT_PREVIEW_MAX_BYTES,
 } from "@/lib/files/text-preview";
+
+describe("readTextPreview", () => {
+  it("decodes split UTF-8 chunks within the byte limit", async () => {
+    const response = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([0xc3]));
+          controller.enqueue(new Uint8Array([0xa9]));
+          controller.close();
+        },
+      }),
+    );
+
+    await expect(readTextPreview(response)).resolves.toBe("é");
+  });
+
+  it("cancels and rejects a stream as soon as it exceeds the byte limit", async () => {
+    const cancel = vi.fn();
+    const response = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(TEXT_PREVIEW_MAX_BYTES));
+          controller.enqueue(new Uint8Array([1]));
+        },
+        cancel,
+      }),
+    );
+
+    await expect(readTextPreview(response)).rejects.toThrow("size limit");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+});
 
 describe("canPreviewTextInline", () => {
   it("allows files within the size limit", () => {

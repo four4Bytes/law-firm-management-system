@@ -1,23 +1,18 @@
 /** Client- and server-shared policy for which files may be uploaded as documents. */
 
-/** Default maximum upload size: 500 MB. Override with `APP_MAX_UPLOAD_BYTES`. */
+/** Default maximum upload size: 500 MB. Override with `NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES`. */
 export const DEFAULT_MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 
 /**
  * Resolves the maximum permitted upload size in bytes.
  *
- * The server reads `APP_MAX_UPLOAD_BYTES`; the browser reads the inlined
- * `NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES`. Both fall back to
- * {@link DEFAULT_MAX_UPLOAD_BYTES} so the limit is enforced identically on
- * both sides of the upload boundary.
+ * Both server and browser read `NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES`, which Next.js
+ * inlines in browser bundles. The default applies when it is not configured.
  *
  * @returns The maximum upload size in bytes.
  */
 export function getAppMaxUploadBytes(): number {
-  const value =
-    typeof window === "undefined"
-      ? process.env.APP_MAX_UPLOAD_BYTES
-      : process.env.NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES;
+  const value = process.env.NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_UPLOAD_BYTES;
 }

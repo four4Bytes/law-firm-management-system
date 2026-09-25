@@ -39,14 +39,19 @@ describe("isWithinUploadSizeLimit", () => {
     expect(isWithinUploadSizeLimit(DEFAULT_MAX_UPLOAD_BYTES + 1)).toBe(false);
   });
 
-  it("honors the server-side override", () => {
-    process.env.APP_MAX_UPLOAD_BYTES = String(1024);
+  it("honors the public limit", () => {
+    process.env.NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES = String(1024);
     expect(isWithinUploadSizeLimit(1024)).toBe(true);
     expect(isWithinUploadSizeLimit(1025)).toBe(false);
   });
 
   it("ignores a malformed override and uses the default", () => {
-    process.env.APP_MAX_UPLOAD_BYTES = "not-a-number";
+    process.env.NEXT_PUBLIC_APP_MAX_UPLOAD_BYTES = "not-a-number";
+    expect(isWithinUploadSizeLimit(DEFAULT_MAX_UPLOAD_BYTES)).toBe(true);
+  });
+
+  it("does not apply a server-only limit", () => {
+    process.env.APP_MAX_UPLOAD_BYTES = String(1024);
     expect(isWithinUploadSizeLimit(DEFAULT_MAX_UPLOAD_BYTES)).toBe(true);
   });
 });

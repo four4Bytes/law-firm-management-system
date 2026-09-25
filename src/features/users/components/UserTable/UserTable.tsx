@@ -102,7 +102,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
             <TooltipTrigger>
               <Button
                 variant="ghost"
-                aria-label="Edit user"
+                aria-label={`Edit user ${row.name}`}
                 onPress={() => setModalTarget({ type: "edit", user: row })}
               >
                 <FaPenToSquare className={styles.icon} />
@@ -112,7 +112,7 @@ export function UserTable({ users, initialCursor, sessionUserRole }: UserTablePr
             <TooltipTrigger>
               <Button
                 variant="ghost"
-                aria-label="Deactivate user"
+                aria-label={`Deactivate user ${row.name}`}
                 onPress={() => setDeletingUser(row)}
               >
                 <FaTrashCan className={styles.icon} />

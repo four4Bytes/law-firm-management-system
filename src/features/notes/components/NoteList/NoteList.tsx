@@ -84,7 +84,7 @@ export function NoteList({
                 <Button
                   variant="ghost"
                   className={styles.editButton}
-                  aria-label={"Edit note"}
+                  aria-label={`Edit note: ${note.content.slice(0, 50)}`}
                   onPress={() => onEdit(note)}
                 >
                   <FaPen />
@@ -97,7 +97,7 @@ export function NoteList({
                 <Button
                   variant="ghost"
                   className={styles.deleteButton}
-                  aria-label={"Delete note"}
+                  aria-label={`Delete note: ${note.content.slice(0, 50)}`}
                   onPress={() => onDelete(note.id)}
                 >
                   <FaXmark />

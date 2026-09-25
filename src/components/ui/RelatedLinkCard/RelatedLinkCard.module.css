@@ -5,7 +5,6 @@
   width: fit-content;
   padding: var(--space-md) var(--space-lg);
   background: var(--color-surface-bg-alt);
-  border-left: 3px solid var(--color-brand-accent);
   border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--color-text-primary);

@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
-import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/security/errors";
+import {
+  ForbiddenError,
+  RecordLockedError,
+  TASK_LOCKED_MESSAGE,
+  TaskLockedError,
+} from "@/lib/security/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
@@ -20,7 +25,7 @@ import {
   deleteDocumentForTask,
   deleteDocumentWithParentCheck,
 } from "../mutations";
-import { getDocumentAccessContext, getDocumentById } from "../queries";
+import { getAuthorizedDocument, getDocumentAccessContext, getDocumentById } from "../queries";
 
 vi.mock("@/lib/security/auth-guards", () => ({
   requireAuth: vi.fn().mockResolvedValue({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }),
@@ -57,7 +62,7 @@ vi.mock("@/lib/domain/path", () => ({
 
 vi.mock("@/lib/infra/s3", () => ({
   generateKey: vi.fn(),
-  getPresignedDownloadUrl: vi.fn(),
+  getPresignedFileUrl: vi.fn(),
   getPresignedUploadUrl: vi.fn(),
   objectExists: vi.fn(),
 }));
@@ -69,6 +74,7 @@ vi.mock("@/lib/files/storage-cleanup", () => ({
 vi.mock("../queries", () => ({
   getDocumentAccessContext: vi.fn(),
   getDocumentById: vi.fn(),
+  getAuthorizedDocument: vi.fn(),
   getDocumentsPaginated: vi.fn().mockResolvedValue({ rows: [], nextCursor: null }),
 }));
 
@@ -118,8 +124,16 @@ describe("getDocumentsPaginatedAction", () => {
 });
 
 describe("getDocumentDownloadUrlAction", () => {
-  it("throws Forbidden when attachment read is denied", async () => {
+  it("propagates a denied read from the authorized-document query", async () => {
+    vi.mocked(getAuthorizedDocument).mockRejectedValue(new ForbiddenError());
+
     await expect(getDocumentDownloadUrlAction(uuid)).rejects.toThrow("Forbidden");
+  });
+
+  it("rejects when the document does not exist", async () => {
+    vi.mocked(getAuthorizedDocument).mockResolvedValue(null);
+
+    await expect(getDocumentDownloadUrlAction(uuid)).rejects.toThrow("Document not found");
   });
 });
 

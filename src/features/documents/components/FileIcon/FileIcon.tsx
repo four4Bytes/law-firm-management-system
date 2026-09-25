@@ -1,13 +1,14 @@
 import clsx from "clsx";
 import {
-  FaRegFile,
-  FaRegFileExcel,
-  FaRegFileImage,
-  FaRegFileLines,
-  FaRegFilePdf,
-  FaRegFilePowerpoint,
-  FaRegFileWord,
-  FaRegFileZipper,
+  FaFile,
+  FaFileExcel,
+  FaFileImage,
+  FaFileLines,
+  FaFilePdf,
+  FaFilePowerpoint,
+  FaFileVideo,
+  FaFileWord,
+  FaFileZipper,
 } from "react-icons/fa6";
 import type { IconType } from "react-icons/lib";
 
@@ -16,14 +17,15 @@ import { classifyFileType, type FileCategory } from "@/lib/files/file-format";
 import styles from "./FileIcon.module.css";
 
 const FILE_TYPE_ICONS: Record<FileCategory, IconType> = {
-  pdf: FaRegFilePdf,
-  doc: FaRegFileWord,
-  xls: FaRegFileExcel,
-  ppt: FaRegFilePowerpoint,
-  img: FaRegFileImage,
-  zip: FaRegFileZipper,
-  txt: FaRegFileLines,
-  unknown: FaRegFile,
+  pdf: FaFilePdf,
+  doc: FaFileWord,
+  xls: FaFileExcel,
+  ppt: FaFilePowerpoint,
+  img: FaFileImage,
+  video: FaFileVideo,
+  zip: FaFileZipper,
+  txt: FaFileLines,
+  unknown: FaFile,
 };
 
 interface FileIconProps {

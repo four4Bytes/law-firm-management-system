@@ -23,6 +23,10 @@
   --file-icon-color: var(--raw-violet);
 }
 
+.icon[data-category="video"] {
+  --file-icon-color: var(--raw-teal);
+}
+
 .icon[data-category="zip"] {
   --file-icon-color: var(--raw-amber);
 }

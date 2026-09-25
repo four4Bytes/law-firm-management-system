@@ -1,0 +1,5 @@
+.actionButton {
+  padding: 2px;
+  font-size: var(--icon-size-sm);
+  color: var(--color-text-muted);
+}

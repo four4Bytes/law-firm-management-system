@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { isAcceptedFileExtension } from "@/lib/files/file-types";
+import { getAppMaxUploadBytes } from "@/lib/files/upload-policy";
 import { requiredText } from "@/lib/validation/form-utils";
 import { exactlyOneOf, SortQuerySchema } from "@/lib/validation/schemas";
 
@@ -38,7 +39,9 @@ export const DocumentConfirmPayloadSchema = z
   .object({
     file_name: requiredText(500, "File name"),
     file_type: requiredText(100, "File type"),
-    file_size: z.coerce.number().int().positive(),
+    file_size: z.coerce.number().int().positive().max(getAppMaxUploadBytes(), {
+      message: "File is larger than the maximum upload size",
+    }),
     file_path: requiredText(1000, "File path"),
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),

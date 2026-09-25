@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
@@ -47,6 +49,20 @@ export function UploadDocumentModal({
     resetFiles,
     uploadFiles,
   } = useFileUpload({ caseId, consultationId, taskId });
+  const fileEntriesRef = useRef(fileEntries);
+
+  useEffect(() => {
+    fileEntriesRef.current = fileEntries;
+  }, [fileEntries]);
+
+  useEffect(
+    () => () => {
+      for (const entry of fileEntriesRef.current) {
+        if (classifyFileType(entry.file.type) === "img") revokeObjectUrl(entry.file);
+      }
+    },
+    [],
+  );
 
   const hasUploading = fileEntries.some((entry) => entry.status === "uploading");
   const isBusy = isUploading || hasUploading;
@@ -134,6 +150,9 @@ export function UploadDocumentModal({
       }
 
       if (failed === 0) {
+        for (const entry of fileEntries) {
+          if (classifyFileType(entry.file.type) === "img") revokeObjectUrl(entry.file);
+        }
         resetFiles();
         onOpenChange(false);
       }

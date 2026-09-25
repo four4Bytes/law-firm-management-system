@@ -17,7 +17,7 @@ import {
   formatFileSize,
   isPlayableVideo,
 } from "@/lib/files/file-format";
-import { canPreviewTextInline, sliceTextPreview } from "@/lib/files/text-preview";
+import { canPreviewTextInline, readTextPreview, sliceTextPreview } from "@/lib/files/text-preview";
 import { formatDate } from "@/lib/primitives/date";
 
 import styles from "./DocumentPreview.module.css";
@@ -75,7 +75,8 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
       try {
         const response = await fetch(src, { signal: controller.signal });
         if (!response.ok) throw new Error("Failed to load text preview");
-        setTextState({ src, text: sliceTextPreview(await response.text()) });
+        const text = await readTextPreview(response);
+        if (!controller.signal.aborted) setTextState({ src, text: sliceTextPreview(text) });
       } catch {
         if (controller.signal.aborted) return;
         setTextState({ src, failed: true });

@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { FileIcon } from "@/features/documents/components/FileIcon/FileIcon";
@@ -28,7 +29,15 @@ export function FileRow({
   return (
     <div className={clsx(styles.row, className)}>
       {showThumbnail ? (
-        <img src={previewUrl} alt="" className={styles.thumbnail} />
+        <Image
+          src={previewUrl}
+          alt=""
+          width={48}
+          height={48}
+          sizes="48px"
+          unoptimized
+          className={styles.thumbnail}
+        />
       ) : (
         <FileIcon fileType={fileType} className={styles.icon} />
       )}

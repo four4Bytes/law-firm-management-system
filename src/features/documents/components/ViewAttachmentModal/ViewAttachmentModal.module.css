@@ -1,9 +1,0 @@
-.modal {
-  width: 500px;
-
-  .content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-  }
-}

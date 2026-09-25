@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { deleteDocumentAction } from "@/features/documents/actions";
-import { FileList } from "@/features/documents/components/FileList/FileList";
-import { ViewAttachmentModal } from "@/features/documents/components/ViewAttachmentModal/ViewAttachmentModal";
+import { DocumentDetailsModal } from "@/features/documents/components/DocumentDetailsModal/DocumentDetailsModal";
+import { DocumentList } from "@/features/documents/components/DocumentList/DocumentList";
+import { UploadQueue } from "@/features/documents/components/UploadQueue/UploadQueue";
 import type { DocumentRow } from "@/features/documents/queries";
 import { useTaskDocuments } from "@/features/tasks/hooks/useTaskDocuments";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/files/file-types";
@@ -17,8 +18,8 @@ import styles from "./TaskFilesSection.module.css";
 export interface TaskFilesSectionProps {
   taskId: string;
   canEdit: boolean;
-  onSuccess: () => void;
   readOnly?: boolean;
+  onSuccess: () => void;
 }
 
 export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskFilesSectionProps) {
@@ -30,8 +31,8 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskF
     isLoading,
     isLoadingMore,
     nextCursor,
-    previewDocument,
-    setPreviewDocument,
+    detailsDocument,
+    setDetailsDocument,
     handleDownload,
     reload,
     loadMore,
@@ -93,12 +94,10 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskF
           description="Supported: PDF, DOC, XLS, images, TXT, CSV"
         />
       )}
-      <FileList
-        entries={readOnly ? [] : fileEntries}
+      <DocumentList
+        documents={documents}
         isBusy={isUploading || deletingId !== null}
-        onRemove={removeFile}
-        existingDocuments={documents}
-        onView={setPreviewDocument}
+        onView={setDetailsDocument}
         onDownload={handleDownload}
         onDelete={editable ? handleRemoveDocument : undefined}
         isLoading={isLoading}
@@ -107,11 +106,16 @@ export function TaskFilesSection({ taskId, canEdit, onSuccess, readOnly }: TaskF
         isLoadingMore={isLoadingMore}
         onLoadMore={loadMore}
       />
-      {previewDocument && (
-        <ViewAttachmentModal
-          isOpen={!!previewDocument}
-          onOpenChange={() => setPreviewDocument(null)}
-          document={previewDocument}
+      <UploadQueue
+        entries={readOnly ? [] : fileEntries}
+        isBusy={isUploading || deletingId !== null}
+        onRemove={removeFile}
+      />
+      {detailsDocument && (
+        <DocumentDetailsModal
+          isOpen={!!detailsDocument}
+          onOpenChange={() => setDetailsDocument(null)}
+          document={detailsDocument}
         />
       )}
     </div>

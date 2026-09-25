@@ -13,8 +13,8 @@ interface UseTaskDocumentsReturn {
   isLoading: boolean;
   isLoadingMore: boolean;
   nextCursor: string | null;
-  previewDocument: DocumentRow | null;
-  setPreviewDocument: (doc: DocumentRow | null) => void;
+  detailsDocument: DocumentRow | null;
+  setDetailsDocument: (doc: DocumentRow | null) => void;
   handleDownload: (doc: Pick<DocumentRow, "id">) => Promise<void>;
   reload: () => void;
   loadMore: () => Promise<void>;
@@ -25,7 +25,7 @@ export function useTaskDocuments(taskId: string): UseTaskDocumentsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [previewDocument, setPreviewDocument] = useState<DocumentRow | null>(null);
+  const [detailsDocument, setDetailsDocument] = useState<DocumentRow | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const loadingRef = useRef(false);
   const generationRef = useRef(0);
@@ -37,7 +37,7 @@ export function useTaskDocuments(taskId: string): UseTaskDocumentsReturn {
     async function loadFirstPage(): Promise<void> {
       setDocuments([]);
       setNextCursor(null);
-      setPreviewDocument(null);
+      setDetailsDocument(null);
       setIsLoading(true);
       try {
         const res = await getDocumentsPaginatedAction({
@@ -95,10 +95,10 @@ export function useTaskDocuments(taskId: string): UseTaskDocumentsReturn {
     isLoading,
     isLoadingMore,
     nextCursor,
-    previewDocument,
-    setPreviewDocument,
+    detailsDocument,
+    setDetailsDocument,
     handleDownload,
-    reload: () => setReloadKey((k) => k + 1),
     loadMore,
+    reload: () => setReloadKey((k) => k + 1),
   };
 }

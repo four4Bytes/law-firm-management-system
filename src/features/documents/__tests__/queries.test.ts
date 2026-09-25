@@ -43,6 +43,8 @@ describe("getDocumentsPaginated", () => {
       uploadedBy: "John Lawyer",
       created_at: documents[0].created_at,
       task: null,
+      case: null,
+      consultation: null,
     });
     expect(result.rows[1]).toEqual({
       id: "d2",
@@ -52,6 +54,8 @@ describe("getDocumentsPaginated", () => {
       uploadedBy: "Alice Paralegal",
       created_at: documents[1].created_at,
       task: null,
+      case: null,
+      consultation: null,
     });
     expect(prisma.document.findMany).toHaveBeenCalledWith({
       take: 11,
@@ -61,6 +65,8 @@ describe("getDocumentsPaginated", () => {
       include: {
         uploadedBy: { select: { name: true } },
         task: { select: { id: true, title: true, case_id: true } },
+        case: { select: { id: true, case_title: true } },
+        consultation: { select: { id: true, concern: true } },
       },
     });
   });

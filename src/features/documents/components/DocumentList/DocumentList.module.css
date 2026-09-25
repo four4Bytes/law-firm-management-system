@@ -1,0 +1,23 @@
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+}
+
+.documentList {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: var(--list-max-height, 15rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.loadMoreRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: var(--space-3xl);
+}

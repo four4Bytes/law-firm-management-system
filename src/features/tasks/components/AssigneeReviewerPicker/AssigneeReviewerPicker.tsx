@@ -28,6 +28,8 @@ export interface AssigneeReviewerPickerProps {
   reviewerSnapshot?: TaskDetailRow["reviewers"];
   isAssigneeDisabled: boolean;
   isReviewerDisabled: boolean;
+  isAssigneeLoading?: boolean;
+  isReviewerLoading?: boolean;
   assigneeLabel?: string;
   reviewerLabel?: string;
   validate?: (value: string[]) => string | null;
@@ -44,6 +46,8 @@ export function AssigneeReviewerPicker({
   reviewerSnapshot = EMPTY_REVIEWER_SNAPSHOT,
   isAssigneeDisabled,
   isReviewerDisabled,
+  isAssigneeLoading = false,
+  isReviewerLoading = false,
   assigneeLabel = "Assignees",
   reviewerLabel = "Reviewers",
   validate,
@@ -84,6 +88,7 @@ export function AssigneeReviewerPicker({
           selectedIds={assigneeIds}
           onChange={onAssigneeIdsChange}
           isDisabled={isAssigneeDisabled}
+          isLoading={isAssigneeLoading}
           label={assigneeLabel}
           disabledKeys={assigneeDisabledKeys}
           validate={validate}
@@ -96,6 +101,7 @@ export function AssigneeReviewerPicker({
           selectedIds={reviewerIds}
           onChange={handleReviewerIdsChange}
           isDisabled={isReviewerDisabled}
+          isLoading={isReviewerLoading}
           label={reviewerLabel}
           placeholder="Select reviewers..."
           disabledKeys={reviewerDisabledKeys}

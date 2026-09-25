@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { Text } from "@/components/ui/Content/Content";
 import { DropdownItem, DropdownListBox } from "@/components/ui/ListBox/ListBox";
 import { Popover } from "@/components/ui/Popover/Popover";
+import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 
 import styles from "./Select.module.css";
 
@@ -27,6 +28,7 @@ export interface SelectProps<
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   alwaysPlaceholder?: boolean;
+  isLoading?: boolean;
   items?: Iterable<T>;
   children: React.ReactNode | ((item: T) => React.ReactNode);
 }
@@ -36,25 +38,38 @@ export function Select<T extends object, M extends "single" | "multiple" = "sing
   description,
   errorMessage,
   alwaysPlaceholder,
+  isLoading = false,
   children,
   items,
   className,
+  isDisabled,
   ...props
 }: SelectProps<T, M>) {
   return (
-    <AriaSelect {...props} className={clsx(styles.select, className)}>
+    <AriaSelect
+      {...props}
+      isDisabled={isDisabled || isLoading}
+      aria-busy={isLoading || undefined}
+      className={clsx(styles.select, className)}
+    >
       {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
       <Button variant="ghost" className={styles.trigger}>
-        <AriaSelectValue className={styles.value}>
-          {({ isPlaceholder, defaultChildren }) =>
-            alwaysPlaceholder && !isPlaceholder ? (
-              <span className={styles.valuePlaceholder}>{props.placeholder}</span>
-            ) : (
-              defaultChildren
-            )
-          }
-        </AriaSelectValue>
-        <FaChevronDown className={styles.chevron} />
+        {isLoading ? (
+          <ProgressCircle aria-label="Loading..." />
+        ) : (
+          <>
+            <AriaSelectValue className={styles.value}>
+              {({ isPlaceholder, defaultChildren }) =>
+                alwaysPlaceholder && !isPlaceholder ? (
+                  <span className={styles.valuePlaceholder}>{props.placeholder}</span>
+                ) : (
+                  defaultChildren
+                )
+              }
+            </AriaSelectValue>
+            <FaChevronDown className={styles.chevron} />
+          </>
+        )}
       </Button>
       {description && (
         <Text slot="description" className={styles.description}>

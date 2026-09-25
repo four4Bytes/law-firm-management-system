@@ -1,0 +1,52 @@
+.card.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: fit-content;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-surface-bg-alt);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: background var(--transition-base);
+
+  &[data-hovered] {
+    background: var(--color-surface-hover);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--color-brand-accent--focus);
+    outline-offset: 2px;
+  }
+
+  .icon {
+    color: var(--color-brand-accent);
+    font-size: var(--font-size-md);
+    flex-shrink: 0;
+    display: flex;
+  }
+
+  .label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+  }
+
+  .title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+  }
+
+  .arrow {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    flex-shrink: 0;
+    transition: transform var(--transition-base);
+  }
+
+  &[data-hovered] .arrow {
+    transform: translateX(3px);
+  }
+}

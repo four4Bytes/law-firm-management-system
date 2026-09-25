@@ -84,6 +84,7 @@ export function EditConsultationModal({
   );
 
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
   const newBooking = combineDateTime(fields.date, fields.time);
   const bookingChanged = toMinuteEpoch(newBooking) !== toMinuteEpoch(consultation.booking_datetime);
@@ -104,16 +105,28 @@ export function EditConsultationModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
+
     void (async () => {
+      setIsLoadingUsers(true);
       try {
-        setUsers(await getActiveUsersAction());
+        const loadedUsers = await getActiveUsersAction();
+        if (!cancelled) setUsers(loadedUsers);
       } catch {
-        toastError(
-          "Failed to load active users",
-          "The team member list could not be loaded. Please try again.",
-        );
+        if (!cancelled) {
+          toastError(
+            "Failed to load active users",
+            "The team member list could not be loaded. Please try again.",
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoadingUsers(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
 
   const { isPending, submitForm } = useModalForm<
@@ -278,6 +291,7 @@ export function EditConsultationModal({
               selectedIds={assigneeIds}
               onChange={setAssigneeIds}
               isDisabled={fieldsDisabled}
+              isLoading={isLoadingUsers}
             />
             {assigneeIds.size > 0 && (
               <UserChips users={assigneeOptions.filter((user) => assigneeIds.has(user.id))} />

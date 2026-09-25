@@ -60,6 +60,14 @@ export const Disabled: Story = {
   ),
 };
 
+export const Loading: Story = {
+  render: () => (
+    <Select label="Animal" isLoading style={{ width: 220 }}>
+      <SelectItem id="cat">Cat</SelectItem>
+    </Select>
+  ),
+};
+
 export const Required: Story = {
   render: () => (
     <Select label="Animal" isRequired style={{ width: 220 }}>

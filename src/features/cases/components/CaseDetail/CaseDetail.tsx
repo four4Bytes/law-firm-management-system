@@ -61,6 +61,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
+  const [pendingWorkflowStatus, setPendingWorkflowStatus] = useState<CaseStatus | null>(null);
   const [decisionModal, setDecisionModal] = useState<Extract<
     CaseStatus,
     "Closed" | "Settled" | "Terminated"
@@ -157,24 +158,29 @@ export function CaseDetail({ overview, access, userRole }: Props) {
     }
   }
 
-  const { isWorkflowPending, applyChange } = useStatusWorkflow({
+  const { applyChange } = useStatusWorkflow({
     operation: "change case status",
   });
 
   async function applyStatusChange(status: CaseStatus, reason?: string): Promise<boolean> {
-    const succeeded = await applyChange(
-      () =>
-        changeCaseStatusAction({
-          caseId: overview.id,
-          status,
-          ...(reason ? { reason } : {}),
-        }),
-      `The case has been marked as ${status}.`,
-    );
-    if (succeeded) {
-      router.refresh();
+    setPendingWorkflowStatus(status);
+    try {
+      const succeeded = await applyChange(
+        () =>
+          changeCaseStatusAction({
+            caseId: overview.id,
+            status,
+            ...(reason ? { reason } : {}),
+          }),
+        `The case has been marked as ${status}.`,
+      );
+      if (succeeded) {
+        router.refresh();
+      }
+      return succeeded;
+    } finally {
+      setPendingWorkflowStatus(null);
     }
-    return succeeded;
   }
 
   async function handleDecisionConfirm(reason?: string): Promise<boolean> {
@@ -219,7 +225,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
           <CaseWorkflowActions
             status={overview.status as CaseStatus}
             onChangeStatus={handleChangeStatus}
-            isPending={isWorkflowPending}
+            pendingValue={pendingWorkflowStatus ?? undefined}
           />
         }
       />

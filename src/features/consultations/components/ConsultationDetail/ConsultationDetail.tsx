@@ -62,6 +62,9 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditPending, setIsEditPending] = useState(false);
+  const [pendingWorkflowStatus, setPendingWorkflowStatus] = useState<ConsultationStatus | null>(
+    null,
+  );
 
   const [showCaseModal, setShowCaseModal] = useState(false);
   const [workflowUsers, setWorkflowUsers] = useState<ActiveUserSummary[]>([]);
@@ -157,32 +160,42 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
     }
   }
 
-  const { isWorkflowPending, runWorkflowTask, applyChange } = useStatusWorkflow({
+  const { runWorkflowTask, applyChange } = useStatusWorkflow({
     operation: "change consultation status",
   });
 
   async function applyStatusChange(status: ConsultationStatus, reason?: string): Promise<boolean> {
-    const succeeded = await applyChange(
-      () =>
-        changeConsultationStatusAction({
-          consultationId: overview.id,
-          status,
-          ...(reason ? { reason } : {}),
-        }),
-      `The consultation has been marked as ${status}.`,
-    );
-    if (succeeded) {
-      router.refresh();
+    setPendingWorkflowStatus(status);
+    try {
+      const succeeded = await applyChange(
+        () =>
+          changeConsultationStatusAction({
+            consultationId: overview.id,
+            status,
+            ...(reason ? { reason } : {}),
+          }),
+        `The consultation has been marked as ${status}.`,
+      );
+      if (succeeded) {
+        router.refresh();
+      }
+      return succeeded;
+    } finally {
+      setPendingWorkflowStatus(null);
     }
-    return succeeded;
   }
 
   async function handleAcceptOpen() {
-    await runWorkflowTask(async () => {
-      const users = await getActiveUsersAction();
-      setWorkflowUsers(users);
-      setShowCaseModal(true);
-    }, "Failed to accept consultation");
+    setPendingWorkflowStatus(ConsultationStatus.Accepted);
+    try {
+      await runWorkflowTask(async () => {
+        const users = await getActiveUsersAction();
+        setWorkflowUsers(users);
+        setShowCaseModal(true);
+      }, "Failed to accept consultation");
+    } finally {
+      setPendingWorkflowStatus(null);
+    }
   }
 
   async function handleDecisionConfirm(reason?: string): Promise<boolean> {
@@ -231,7 +244,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
             status={overview.status as ConsultationStatus}
             hasLinkedCase={overview.relatedCase !== null}
             onChangeStatus={handleChangeStatus}
-            isPending={isWorkflowPending}
+            pendingValue={pendingWorkflowStatus ?? undefined}
           />
         }
       />

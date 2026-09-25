@@ -11,7 +11,7 @@ interface ConsultationWorkflowActionsProps {
   status: ConsultationStatus;
   hasLinkedCase: boolean;
   onChangeStatus: (status: ConsultationStatus) => void;
-  isPending?: boolean;
+  pendingValue?: ConsultationStatus;
 }
 
 interface WorkflowAction {
@@ -63,7 +63,7 @@ export function ConsultationWorkflowActions({
   status,
   hasLinkedCase,
   onChangeStatus,
-  isPending,
+  pendingValue,
 }: ConsultationWorkflowActionsProps) {
   const allowedTargets = [...(CONSULTATION_STATUS_TRANSITIONS[status] ?? [])];
   if (status === ConsultationStatus.Accepted && !hasLinkedCase) {
@@ -74,7 +74,7 @@ export function ConsultationWorkflowActions({
     <WorkflowButtons
       buttons={allowedTargets.map((target) => toButton(status, target))}
       onSelect={onChangeStatus}
-      isPending={isPending}
+      pendingValue={pendingValue}
     />
   );
 }

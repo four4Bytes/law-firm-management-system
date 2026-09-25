@@ -10,7 +10,7 @@ import { CASE_STATUS_TRANSITIONS } from "../../status";
 interface CaseWorkflowActionsProps {
   status: CaseStatus;
   onChangeStatus: (status: CaseStatus) => void;
-  isPending?: boolean;
+  pendingValue?: CaseStatus;
 }
 
 interface WorkflowAction {
@@ -50,7 +50,7 @@ function toButton(target: CaseStatus): WorkflowButton<CaseStatus> {
 export function CaseWorkflowActions({
   status,
   onChangeStatus,
-  isPending,
+  pendingValue,
 }: CaseWorkflowActionsProps) {
   const allowedTargets = [...(CASE_STATUS_TRANSITIONS[status] ?? [])];
 
@@ -58,7 +58,7 @@ export function CaseWorkflowActions({
     <WorkflowButtons
       buttons={allowedTargets.map(toButton)}
       onSelect={onChangeStatus}
-      isPending={isPending}
+      pendingValue={pendingValue}
     />
   );
 }

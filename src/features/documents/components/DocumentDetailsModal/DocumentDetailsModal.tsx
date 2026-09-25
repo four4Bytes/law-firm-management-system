@@ -98,7 +98,7 @@ export function DocumentDetailsModal({
             rel="noopener noreferrer"
             variant="primary"
           >
-            <FaArrowUpRightFromSquare aria-hidden="true" /> Open in new page
+            <FaArrowUpRightFromSquare aria-hidden="true" /> Preview in new page
           </ButtonLink>
         </div>
       </div>

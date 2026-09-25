@@ -4,9 +4,9 @@ import { useCallback, useMemo, useState } from "react";
 import { FaArrowUpRightFromSquare, FaDownload, FaEye, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink/ButtonLink";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
-import { Link } from "@/components/ui/Link/Link";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { deleteDocumentAction, getDocumentsPaginatedAction } from "@/features/documents/actions";
@@ -98,14 +98,15 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
                 <Tooltip>{"View document details"}</Tooltip>
               </TooltipTrigger>
               <TooltipTrigger>
-                <Link
+                <ButtonLink
                   href={`/document/preview/${doc.id}`}
                   target="_blank"
-                  className={styles.openPageLink}
-                  aria-label={"Open document in a new page"}
+                  rel="noopener noreferrer"
+                  variant="ghost"
+                  aria-label="Open document in a new page"
                 >
                   <FaArrowUpRightFromSquare className={styles.icon} />
-                </Link>
+                </ButtonLink>
                 <Tooltip>Open document in a new page</Tooltip>
               </TooltipTrigger>
               <TooltipTrigger>

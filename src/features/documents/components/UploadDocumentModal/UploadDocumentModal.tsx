@@ -81,15 +81,20 @@ export function UploadDocumentModal({
     const accepted = incoming.filter(
       (file) =>
         !duplicateSet.has(file) &&
+        file.size > 0 &&
         isAcceptedFileExtension(file.name) &&
         isWithinUploadSizeLimit(file.size),
     );
+    const rejectedEmpty = incoming.filter(
+      (file) => !duplicateSet.has(file) && file.size === 0,
+    ).length;
     const rejectedWrongType = incoming.filter(
-      (file) => !duplicateSet.has(file) && !isAcceptedFileExtension(file.name),
+      (file) => !duplicateSet.has(file) && file.size > 0 && !isAcceptedFileExtension(file.name),
     ).length;
     const rejectedTooLarge = incoming.filter(
       (file) =>
         !duplicateSet.has(file) &&
+        file.size > 0 &&
         isAcceptedFileExtension(file.name) &&
         !isWithinUploadSizeLimit(file.size),
     ).length;
@@ -98,6 +103,12 @@ export function UploadDocumentModal({
       toastError(
         `${duplicates.length} file${duplicates.length > 1 ? "s" : ""} already queued`,
         "Duplicate files were skipped. Remove the existing entry first if you meant to add it twice.",
+      );
+    }
+    if (rejectedEmpty > 0) {
+      toastError(
+        `${rejectedEmpty} empty file${rejectedEmpty > 1 ? "s" : ""}`,
+        "Empty files cannot be uploaded. Choose a file that contains data.",
       );
     }
     if (rejectedWrongType > 0) {

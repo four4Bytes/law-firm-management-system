@@ -80,6 +80,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { pendingId: pendingEditId, run: runEditFetch, clear: clearEditFetch } = usePendingFetch();
@@ -93,6 +94,7 @@ export function TasksTab({ caseId, access, userRole }: Props) {
     let cancelled = false;
 
     async function loadAssignees() {
+      setIsLoadingUsers(true);
       try {
         const [usersData, sessionUserId] = await Promise.all([
           getActiveUsersAction(),
@@ -104,6 +106,8 @@ export function TasksTab({ caseId, access, userRole }: Props) {
       } catch {
         if (cancelled) return;
         toastError("Failed to load assignees", "We couldn't load the user list. Please try again.");
+      } finally {
+        if (!cancelled) setIsLoadingUsers(false);
       }
     }
 
@@ -237,22 +241,22 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         filters={taskFilters}
         selectionMode="none"
         collectionDependencies={[pendingEditId, pendingViewId]}
-        renderAddButton={canCreate && currentUserId !== null}
+        renderAddButton={canCreate && currentUserId !== null && !isLoadingUsers}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}
         refreshTrigger={refreshTrigger}
       />
 
-      {currentUserId !== null && (
-        <AddTaskModal
-          isOpen={isAddOpen}
-          onOpenChange={setIsAddOpen}
-          onSuccess={handleRefresh}
-          caseId={caseId}
-          users={users}
-          currentUserId={currentUserId}
-        />
-      )}
+      <AddTaskModal
+        key={currentUserId ?? "loading"}
+        isOpen={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        onSuccess={handleRefresh}
+        caseId={caseId}
+        users={users}
+        currentUserId={currentUserId}
+        isLoading={isLoadingUsers}
+      />
 
       {editTask && editCapabilities && (
         <EditTaskModal

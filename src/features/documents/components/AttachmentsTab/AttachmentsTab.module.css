@@ -1,8 +1,11 @@
 .actions {
   display: flex;
   gap: var(--space-xs);
+  color: var(--color-text-muted);
 
   .icon {
+    display: inline-flex;
+    align-items: center;
     width: var(--icon-size-sm);
     height: auto;
   }

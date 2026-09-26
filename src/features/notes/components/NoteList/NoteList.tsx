@@ -84,12 +84,12 @@ export function NoteList({
                 <Button
                   variant="ghost"
                   className={styles.editButton}
-                  aria-label={`Edit ${note.author}'s note`}
+                  aria-label={`Edit note: ${note.content.slice(0, 50)}`}
                   onPress={() => onEdit(note)}
                 >
                   <FaPen />
                 </Button>
-                <Tooltip>{`Edit ${note.author}'s note`}</Tooltip>
+                <Tooltip>{"Edit note"}</Tooltip>
               </TooltipTrigger>
             )}
             {onDelete && (
@@ -97,12 +97,12 @@ export function NoteList({
                 <Button
                   variant="ghost"
                   className={styles.deleteButton}
-                  aria-label={`Delete ${note.author}'s note`}
+                  aria-label={`Delete note: ${note.content.slice(0, 50)}`}
                   onPress={() => onDelete(note.id)}
                 >
                   <FaXmark />
                 </Button>
-                <Tooltip>{`Delete ${note.author}'s note`}</Tooltip>
+                <Tooltip>{"Delete note"}</Tooltip>
               </TooltipTrigger>
             )}
           </li>

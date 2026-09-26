@@ -1,0 +1,19 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+
+  .summary {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+  }
+
+  .actions {
+    display: flex;
+    gap: var(--space-md);
+
+    > * {
+      flex: 1;
+    }
+  }
+}

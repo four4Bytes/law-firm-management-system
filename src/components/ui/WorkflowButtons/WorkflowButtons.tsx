@@ -14,13 +14,13 @@ export interface WorkflowButton<T extends string> {
 interface WorkflowButtonsProps<T extends string> {
   buttons: WorkflowButton<T>[];
   onSelect: (value: T) => void;
-  isPending?: boolean;
+  pendingValue?: T;
 }
 
 export function WorkflowButtons<T extends string>({
   buttons,
   onSelect,
-  isPending,
+  pendingValue,
 }: WorkflowButtonsProps<T>) {
   if (buttons.length === 0) {
     return null;
@@ -35,8 +35,8 @@ export function WorkflowButtons<T extends string>({
             type="button"
             aria-label={button.label}
             onPress={() => onSelect(button.value)}
-            isPending={isPending}
-            isDisabled={isPending}
+            isPending={pendingValue === button.value}
+            isDisabled={pendingValue !== undefined}
           >
             {button.icon}
           </Button>

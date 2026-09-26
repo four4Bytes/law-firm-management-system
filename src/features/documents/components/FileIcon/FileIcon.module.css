@@ -1,0 +1,40 @@
+.icon {
+  flex-shrink: 0;
+  color: var(--file-icon-color, var(--color-text-muted));
+}
+
+.icon[data-category="pdf"] {
+  --file-icon-color: var(--raw-brick);
+}
+
+.icon[data-category="doc"] {
+  --file-icon-color: var(--raw-steel);
+}
+
+.icon[data-category="xls"] {
+  --file-icon-color: var(--raw-sage);
+}
+
+.icon[data-category="ppt"] {
+  --file-icon-color: var(--raw-amber);
+}
+
+.icon[data-category="img"] {
+  --file-icon-color: var(--raw-violet);
+}
+
+.icon[data-category="video"] {
+  --file-icon-color: var(--raw-teal);
+}
+
+.icon[data-category="zip"] {
+  --file-icon-color: var(--raw-amber);
+}
+
+.icon[data-category="txt"] {
+  --file-icon-color: var(--raw-gray-500);
+}
+
+.icon[data-category="unknown"] {
+  --file-icon-color: var(--raw-gray-400);
+}

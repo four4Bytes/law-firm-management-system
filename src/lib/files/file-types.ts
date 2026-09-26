@@ -15,6 +15,12 @@ export const ACCEPTED_FILE_EXTENSIONS = [
   ".gif",
   ".txt",
   ".csv",
+  ".mp4",
+  ".mov",
+  ".m4v",
+  ".webm",
+  ".avi",
+  ".mkv",
 ] as const;
 
 const ACCEPTED_FILE_EXTENSION_SET = new Set<string>(

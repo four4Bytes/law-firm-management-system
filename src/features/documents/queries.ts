@@ -2,10 +2,12 @@ import { cache } from "react";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
-import type { TaskStatus } from "@/generated/prisma/browser";
+import { getTaskAccessContext } from "@/features/tasks/queries";
+import type { Role, TaskStatus } from "@/generated/prisma/browser";
 import { prisma, type TransactionClient } from "@/lib/infra/prisma";
 import type { PageQuery } from "@/lib/primitives/types";
-import type { AccessContext } from "@/lib/security/rbac";
+import { ForbiddenError } from "@/lib/security/errors";
+import { can, type AccessContext } from "@/lib/security/rbac";
 
 export type DocumentRow = {
   id: string;
@@ -15,7 +17,12 @@ export type DocumentRow = {
   uploadedBy: string;
   created_at: Date;
   task?: { id: string; title: string; case_id: string } | null;
+  case?: { id: string; case_title: string } | null;
+  consultation?: { id: string; concern: string } | null;
 };
+
+/** A document's display metadata plus the storage key used to presign its URL. */
+export type AuthorizedDocument = DocumentRow & { file_path: string };
 
 export interface DocumentListQuery extends PageQuery {
   caseId?: string;
@@ -74,6 +81,8 @@ export const getDocumentsPaginated = cache(
       include: {
         uploadedBy: { select: { name: true } },
         task: { select: { id: true, title: true, case_id: true } },
+        case: { select: { id: true, case_title: true } },
+        consultation: { select: { id: true, concern: true } },
       },
     });
 
@@ -88,6 +97,8 @@ export const getDocumentsPaginated = cache(
       uploadedBy: d.uploadedBy.name,
       created_at: d.created_at,
       task: d.task,
+      case: d.case ?? null,
+      consultation: d.consultation ?? null,
     }));
 
     return {
@@ -123,6 +134,67 @@ export const getDocumentById = cache(
     });
   },
 );
+
+/**
+ * Loads a document's display metadata and storage key, after asserting the
+ * caller may read it (including the parent task, when attached to one). Throws
+ * `ForbiddenError` when access is denied, and returns `null` when no document
+ * exists so each caller decides how to surface a missing record.
+ *
+ * Shared by the presigned-URL Server Actions and the full-page preview route so
+ * authorization lives in exactly one place.
+ *
+ * @param documentId - The document to load.
+ * @param user - The authenticated session user performing the read.
+ * @returns The authorized document, or `null` when none exists.
+ */
+export async function getAuthorizedDocument(
+  documentId: string,
+  user: { id: string; role: Role },
+): Promise<AuthorizedDocument | null> {
+  const document = await prisma.document.findUnique({
+    where: { id: documentId },
+    select: {
+      id: true,
+      file_path: true,
+      file_name: true,
+      file_type: true,
+      file_size: true,
+      created_at: true,
+      uploadedBy: { select: { name: true } },
+      task: { select: { id: true, title: true, case_id: true } },
+      case: { select: { id: true, case_title: true } },
+      consultation: { select: { id: true, concern: true } },
+    },
+  });
+
+  if (!document) return null;
+
+  if (document.task) {
+    const taskAccess = await getTaskAccessContext(user.id, document.task.id);
+    if (!can(user.role, "task.read", taskAccess)) {
+      throw new ForbiddenError();
+    }
+  }
+
+  const access = await getDocumentAccessContext(user.id, document.id);
+  if (!can(user.role, "attachment.read", access)) {
+    throw new ForbiddenError();
+  }
+
+  return {
+    id: document.id,
+    file_path: document.file_path,
+    file_name: document.file_name,
+    file_type: document.file_type,
+    file_size: document.file_size,
+    uploadedBy: document.uploadedBy.name,
+    created_at: document.created_at,
+    task: document.task,
+    case: document.case ?? null,
+    consultation: document.consultation ?? null,
+  };
+}
 
 /**
  * Collects the S3 object keys for every document attached to a task, so they

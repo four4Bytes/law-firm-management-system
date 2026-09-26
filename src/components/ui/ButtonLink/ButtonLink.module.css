@@ -1,0 +1,8 @@
+.buttonLink {
+  padding: var(--space-sm) var(--space-md);
+  text-decoration: none;
+}
+
+.buttonLinkGhost {
+  padding: var(--space-sm);
+}

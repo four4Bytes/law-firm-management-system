@@ -19,30 +19,28 @@ Single source of truth in `src/lib/domain/lifecycle.ts` (`CONSULTATION_TRANSITIO
 | ------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Consultation | `Scheduled → Completed/Cancelled`; `Completed → Accepted/Rejected`; `Cancelled → Scheduled` | `Accepted`/`Rejected`: no outgoing edges (terminal). `Cancelled` rebooks.                                                                                                  |
 | Case         | `Open → Closed/Settled/Terminated`; each terminal → `Open` (reopen)                         | No _outcome_ change; reopen is an explicit audited edge, never a rewrite.                                                                                                  |
-| Task         | Derived (`Pending ⇄ InReview ⇄ Done`)                                                       | `Done`: terminal via derivation; reopened by adding a reviewer.                                                                                                            |
+| Task         | Derived (`Pending ⇄ InReview ⇄ Done`)                                                       | `Done`: terminal via derivation; reopened by the explicit reopen action.                                                                                                   |
 | Milestone    | `Pending → Done/Cancelled`; each terminal → `Pending` (reopen)                              | Creation always `Pending` (no select; non-`Pending` refused server-side). Single writer (edit-form save); the select offers only legal targets. Reopen restarts reminders. |
 
 Evaluators: `canTransition(table, from, to)` (same-status moves are never valid), `isTerminalStatus(table, status)` (derived — no outgoing edges).
 
-## 3. Append-only locks
+## 3. Terminal status is not a write lock
 
-`isSubdataLocked(entity, status)` decides whether existing notes/files refuse update/delete. Locked sets:
+Reaching a terminal status does **not** freeze a record's contents. Notes, files, and payments stay fully editable on a closed case, a concluded consultation, and a completed task. There is no append-only rule and no `isSubdataLocked` evaluator.
 
-| Entity       | Locked statuses                     |
-| ------------ | ----------------------------------- |
-| Consultation | `Accepted`, `Rejected`, `Cancelled` |
-| Case         | `Closed`, `Settled`, `Terminated`   |
-| Task         | `Done`                              |
+Record integrity is served by the audit trail, not by refusing writes: every note and document mutation writes an `AuditLog` row via `logAudit` (`src/features/audit/mutations.ts`), recording who changed what and when. Philippine matters also get reopened constantly — reconsideration, appeal, new petition, breached settlement — and freezing contents meant the lawyer could not write the note explaining why.
 
-The lock follows _current_ status: rebooking (`Cancelled → Scheduled`) or reopening restores editing automatically. Never locked: reads, note/file creation, payments (refunds must stay recordable), cascade purges on record deletion (system path, not user edits).
+The reasoning, and the client-facing questions this raises, are in [Open questions](./open-questions.md).
 
-Violations throw `RecordLockedError(entity)` (tasks keep `TaskLockedError`), mapped by `toActionResponse` to the `locked` envelope (`actionRecordLocked`). Buttons stay rendered; the toast explains the add-only rule.
+## 4. Field locks
 
-## 4. Field locks (entity-specific, enforced in actions)
+The only freezes in the system. Everything not listed stays editable in every status.
 
-- Consultation: booking changes only while `Scheduled`; all fields frozen when `Accepted` with a linked case.
-- Case: no field locks (status travels only through `changeCaseStatusAction`).
-- Task: metadata frozen when `Done` (except reopening via reviewer add).
+- **Consultation** — booking date changes only while `Scheduled`; all fields frozen once `Accepted` **and** linked to a case. An `Accepted` consultation with no linked case stays editable so it can be healed through the accept flow.
+- **Case** — none.
+- **Task** — the assignee/reviewer roster and the assignment/decision states while `Done`. The roster defines who the approvals apply to, so editing it would change their meaning; the states are what the derived status is computed from.
+
+Each is enforced in its action and returns the `locked` envelope. Per-entity detail lives in the workflow documents below.
 
 ## 5. Shared UI
 
@@ -54,6 +52,7 @@ Status workflows share three primitives so every record behaves the same:
 
 ## 6. Per-entity details
 
-- [Consultation workflow](./consultation-workflow.md) (matrix, accept flow, reschedule rules, decision reasons)
-- [Case workflow](./case-workflow.md) (matrix, closing flow, reopen rules)
-- [Task review workflow](./task-review-workflow.md) (derivation, review chain, reopen)
+- [Consultation workflow](./consultation-workflow.md)
+- [Case workflow](./case-workflow.md)
+- [Task review workflow](./task-review-workflow.md)
+- [Open questions](./open-questions.md)

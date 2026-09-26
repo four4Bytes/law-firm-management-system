@@ -23,10 +23,10 @@ import { can } from "@/lib/security/rbac";
 import {
   createNote,
   createNoteForTask,
+  deleteNote,
   deleteNoteForTask,
-  deleteNoteWithParentCheck,
+  updateNote,
   updateNoteForTask,
-  updateNoteWithParentCheck,
 } from "./mutations";
 import {
   getCaseNotesPaginated,
@@ -46,6 +46,14 @@ import {
   NoteUpdatePayloadSchema,
   TaskNotesListQuerySchema,
 } from "./schemas";
+
+// The audit trail is the record-integrity guarantee now that terminal records
+// are not write-locked, so an entry must capture what changed, not just which
+// id moved. This is a preview; the full text stays in the note.
+function auditPreview(content: string): string {
+  const collapsed = content.replace(/\s+/g, " ").trim();
+  return collapsed.length > 200 ? `${collapsed.slice(0, 200)}…` : collapsed;
+}
 
 export async function getNoteRowByIdAction(
   noteId: string,
@@ -220,7 +228,7 @@ export async function createNoteAction(
         action: "note.created",
         entityType: task_id ? "Task" : case_id ? "Case" : "Consultation",
         entityId: (task_id ?? case_id ?? consultation_id)!,
-        details: `Created note with ID: ${note.id}`,
+        details: `Created note with ID: ${note.id}. Content: ${auditPreview(content)}`,
       }),
     );
   } catch (error) {
@@ -275,7 +283,7 @@ export async function updateNoteAction(
     if (existing.task_id) {
       await updateNoteForTask(existing.task_id, noteId, content);
     } else {
-      await updateNoteWithParentCheck(noteId, content, existing);
+      await updateNote(noteId, content);
     }
 
     after(() =>
@@ -284,7 +292,7 @@ export async function updateNoteAction(
         action: "note.updated",
         entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
         entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
-        details: `Updated note with ID: ${noteId}`,
+        details: `Updated note with ID: ${noteId}. Before: ${auditPreview(existing.content)} After: ${auditPreview(content)}`,
       }),
     );
 
@@ -325,7 +333,7 @@ export async function deleteNoteAction(
     if (existing.task_id) {
       await deleteNoteForTask(existing.task_id, noteId);
     } else {
-      await deleteNoteWithParentCheck(noteId, existing);
+      await deleteNote(noteId);
     }
 
     after(() =>
@@ -334,7 +342,7 @@ export async function deleteNoteAction(
         action: "note.deleted",
         entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
         entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
-        details: `Deleted note with ID: ${noteId}`,
+        details: `Deleted note with ID: ${noteId}. Content: ${auditPreview(existing.content)}`,
       }),
     );
 

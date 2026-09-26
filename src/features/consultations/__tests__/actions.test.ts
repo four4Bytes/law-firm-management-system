@@ -480,8 +480,8 @@ describe("updateConsultationAction", () => {
     expect(await updateConsultationAction(validPayload)).toEqual({
       success: false,
       error: {
-        code: "conflict",
-        title: "Booking date is locked",
+        code: "locked",
+        title: "Consultation locked",
         description:
           "The booking date can only change while a consultation is scheduled. This consultation is Completed.",
       },
@@ -547,10 +547,10 @@ describe("updateConsultationAction", () => {
     expect(await updateConsultationAction(validPayload)).toEqual({
       success: false,
       error: {
-        code: "conflict",
-        title: "Consultation already accepted",
+        code: "locked",
+        title: "Consultation locked",
         description:
-          "This consultation has been accepted and linked to a case. Update the case instead.",
+          "This consultation was accepted and handed off to a case, so its details are read-only. Update the case instead.",
       },
     });
     expect(prisma.consultation.update).not.toHaveBeenCalled();
@@ -1065,8 +1065,8 @@ describe("updateConsultationWithClientAction booking lock", () => {
     ).toEqual({
       success: false,
       error: {
-        code: "conflict",
-        title: "Booking date is locked",
+        code: "locked",
+        title: "Consultation locked",
         description:
           "The booking date can only change while a consultation is scheduled. This consultation is Completed.",
       },
@@ -1134,10 +1134,10 @@ describe("updateConsultationWithClientAction booking lock", () => {
     ).toEqual({
       success: false,
       error: {
-        code: "conflict",
-        title: "Consultation already accepted",
+        code: "locked",
+        title: "Consultation locked",
         description:
-          "This consultation has been accepted and linked to a case. Update the case instead.",
+          "This consultation was accepted and handed off to a case, so its details are read-only. Update the case instead.",
       },
     });
     expect(prisma.consultation.update).not.toHaveBeenCalled();

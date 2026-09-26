@@ -74,7 +74,9 @@ The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManage
 
 ### Lifecycle Guards (the _when_ axis)
 
-RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules live in `src/lib/domain/lifecycle.ts` (transition tables + `canTransition` / `isTerminalStatus` / `isSubdataLocked`) and are enforced in Server Actions and mutations next to the state machine — never in the RBAC matrix. Terminal records (done tasks, closed consultations/cases) are append-only: notes and files can be added but existing ones refuse update/delete (`RecordLockedError` → `locked` envelope). See [Lifecycle](./lifecycle.md).
+RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules live in `src/lib/domain/lifecycle.ts` (transition tables + `canTransition` / `isTerminalStatus`) and are enforced in Server Actions and mutations next to the state machine — never in the RBAC matrix.
+
+Terminal status is **not** a content lock: a closed case, concluded consultation, or completed task keeps fully editable notes and files, and record integrity is guaranteed by the audit trail instead. The only freezes in the system are the enumerated field locks in [Lifecycle](./lifecycle.md) §4 — a consultation's booking date and its accepted-with-linked-case fields, and a done task's roster and assignment/decision states. Violations return the `locked` envelope.
 
 ## Input Validation
 

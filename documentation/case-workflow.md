@@ -80,9 +80,3 @@ Any status change → `CaseStatusChanged` to all assignees (actor excluded), gat
 ## 9. Audit
 
 `case.created/updated/status_changed (from → to in details)/deleted`. Closing reasons live as labelled notes, not in audit details.
-
-## 10. Resolved questions
-
-- **Why no `Ongoing`?** `Open` vs "ongoing" has no crisp real-world event separating them (unlike meeting-held), so the distinction would be applied inconsistently and the data would lie. `Open` honestly covers intake-through-active-work. (An `Ongoing` value briefly existed in the schema during development and was reverted before any rows used it.)
-- **Why is reopen allowed but consultation terminal states aren't?** A rejected consultation is a declined opportunity (new record is clean); a case accumulates fees/documents/notes whose continuity matters across resumed litigation. Both directions are audited appends, never rewrites.
-- **Why is creation always `Open`?** The UI offers no select; backfilled files reach their true state through the guarded transitions, keeping one writer for all status changes.

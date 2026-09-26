@@ -216,6 +216,57 @@ describe("getTaskDetailRowByIdAction", () => {
       },
     });
   });
+
+  describe("canReopen", () => {
+    const doneRow = {
+      ...taskRow,
+      status: "Done" as const,
+      reviewers: [
+        {
+          id: "tr1",
+          reviewer_user_id: "u2",
+          name: "n2",
+          decision: ReviewDecision.Approved,
+          reviewed_at: new Date("2024-06-02"),
+        },
+      ],
+    };
+
+    it("is offered to a reviewer on a completed task who can update it", async () => {
+      vi.mocked(getTaskAccessContext).mockResolvedValue({
+        assigned: true,
+        own: false,
+        taskOnly: true,
+      });
+      vi.mocked(getTaskDetailRowById).mockResolvedValue(doneRow);
+
+      const result = await getTaskDetailRowByIdAction(uuid);
+
+      expect(result.capabilities.canReopen).toBe(true);
+      expect(result.capabilities.canEditRoster).toBe(false);
+    });
+
+    it("is withheld from a creator whose role cannot update, which reopenTaskAction also refuses", async () => {
+      // Process Server's UPDATE cell is `ASSIGNED + TASK_ONLY` with no `or OWN`,
+      // so a creator can hold `own` and still lack task.update.
+      setupAuth(mockSessionUser({ id: "u2", email: "e2", role: Role.ProcessServer, name: "n2" }));
+      vi.mocked(getTaskAccessContext).mockResolvedValue({
+        assigned: true,
+        own: true,
+        taskOnly: false,
+      });
+      vi.mocked(getTaskDetailRowById).mockResolvedValue({
+        ...doneRow,
+        created_by_user_id: "u2",
+      });
+
+      const result = await getTaskDetailRowByIdAction(uuid);
+
+      expect(result.capabilities.isCreator).toBe(true);
+      expect(result.canUpdate).toBe(false);
+      expect(result.capabilities.canReopen).toBe(false);
+    });
+  });
 });
 
 describe("createTaskAction", () => {

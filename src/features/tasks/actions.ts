@@ -150,7 +150,11 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
     canManageReviewers: isCreator || isReviewer,
     canEdit: canUpdate,
     canEditRoster: canUpdate && row.status !== TaskStatus.Done,
-    canReopen: (isCreator || isReviewer) && row.status === TaskStatus.Done,
+    // Mirrors `reopenTaskAction`, which also requires `task.update`. Without
+    // `canUpdate` a creator can hold `own` yet lack UPDATE (Process Server's
+    // cell is `ASSIGNED + TASK_ONLY`), and would be offered a reopen the
+    // server always refuses.
+    canReopen: canUpdate && (isCreator || isReviewer) && row.status === TaskStatus.Done,
   };
 
   return { row, canUpdate, capabilities, currentUserId: session.id };

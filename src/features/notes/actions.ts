@@ -47,14 +47,6 @@ import {
   TaskNotesListQuerySchema,
 } from "./schemas";
 
-// The audit trail is the record-integrity guarantee now that terminal records
-// are not write-locked, so an entry must capture what changed, not just which
-// id moved. This is a preview; the full text stays in the note.
-function auditPreview(content: string): string {
-  const collapsed = content.replace(/\s+/g, " ").trim();
-  return collapsed.length > 200 ? `${collapsed.slice(0, 200)}…` : collapsed;
-}
-
 export async function getNoteRowByIdAction(
   noteId: string,
 ): Promise<{ row: NoteRow | null; canUpdate: boolean }> {
@@ -228,7 +220,7 @@ export async function createNoteAction(
         action: "note.created",
         entityType: task_id ? "Task" : case_id ? "Case" : "Consultation",
         entityId: (task_id ?? case_id ?? consultation_id)!,
-        details: `Created note with ID: ${note.id}. Content: ${auditPreview(content)}`,
+        details: `Created note with ID: ${note.id}`,
       }),
     );
   } catch (error) {
@@ -292,7 +284,7 @@ export async function updateNoteAction(
         action: "note.updated",
         entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
         entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
-        details: `Updated note with ID: ${noteId}. Before: ${auditPreview(existing.content)} After: ${auditPreview(content)}`,
+        details: `Updated note with ID: ${noteId}`,
       }),
     );
 
@@ -342,7 +334,7 @@ export async function deleteNoteAction(
         action: "note.deleted",
         entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
         entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
-        details: `Deleted note with ID: ${noteId}. Content: ${auditPreview(existing.content)}`,
+        details: `Deleted note with ID: ${noteId}`,
       }),
     );
 

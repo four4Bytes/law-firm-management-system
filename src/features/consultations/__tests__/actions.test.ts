@@ -852,6 +852,8 @@ describe("changeConsultationStatusAction", () => {
   };
 
   beforeEach(() => {
+    setupAuth(sessionAdmin);
+    vi.mocked(hasLinkedCase).mockResolvedValue(false);
     vi.mocked(getConsultationEditData).mockResolvedValue(existingEditData);
     vi.mocked(getConsultationAssigneeIds).mockResolvedValue([assignee1, assignee2]);
     vi.mocked(prisma.consultation.findUnique).mockResolvedValue(consultationRecord);
@@ -953,6 +955,51 @@ describe("changeConsultationStatusAction", () => {
           "Cannot change a consultation from Cancelled to Completed. From Cancelled, you can: rebook it.",
       },
     });
+  });
+
+  it.each(["Accepted", "Completed", "Scheduled"] as const)(
+    "returns locked when changing an accepted consultation with a linked case to %s",
+    async (status) => {
+      vi.mocked(getConsultationEditData).mockResolvedValue({
+        ...existingEditData,
+        status: "Accepted",
+      });
+      vi.mocked(hasLinkedCase).mockResolvedValue(true);
+
+      expect(await changeConsultationStatusAction({ consultationId: uuid, status })).toEqual({
+        success: false,
+        error: {
+          code: "locked",
+          title: "Consultation locked",
+          description:
+            "This consultation was accepted and handed off to a case, so its status is read-only. Update the case instead.",
+        },
+      });
+      expect(prisma.consultation.updateMany).not.toHaveBeenCalled();
+      expect(prisma.note.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it("checks permission before the accepted consultation lock", async () => {
+    setupAuth(sessionLawyer);
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      status: "Accepted",
+    });
+    vi.mocked(hasLinkedCase).mockResolvedValue(true);
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Completed" }),
+    ).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
+    expect(hasLinkedCase).not.toHaveBeenCalled();
+    expect(prisma.consultation.updateMany).not.toHaveBeenCalled();
   });
 
   it("names the closed state when leaving a terminal status", async () => {

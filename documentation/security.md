@@ -183,6 +183,8 @@ All structural mutations are logged via `logAudit` in `src/features/audit/mutati
 
 Audit logs are **immutable** — they are created automatically by the system and no API exists to modify or delete them. All roles have read-only access.
 
+Note create/update/delete entries retain only event metadata and the note ID; they must not copy note content, previews, or content-derived details. Deleting a note removes its content while its audit metadata remains. There is no automatic audit retention cutoff. This policy applies to newly written entries; any historical previews require a separate data cleanup.
+
 ## Cron Job Security
 
 ### Docker (Self-Hosted)

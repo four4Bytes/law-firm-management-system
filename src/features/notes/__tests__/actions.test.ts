@@ -1,5 +1,7 @@
+import { after } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
@@ -70,6 +72,12 @@ vi.mock("../mutations", () => ({
   updateNoteForTask: vi.fn(),
   deleteNoteForTask: vi.fn(),
 }));
+
+async function flushAfterCallbacks(): Promise<void> {
+  for (const [callback] of vi.mocked(after).mock.calls) {
+    if (typeof callback === "function") await callback();
+  }
+}
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -189,6 +197,14 @@ describe("createNoteAction", () => {
     const result = await createNoteAction({ content: "New note", case_id: uuid });
 
     expect(result).toEqual({ success: true, data: { id: "n1" } });
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: sessionLawyer.id,
+      action: "note.created",
+      entityType: "Case",
+      entityId: uuid,
+      details: `Created note with ID: n1`,
+    });
   });
 });
 
@@ -212,6 +228,14 @@ describe("updateNoteAction", () => {
     const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
 
     expect(result).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: sessionLawyer.id,
+      action: "note.updated",
+      entityType: "Case",
+      entityId: uuid,
+      details: `Updated note with ID: ${uuid}`,
+    });
   });
 });
 
@@ -235,6 +259,14 @@ describe("deleteNoteAction", () => {
     const result = await deleteNoteAction({ noteId: uuid });
 
     expect(result).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: sessionLawyer.id,
+      action: "note.deleted",
+      entityType: "Case",
+      entityId: uuid,
+      details: `Deleted note with ID: ${uuid}`,
+    });
   });
 });
 

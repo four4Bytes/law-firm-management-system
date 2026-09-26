@@ -18,7 +18,7 @@ import {
   taskAssignedTemplate,
 } from "@/lib/messaging/email-templates";
 
-/** Compile-time exhaustiveness guard — `value` must be `never` at this point. */
+// Compile-time exhaustiveness guard: `value` must be `never` at this point.
 function assertNever(value: never): never {
   throw new Error(`Unhandled notification type: ${String(value)}`);
 }

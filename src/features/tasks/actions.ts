@@ -60,18 +60,19 @@ import {
   wouldLeaveNoReviewer,
 } from "./validation";
 
-/** Per-user capabilities on a single task, computed server-side (never client RBAC). */
+// Per-user capabilities on a single task, always computed server-side. Never
+// gate UI on a client-side RBAC re-check — use these.
 export interface TaskCapabilities {
   isCreator: boolean;
   isReviewer: boolean;
   canSubmit: boolean;
   canReview: boolean;
   canManageReviewers: boolean;
-  /** Content (title, description, notes, files) is editable in every status. */
+  // Content (title, description, notes, files) is editable in every status.
   canEdit: boolean;
-  /** The assignee/reviewer roster is frozen while the task is `Done`. */
+  // The assignee/reviewer roster is frozen while the task is `Done`.
   canEditRoster: boolean;
-  /** Explicit `Done → Pending` reopen, offered to the creator and reviewers. */
+  // Explicit `Done → Pending` reopen, offered to the creator and reviewers.
   canReopen: boolean;
 }
 

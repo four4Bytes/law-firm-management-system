@@ -11,6 +11,10 @@ import { getRequiredEnvVar } from "@/lib/infra/env";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Data every notification email renders from. Templates receive one of these
+ * and must tolerate every field being empty except the recipient's name.
+ */
 export interface TemplateContext {
   /** Display name of the recipient. */
   toName: string;

@@ -48,18 +48,18 @@ export async function deleteDocumentForTask(
 
 const GC_GRACE_PERIOD_MS = 60 * 60 * 1000;
 
-/**
- * Reconciles S3 storage against the database by deleting orphaned objects that
- * no longer reference a `Document` row. Invoked by the storage GC cron job; the
- * database is the source of truth, so any bucket key without a matching
- * `file_path` is safe to remove. Objects uploaded more recently than
- * `GC_GRACE_PERIOD_MS` are skipped so blobs whose presigned upload has landed
- * but whose `Document` row is not yet confirmed survive the sweep, and the
- * database is rechecked immediately before each delete to close the race with
- * a concurrent confirmation.
- *
- * @returns The number of orphaned objects deleted.
- */
+// Reconciles S3 against the database by deleting orphaned objects that no
+// longer reference a `Document` row. Invoked by the storage GC cron job; the
+// database is the source of truth, so any bucket key without a matching
+// `file_path` is safe to remove.
+//
+// Two guards keep the sweep from racing a live upload: objects newer than
+// `GC_GRACE_PERIOD_MS` are skipped, so a blob whose presigned upload landed but
+// whose `Document` row is not yet confirmed survives; and the database is
+// rechecked immediately before each delete, closing the race with a concurrent
+// confirmation.
+//
+// Returns the number of orphaned objects deleted.
 export async function runStorageGc(): Promise<number> {
   const documents = await prisma.document.findMany({ select: { file_path: true } });
   const knownPaths = new Set(documents.map((document) => document.file_path));

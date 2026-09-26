@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { getDocumentFilePathsByTaskId } from "@/features/documents/queries";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { prisma } from "@/lib/infra/prisma";
-import { TaskLockedError } from "@/lib/security/errors";
+import { TaskLockedError, TaskValidationError } from "@/lib/security/errors";
 import { mockTask, mockTaskAssignment, mockTaskReviewer } from "@/test-utils/fixtures";
 
 import {
@@ -13,6 +13,7 @@ import {
   deleteTask,
   deriveTaskStatus,
   removeTaskReviewer,
+  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "../mutations";
@@ -187,6 +188,53 @@ describe("updateTask", () => {
       select: { id: true, case_id: true },
     });
     expect(prisma.caseAssignment.createMany).not.toHaveBeenCalled();
+  });
+
+  describe("on a Done task", () => {
+    beforeEach(() => {
+      vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Done" }));
+      vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
+        mockTaskAssignment({ user_id: "u1", status: "Todo" }),
+      ]);
+      vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
+        mockTaskReviewer({ reviewer_user_id: "u2", decision: "Approved" }),
+      ]);
+    });
+
+    it("allows a content-only edit", async () => {
+      vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+
+      await expect(updateTask("t1", { title: "Fixed typo" })).resolves.toEqual({
+        id: "t1",
+        status: "Done",
+      });
+    });
+
+    it("allows the unchanged assignee list the form always submits", async () => {
+      vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+
+      await expect(
+        updateTask("t1", { title: "Fixed typo", assignee_ids: ["u1"] }),
+      ).resolves.toEqual({ id: "t1", status: "Pending" });
+    });
+
+    it("refuses an assignee change", async () => {
+      await expect(
+        updateTask("t1", { title: "Fixed typo", assignee_ids: ["u1", "u3"] }),
+      ).rejects.toThrow(TaskLockedError);
+    });
+
+    it("refuses adding a reviewer", async () => {
+      await expect(updateTask("t1", { title: "Fixed typo", reviewer_ids: ["u4"] })).rejects.toThrow(
+        TaskLockedError,
+      );
+    });
+
+    it("refuses removing a reviewer", async () => {
+      await expect(
+        updateTask("t1", { title: "Fixed typo", removed_reviewer_ids: ["u2"] }),
+      ).rejects.toThrow(TaskLockedError);
+    });
   });
 
   it("updates a task with assignee sync", async () => {
@@ -389,21 +437,23 @@ describe("addTaskReviewer", () => {
   });
 });
 
-describe("addTaskReviewer (status transitions)", () => {
-  it("reopens a Done task and resets reviewer decisions and assignee submissions to Todo", async () => {
+describe("addTaskReviewer", () => {
+  it("refuses to add a reviewer to a Done task", async () => {
     vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Done" }));
-    vi.mocked(prisma.taskReviewer.upsert).mockResolvedValue(mockTaskReviewer());
-    vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
-      mockTaskReviewer({ reviewer_user_id: "u1", decision: "Approved" }),
-    ]);
-    vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
-      mockTaskAssignment({ status: "Todo" }),
-    ]);
+
+    await expect(addTaskReviewer("t1", "u4")).rejects.toThrow(TaskLockedError);
+    expect(prisma.taskReviewer.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("reopenTask", () => {
+  it("resets reviewer decisions and assignee marks, returning Pending", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Done" }));
     vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
 
-    const result = await addTaskReviewer("t1", "u4");
+    const result = await reopenTask("t1");
 
-    expect(result.id).toBe("t1");
+    expect(result).toEqual({ taskStatus: "Pending" });
     expect(prisma.taskReviewer.updateMany).toHaveBeenCalledWith({
       where: { task_id: "t1" },
       data: { decision: "Pending", reviewed_at: null },
@@ -417,6 +467,13 @@ describe("addTaskReviewer (status transitions)", () => {
       data: { status: "Pending" },
       select: { id: true },
     });
+  });
+
+  it("refuses a task that is not Done", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "InReview" }));
+
+    await expect(reopenTask("t1")).rejects.toThrow(TaskValidationError);
+    expect(prisma.task.update).not.toHaveBeenCalled();
   });
 });
 

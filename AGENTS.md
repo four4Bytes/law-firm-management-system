@@ -215,9 +215,13 @@ Conventions for AI coding agents working in this repo. Read this file before wri
   `src/lib/domain/lifecycle.ts` (`CONSULTATION_TRANSITIONS`, `CASE_TRANSITIONS`, `MILESTONE_TRANSITIONS`);
   feature `status.ts` modules re-export them plus entity copy (`isValid*Transition`,
   `describe*NextSteps`). Never add status conditions to the RBAC matrix. Enforce legality server-side
-  via the transition evaluators (`canTransition`, `isTerminalStatus`), and sub-data locks via
-  `isSubdataLocked(...)` (throws `RecordLockedError` → `locked` envelope). Spec:
+  via the transition evaluators (`canTransition`, `isTerminalStatus`). Spec:
   `documentation/lifecycle.md`.
+- Terminal status is not a content lock. A closed case, concluded consultation, or `Done` task keeps
+  fully editable notes, files, and payments; record integrity comes from the audit trail, not from
+  refusing writes. Do not reintroduce append-only locks. The only freezes are the enumerated field
+  locks in `documentation/lifecycle.md` §4, each enforced in its action and returning the `locked`
+  envelope.
 
 ## 8. Security & Boundary Safety
 
@@ -288,9 +292,10 @@ permission, accessContext)` (throws `"Forbidden"`) or `can(role, permission, acc
 title, description }` from `src/lib/security/action-response.ts`. `description` is mandatory — every
   user-facing failure explains what happened and what to do next.
 - Factory presets only: build failures with `actionForbidden()`, `actionNotFound(entity)`,
-  `actionInvalid(entity)`, `actionConflict(title, description)`, `actionLocked()`,
-  `actionUnauthorized()` from `src/lib/security/action-response.ts`. Hand-rolled `{ success: false, error: ...
-}` literals in actions are banned.
+  `actionInvalid(entity)`, `actionConflict(title, description)`, `actionLocked(entity, description)`,
+  `actionTaskLocked()`, `actionUnauthorized()` from `src/lib/security/action-response.ts`. Hand-rolled
+  `{ success: false, error: ... }` literals in actions are banned. A freeze uses `actionLocked` with
+  copy naming the way out; `actionTaskLocked()` is the shorthand for the `Done` task freeze.
 - Reads remain throwing: read actions throw (`ForbiddenError` digests drive the access-denied
   boundary); only write actions return envelopes.
 
@@ -443,9 +448,12 @@ validate && pnpm test`.
 
 ## 14. Documentation (TSDoc)
 
-- TSDoc (`/** … */`) is required on **all** functions and exported types/interfaces in `src/lib/`,
-  plus a module-level doc on the infra/config files (`infra/auth.ts`, `infra/prisma.ts`, `infra/s3.ts`).
-- Use `@param`, `@returns`, and `@typeParam` where applicable; keep descriptions terse and within the
-  100-char print width (Prettier reformats).
-- This convention is **scoped to `src/lib/` only**. Do not add TSDoc to feature or component code —
-  it adds noise. Code should be readable by default. If not add comments/tsdocs.
+- TSDoc (`/** … */`) is required for **all functions and exported types/interfaces in `src/lib/`**.
+- Use `@param`, `@returns`, and `@typeParam` where applicable.
+- Keep TSDoc descriptions concise and within the 100-character print width;
+  Prettier will reformat them as needed.
+- This convention applies **only to `src/lib/`**.
+- Do **not** add TSDoc to feature or component code; unnecessary comments add
+  noise.
+- Prefer readable, self-explanatory code over comments. Add comments or TSDoc
+  only when they provide useful context beyond what the code already conveys.

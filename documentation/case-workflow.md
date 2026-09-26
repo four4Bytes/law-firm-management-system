@@ -46,7 +46,7 @@ New case (always Open)
 - **Create** (`CaseCreatePayloadSchema` / WithClient variant): status is accepted but the UI always submits `Open`. There is no status select on creation.
 - **Edit** (`CaseUpdatePayloadSchema` / `CaseDataSchema` update variant): carries **no status field**. Field edits can never change status.
 - **Status change** (`CaseStatusChangePayloadSchema`): accepts any enum value plus an optional `reason`; legality is enforced server-side by `isValidCaseStatusTransition()`. Illegal moves return `conflict / Invalid status change` naming the legal next steps (`describeCaseNextSteps()`).
-- **Append-only lock**: on `Closed`/`Settled`/`Terminated`, existing notes/files refuse update/delete (`RecordLockedError` → `locked` envelope); creation, reads, and payments stay open. Reopening restores editing. See [Lifecycle](./lifecycle.md).
+- **No content lock**: notes, files, tasks, milestones, and payments are editable on `Closed`/`Settled`/`Terminated` exactly as on `Open` — which matters because Philippine matters get reopened constantly (reconsideration granted, remanded on appeal, settlement breached). Integrity comes from the audit trail. See [Lifecycle](./lifecycle.md) §3.
 
 ## 4. Server actions (`src/features/cases/actions.ts`)
 

@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, ReviewDecision, Role } from "@/generated/prisma/browser";
+import { actionNotFound } from "@/lib/security/action-response";
 import { requireAuth } from "@/lib/security/auth-guards";
+import { TASK_LOCKED_MESSAGE } from "@/lib/security/errors";
+import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
@@ -13,6 +17,7 @@ import {
   deleteTaskAction,
   getTaskDetailRowByIdAction,
   removeTaskReviewerAction,
+  reopenTaskAction,
   reviewTaskAction,
   submitTaskAction,
   updateTaskAction,
@@ -23,6 +28,7 @@ import {
   createTask,
   deleteTask,
   removeTaskReviewer,
+  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "../mutations";
@@ -85,6 +91,7 @@ vi.mock("../mutations", () => ({
   applyReviewDecision: vi.fn(),
   addTaskReviewer: vi.fn(),
   removeTaskReviewer: vi.fn(),
+  reopenTask: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -177,6 +184,8 @@ describe("getTaskDetailRowByIdAction", () => {
         canReview: false,
         canManageReviewers: false,
         canEdit: false,
+        canEditRoster: false,
+        canReopen: false,
       },
     });
   });
@@ -202,6 +211,8 @@ describe("getTaskDetailRowByIdAction", () => {
         canReview: false,
         canManageReviewers: false,
         canEdit: true,
+        canEditRoster: true,
+        canReopen: false,
       },
     });
   });
@@ -300,7 +311,7 @@ describe("updateTaskAction", () => {
       own: false,
       taskOnly: true,
     });
-    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid, status: "Pending" });
 
     const result = await updateTaskAction({
       taskId: uuid,
@@ -327,7 +338,7 @@ describe("updateTaskAction notification split", () => {
       ...taskRecord,
       taskAssignments: [{ user_id: assignee1, user: { name: "n2" }, status: "Todo" as const }],
     });
-    vi.mocked(updateTask).mockResolvedValue({ id: uuid });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid, status: "Pending" });
   });
 
   it("dispatches TaskAssigned only to the new assignee", async () => {
@@ -479,9 +490,117 @@ describe("submitTaskAction", () => {
     await flushAfterCallbacks();
     expect(setAssignmentStatus).toHaveBeenCalledWith(uuid, "u2", "Done");
   });
+
+  it("returns a locked envelope when the task is already Done", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...assigneeRecord,
+      status: "Done" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Approved", reviewed_at: null },
+      ],
+    });
+
+    expect(await submitTaskAction({ taskId: uuid, status: "Todo" })).toEqual({
+      success: false,
+      error: { code: "locked", title: "Task locked", description: TASK_LOCKED_MESSAGE },
+    });
+    expect(setAssignmentStatus).not.toHaveBeenCalled();
+  });
+
+  it("denies an unauthorized caller before revealing the status is Done", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...assigneeRecord,
+      status: "Done" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Approved", reviewed_at: null },
+      ],
+    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: false,
+      own: false,
+      taskOnly: false,
+    });
+
+    expect(await submitTaskAction({ taskId: uuid, status: "Todo" })).toEqual({
+      success: false,
+      error: { code: "forbidden", title: "Access denied", description: FORBIDDEN_MESSAGE },
+    });
+    expect(setAssignmentStatus).not.toHaveBeenCalled();
+  });
 });
 
 describe("reviewTaskAction", () => {
+  it("returns a locked envelope when the task is already Done", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Done" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Approved", reviewed_at: null },
+      ],
+    });
+
+    expect(await reviewTaskAction({ taskId: uuid, decision: "Approved" })).toEqual({
+      success: false,
+      error: { code: "locked", title: "Task locked", description: TASK_LOCKED_MESSAGE },
+    });
+    expect(applyReviewDecision).not.toHaveBeenCalled();
+  });
+
+  it("denies a non-reviewer before revealing the status is Done", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Done" as const,
+      taskReviewers: [],
+    });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: false,
+      own: false,
+      taskOnly: false,
+    });
+
+    expect(await reviewTaskAction({ taskId: uuid, decision: "Approved" })).toEqual({
+      success: false,
+      error: { code: "forbidden", title: "Access denied", description: FORBIDDEN_MESSAGE },
+    });
+    expect(applyReviewDecision).not.toHaveBeenCalled();
+  });
+
+  it("returns a conflict when the task is not in review", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Pending" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+      ],
+    });
+
+    expect(await reviewTaskAction({ taskId: uuid, decision: "Approved" })).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Cannot review task",
+        description:
+          "Only tasks in review can be reviewed. Assignees must mark their work done first.",
+      },
+    });
+    expect(applyReviewDecision).not.toHaveBeenCalled();
+  });
+
   it("returns a forbidden envelope when the caller is not a reviewer", async () => {
     vi.mocked(getTaskById).mockResolvedValue({
       ...taskRecord,
@@ -520,6 +639,56 @@ describe("reviewTaskAction", () => {
       reviewerUserId: "u2",
       decision: "Approved",
     });
+  });
+
+  it("audits a status change when the review moves the task out of InReview", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "InReview" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+      ],
+    });
+    vi.mocked(applyReviewDecision).mockResolvedValue({ taskStatus: "Done" });
+
+    await reviewTaskAction({ taskId: uuid, decision: "Approved" });
+    await flushAfterCallbacks();
+
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "task.status_changed",
+        details: `Changed task status from InReview to Done: "${taskRecord.title}"`,
+      }),
+    );
+  });
+
+  it("records no status change when the task stays InReview after a partial review", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "InReview" as const,
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+        { id: "tr2", reviewer_user_id: "u3", decision: "Pending", reviewed_at: null },
+      ],
+    });
+    vi.mocked(applyReviewDecision).mockResolvedValue({ taskStatus: "InReview" });
+
+    await reviewTaskAction({ taskId: uuid, decision: "Approved" });
+    await flushAfterCallbacks();
+
+    expect(logAudit).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: "task.status_changed" }),
+    );
   });
 });
 
@@ -643,68 +812,50 @@ describe("removeTaskReviewerAction", () => {
   });
 });
 
-describe("updateTaskAction lifecycle lock", () => {
-  it("rejects all metadata changes on a Done task", async () => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue({
-      assigned: true,
-      own: false,
-      taskOnly: true,
-    });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
+describe("updateTaskAction on a Done task", () => {
+  const lockedEnvelope = {
+    success: false,
+    error: {
+      code: "locked",
+      title: "Task locked",
+      description: TASK_LOCKED_MESSAGE,
+    },
+  };
 
-    expect(
-      await updateTaskAction({
-        taskId: uuid,
-        title: "Renamed",
-        description: undefined,
-      }),
-    ).toEqual({
-      success: false,
-      error: {
-        code: "conflict",
-        title: "Task locked",
-        description:
-          "A completed task is locked. Add a reviewer to reopen it before making changes.",
-      },
-    });
+  const doneTask = {
+    ...taskRecord,
+    status: "Done" as const,
+    taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Todo" as const }],
+    taskReviewers: [
+      { id: "tr1", reviewer_user_id: "u3", decision: "Approved" as const, reviewed_at: null },
+    ],
+  };
+
+  beforeEach(() => {
+    // A content-only edit on a Done task leaves the derived status alone, so the
+    // mutation reports the task's existing status back.
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid, status: "Done" });
+    vi.mocked(getTaskById).mockResolvedValue(doneTask);
   });
 
-  it("rejects title changes by a non-creator on a Done task", async () => {
+  it("allows a title change", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
-      own: false,
+      own: true,
       taskOnly: true,
     });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
 
     expect(
-      await updateTaskAction({
-        taskId: uuid,
-        title: "Renamed",
-        description: undefined,
-        assignee_ids: [uuid],
-      }),
-    ).toEqual({
-      success: false,
-      error: {
-        code: "conflict",
-        title: "Task locked",
-        description:
-          "A completed task is locked. Add a reviewer to reopen it before making changes.",
-      },
-    });
+      await updateTaskAction({ taskId: uuid, title: "Renamed", description: undefined }),
+    ).toEqual({ success: true });
+    expect(updateTask).toHaveBeenCalled();
   });
 
-  it("rejects all changes on a Done task even when assignee_ids are unchanged", async () => {
+  it("allows re-submitting an unchanged assignee list", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
-      own: false,
+      own: true,
       taskOnly: true,
-    });
-    vi.mocked(getTaskById).mockResolvedValue({
-      ...taskRecord,
-      status: "Done" as const,
-      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Todo" as const }],
     });
 
     const result = await updateTaskAction({
@@ -714,39 +865,199 @@ describe("updateTaskAction lifecycle lock", () => {
       assignee_ids: [uuid],
     });
 
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "conflict",
-        title: "Task locked",
-        description:
-          "A completed task is locked. Add a reviewer to reopen it before making changes.",
-      },
-    });
+    expect(result).toEqual({ success: true });
   });
 
-  it("rejects creator edits on a Done task", async () => {
+  it("refuses an assignee change", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: true,
       taskOnly: true,
     });
-    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
 
-    const result = await updateTaskAction({
-      taskId: uuid,
-      title: "Renamed",
-      description: undefined,
+    expect(
+      await updateTaskAction({
+        taskId: uuid,
+        title: taskRecord.title,
+        description: undefined,
+        assignee_ids: [uuid, uuid2],
+      }),
+    ).toEqual(lockedEnvelope);
+  });
+
+  it("refuses adding a reviewer", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
     });
 
-    expect(result).toEqual({
+    expect(
+      await updateTaskAction({
+        taskId: uuid,
+        title: taskRecord.title,
+        description: undefined,
+        assignee_ids: [uuid],
+        reviewer_ids: [uuid2],
+      }),
+    ).toEqual(lockedEnvelope);
+  });
+
+  it("refuses removing a reviewer", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+
+    expect(
+      await updateTaskAction({
+        taskId: uuid,
+        title: taskRecord.title,
+        description: undefined,
+        assignee_ids: [uuid],
+        removed_reviewer_ids: [uuid2],
+      }),
+    ).toEqual(lockedEnvelope);
+  });
+});
+
+describe("updateTaskAction status audit", () => {
+  it("records no status change for a content-only edit on a Done task", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "Done" as const,
+      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Todo" as const }],
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: uuid2, decision: "Approved" as const, reviewed_at: null },
+      ],
+    });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid, status: "Done" });
+
+    await updateTaskAction({ taskId: uuid, title: "Renamed", description: undefined });
+    await flushAfterCallbacks();
+
+    expect(logAudit).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: "task.status_changed" }),
+    );
+  });
+
+  it("audits a status move that a roster change caused", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "InReview" as const,
+      taskAssignments: [{ user_id: uuid, user: { name: "n" }, status: "Done" as const }],
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: uuid2, decision: "Approved" as const, reviewed_at: null },
+      ],
+    });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid, status: "Pending" });
+
+    await updateTaskAction({
+      taskId: uuid,
+      title: taskRecord.title,
+      description: undefined,
+      assignee_ids: [uuid],
+      removed_reviewer_ids: [uuid2],
+    });
+    await flushAfterCallbacks();
+
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "task.status_changed",
+        details: `Changed task status from InReview to Pending: "${taskRecord.title}"`,
+      }),
+    );
+  });
+});
+
+describe("reopenTaskAction", () => {
+  beforeEach(() => {
+    vi.mocked(reopenTask).mockResolvedValue({ taskStatus: "Pending" });
+  });
+
+  it("resets a Done task to Pending", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+
+    expect(await reopenTaskAction({ taskId: uuid })).toEqual({
+      success: true,
+      data: { taskStatus: "Pending" },
+    });
+    expect(reopenTask).toHaveBeenCalledWith(uuid);
+  });
+
+  it("folds the status move into the reopen entry rather than logging a second row", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+
+    await reopenTaskAction({ taskId: uuid });
+    await flushAfterCallbacks();
+
+    const actions = vi.mocked(logAudit).mock.calls.map(([entry]) => entry.action);
+    expect(actions).toEqual(["task.reopened"]);
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        details: expect.stringContaining("Changed task status from Done to Pending"),
+      }),
+    );
+  });
+
+  it("refuses a task that is not completed", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Pending" as const });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+
+    expect(await reopenTaskAction({ taskId: uuid })).toEqual({
       success: false,
       error: {
         code: "conflict",
-        title: "Task locked",
-        description:
-          "A completed task is locked. Add a reviewer to reopen it before making changes.",
+        title: "Task is not completed",
+        description: "Only a completed task can be reopened. This task is still in progress.",
       },
     });
+    expect(reopenTask).not.toHaveBeenCalled();
+  });
+
+  it("returns not found for a missing task", async () => {
+    vi.mocked(getTaskById).mockResolvedValue(null);
+
+    expect(await reopenTaskAction({ taskId: uuid })).toEqual(actionNotFound("Task"));
+  });
+
+  it("denies a user who is neither creator nor reviewer", async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, status: "Done" as const });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+
+    expect(await reopenTaskAction({ taskId: uuid })).toEqual({
+      success: false,
+      error: { code: "forbidden", title: "Access denied", description: FORBIDDEN_MESSAGE },
+    });
+    expect(reopenTask).not.toHaveBeenCalled();
   });
 });

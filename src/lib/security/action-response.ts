@@ -115,27 +115,26 @@ export function actionConflict(title: string, description: string): ActionStatus
 }
 
 /**
- * Failure preset for write-locked records (e.g. done task attachments).
+ * Failure preset for a record whose fields are frozen. Callers own the copy so
+ * it can name both what is locked and the way out of it.
  *
- * @returns A locked response using the shared task-lock message.
+ * @param entity - Human-readable entity name (e.g. `"Consultation"`).
+ * @param description - Full-sentence explanation naming the way forward.
+ * @returns A locked response naming the entity.
  */
-export function actionLocked(): ActionStatusResponse {
-  return actionError("locked", "Task locked", TASK_LOCKED_MESSAGE);
+export function actionLocked(entity: string, description: string): ActionStatusResponse {
+  return actionError("locked", `${entity} locked`, description);
 }
 
 /**
- * Failure preset for terminal consultation/case records. New notes and files
- * can still be added, but existing ones can no longer be edited or deleted.
+ * Failure preset for the `Done` task freeze. Shorthand for
+ * {@link actionLocked} with the shared task-review copy, which names the reopen
+ * path so the user is never told only that they cannot proceed.
  *
- * @param entity - Human-readable entity name (e.g. `"Consultation"`).
- * @returns A locked response naming the entity.
+ * @returns A locked response using the shared task-review message.
  */
-export function actionRecordLocked(entity: string): ActionStatusResponse {
-  return actionError(
-    "locked",
-    `${entity} locked`,
-    "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
-  );
+export function actionTaskLocked(): ActionStatusResponse {
+  return actionLocked("Task", TASK_LOCKED_MESSAGE);
 }
 
 const UNAUTHORIZED_TITLE = "Session expired";

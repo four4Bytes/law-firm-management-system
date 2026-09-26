@@ -21,7 +21,8 @@ export type DocumentRow = {
   consultation?: { id: string; concern: string } | null;
 };
 
-/** A document's display metadata plus the storage key used to presign its URL. */
+// Display metadata plus the storage key, which the row projection omits because
+// presigned-URL callers need it.
 export type AuthorizedDocument = DocumentRow & { file_path: string };
 
 export interface DocumentListQuery extends PageQuery {
@@ -135,19 +136,13 @@ export const getDocumentById = cache(
   },
 );
 
-/**
- * Loads a document's display metadata and storage key, after asserting the
- * caller may read it (including the parent task, when attached to one). Throws
- * `ForbiddenError` when access is denied, and returns `null` when no document
- * exists so each caller decides how to surface a missing record.
- *
- * Shared by the presigned-URL Server Actions and the full-page preview route so
- * authorization lives in exactly one place.
- *
- * @param documentId - The document to load.
- * @param user - The authenticated session user performing the read.
- * @returns The authorized document, or `null` when none exists.
- */
+// Loads a document's display metadata and storage key, after asserting the
+// caller may read it (including the parent task, when attached to one).
+//
+// The two failure modes are deliberately different: `ForbiddenError` for a
+// denied read, but `null` for a missing document, so each caller decides how to
+// surface absence. Shared by the presigned-URL Server Actions and the full-page
+// preview route so authorization lives in exactly one place.
 export async function getAuthorizedDocument(
   documentId: string,
   user: { id: string; role: Role },
@@ -196,15 +191,12 @@ export async function getAuthorizedDocument(
   };
 }
 
-/**
- * Collects the S3 object keys for every document attached to a task, so they
- * can be purged before the DB cascade removes the `Document` rows.
- *
- * @param taskId - The task whose document files should be collected.
- * @param tx - Optional transaction client; when omitted, the shared Prisma
- *   singleton is used.
- * @returns The `file_path` values of the task's documents.
- */
+// Collects the S3 object keys for every document attached to a task, so they
+// can be purged before the DB cascade removes the `Document` rows. Never purge
+// first: that would leave `Document` rows pointing at missing blobs.
+//
+// `tx` is optional; the shared Prisma singleton is used when it is omitted.
+// Returns the `file_path` values of the task's documents.
 export async function getDocumentFilePathsByTaskId(
   taskId: string,
   tx?: TransactionClient,
@@ -216,13 +208,9 @@ export async function getDocumentFilePathsByTaskId(
   return documents.map((d) => d.file_path);
 }
 
-/**
- * Collects the S3 object keys for every document attached to a consultation,
- * so they can be purged before the DB cascade removes the `Document` rows.
- *
- * @param consultationId - The consultation whose document files should be collected.
- * @returns The `file_path` values of the consultation's documents.
- */
+// Collects the S3 object keys for every document attached to a consultation,
+// so they can be purged before the DB cascade removes the `Document` rows.
+// Returns the `file_path` values of the consultation's documents.
 export async function getDocumentFilePathsByConsultationId(
   consultationId: string,
 ): Promise<string[]> {
@@ -233,15 +221,13 @@ export async function getDocumentFilePathsByConsultationId(
   return documents.map((d) => d.file_path);
 }
 
-/**
- * Collects the S3 object keys for every document that a case deletion will
- * cascade-remove: documents attached directly to the case and to its tasks.
- * Consultations are intentionally excluded — deleting a case only unlinks its
- * source consultation, so consultation-owned documents must survive.
- *
- * @param caseId - The case whose document files should be collected.
- * @returns The `file_path` values of all documents removed by the delete.
- */
+// Collects the S3 object keys for every document that a case deletion will
+// cascade-remove: documents attached directly to the case and to its tasks.
+//
+// Consultations are intentionally excluded — deleting a case only unlinks its
+// source consultation, so consultation-owned documents must survive.
+//
+// Returns the `file_path` values of all documents removed by the delete.
 export async function getDocumentFilePathsForCaseDeletion(caseId: string): Promise<string[]> {
   const documents = await prisma.document.findMany({
     where: {

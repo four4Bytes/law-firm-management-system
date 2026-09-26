@@ -36,7 +36,6 @@ export interface ToastContent {
   link?: ToastLink;
 }
 
-/** Maximum toasts on screen at once; extras wait until one closes. */
 export const MAX_VISIBLE_TOASTS = 4;
 
 const variantClassMap: Record<ToastVariant, string> = {

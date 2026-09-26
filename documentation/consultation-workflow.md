@@ -111,14 +111,3 @@ Guards use the throwing helpers (`requireAuth`, `requirePermission`, `requireCon
 ## 9. Audit
 
 `consultation.created/updated/status_changed (from → to in details)/accepted/case.created/deleted`. Reject/cancel reasons are saved as consultation `Note`s (`Rejection reason:` / `Cancellation reason:` prefix) in the same transaction as the status flip, so they appear in the Notes tab.
-
-## 10. Resolved questions (changelog)
-
-- **Q1 — Orphan `Accepted` requires two permissions.** Fixed: one atomic `acceptConsultationWithCaseAction` requiring both `consultation.update` (record) and `case.create`; status and case commit in a single transaction.
-- **Q2 — Cancel-after-accept cannot revert.** Fixed by removing the premature flip: the modal opens first, cancel changes nothing, and the revert path is deleted.
-- **Q3 — Edits never lock.** Fixed: booking changes only while `Scheduled` (server + disabled fields + reschedule confirm); `Accepted`-with-case freezes all fields (read-only banner links the case).
-- **Q4 — `createCaseAction` trusts the link.** Fixed: requires an existing `Completed`/`Accepted` source consultation and matching clients (`checkConsultationLink`).
-- **Q5 — No decision rationale.** Fixed: optional reason on reject/cancel via the shared `DecisionModal`, stored as a labelled `Note` in-transaction.
-- **Q6 — `TERMINAL_CONSULTATION_STATUSES` is dead code.** Fixed: set removed; terminality derives from the matrix via `isTerminalStatus()`.
-- **Q7 — Create-as-`Completed`.** Kept intentionally for backfill of already-held meetings; documented in §3.
-- **Q8 — `Cancelled` terminality.** Reviewed against real-world flow: cancelling is a scheduling outcome clients routinely reverse, so `Cancelled → Scheduled` (rebook) is allowed with its own button and copy. `Rejected`/`Accepted` stay terminal (decision history / case ownership).

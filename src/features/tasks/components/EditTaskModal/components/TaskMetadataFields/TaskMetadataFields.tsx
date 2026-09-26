@@ -6,10 +6,7 @@ import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeRevi
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { TaskStatus } from "@/generated/prisma/browser";
 import { createFieldValidator } from "@/lib/validation/form-utils";
-
-import styles from "./TaskMetadataFields.module.css";
 
 export interface TaskMetadataFieldsProps {
   task: TaskDetailRow;
@@ -77,12 +74,6 @@ export function TaskMetadataFields({
         }
         validate={fieldValidator}
       />
-      {!capabilities.canEditRoster && task.status === TaskStatus.Done && (
-        <p className={styles.rosterLocked}>
-          The assignee and reviewer lists are locked while the task is completed, because they
-          determine who approved it. Reopen the task to change them.
-        </p>
-      )}
     </>
   );
 }

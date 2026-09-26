@@ -98,14 +98,14 @@ Revisit only if document editing is ever added in-app.
 ## 5. Is the audit log detailed enough to stand in for the locks?
 
 Now that terminal records are editable, the audit trail is the record-integrity guarantee, so its blind
-spots matter more than they did. Two were closed:
+spots matter more than they did:
 
-- Note create/update/delete now record a truncated content preview, not just the note id.
+- Note create/update/delete retain only event metadata and the note ID, following the [audit content policy](./security.md#audit-logging). Note content and previews are excluded, including on deletion.
 - `task.status_changed` is now written by every path that can move the derived status — submit,
   review, and roster change — carrying `from X to Y`. Reopen records its own `task.reopened` action
   with the status move in the same entry, since nothing about a reopen is invisible without it.
 
-Both are implemented but **unvalidated** — nobody has confirmed this level of detail is what the firm
+The retained event detail is **unvalidated** — nobody has confirmed this level of detail is what the firm
 actually wants to retain, or how long it should be kept.
 
 ---

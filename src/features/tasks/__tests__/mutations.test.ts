@@ -194,7 +194,7 @@ describe("updateTask", () => {
     beforeEach(() => {
       vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask({ status: "Done" }));
       vi.mocked(prisma.taskAssignment.findMany).mockResolvedValue([
-        mockTaskAssignment({ user_id: "u1", status: "Todo" }),
+        mockTaskAssignment({ user_id: "u1", status: "Done" }),
       ]);
       vi.mocked(prisma.taskReviewer.findMany).mockResolvedValue([
         mockTaskReviewer({ reviewer_user_id: "u2", decision: "Approved" }),
@@ -215,7 +215,7 @@ describe("updateTask", () => {
 
       await expect(
         updateTask("t1", { title: "Fixed typo", assignee_ids: ["u1"] }),
-      ).resolves.toEqual({ id: "t1", status: "Pending" });
+      ).resolves.toEqual({ id: "t1", status: "Done" });
     });
 
     it("refuses an assignee change", async () => {

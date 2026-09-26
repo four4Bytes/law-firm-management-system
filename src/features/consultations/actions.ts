@@ -528,6 +528,13 @@ export async function changeConsultationStatusAction(
       return actionForbidden();
     }
 
+    if (await isAcceptedWithCase(consultationId, existing.status)) {
+      return actionLocked(
+        "Consultation",
+        "This consultation was accepted and handed off to a case, so its status is read-only. Update the case instead.",
+      );
+    }
+
     if (status === ConsultationStatus.Accepted) {
       return actionConflict(
         "Accept from the consultation page",
@@ -544,13 +551,6 @@ export async function changeConsultationStatusAction(
 
     const timingError = checkBookingTiming(status, existing.booking_datetime);
     if (timingError) return timingError;
-
-    if (await isAcceptedWithCase(consultationId, existing.status)) {
-      return actionLocked(
-        "Consultation",
-        "This consultation was accepted and handed off to a case, so its status is read-only. Update the case instead.",
-      );
-    }
 
     if (
       reason &&

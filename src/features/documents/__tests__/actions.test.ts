@@ -220,8 +220,10 @@ describe("documents on terminal records", () => {
     expect(deleteDocumentFiles).toHaveBeenCalledWith([documentRecord.file_path]);
   });
 
-  it("deletes a file on a settled case", async () => {
+  it("deletes a case file without consulting the parent case status", async () => {
     expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
+    expect(deleteDocument).toHaveBeenCalledWith(uuid);
+    expect(deleteDocumentForTask).not.toHaveBeenCalled();
   });
 
   it("deletes a task file whose parent case is closed", async () => {

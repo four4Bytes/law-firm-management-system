@@ -167,13 +167,12 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
   );
 }
 
-/**
- * Full-page reading surface for one document: its metadata header, its contents
- * rendered by type, and links to the case, consultation, or task it belongs to.
- * Content that cannot be rendered here falls back to an explanatory placeholder
- * offering a download, so the page never shows more than one download
- * affordance and shows it only when it is the way forward.
- */
+// Full-page reading surface for one document: its metadata header, its contents
+// rendered by type, and links to the case, consultation, or task it belongs to.
+//
+// Content that cannot be rendered here falls back to an explanatory placeholder
+// offering a download, so the page never shows more than one download
+// affordance, and shows it only when it is the way forward.
 export function DocumentPreview({ document, src, className }: DocumentPreviewProps) {
   const { handleDownload } = useDocumentDownload();
   const download = () => void handleDownload(document);

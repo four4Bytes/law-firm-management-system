@@ -59,6 +59,18 @@
       }
     }
 
+    &.warning {
+      border-left-color: var(--color-warning);
+
+      .icon {
+        color: var(--color-warning);
+      }
+
+      .progress {
+        background: var(--color-warning);
+      }
+    }
+
     &.error {
       border-left-color: var(--color-danger);
 

@@ -8,7 +8,6 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
-import { TaskStatus } from "@/generated/prisma/browser";
 import { getParentPath } from "@/lib/domain/path";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { isWithinUploadSizeLimit } from "@/lib/files/upload-policy";
@@ -27,14 +26,14 @@ import {
   type ActionStatusResponse,
 } from "@/lib/security/action-response";
 import { requireAuth, type AuthenticatedUser } from "@/lib/security/auth-guards";
-import { ForbiddenError, TaskLockedError, toActionResponse } from "@/lib/security/errors";
+import { ForbiddenError, toActionResponse } from "@/lib/security/errors";
 import { can, type AccessContext } from "@/lib/security/rbac";
 
 import {
   createDocument,
   createDocumentForTask,
+  deleteDocument,
   deleteDocumentForTask,
-  deleteDocumentWithParentCheck,
 } from "./mutations";
 import {
   getAuthorizedDocument,
@@ -126,13 +125,6 @@ export async function getDocumentUploadUrlAction(
   });
   if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
     throw new ForbiddenError();
-  }
-
-  if (task_id) {
-    const task = await getTaskById(task_id);
-    if (task?.status === TaskStatus.Done) {
-      throw new TaskLockedError();
-    }
   }
 
   const parentType = case_id ? "cases" : task_id ? "tasks" : "consultations";
@@ -284,10 +276,7 @@ export async function deleteDocumentAction(
 
       await deleteDocumentForTask(doc.task_id, documentId);
     } else {
-      await deleteDocumentWithParentCheck(documentId, {
-        consultation_id: doc.consultation_id,
-        case_id: parentCaseId,
-      });
+      await deleteDocument(documentId);
     }
 
     await deleteDocumentFiles([doc.file_path]);

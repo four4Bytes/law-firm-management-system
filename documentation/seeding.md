@@ -50,7 +50,7 @@ These rows are eligible on the next scheduler run:
 | Milestone `Cancelled`                 | Torres pre-trial (moot after withdrawal)                                            |
 | Payment `Refunded`                    | Torres filing fee                                                                   |
 
-Terminal records are append-only at runtime, but the seed writes history directly — the seeded
+Terminal records stay fully editable at runtime, but the seed writes history directly — the seeded
 `Settlement reason:` / `Termination reason:` notes mirror exactly what `DecisionModal` saves.
 
 ## Documents

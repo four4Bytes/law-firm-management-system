@@ -46,7 +46,7 @@ New case (always Open)
 - **Create** (`CaseCreatePayloadSchema` / WithClient variant): status is accepted but the UI always submits `Open`. There is no status select on creation.
 - **Edit** (`CaseUpdatePayloadSchema` / `CaseDataSchema` update variant): carries **no status field**. Field edits can never change status.
 - **Status change** (`CaseStatusChangePayloadSchema`): accepts any enum value plus an optional `reason`; legality is enforced server-side by `isValidCaseStatusTransition()`. Illegal moves return `conflict / Invalid status change` naming the legal next steps (`describeCaseNextSteps()`).
-- **Append-only lock**: on `Closed`/`Settled`/`Terminated`, existing notes/files refuse update/delete (`RecordLockedError` → `locked` envelope); creation, reads, and payments stay open. Reopening restores editing. See [Lifecycle](./lifecycle.md).
+- **No content lock**: notes, files, tasks, milestones, and payments are editable on `Closed`/`Settled`/`Terminated` exactly as on `Open` — which matters because Philippine matters get reopened constantly (reconsideration granted, remanded on appeal, settlement breached). Integrity comes from the audit trail. See [Lifecycle](./lifecycle.md) §3.
 
 ## 4. Server actions (`src/features/cases/actions.ts`)
 
@@ -80,9 +80,3 @@ Any status change → `CaseStatusChanged` to all assignees (actor excluded), gat
 ## 9. Audit
 
 `case.created/updated/status_changed (from → to in details)/deleted`. Closing reasons live as labelled notes, not in audit details.
-
-## 10. Resolved questions
-
-- **Why no `Ongoing`?** `Open` vs "ongoing" has no crisp real-world event separating them (unlike meeting-held), so the distinction would be applied inconsistently and the data would lie. `Open` honestly covers intake-through-active-work. (An `Ongoing` value briefly existed in the schema during development and was reverted before any rows used it.)
-- **Why is reopen allowed but consultation terminal states aren't?** A rejected consultation is a declined opportunity (new record is clean); a case accumulates fees/documents/notes whose continuity matters across resumed litigation. Both directions are audited appends, never rewrites.
-- **Why is creation always `Open`?** The UI offers no select; backfilled files reach their true state through the guarded transitions, keeping one writer for all status changes.

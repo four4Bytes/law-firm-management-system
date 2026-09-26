@@ -63,6 +63,10 @@ export function toastError(title: string, description: string): void {
 /**
  * Renders the structured error from a failed write action as a toast.
  *
+ * A `locked` failure is not a user error — the record is in a state where the
+ * operation is intentionally unavailable — so it renders as a warning rather
+ * than an error, and skips the access-denied link.
+ *
  * When the envelope carries no {@link ActionError} (e.g. the request threw
  * before a response arrived), a sanitized fallback built from `operation`
  * is shown instead — mirroring the server's own unknown-error copy.
@@ -77,7 +81,7 @@ export function toastActionError(response: ActionStatusResponse, operation: stri
     {
       title: error.title,
       description: error.description,
-      variant: "error",
+      variant: error.code === "locked" ? "warning" : "error",
       ...(error.code === "forbidden" ? { link: denialLink } : {}),
     },
     { timeout: TOAST_TIMEOUT },

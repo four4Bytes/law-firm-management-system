@@ -18,10 +18,8 @@ export const ConsultationListQuerySchema = PageQuerySchema.extend({
     .optional(),
 });
 
-/**
- * `?status=` URL search param for deep-linking into a pre-filtered consultation list.
- * Unknown values are dropped so hand-crafted URLs never break the page.
- */
+// `?status=` deep-link into a pre-filtered consultation list. Unknown values are
+// dropped so a hand-crafted URL never breaks the page.
 export const ConsultationStatusFilterParamSchema = enumFilterParamSchema(
   Object.values(ConsultationStatus),
 );

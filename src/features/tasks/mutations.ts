@@ -92,7 +92,50 @@ export async function createTask(data: TaskCreateData): Promise<{ id: string }> 
   });
 }
 
-export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id: string }> {
+// Whether `data` would actually change the roster, compared against the rows in
+// the database. Field presence is not enough: the edit form always submits the
+// full assignee list, so a title-only edit on a completed task would be refused.
+// This is the authoritative check — `updateTaskAction` compares against a read
+// taken before the transaction, which a concurrent writer can invalidate.
+async function rosterWouldChange(
+  tx: TransactionClient,
+  taskId: string,
+  data: TaskUpdateData,
+): Promise<boolean> {
+  const { assignee_ids, reviewer_ids, removed_reviewer_ids } = data;
+
+  if (assignee_ids !== undefined) {
+    const current = await tx.taskAssignment.findMany({
+      where: { task_id: taskId },
+      select: { user_id: true },
+    });
+    const currentIds = new Set(current.map((a) => a.user_id));
+    if (
+      currentIds.size !== assignee_ids.length ||
+      !assignee_ids.every((id) => currentIds.has(id))
+    ) {
+      return true;
+    }
+  }
+
+  if (removed_reviewer_ids !== undefined && removed_reviewer_ids.length > 0) return true;
+
+  if (reviewer_ids !== undefined && reviewer_ids.length > 0) {
+    const current = await tx.taskReviewer.findMany({
+      where: { task_id: taskId },
+      select: { reviewer_user_id: true },
+    });
+    const currentIds = new Set(current.map((r) => r.reviewer_user_id));
+    if (reviewer_ids.some((id) => !currentIds.has(id))) return true;
+  }
+
+  return false;
+}
+
+export async function updateTask(
+  id: string,
+  data: TaskUpdateData,
+): Promise<{ id: string; status: TaskStatus }> {
   const { assignee_ids, reviewer_ids, removed_reviewer_ids, ...taskData } = data;
 
   return prisma.$transaction(async (tx) => {
@@ -103,7 +146,9 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       select: { status: true },
     });
     if (!currentTask) throw new Error("Task not found");
-    if (currentTask.status === TaskStatus.Done) throw new TaskLockedError();
+    if (currentTask.status === TaskStatus.Done && (await rosterWouldChange(tx, id, data))) {
+      throw new TaskLockedError();
+    }
 
     let removed: string[] = [];
     let added: string[] = [];
@@ -203,6 +248,7 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
       }
     }
 
+    let status = currentTask.status;
     if (
       assignee_ids !== undefined ||
       reviewer_ids !== undefined ||
@@ -212,14 +258,14 @@ export async function updateTask(id: string, data: TaskUpdateData): Promise<{ id
         tx.taskAssignment.findMany({ where: { task_id: id }, select: { status: true } }),
         tx.taskReviewer.findMany({ where: { task_id: id }, select: { decision: true } }),
       ]);
-      const status = deriveTaskStatus(
+      status = deriveTaskStatus(
         assignments.map((a) => a.status),
         reviewers.map((r) => r.decision),
       );
       await tx.task.update({ where: { id }, data: { status }, select: { id: true } });
     }
 
-    return { id: task.id };
+    return { id: task.id, status };
   });
 }
 
@@ -293,6 +339,7 @@ export async function addTaskReviewer(
       select: { case_id: true, status: true },
     });
     if (!task) throw new Error("Task not found");
+    if (task.status === TaskStatus.Done) throw new TaskLockedError();
 
     const assigneeMatch = await tx.taskAssignment.findFirst({
       where: { task_id: taskId, user_id: reviewerUserId },
@@ -313,17 +360,6 @@ export async function addTaskReviewer(
       update: { decision: "Pending", reviewed_at: null },
     });
 
-    if (task.status === TaskStatus.Done) {
-      await tx.taskReviewer.updateMany({
-        where: { task_id: taskId },
-        data: { decision: "Pending", reviewed_at: null },
-      });
-      await tx.taskAssignment.updateMany({
-        where: { task_id: taskId },
-        data: { status: "Todo" },
-      });
-    }
-
     const [assignments, reviewers] = await Promise.all([
       tx.taskAssignment.findMany({ where: { task_id: taskId }, select: { status: true } }),
       tx.taskReviewer.findMany({ where: { task_id: taskId }, select: { decision: true } }),
@@ -341,6 +377,48 @@ export async function addTaskReviewer(
     await grantCaseMembership(tx, task.case_id, [reviewerUserId]);
 
     return { id: taskId };
+  });
+}
+
+// The only way out of `Done`. Deliberately not a side effect of
+// `addTaskReviewer`, which used to double as an unlock token — that forced a
+// real reviewer obligation on whoever happened to be added, and was only
+// discoverable from a banner. Assignee marks are intentionally discarded: a
+// reopened task is being re-reviewed, and stale `Done` marks would re-derive it
+// straight back to `Done` with nobody having looked at it.
+export async function reopenTask(taskId: string): Promise<{ taskStatus: TaskStatus }> {
+  return prisma.$transaction(async (tx) => {
+    await lockTaskRow(tx, taskId);
+
+    const task = await tx.task.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+    if (!task) throw new Error("Task not found");
+    if (task.status !== TaskStatus.Done) {
+      throw new TaskValidationError(
+        "Task is not completed",
+        "Only a completed task can be reopened. This task is still in progress.",
+      );
+    }
+
+    await tx.taskReviewer.updateMany({
+      where: { task_id: taskId },
+      data: { decision: "Pending", reviewed_at: null },
+    });
+    await tx.taskAssignment.updateMany({
+      where: { task_id: taskId },
+      data: { status: "Todo" },
+    });
+
+    const taskStatus = TaskStatus.Pending;
+    await tx.task.update({
+      where: { id: taskId },
+      data: { status: taskStatus },
+      select: { id: true },
+    });
+
+    return { taskStatus };
   });
 }
 

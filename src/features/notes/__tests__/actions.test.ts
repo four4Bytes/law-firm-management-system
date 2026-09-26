@@ -1,9 +1,10 @@
+import { after } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
-import { RecordLockedError, TASK_LOCKED_MESSAGE, TaskLockedError } from "@/lib/security/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
@@ -17,10 +18,10 @@ import {
 import {
   createNote,
   createNoteForTask,
+  deleteNote,
   deleteNoteForTask,
-  deleteNoteWithParentCheck,
+  updateNote,
   updateNoteForTask,
-  updateNoteWithParentCheck,
 } from "../mutations";
 import { getNoteAccessContext, getNoteById, getNoteRowById } from "../queries";
 
@@ -65,12 +66,18 @@ vi.mock("../queries", () => ({
 
 vi.mock("../mutations", () => ({
   createNote: vi.fn(),
-  updateNoteWithParentCheck: vi.fn(),
-  deleteNoteWithParentCheck: vi.fn(),
+  updateNote: vi.fn(),
+  deleteNote: vi.fn(),
   createNoteForTask: vi.fn(),
   updateNoteForTask: vi.fn(),
   deleteNoteForTask: vi.fn(),
 }));
+
+async function flushAfterCallbacks(): Promise<void> {
+  for (const [callback] of vi.mocked(after).mock.calls) {
+    if (typeof callback === "function") await callback();
+  }
+}
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -190,6 +197,14 @@ describe("createNoteAction", () => {
     const result = await createNoteAction({ content: "New note", case_id: uuid });
 
     expect(result).toEqual({ success: true, data: { id: "n1" } });
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: sessionLawyer.id,
+      action: "note.created",
+      entityType: "Case",
+      entityId: uuid,
+      details: `Created note with ID: n1`,
+    });
   });
 });
 
@@ -208,11 +223,19 @@ describe("updateNoteAction", () => {
   it("returns success when authorized", async () => {
     setupAuth(sessionLawyer);
     vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
-    vi.mocked(updateNoteWithParentCheck).mockResolvedValue(noteRecord);
+    vi.mocked(updateNote).mockResolvedValue(noteRecord);
 
     const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
 
     expect(result).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: sessionLawyer.id,
+      action: "note.updated",
+      entityType: "Case",
+      entityId: uuid,
+      details: `Updated note with ID: ${uuid}`,
+    });
   });
 });
 
@@ -231,132 +254,30 @@ describe("deleteNoteAction", () => {
   it("returns success when authorized", async () => {
     setupAuth(sessionLawyer);
     vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
-    vi.mocked(deleteNoteWithParentCheck).mockResolvedValue(noteRecord);
+    vi.mocked(deleteNote).mockResolvedValue(noteRecord);
 
     const result = await deleteNoteAction({ noteId: uuid });
 
     expect(result).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: sessionLawyer.id,
+      action: "note.deleted",
+      entityType: "Case",
+      entityId: uuid,
+      details: `Deleted note with ID: ${uuid}`,
+    });
   });
 });
 
-describe("task subdata lock", () => {
-  const doneTask = {
-    id: uuid,
-    status: "Done" as const,
-    case_id: uuid,
-  } as unknown as Awaited<ReturnType<typeof getTaskById>>;
-
-  beforeEach(() => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue({
-      assigned: true,
-      own: false,
-      taskOnly: true,
-    });
-    vi.mocked(getNoteAccessContext).mockResolvedValue({
-      assigned: true,
-      own: true,
-    });
-  });
-
-  it("refuses to create a note on a done task", async () => {
-    vi.mocked(getTaskById).mockResolvedValue(doneTask);
-    vi.mocked(createNoteForTask).mockRejectedValue(new TaskLockedError());
-
-    const result = await createNoteAction({
-      content: "New note",
-      case_id: null,
-      consultation_id: null,
-      task_id: uuid,
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Task locked",
-        description: TASK_LOCKED_MESSAGE,
-      },
-    });
-    expect(createNoteForTask).toHaveBeenCalledWith(uuid, expect.any(Object));
-  });
-
-  it("refuses to update a note on a done task", async () => {
-    vi.mocked(getTaskById).mockResolvedValue(doneTask);
-    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
-    vi.mocked(updateNoteForTask).mockRejectedValue(new TaskLockedError());
-
-    const result = await updateNoteAction({ noteId: uuid, content: "Updated note" });
-
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Task locked",
-        description: TASK_LOCKED_MESSAGE,
-      },
-    });
-    expect(updateNoteForTask).toHaveBeenCalledWith(uuid, uuid, "Updated note");
-  });
-
-  it("refuses to delete a note on a done task", async () => {
-    vi.mocked(getTaskById).mockResolvedValue(doneTask);
-    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
-    vi.mocked(deleteNoteForTask).mockRejectedValue(new TaskLockedError());
-
-    const result = await deleteNoteAction({ noteId: uuid });
-
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Task locked",
-        description: TASK_LOCKED_MESSAGE,
-      },
-    });
-    expect(deleteNoteForTask).toHaveBeenCalledWith(uuid, uuid);
-  });
-});
-
-describe("terminal record lock", () => {
-  const lockedEnvelope = {
-    success: false,
-    error: {
-      code: "locked",
-      title: "Consultation locked",
-      description:
-        "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
-    },
-  };
-
+describe("notes on terminal records", () => {
   beforeEach(() => {
     vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
-    vi.mocked(updateNoteWithParentCheck).mockResolvedValue(noteRecord);
-    vi.mocked(deleteNoteWithParentCheck).mockResolvedValue(noteRecord);
+    vi.mocked(updateNote).mockResolvedValue(noteRecord);
+    vi.mocked(deleteNote).mockResolvedValue(noteRecord);
   });
 
-  it("refuses to update a note on a rejected consultation", async () => {
-    vi.mocked(getNoteById).mockResolvedValue({
-      ...noteRecord,
-      case_id: null,
-      consultation_id: uuid,
-    });
-    vi.mocked(updateNoteWithParentCheck).mockRejectedValue(new RecordLockedError("Consultation"));
-
-    expect(await updateNoteAction({ noteId: uuid, content: "Edited" })).toEqual(lockedEnvelope);
-    expect(updateNoteForTask).not.toHaveBeenCalled();
-  });
-
-  it("refuses to delete a note on a closed case", async () => {
-    vi.mocked(deleteNoteWithParentCheck).mockRejectedValue(new RecordLockedError("Case"));
-
-    expect(await deleteNoteAction({ noteId: uuid })).toEqual({
-      ...lockedEnvelope,
-      error: { ...lockedEnvelope.error, title: "Case locked" },
-    });
-    expect(deleteNoteForTask).not.toHaveBeenCalled();
-  });
-
-  it("allows editing a note on a live consultation", async () => {
+  it("edits a note on a rejected consultation", async () => {
     vi.mocked(getNoteById).mockResolvedValue({
       ...noteRecord,
       case_id: null,
@@ -366,16 +287,21 @@ describe("terminal record lock", () => {
     expect(await updateNoteAction({ noteId: uuid, content: "Edited" })).toEqual({
       success: true,
     });
+    expect(updateNote).toHaveBeenCalledWith(uuid, "Edited");
   });
 
-  it("refuses to delete a task note when the parent case is locked", async () => {
-    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
-    vi.mocked(deleteNoteForTask).mockRejectedValue(new RecordLockedError("Case"));
+  it("deletes a note on a closed case", async () => {
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, case_id: uuid });
 
-    expect(await deleteNoteAction({ noteId: uuid })).toEqual({
-      ...lockedEnvelope,
-      error: { ...lockedEnvelope.error, title: "Case locked" },
-    });
+    expect(await deleteNoteAction({ noteId: uuid })).toEqual({ success: true });
+    expect(deleteNote).toHaveBeenCalledWith(uuid);
+  });
+
+  it("deletes a task note whose parent case is closed", async () => {
+    vi.mocked(getNoteById).mockResolvedValue({ ...noteRecord, task_id: uuid });
+    vi.mocked(deleteNoteForTask).mockResolvedValue(noteRecord);
+
+    expect(await deleteNoteAction({ noteId: uuid })).toEqual({ success: true });
   });
 });
 

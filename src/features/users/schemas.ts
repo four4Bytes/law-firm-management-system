@@ -17,10 +17,8 @@ export const UserListQuerySchema = z.object({
     .optional(),
 });
 
-/**
- * `?role=` URL search param for deep-linking into a pre-filtered user list.
- * Unknown values are dropped so hand-crafted URLs never break the page.
- */
+// `?role=` deep-link into a pre-filtered user list. Unknown values are dropped
+// so a hand-crafted URL never breaks the page.
 export const UserRoleFilterParamSchema = enumFilterParamSchema(Object.values(Role));
 
 const CreatableRoleSchema = requiredEnum(Role, "Role").refine(

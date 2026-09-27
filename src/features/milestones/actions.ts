@@ -8,7 +8,7 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { CaseMilestoneStatus, NotificationType } from "@/generated/prisma/browser";
-import { isAfterToday, isBeforeToday } from "@/lib/primitives/date";
+import { isAfterToday, isBeforeToday, toMinuteEpoch } from "@/lib/primitives/date";
 import {
   actionConflict,
   actionForbidden,
@@ -18,7 +18,7 @@ import {
   type ActionStatusResponse,
 } from "@/lib/security/action-response";
 import { assertRecordPermission, requireAuth } from "@/lib/security/auth-guards";
-import { ForbiddenError, toActionResponse } from "@/lib/security/errors";
+import { ForbiddenError, isRecordNotFoundError, toActionResponse } from "@/lib/security/errors";
 import { can } from "@/lib/security/rbac";
 
 import { createMilestone, deleteMilestone, updateMilestone } from "./mutations";
@@ -132,6 +132,7 @@ export async function createMilestoneAction(
     );
 
     revalidatePath(`/case/${case_id}`);
+    revalidatePath("/case");
 
     return { success: true, data: { id: milestone.id } };
   } catch (error) {
@@ -158,16 +159,19 @@ export async function updateMilestoneAction(
       return actionForbidden();
     }
 
+    // Minute precision on both sides, matching the modal: pickers only capture
+    // hour and minute, so an exact-millisecond compare would treat a stored
+    // value carrying seconds as changed and silently rewrite it.
+    const dueDateChanged = toMinuteEpoch(existing.due_date) !== toMinuteEpoch(due_date);
     if (
       existing.title === title &&
       existing.description === (description || null) &&
-      existing.due_date.getTime() === due_date.getTime() &&
+      !dueDateChanged &&
       existing.status === status
     ) {
       return { success: true };
     }
 
-    const dueDateChanged = existing.due_date.getTime() !== due_date.getTime();
     const statusChanged = existing.status !== status;
     if (
       (dueDateChanged || statusChanged) &&
@@ -208,6 +212,7 @@ export async function updateMilestoneAction(
       due_date,
       status,
       resetReminderTiming,
+      expectedStatus: existing.status,
     });
 
     after(async () => {
@@ -254,11 +259,21 @@ export async function updateMilestoneAction(
     });
 
     revalidatePath(`/case/${existing.case_id}`);
+    revalidatePath("/case");
 
     return { success: true };
   } catch (error) {
-    return toActionResponse(error, "update milestone");
+    return mapMilestoneMutationError(error);
   }
+}
+
+function mapMilestoneMutationError(error: unknown): ActionStatusResponse {
+  // A concurrent status change needs no branch: `toActionResponse` already maps
+  // StatusConflictError to the shared "Record changed" envelope.
+  if (isRecordNotFoundError(error)) {
+    return actionNotFound("Milestone");
+  }
+  return toActionResponse(error, "update milestone");
 }
 
 export async function deleteMilestoneAction(
@@ -293,6 +308,7 @@ export async function deleteMilestoneAction(
     );
 
     revalidatePath(`/case/${existing.case_id}`);
+    revalidatePath("/case");
 
     return { success: true };
   } catch (error) {

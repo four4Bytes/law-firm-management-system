@@ -46,9 +46,10 @@ interface Props {
   overview: CaseOverviewData;
   access: AccessContext;
   userRole: Role | null;
+  currentUserId: string | null;
 }
 
-export function CaseDetail({ overview, access, userRole }: Props) {
+export function CaseDetail({ overview, access, userRole, currentUserId }: Props) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const pathname = usePathname();
@@ -243,7 +244,12 @@ export function CaseDetail({ overview, access, userRole }: Props) {
           <TabPanels>
             {validTabs.includes("tasks") && (
               <TabPanel id="tasks">
-                <TasksTab caseId={overview.id} access={access} userRole={userRole} />
+                <TasksTab
+                  caseId={overview.id}
+                  access={access}
+                  userRole={userRole}
+                  currentUserId={currentUserId}
+                />
               </TabPanel>
             )}
             {validTabs.includes("attachments") && (
@@ -263,7 +269,7 @@ export function CaseDetail({ overview, access, userRole }: Props) {
             )}
             {validTabs.includes("payments") && (
               <TabPanel id="payments">
-                <PaymentsTab caseId={overview.id} />
+                <PaymentsTab caseId={overview.id} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("activity") && (

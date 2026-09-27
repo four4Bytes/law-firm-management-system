@@ -270,7 +270,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
             )}
             {validTabs.includes("payments") && (
               <TabPanel id="payments">
-                <PaymentsTab consultationId={overview.id} />
+                <PaymentsTab consultationId={overview.id} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("activity") && (

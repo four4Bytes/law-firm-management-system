@@ -22,7 +22,6 @@ import {
   createUserAction,
   deactivateUserAction,
   getActiveUsersAction,
-  getSessionUserIdAction,
   touchLastSeenAction,
   updateUserAction,
 } from "../actions";
@@ -493,14 +492,6 @@ describe("getActiveUsersAction", () => {
       { id: "u1", name: "Alice", is_online: false },
     ]);
     expect(getActiveUsers).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("getSessionUserIdAction", () => {
-  it("returns the session user id", async () => {
-    vi.mocked(requireAuth).mockResolvedValue(sessionAdmin);
-
-    await expect(getSessionUserIdAction()).resolves.toBe("admin-id");
   });
 });
 

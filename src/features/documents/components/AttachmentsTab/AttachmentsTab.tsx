@@ -65,7 +65,7 @@ export function AttachmentsTab({ caseId, consultationId, taskId, access, userRol
         id: "file_type",
         name: "Type",
         allowsSorting: true,
-        render: (value) => formatFileType(value as string),
+        render: (_value, row) => formatFileType({ fileName: row.file_name }),
       },
       {
         id: "file_size",

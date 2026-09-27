@@ -12,7 +12,7 @@ import {
 } from "react-icons/fa6";
 import type { IconType } from "react-icons/lib";
 
-import { classifyFileType, type FileCategory } from "@/lib/files/file-format";
+import type { FileCategory } from "@/lib/files/file-types";
 
 import styles from "./FileIcon.module.css";
 
@@ -29,12 +29,11 @@ const FILE_TYPE_ICONS: Record<FileCategory, IconType> = {
 };
 
 interface FileIconProps {
-  fileType: string;
+  category: FileCategory;
   className?: string;
 }
 
-export function FileIcon({ fileType, className }: FileIconProps) {
-  const category = classifyFileType(fileType);
+export function FileIcon({ category, className }: FileIconProps) {
   const Icon = FILE_TYPE_ICONS[category];
 
   return <Icon className={clsx(styles.icon, className)} data-category={category} aria-hidden />;

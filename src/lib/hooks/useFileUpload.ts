@@ -92,13 +92,12 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
     const { caseId, consultationId, taskId } = parentRef.current;
     const payload = {
       file_name: entry.file.name,
-      file_type: entry.file.type,
       case_id: caseId,
       consultation_id: consultationId,
       task_id: taskId,
     };
 
-    const { key, uploadUrl } = await getDocumentUploadUrlAction(payload);
+    const { key, uploadUrl, contentType } = await getDocumentUploadUrlAction(payload);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
@@ -107,7 +106,7 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
       const response = await fetch(uploadUrl, {
         method: "PUT",
         body: entry.file,
-        headers: { "Content-Type": entry.file.type },
+        headers: { "Content-Type": contentType },
         signal: controller.signal,
       });
 

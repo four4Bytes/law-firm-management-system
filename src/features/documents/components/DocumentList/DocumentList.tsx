@@ -15,6 +15,7 @@ interface DocumentListProps {
   isBusy: boolean;
   isLoading?: boolean;
   showSize?: boolean;
+  showFileType?: boolean;
   hasMore?: boolean;
   isLoadingMore?: boolean;
   className?: string;
@@ -29,6 +30,7 @@ export function DocumentList({
   isBusy,
   isLoading,
   showSize = true,
+  showFileType = true,
   hasMore,
   isLoadingMore,
   className,
@@ -93,6 +95,7 @@ export function DocumentList({
           document={doc}
           isBusy={isBusy}
           showSize={showSize}
+          showFileType={showFileType}
           isDownloading={downloadingIds.has(doc.id)}
           onDownload={onDownload ? handleDownload : undefined}
           onView={onView}

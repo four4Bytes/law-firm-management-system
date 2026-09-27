@@ -544,6 +544,28 @@ describe("updateMilestoneAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/case/${uuid}`);
     expect(revalidatePath).toHaveBeenCalledWith("/case");
   });
+  it("locks a due-date change on a terminal milestone that stays terminal", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Done" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2024-05-01"),
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "locked",
+        title: "Milestone locked",
+        description: "Reopen to Pending to change the due date.",
+      },
+    });
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
 });
 
 describe("updateMilestoneAction notifications", () => {
@@ -643,5 +665,89 @@ describe("deleteMilestoneAction", () => {
     await deleteMilestoneAction({ milestoneId: uuid });
 
     expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
+
+  it("locks a due-date change on a cancelled milestone that stays cancelled", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Cancelled" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2099-05-01"),
+      status: "Cancelled" as const,
+    });
+
+    expect(result.success).toBe(false);
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("allows a due-date change when reopening to Pending in the same save", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Done" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2099-06-15"),
+      status: "Pending" as const,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateMilestone).toHaveBeenCalledWith(
+      uuid,
+      expect.objectContaining({ resetReminderTiming: true }),
+    );
+  });
+
+  it("allows a past due date when completing a pending milestone in the same save", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2024-05-01"),
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("still allows a title-only edit on a terminal milestone", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Done" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: "Corrected title",
+      description: undefined,
+      due_date: milestoneRecord.due_date,
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("still allows a description-only edit on a cancelled milestone", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({ ...milestoneRecord, status: "Cancelled" });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: "Dropped — superseded by the amended petition",
+      due_date: milestoneRecord.due_date,
+      status: "Cancelled" as const,
+    });
+
+    expect(result).toEqual({ success: true });
   });
 });

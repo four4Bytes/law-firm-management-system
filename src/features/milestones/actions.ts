@@ -13,6 +13,7 @@ import {
   actionConflict,
   actionForbidden,
   actionInvalid,
+  actionLocked,
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
@@ -36,7 +37,11 @@ import {
   MilestoneListQuerySchema,
   MilestoneUpdatePayloadSchema,
 } from "./schemas";
-import { describeMilestoneNextSteps, isValidMilestoneStatusTransition } from "./status";
+import {
+  describeMilestoneNextSteps,
+  isTerminalMilestoneStatus,
+  isValidMilestoneStatusTransition,
+} from "./status";
 
 export async function getMilestoneRowByIdAction(
   milestoneId: string,
@@ -173,6 +178,21 @@ export async function updateMilestoneAction(
     }
 
     const statusChanged = existing.status !== status;
+
+    // Date-reschedule lock, mirroring the consultation booking lock. A terminal
+    // milestone is a settled commitment: moving its deadline re-notifies every
+    // case assignee and re-arms reminders for work nobody is waiting on.
+    // Reopening to `Pending` is exempt because that transition *requires* moving
+    // the date forward, so `isTerminalMilestoneStatus` alone would deadlock the
+    // only legal way out. Title and description stay editable at every status.
+    if (
+      dueDateChanged &&
+      isTerminalMilestoneStatus(existing.status as CaseMilestoneStatus) &&
+      status !== CaseMilestoneStatus.Pending
+    ) {
+      return actionLocked("Milestone", "Reopen to Pending to change the due date.");
+    }
+
     if (
       (dueDateChanged || statusChanged) &&
       status === CaseMilestoneStatus.Pending &&

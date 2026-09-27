@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
+import { CalendarDate } from "@internationalized/date";
 import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { createPaymentAction } from "@/features/payments/actions";
 import { PaymentCreatePayloadSchema } from "@/features/payments/schemas";
 import { PaymentStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/hooks/useModalForm";
+import { getToday } from "@/lib/primitives/date";
 import {
   createFieldValidator,
   optionalString,
@@ -41,7 +42,7 @@ export function AddPaymentModal({
   consultationId,
 }: AddPaymentModalProps) {
   const [amount, setAmount] = useState("");
-  const [paymentDate, setPaymentDate] = useState<CalendarDate>(today(getLocalTimeZone()));
+  const [paymentDate, setPaymentDate] = useState<CalendarDate>(getToday());
   const [status, setStatus] = useState<PaymentStatus>(PaymentStatus.Unpaid);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [receiptNumber, setReceiptNumber] = useState("");
@@ -57,7 +58,7 @@ export function AddPaymentModal({
     schema: PaymentCreatePayloadSchema,
     reset: () => {
       setAmount("");
-      setPaymentDate(today(getLocalTimeZone()));
+      setPaymentDate(getToday());
       setStatus(PaymentStatus.Unpaid);
       setPaymentMethod("");
       setReceiptNumber("");

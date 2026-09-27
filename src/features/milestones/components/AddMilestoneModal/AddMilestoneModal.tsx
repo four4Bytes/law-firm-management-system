@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone, Time, today } from "@internationalized/date";
+import { CalendarDate, Time } from "@internationalized/date";
 import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
@@ -14,7 +14,7 @@ import { createMilestoneAction } from "@/features/milestones/actions";
 import { MilestoneCreatePayloadSchema } from "@/features/milestones/schemas";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/hooks/useModalForm";
-import { combineDateTime, isBeforeToday } from "@/lib/primitives/date";
+import { combineDateTime, getToday, isBeforeToday } from "@/lib/primitives/date";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./AddMilestoneModal.module.css";
@@ -34,7 +34,7 @@ export function AddMilestoneModal({
 }: AddMilestoneModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState<CalendarDate>(today(getLocalTimeZone()));
+  const [dueDate, setDueDate] = useState<CalendarDate>(getToday());
   const [dueTime, setDueTime] = useState<Time>(new Time(9, 0));
 
   function validateDueDate(): string | null {
@@ -57,7 +57,7 @@ export function AddMilestoneModal({
     reset: () => {
       setTitle("");
       setDescription("");
-      setDueDate(today(getLocalTimeZone()));
+      setDueDate(getToday());
       setDueTime(new Time(9, 0));
     },
   });

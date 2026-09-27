@@ -12,6 +12,7 @@
 | [RBAC](./RBAC.md)                                   | Role Based Access Control (canonical)                                             |
 | [Notifications](./notifications.md)                 | Notification & reminder pipelines (canonical)                                     |
 | [Lifecycle](./lifecycle.md)                         | Status transitions and the only field locks in the system (canonical)             |
+| [Dates & timezones](./dates-and-timezones.md)       | The app-timezone rule, the helpers, and the two drift failure modes (canonical)   |
 | [Case workflow](./case-workflow.md)                 | Case status matrix, closing flow, reopen                                          |
 | [Consultation workflow](./consultation-workflow.md) | Consultation status matrix, accept-to-case handoff, rescheduling                  |
 | [Task review workflow](./task-review-workflow.md)   | Task derivation, review chain, reopen                                             |

@@ -1,6 +1,36 @@
 import { CalendarDate, Time, toCalendarDateTime } from "@internationalized/date";
 
-/** Date and time conversion/formatting helpers built on `@internationalized/date`. */
+/**
+ * Date and time conversion/formatting helpers built on `@internationalized/date`.
+ *
+ * @module lib/date
+ *
+ * ## The app-timezone invariant
+ *
+ * No module may read a `Date`'s fields implicitly. Everything zone-sensitive
+ * goes through a helper here; `date-encapsulation.test.ts` fails the build if a
+ * field reader or `getLocalTimeZone()` appears elsewhere in `src/`.
+ *
+ * The reason is that `Date.prototype` field readers — `getFullYear()`,
+ * `getMonth()`, `getDate()`, `getHours()`, `getMinutes()`, `getDay()`,
+ * `getTimezoneOffset()` — resolve against the **runtime's** zone, not the app's:
+ * the browser's for client components, and the host's (normally UTC on Vercel)
+ * for server code and Server Actions. Two failure modes follow, and both have
+ * shipped real bugs here:
+ *
+ * 1. **Round-trip drift.** Reading a stored instant with a local reader and
+ *    writing it back with {@link combineDateTime} (app zone) shifts it by the
+ *    offset between the two. A `00:00` due date silently lands on the previous
+ *    calendar day for any browser outside the app zone.
+ * 2. **Asymmetric ranges.** Pairing a zone-correct lower bound with a
+ *    server-local upper bound (`getStartOfDay` + `new Date(y, m, d + 1)`) widens
+ *    "today" by exactly the offset — on a UTC host against Asia/Manila, "today's
+ *    consultations" ran 8 hours long and counted tomorrow's morning bookings.
+ *
+ * {@link getAppTimeZone} stays exportable: a few external APIs demand an
+ * explicit zone (`node-cron`'s `timezone` option, `CalendarDate.toDate(zone)`),
+ * and those call sites name the zone rather than letting a runtime guess it.
+ */
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -61,6 +91,38 @@ export function getStartOfDay(date: Date, timeZone: string = getAppTimeZone()): 
 }
 
 /**
+ * Computes the end of the day (the next day's midnight) in a given timezone for
+ * a calendar date, as an absolute instant.
+ *
+ * The exclusive upper bound to pair with {@link getStartOfDay} for a
+ * "this calendar day" query range. Do not build it from
+ * `new Date(y, m, d + 1)`: those parts come from the runtime's zone, so on a
+ * UTC server the bound lands 8 hours past midnight in the app timezone.
+ *
+ * @param date - The reference instant whose calendar day is wanted.
+ * @param timeZone - The IANA timezone to compute the day boundary in (defaults to the app timezone).
+ * @returns A Date representing `00:00` of the following day in the target timezone.
+ */
+export function getEndOfDay(date: Date, timeZone: string = getAppTimeZone()): Date {
+  const { year, month, day } = getZonedParts(date, timeZone);
+  return new CalendarDate(year, month, day).add({ days: 1 }).toDate(timeZone);
+}
+
+/**
+ * Returns the current calendar day in the app timezone.
+ *
+ * Use instead of `@internationalized/date`'s `today(getLocalTimeZone())`, which
+ * reads the browser's zone and so disagrees with the app timezone whenever they
+ * differ.
+ *
+ * @returns Today's `CalendarDate` as observed in the app timezone.
+ */
+export function getToday(): CalendarDate {
+  const { year, month, day } = getZonedParts(new Date(), getAppTimeZone());
+  return new CalendarDate(year, month, day);
+}
+
+/**
  * Determines whether an instant falls on a calendar day before today in the
  * app timezone. Same-day times (even hours already passed) are not "past" —
  * only strictly earlier days are.
@@ -104,9 +166,12 @@ function toLocalDate(date: Date | string): Date {
 /**
  * Splits an instant into calendar and clock parts in a given timezone.
  *
- * The single place this codebase reads the fields of a `Date`. Anything that
- * needs "what does this instant look like to a human" goes through here or a
- * helper built on it, so reading and writing agree on one zone.
+ * The single place in this codebase that reads the fields of a `Date`. Anything
+ * needing "what does this instant look like to a human" goes through here or a
+ * helper built on it, so reading and writing always agree on one zone. Calling
+ * `Date.prototype.getFullYear()` and friends directly reads the *runtime's* zone
+ * — the browser's for client code, UTC for a deployed server — which silently
+ * disagrees with the app timezone.
  *
  * @param date - The instant to decompose.
  * @param timeZone - The IANA timezone to read the fields in.

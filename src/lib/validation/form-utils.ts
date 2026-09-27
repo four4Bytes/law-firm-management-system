@@ -1,6 +1,8 @@
-import { CalendarDate, getLocalTimeZone } from "@internationalized/date";
+import { CalendarDate } from "@internationalized/date";
 import type { Key } from "react-aria-components";
 import { z, type ZodType } from "zod";
+
+import { getAppTimeZone } from "@/lib/primitives/date";
 
 /**
  * Shared normalization and validation helpers for modal forms.
@@ -32,13 +34,19 @@ export function requiredString(value: string): string {
 }
 
 /**
- * Converts an `@internationalized/date` `CalendarDate` to a local-timezone `Date`.
+ * Converts an `@internationalized/date` `CalendarDate` to a `Date` at midnight
+ * in the app timezone.
+ *
+ * The date-only counterpart to `combineDateTime` (`@/lib/primitives/date`), and its exact
+ * inverse in the same zone. Must not use `date.toDate(getLocalTimeZone())`: that reads
+ * the browser's zone, so a date-only field would land on a different calendar day
+ * than the rest of the app whenever the two zones differ.
  *
  * @param date - The calendar date from a DatePicker.
- * @returns A JavaScript Date in the local timezone.
+ * @returns A JavaScript Date at `00:00` of that day in the app timezone.
  */
 export function toDateValue(date: CalendarDate): Date {
-  return date.toDate(getLocalTimeZone());
+  return date.toDate(getAppTimeZone());
 }
 
 /**

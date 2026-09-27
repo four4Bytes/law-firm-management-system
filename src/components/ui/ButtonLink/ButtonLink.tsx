@@ -16,6 +16,7 @@ export function ButtonLink({ variant = "primary", className, ...props }: ButtonL
   return (
     <Link
       {...props}
+      variant="unstyled"
       className={clsx(
         buttonStyles.button,
         buttonStyles[variant],

@@ -25,7 +25,7 @@ export function StatCard({
   ariaLabel,
   className,
 }: StatCardProps) {
-  const cardClassName = clsx(styles.card, href && styles.link, className);
+  const cardClassName = clsx(styles.card, href && styles.interactive, className);
   const content = (
     <>
       {icon && (
@@ -44,7 +44,7 @@ export function StatCard({
 
   if (href) {
     return (
-      <Link href={href} aria-label={ariaLabel} className={cardClassName}>
+      <Link href={href} aria-label={ariaLabel} variant="unstyled" className={cardClassName}>
         {content}
       </Link>
     );

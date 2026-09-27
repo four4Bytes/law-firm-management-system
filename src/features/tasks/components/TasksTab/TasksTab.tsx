@@ -21,7 +21,7 @@ import { EditTaskModal } from "@/features/tasks/components/EditTaskModal/EditTas
 import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTaskModal";
 import { getTaskStatusLabel, getTaskStatusVariant } from "@/features/tasks/display";
 import type { TaskDetailRow, TaskRow } from "@/features/tasks/queries";
-import { getActiveUsersAction, getSessionUserIdAction } from "@/features/users/actions";
+import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
 import {
@@ -40,6 +40,7 @@ interface Props {
   caseId: string;
   access: AccessContext;
   userRole: Role | null;
+  currentUserId: string | null;
 }
 
 const taskFilters: FilterDefinition[] = [
@@ -72,7 +73,7 @@ const columns: ColumnDef<TaskRow>[] = [
   { id: "reviewers", name: "Reviewers" },
 ];
 
-export function TasksTab({ caseId, access, userRole }: Props) {
+export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editTask, setEditTask] = useState<TaskDetailRow | null>(null);
   const [editCapabilities, setEditCapabilities] = useState<TaskCapabilities | null>(null);
@@ -81,7 +82,6 @@ export function TasksTab({ caseId, access, userRole }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
   const [users, setUsers] = useState<ActiveUserSummary[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { pendingId: pendingEditId, run: runEditFetch, clear: clearEditFetch } = usePendingFetch();
   const { pendingId: pendingViewId, run: runViewFetch, clear: clearViewFetch } = usePendingFetch();
@@ -96,13 +96,9 @@ export function TasksTab({ caseId, access, userRole }: Props) {
     async function loadAssignees() {
       setIsLoadingUsers(true);
       try {
-        const [usersData, sessionUserId] = await Promise.all([
-          getActiveUsersAction(),
-          getSessionUserIdAction(),
-        ]);
+        const usersData = await getActiveUsersAction();
         if (cancelled) return;
         setUsers(usersData);
-        setCurrentUserId(sessionUserId);
       } catch {
         if (cancelled) return;
         toastError("Failed to load assignees", "We couldn't load the user list. Please try again.");
@@ -241,14 +237,13 @@ export function TasksTab({ caseId, access, userRole }: Props) {
         filters={taskFilters}
         selectionMode="none"
         collectionDependencies={[pendingEditId, pendingViewId]}
-        renderAddButton={canCreate && currentUserId !== null && !isLoadingUsers}
+        renderAddButton={canCreate}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}
         refreshTrigger={refreshTrigger}
       />
 
       <AddTaskModal
-        key={currentUserId ?? "loading"}
         isOpen={isAddOpen}
         onOpenChange={setIsAddOpen}
         onSuccess={handleRefresh}

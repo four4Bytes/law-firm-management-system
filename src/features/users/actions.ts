@@ -44,11 +44,6 @@ export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
   return getActiveUsers();
 }
 
-export async function getSessionUserIdAction(): Promise<string> {
-  const session = await requireAuth();
-  return session.id;
-}
-
 export async function touchLastSeenAction(): Promise<ActionStatusResponse> {
   try {
     const session = await requireAuth();

@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
-import { type ColumnDef } from "@/components/ui/DataTable/DataTable";
+import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
 import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
@@ -11,10 +11,8 @@ import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
 import type { ConsultationRow } from "@/features/consultations/queries";
-import { getActiveUsersAction } from "@/features/users/actions";
 import type { ActiveUserSummary } from "@/features/users/queries";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
-import { toastError } from "@/lib/hooks/toast-utils";
 import { useUrlFilters } from "@/lib/hooks/useUrlFilters";
 import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
 import { can } from "@/lib/security/rbac";
@@ -93,34 +91,22 @@ const columns: ColumnDef<ConsultationRow>[] = [
 interface ConsultationTableProps {
   initialConsultations?: ConsultationRow[];
   initialCursor?: string | null;
+  users: ActiveUserSummary[];
   userRole: Role | null;
 }
 
 export function ConsultationTable({
   initialConsultations,
   initialCursor,
+  users,
   userRole,
 }: ConsultationTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [urlFilters, setUrlFilters] = useUrlFilters(consultationFilters);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
   const canCreate = can(userRole, "consultation.create");
-
-  const openAddModal = useCallback(async () => {
-    try {
-      const users = await getActiveUsersAction();
-      setUsers(users);
-      setIsAddOpen(true);
-    } catch {
-      toastError(
-        "Failed to load users",
-        "The team member list could not be loaded. Please try again.",
-      );
-    }
-  }, []);
 
   return (
     <>
@@ -147,7 +133,7 @@ export function ConsultationTable({
         }}
         renderAddButton={canCreate}
         addButtonLabel="Add Consultation"
-        onAddButtonPress={openAddModal}
+        onAddButtonPress={() => setIsAddOpen(true)}
       />
 
       {isAddOpen && (

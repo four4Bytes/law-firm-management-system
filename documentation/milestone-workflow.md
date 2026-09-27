@@ -83,4 +83,4 @@ Every milestone mutation revalidates both `/case/${caseId}` and `/case`. The lis
 - `src/lib/domain/lifecycle.ts` — `MILESTONE_TRANSITIONS` plus `canTransition` / `isTerminalStatus`.
 - `src/features/milestones/status.ts` — re-exports the transition table with entity copy (`isValidMilestoneStatusTransition`, `describeMilestoneNextSteps`, `milestoneStatusOptions`).
 - `src/components/ui/ConfirmDialog/` — the reschedule confirmation.
-- `src/lib/primitives/date.ts` — the app-timezone invariant that makes picker round-trips lossless.
+- [Dates & timezones](./dates-and-timezones.md) — why both sides of the due-date comparison floor to the minute, and the app-timezone rule that makes picker round-trips lossless.

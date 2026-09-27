@@ -112,8 +112,10 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 | Deployment           | Trigger                                                                                                                             | Details                                 |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Vercel               | Cron `0 0 * * *` (UTC) → `GET /api/cron/reminders`                                                                                  | `Bearer CRON_SECRET` required; else 401 |
+| Vercel               | Cron `0 16 * * *` (UTC) = 00:00 `Asia/Manila` → `GET /api/cron/reminders`                                                           | `Bearer CRON_SECRET` required; else 401 |
 | Docker / self-hosted | `node-cron` in `src/instrumentation.ts` at midnight app time (`APP_TIMEZONE`, fallback `Asia/Manila`; skipped when `VERCEL` is set) | `noOverlap: true`                       |
+
+The Vercel expression is the UTC instant equal to app-timezone midnight (`0 16 * * *` = 16:00 UTC = 00:00 Manila), so both deployments fire at the same local time. Changing `APP_TIMEZONE` means changing the `vercel.json` schedule too — see [Dates & timezones](./dates-and-timezones.md).
 
 Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, running three **isolated** phases in order — a phase failure is logged and does not stop the next:
 

@@ -231,7 +231,7 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
      "crons": [
        {
          "path": "/api/cron/reminders",
-         "schedule": "0 0 * * *"
+         "schedule": "0 16 * * *"
        }
      ]
    }
@@ -247,7 +247,16 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
 
 4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
-The cron runs daily at `0 0 * * *`. Vercel interprets the schedule in UTC; the self-hosted `node-cron` in `src/instrumentation.ts` fires at app-timezone midnight (`APP_TIMEZONE`, falling back to `Asia/Manila`), so the two only align when the app timezone is UTC. To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy.
+The cron runs daily at **app-timezone midnight**. Vercel interprets the schedule in **UTC**, so the expression is written as the UTC instant that equals local midnight: `0 16 * * *` is 16:00 UTC, which is 00:00 the next day in `Asia/Manila`. This matches the self-hosted `node-cron` in `src/instrumentation.ts`, which schedules `0 0 * * *` with `timezone: getAppTimeZone()`.
+
+**Changing `APP_TIMEZONE` requires updating `vercel.json` too.** The offset is baked into the expression, so a zone other than UTC+8 needs a different hour (and, across a DST boundary, a different minute — the Philippines has no DST, but most zones do). `vercel.json` cannot hold comments, so this table is the record of the conversion:
+
+| Job          | Local time (`Asia/Manila`) | `vercel.json` expression | UTC instant    |
+| ------------ | -------------------------- | ------------------------ | -------------- |
+| `reminders`  | 00:00 daily                | `0 16 * * *`             | 16:00 daily    |
+| `storage-gc` | 03:00 Sunday               | `0 19 * * 6`             | 19:00 Saturday |
+
+To adjust the cadence, update the `schedule` field in `vercel.json` and redeploy. See [Dates & timezones](./dates-and-timezones.md) for the general rule.
 
 ## Storage Garbage Collection Sweep
 
@@ -273,23 +282,23 @@ Add the storage-gc path to your `vercel.json`:
   "crons": [
     {
       "path": "/api/cron/reminders",
-      "schedule": "0 0 * * *"
+      "schedule": "0 16 * * *"
     },
     {
       "path": "/api/cron/storage-gc",
-      "schedule": "0 3 * * 0"
+      "schedule": "0 19 * * 6"
     }
   ]
 }
 ```
 
-The example above runs the GC sweep weekly on Sunday at 03:00 UTC (after the daily reminders job). Adjust the schedule to suit your retention needs.
+The example above runs the GC sweep weekly on **Sunday at 03:00 `Asia/Manila`** — 19:00 UTC on Saturday, after the daily reminders job. Adjust the schedule to suit your retention needs, keeping the UTC conversion in mind.
 
 ### Setting up with self-hosted cron
 
 Add a systemd timer or cron entry that calls the endpoint with the bearer token:
 
 ```bash
-# Example: weekly at 03:00 UTC on Sunday
-0 3 * * 0 curl --fail --silent --show-error -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/api/cron/storage-gc
+# Example: weekly at 03:00 Asia/Manila on Sunday (19:00 UTC Saturday)
+0 19 * * 6 curl --fail --silent --show-error -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/api/cron/storage-gc
 ```

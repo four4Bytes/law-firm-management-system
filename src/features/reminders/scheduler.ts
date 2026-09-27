@@ -1,8 +1,6 @@
 // Mirrors documentation/notifications.md — the reminder scheduling rules are the spec.
 // Change the doc and this implementation together.
 
-import { CalendarDate } from "@internationalized/date";
-
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { pruneNotifications } from "@/features/notifications/mutations";
 import { getDeadlineReminderPreferencesByUserIds } from "@/features/settings/queries";
@@ -15,6 +13,7 @@ import {
   getAppTimeZone,
   getStartOfDay,
   isBeforeToday,
+  toCalendarDate,
 } from "@/lib/primitives/date";
 
 import {
@@ -61,19 +60,9 @@ function isSameDay(a: Date, b: Date): boolean {
 const DAY_IN_MS = 86_400_000;
 
 function isKeyDay(now: Date, targetDate: Date, reminderDays: number): boolean {
-  const timeZone = getAppTimeZone();
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(targetDate);
-  const year = Number(parts.find((p) => p.type === "year")?.value);
-  const month = Number(parts.find((p) => p.type === "month")?.value);
-  const day = Number(parts.find((p) => p.type === "day")?.value);
-  const trigger = new CalendarDate(year, month, day)
+  const trigger = toCalendarDate(targetDate)
     .subtract({ days: reminderDays })
-    .toDate(timeZone);
+    .toDate(getAppTimeZone());
   return isSameDay(now, trigger) || isSameDay(now, targetDate);
 }
 

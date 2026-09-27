@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDate, getLocalTimeZone, Time, today } from "@internationalized/date";
+import { CalendarDate, Time } from "@internationalized/date";
 import { useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
@@ -19,7 +19,7 @@ import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/hooks/useModalForm";
-import { combineDateTime, isAfterToday, isBeforeToday } from "@/lib/primitives/date";
+import { combineDateTime, getToday, isAfterToday, isBeforeToday } from "@/lib/primitives/date";
 import {
   createFieldValidator,
   optionalString,
@@ -62,7 +62,7 @@ interface ConsultationFields {
 function resetConsultation(): ConsultationFields {
   return {
     concern: "",
-    date: today(getLocalTimeZone()),
+    date: getToday(),
     time: new Time(9, 0),
     status: ConsultationStatus.Scheduled,
   };

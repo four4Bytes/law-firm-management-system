@@ -20,7 +20,8 @@ import { ConsultationWithClientUpdatePayloadSchema } from "@/features/consultati
 import { getActiveUsersAction } from "@/features/users/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import { mergeMissingUsers } from "@/features/users/display";
+import type { UserSummary } from "@/features/users/types";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { toastError } from "@/lib/hooks/toast-utils";
 import { useModalForm } from "@/lib/hooks/useModalForm";
@@ -83,7 +84,7 @@ export function EditConsultationModal({
     () => new Set(consultation.assignee_ids),
   );
 
-  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
   const newBooking = combineDateTime(fields.date, fields.time);
@@ -95,13 +96,15 @@ export function EditConsultationModal({
     if (isBeforeToday(booking)) return "Booking date cannot be in the past";
     return null;
   }
-  const assigneeOptions = useMemo(() => {
-    const directoryIds = new Set(users.map((user) => user.id));
-    const missing = consultation.assignees
-      .filter((assignee) => assigneeIds.has(assignee.id) && !directoryIds.has(assignee.id))
-      .map((assignee) => ({ ...assignee, is_online: false }));
-    return [...users, ...missing];
-  }, [users, assigneeIds, consultation.assignees]);
+  const assigneeOptions = useMemo(
+    () =>
+      mergeMissingUsers({
+        directory: users,
+        selectedIds: assigneeIds,
+        snapshot: consultation.assignees,
+      }),
+    [users, assigneeIds, consultation.assignees],
+  );
 
   useEffect(() => {
     if (!isOpen) return;

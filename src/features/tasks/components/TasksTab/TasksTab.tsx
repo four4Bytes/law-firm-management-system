@@ -22,7 +22,7 @@ import { ViewTaskModal } from "@/features/tasks/components/ViewTaskModal/ViewTas
 import { getTaskStatusLabel, getTaskStatusVariant } from "@/features/tasks/display";
 import type { TaskDetailRow, TaskRow } from "@/features/tasks/queries";
 import { getActiveUsersAction } from "@/features/users/actions";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { TaskStatus, type Role } from "@/generated/prisma/browser";
 import {
   toastActionError,
@@ -32,6 +32,7 @@ import {
   toastSuccess,
 } from "@/lib/hooks/toast-utils";
 import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
+import { isForbiddenError } from "@/lib/security/errors";
 import { can, type AccessContext } from "@/lib/security/rbac";
 
 import styles from "./TasksTab.module.css";
@@ -80,7 +81,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
   const [editCurrentUserId, setEditCurrentUserId] = useState<string | null>(null);
   const [viewTask, setViewTask] = useState<TaskDetailRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskRow | null>(null);
-  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { pendingId: pendingEditId, run: runEditFetch, clear: clearEditFetch } = usePendingFetch();
@@ -124,8 +125,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
       }
       setViewTask(data.row);
     } catch (error) {
-      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
-      if (isForbidden) {
+      if (isForbiddenError(error)) {
         toastDenied();
       } else {
         toastError(
@@ -153,8 +153,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
         toastDenied();
       }
     } catch (error) {
-      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
-      if (isForbidden) {
+      if (isForbiddenError(error)) {
         toastDenied();
       } else {
         toastError(

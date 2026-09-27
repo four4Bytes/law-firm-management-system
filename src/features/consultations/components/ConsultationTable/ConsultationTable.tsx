@@ -11,7 +11,7 @@ import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation
 import { getConsultationsPaginatedAction } from "@/features/consultations/actions";
 import { AddConsultationModal } from "@/features/consultations/components/AddConsultationModal/AddConsultationModal";
 import type { ConsultationRow } from "@/features/consultations/queries";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
 import { useUrlFilters } from "@/lib/hooks/useUrlFilters";
 import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
@@ -91,7 +91,7 @@ const columns: ColumnDef<ConsultationRow>[] = [
 interface ConsultationTableProps {
   initialConsultations?: ConsultationRow[];
   initialCursor?: string | null;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
   userRole: Role | null;
 }
 

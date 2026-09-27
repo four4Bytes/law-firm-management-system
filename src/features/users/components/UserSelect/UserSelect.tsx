@@ -3,18 +3,13 @@
 import { Text } from "@/components/ui/Content/Content";
 import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { StatusDot } from "@/components/ui/StatusDot/StatusDot";
+import type { UserSummary } from "@/features/users/types";
 import { keysToSet } from "@/lib/validation/form-utils";
 
 import styles from "./UserSelect.module.css";
 
-export interface UserOption {
-  id: string;
-  name: string;
-  is_online: boolean;
-}
-
 export interface UserSelectProps {
-  users: UserOption[];
+  users: UserSummary[];
   selectedIds: Set<string>;
   onChange: (ids: Set<string>) => void;
   isDisabled?: boolean;

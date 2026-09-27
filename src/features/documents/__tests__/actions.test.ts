@@ -5,7 +5,7 @@ import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role, TaskStatus } from "@/generated/prisma/browser";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { DEFAULT_MAX_UPLOAD_BYTES } from "@/lib/files/upload-policy";
-import { getObjectSize } from "@/lib/infra/s3";
+import { generateKey, getObjectSize, getPresignedUploadUrl } from "@/lib/infra/s3";
 import { actionInvalid } from "@/lib/security/action-response";
 import { ForbiddenError } from "@/lib/security/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
@@ -117,7 +117,6 @@ beforeEach(() => {
 describe("confirmDocumentUploadAction", () => {
   const payload = {
     file_name: "a.pdf",
-    file_type: "application/pdf",
     file_size: 10,
     file_path: "cases/c1/a.pdf",
     case_id: uuid,
@@ -139,6 +138,18 @@ describe("confirmDocumentUploadAction", () => {
     expect(createDocument).toHaveBeenCalledWith(expect.objectContaining({ file_size: 20 }));
   });
 
+  it("derives the stored type from the file name rather than trusting the client", async () => {
+    vi.mocked(createDocument).mockResolvedValue({ id: uuid });
+
+    await confirmDocumentUploadAction({ ...payload, file_name: "brief.docx" });
+
+    expect(createDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        file_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      }),
+    );
+  });
+
   it.each([null, -1, 0, DEFAULT_MAX_UPLOAD_BYTES + 1])(
     "rejects an invalid stored size of %s before creating a row",
     async (storedSize) => {
@@ -150,6 +161,34 @@ describe("confirmDocumentUploadAction", () => {
       expect(createDocument).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("getDocumentUploadUrlAction", () => {
+  beforeEach(() => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(generateKey).mockReturnValue("cases/c1/generated.pdf");
+  });
+
+  it("signs the upload with the type derived from the file name", async () => {
+    const result = await getDocumentUploadUrlAction({
+      file_name: "declaration.pdf",
+      case_id: uuid,
+    });
+
+    expect(result).toEqual({
+      key: "cases/c1/generated.pdf",
+      uploadUrl: undefined,
+      contentType: "application/pdf",
+    });
+    expect(getPresignedUploadUrl).toHaveBeenCalledWith("cases/c1/generated.pdf", "application/pdf");
+  });
+
+  it("rejects a file name outside the upload allowlist", async () => {
+    await expect(
+      getDocumentUploadUrlAction({ file_name: "payload.exe", case_id: uuid }),
+    ).rejects.toThrow("Invalid upload payload");
+    expect(getPresignedUploadUrl).not.toHaveBeenCalled();
+  });
 });
 
 afterEach(() => {
@@ -259,7 +298,6 @@ describe("documents on a done task", () => {
   it("issues an upload URL for a done task", async () => {
     const result = await getDocumentUploadUrlAction({
       file_name: "a.pdf",
-      file_type: "application/pdf",
       case_id: null,
       consultation_id: null,
       task_id: uuid,
@@ -273,7 +311,6 @@ describe("documents on a done task", () => {
 
     const result = await confirmDocumentUploadAction({
       file_name: "a.pdf",
-      file_type: "application/pdf",
       file_size: 10,
       file_path: "tasks/t1/a.pdf",
       case_id: null,
@@ -305,7 +342,6 @@ describe("documents on a done task", () => {
 describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
   const uploadArgs = {
     file_name: "a.pdf",
-    file_type: "application/pdf",
     case_id: null,
     consultation_id: null,
     task_id: uuid,

@@ -9,6 +9,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { getParentPath } from "@/lib/domain/path";
+import { getFileDescriptor } from "@/lib/files/file-types";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { isWithinUploadSizeLimit } from "@/lib/files/upload-policy";
 import {
@@ -107,6 +108,7 @@ export async function getDocumentUploadUrlAction(
 ): Promise<{
   key: string;
   uploadUrl: string;
+  contentType: string;
 }> {
   const session = await requireAuth();
 
@@ -115,7 +117,7 @@ export async function getDocumentUploadUrlAction(
     throw new Error("Invalid upload payload");
   }
 
-  const { file_name, file_type, case_id, consultation_id, task_id } = parsed.data;
+  const { file_name, case_id, consultation_id, task_id } = parsed.data;
 
   const parentAccess = await getDocumentParentAccessContext({
     userId: session.id,
@@ -130,9 +132,10 @@ export async function getDocumentUploadUrlAction(
   const parentType = case_id ? "cases" : task_id ? "tasks" : "consultations";
   const parentId = case_id ?? task_id ?? consultation_id!;
   const key = generateKey(parentType, parentId, file_name);
-  const uploadUrl = await getPresignedUploadUrl(key, file_type);
+  const { mime } = getFileDescriptor({ fileName: file_name });
+  const uploadUrl = await getPresignedUploadUrl(key, mime);
 
-  return { key, uploadUrl };
+  return { key, uploadUrl, contentType: mime };
 }
 
 export async function confirmDocumentUploadAction(
@@ -143,7 +146,8 @@ export async function confirmDocumentUploadAction(
   const parsed = DocumentConfirmPayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("upload confirmation");
 
-  const { file_name, file_type, file_path, case_id, consultation_id, task_id } = parsed.data;
+  const { file_name, file_path, case_id, consultation_id, task_id } = parsed.data;
+  const { mime: file_type } = getFileDescriptor({ fileName: file_name });
 
   try {
     const parentAccess = await getDocumentParentAccessContext({

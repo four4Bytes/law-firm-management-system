@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/Button/Button";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { UploadQueue } from "@/features/documents/components/UploadQueue/UploadQueue";
-import { classifyFileType, formatFileSize } from "@/lib/files/file-format";
-import { ACCEPTED_FILE_EXTENSIONS, isAcceptedFileExtension } from "@/lib/files/file-types";
+import { formatFileSize } from "@/lib/files/file-format";
+import {
+  ACCEPTED_FILE_EXTENSIONS,
+  isAcceptedFileExtension,
+  isImageFile,
+} from "@/lib/files/file-types";
 import { getObjectUrl, revokeObjectUrl } from "@/lib/files/object-urls";
 import {
   findDuplicateFiles,
@@ -58,7 +62,7 @@ export function UploadDocumentModal({
   useEffect(
     () => () => {
       for (const entry of fileEntriesRef.current) {
-        if (classifyFileType(entry.file.type) === "img") revokeObjectUrl(entry.file);
+        if (isImageFile(entry.file)) revokeObjectUrl(entry.file);
       }
     },
     [],
@@ -162,7 +166,7 @@ export function UploadDocumentModal({
 
       if (failed === 0) {
         for (const entry of fileEntries) {
-          if (classifyFileType(entry.file.type) === "img") revokeObjectUrl(entry.file);
+          if (isImageFile(entry.file)) revokeObjectUrl(entry.file);
         }
         resetFiles();
         onOpenChange(false);
@@ -196,9 +200,7 @@ export function UploadDocumentModal({
               entries={fileEntries}
               isBusy={isBusy}
               onRemove={handleRemoveFile}
-              getPreviewUrl={(entry) =>
-                classifyFileType(entry.file.type) === "img" ? getObjectUrl(entry.file) : null
-              }
+              getPreviewUrl={(entry) => (isImageFile(entry.file) ? getObjectUrl(entry.file) : null)}
             />
           </>
         )}

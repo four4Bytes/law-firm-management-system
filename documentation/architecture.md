@@ -90,8 +90,8 @@ src/
 │   │   ├── date.ts                      # Date formatting helpers
 │   │   └── types.ts                     # Shared type definitions
 │   ├── files/                           # File/storage helpers
-│   │   ├── file-types.ts                # Accepted extensions + MIME checks
-│   │   ├── file-format.ts               # File size/type formatting
+│   │   ├── file-types.ts                # Type registry + allowlist + resolution
+│   │   ├── file-format.ts               # File size/type label formatting
 │   │   └── storage-cleanup.ts           # Best-effort S3 orphan purge
 │   ├── messaging/                       # Outbound comms
 │   │   ├── email.ts                     # Transactional email sender

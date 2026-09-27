@@ -22,7 +22,6 @@ export const DocumentListQuerySchema = z
 export const DocumentUploadPayloadSchema = z
   .object({
     file_name: requiredText(500, "File name"),
-    file_type: requiredText(100, "File type"),
     case_id: z.uuid().nullable().optional(),
     consultation_id: z.uuid().nullable().optional(),
     task_id: z.uuid().nullable().optional(),
@@ -38,7 +37,6 @@ export const DocumentUploadPayloadSchema = z
 export const DocumentConfirmPayloadSchema = z
   .object({
     file_name: requiredText(500, "File name"),
-    file_type: requiredText(100, "File type"),
     file_size: z.coerce.number().int().positive().max(getAppMaxUploadBytes(), {
       message: "File is larger than the maximum upload size",
     }),

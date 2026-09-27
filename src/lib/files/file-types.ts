@@ -1,13 +1,11 @@
 /**
- * Catalogue of the file types the app accepts, and the resolution rules that
- * turn a stored `Document` row into something the UI can present.
+ * Catalogue of the file types the app accepts, and the rules that turn a stored
+ * `Document` row into something the UI can present.
  *
- * An uploaded file's MIME type is whatever the browser reported, which is often
- * empty or a generic binary type. The extension is the signal the app actually
- * trusts — it is what the upload allowlist gates on — so resolution is
- * extension-first, with the stored MIME type consulted only for files the
- * registry does not cover. That keeps rows written before this convention
- * existed rendering correctly without a migration.
+ * The extension is what the upload allowlist gates on and what the upload path
+ * derives the type from, so resolution is extension-first. The stored MIME type
+ * is only consulted for extensions the registry does not cover, such as the
+ * seeded `.zip` evidence bundle.
  */
 
 /** Coarse classification of a file into a display category. */
@@ -36,17 +34,13 @@ export interface FileTypeInput {
 }
 
 /**
- * Presentation metadata for every accepted upload, keyed by lowercased
- * extension without the leading dot. This is the single source of truth: the
- * upload allowlist below is derived from these keys, so an extension can never
- * be accepted without a category, label, and MIME type to display.
+ * Presentation metadata for every accepted upload, keyed by lowercased extension
+ * without the leading dot. The upload allowlist below is derived from these keys,
+ * so an extension cannot be accepted without a category, label, and MIME type.
  *
- * The MIME type is a presentation hint inferred from the extension. It is not
- * verified against the file's bytes, so a mislabeled file is still described by
- * its extension — the same trust boundary the upload allowlist already applies.
- *
- * Treat these entries as immutable; {@link getFileDescriptor} copies before
- * handing one out.
+ * Each MIME type is a hint inferred from the extension, not verified against the
+ * file's bytes — the trust boundary the upload allowlist already applies. Treat
+ * the entries as immutable; {@link getFileDescriptor} copies before returning.
  */
 const FILE_TYPE_REGISTRY: Readonly<Record<string, FileTypeDescriptor>> = {
   pdf: { category: "pdf", label: "PDF", mime: "application/pdf" },
@@ -182,11 +176,9 @@ function normalizeMimeType(fileType: string): string {
 }
 
 /**
- * Describes a file from its name and stored MIME type.
- *
- * The extension wins whenever it is allowlisted, because the stored MIME type is
- * client-supplied and frequently empty or a generic binary type. The result is a
- * copy, so callers cannot mutate the registry through it.
+ * Describes a file from its name and stored MIME type. The extension wins
+ * whenever it is allowlisted. The result is a copy, so callers cannot mutate the
+ * registry through it.
  *
  * @param payload - The file name and its stored MIME type.
  * @returns The resolved descriptor, or a generic one when neither signal is
@@ -195,8 +187,13 @@ function normalizeMimeType(fileType: string): string {
 export function getFileDescriptor(payload: FileTypeInput): FileTypeDescriptor {
   const { fileName, fileType } = payload;
 
-  const registered = FILE_TYPE_REGISTRY[getFileExtension(fileName)];
-  if (registered) return { ...registered };
+  // Own-property check: an extension like "constructor" or "toString" would
+  // otherwise resolve to something on Object.prototype and yield a descriptor
+  // with no category.
+  const extension = getFileExtension(fileName);
+  if (Object.hasOwn(FILE_TYPE_REGISTRY, extension)) {
+    return { ...FILE_TYPE_REGISTRY[extension] };
+  }
 
   const mime = fileType ? normalizeMimeType(fileType) : "";
   if (!mime) return { ...UNKNOWN_FILE_TYPE };

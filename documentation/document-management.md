@@ -12,27 +12,40 @@ the [Data Models](./models.md) reference.
 - **Metadata in Postgres**: The `Document` model keeps only
   pointers and metadata — `file_name`, `file_type`, `file_size`, `file_path` (the object key),
   the parent linkage (`case_id` / `consultation_id` / `task_id`), and `uploaded_by_user_id`.
-  `file_type` holds the MIME type derived from the file's extension (never one supplied by the
-  client); see [Validation](#file-type-validation).
+  `file_type` holds the MIME type derived from the extension; see [Validation](#file-type-validation).
 - **Presigned URLs**: All reads and writes go through short-lived, server-generated presigned
   URLs. The browser PUTs/GETs the object directly against the bucket.
 
 ## Upload flow
 
-1. The client invokes `getDocumentUploadUrlAction` (`src/features/documents/actions.ts`) with
-   the file name and exactly one parent reference. It does **not** send a MIME type — the
-   browser-reported type is unreliable (often empty or `application/octet-stream`).
-2. The server validates auth, RBAC (`attachment.create`), the parent reference, and the
-   allowed file extension, then generates an object key and a presigned **PUT** URL. The MIME
-   type is derived from the file's extension (see [Validation](#file-type-validation)) and is
-   returned to the client alongside the URL.
-3. The browser performs a native `fetch` PUT of the raw `File` directly to the bucket, echoing
-   the server's `contentType` as the request `Content-Type` so it matches the signed header.
-4. On success the client calls `confirmDocumentUploadAction`. The server checks the stored object's
-   size with S3 before persisting the `Document` row and auditing the upload.
+1. The client invokes `getDocumentUploadUrlAction` (`src/features/documents/actions.ts`) with the
+   file name and exactly one parent reference. It sends no MIME type.
+2. The server validates auth, RBAC (`attachment.create`), the parent reference, and the allowed file
+   extension, then generates an object key and a presigned **PUT** URL. The MIME type is derived from
+   the extension (see [Validation](#file-type-validation)) and returned alongside the URL.
+3. The browser performs a native `fetch` PUT of the raw `File` directly to the bucket, echoing the
+   server's `contentType` as the request `Content-Type` so it matches the signed header.
+4. On success the client calls `confirmDocumentUploadAction`, which re-checks the key against the
+   authorized parent (see [Key binding](#upload-key-binding)) and verifies the stored object's size
+   with S3 before persisting the `Document` row and auditing the upload.
 
 No presigned URL is issued for a disallowed type, and no `Document` row is created on confirm
 unless the type still passes validation — see [Validation](#file-type-validation).
+
+## Upload key binding
+
+Object keys are generated as `${parentType}/${parentId}/${uuid}.${ext}` (`generateKey` in
+`src/lib/infra/s3.ts`), so every object lives under the namespace of exactly one parent.
+
+`file_path` arrives from the client, so `confirmDocumentUploadAction` requires that it sits under
+the prefix of the parent it just authorized (`isKeyWithinPrefix`) and ends with the extension implied
+by the declared `file_name`. Without this, a user who is a member of two cases could confirm a key
+belonging to one into a row in the other, attaching the same evidence to two matters. The check runs
+after authorization and before the S3 `HeadObject`, so a foreign key is never used as an existence
+oracle; failures return the forbidden envelope.
+
+Residual limitation: the prefix proves the key belongs to the authorized parent, not that this upload
+produced it, so a user can still attach a sibling object from the _same_ case under an extra row.
 
 ## Download flow
 
@@ -63,17 +76,15 @@ from a single source of truth:
 
 - **Source of truth**: the `FILE_TYPE_REGISTRY` table in `src/lib/files/file-types.ts`, which maps
   each accepted extension to its display category, label, and MIME type. `ACCEPTED_FILE_EXTENSIONS`
-  is derived from its keys, so an extension cannot be accepted without presentation metadata. That
-  derived list feeds the `acceptedFileTypes` prop on the `DropZone` / `FileTrigger` UI (browser
-  file-picker filter).
+  is derived from its keys and feeds the `acceptedFileTypes` prop on the `DropZone` / `FileTrigger`
+  UI, so an extension cannot be accepted without presentation metadata.
 - **Server enforcement**: `DocumentUploadPayloadSchema` and `DocumentConfirmPayloadSchema`
   (`src/features/documents/schemas.ts`) refine on `isAcceptedFileExtension(file_name)` and
   reject unsupported types with the friendly message `"Unsupported file type"`.
-- **Extension, not client MIME**: validation and resolution both key off the file's trailing
-  extension (case-insensitive). No MIME type is accepted from the client at all; the server
-  derives one from the extension and uses it for the presigned PUT's `Content-Type` and the stored
-  `file_type` column. The client echoes that value back as the PUT header, so the signed header
-  and the request always agree.
+- **Extension, not client MIME**: validation and resolution both key off the trailing extension
+  (case-insensitive). No MIME type is accepted from the client; the server derives one from the
+  extension for the presigned PUT's `Content-Type` and the stored `file_type`, and the client echoes
+  that value back so the signed header and the request agree.
 
 To add or remove a supported type, edit the registry only — it propagates to the picker, the
 server validation, and the UI presentation automatically.
@@ -84,28 +95,23 @@ server validation, and the UI presentation automatically.
 point used by icons, labels, and previews. It resolves **extension-first**, falling back to the
 stored MIME type only for extensions outside the registry:
 
-- An allowlisted extension always wins, so rows written before this convention render correctly
-  with no migration.
+- An allowlisted extension always wins, so a file is described by its name even when the stored
+  type disagrees or is missing.
 - Otherwise the stored `file_type` is normalized (parameters and casing stripped; empty and
-  `application/octet-stream` treated as absent) and matched against a substring classifier. The
-  classifier's branch order is significant: OpenXML Word and Excel types both contain `"document"`,
-  so the spreadsheet branches are tested first.
-- When neither signal is informative the file resolves to a generic descriptor with an empty
-  label, which callers omit rather than render as a placeholder chip.
+  `application/octet-stream` treated as absent) and matched against a substring classifier. Its
+  branch order is significant: OpenXML Word and Excel types both contain `"document"`, so the
+  spreadsheet branches are tested first.
+- When neither signal is informative the descriptor's label is empty, and callers omit it rather
+  than render a placeholder.
 
-The registry's MIME type is a **presentation hint inferred from the extension, not a type verified
-against the file's bytes** — the same trust boundary the upload allowlist already applies. The app
-deliberately does not sniff content: `file-type` cannot identify `.docx`/`.xlsx` (both report
-`application/zip`), `.doc`/`.xls` (both `application/x-cfb`), or `.txt`/`.csv` (no magic bytes),
-so sniffing would be less specific than the extension for six of the accepted types.
+`file_type` is kept because it is the only record of type for files whose extension is outside the
+allowlist, which the seed exercises with a `.zip` evidence bundle.
 
-### Known limitation: legacy `file_type` values
+The registry's MIME type is a hint inferred from the extension, not one verified against the file's
+bytes — the same trust boundary the upload allowlist already applies.
 
-Rows uploaded before extension-based resolution store whatever the browser reported, which may be
-empty or a generic type. Display and preview are unaffected (they resolve from the extension), but
-the attachments table's **Type** column still _sorts_ on the stored `file_type`, so legacy rows can
-order inconsistently with the labels shown. New uploads store the canonical MIME, so the
-discrepancy shrinks to zero over time. Fixing it outright would require backfilling the column.
+The attachments table's **Type** column is not sortable: its label is per-extension (`DOCX`) while
+ordering would use the MIME string, whose collation places `DOCX` after `XLSX`.
 
 ## Upload size limit & duplicate rejection
 

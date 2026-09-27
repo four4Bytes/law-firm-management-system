@@ -18,6 +18,24 @@ import {
   type ActionStatusResponse,
 } from "@/lib/security/action-response";
 
+/** Stable `digest` value identifying a {@link ForbiddenError} across the server/client boundary. */
+export const FORBIDDEN_DIGEST = "FORBIDDEN";
+
+/**
+ * Narrows an unknown thrown value to a server-thrown {@link ForbiddenError}.
+ *
+ * Server Actions re-throw typed errors to the client with their `message`
+ * stripped, so client components must match on `digest` rather than `instanceof`
+ * or `message`. Use this instead of hand-rolling the digest comparison.
+ *
+ * @param error - The value caught by a `catch` clause.
+ * @returns `true` when the value is a forbidden-access error.
+ */
+export function isForbiddenError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("digest" in error)) return false;
+  return error.digest === FORBIDDEN_DIGEST;
+}
+
 /**
  * Error thrown when a user lacks permission for an action.
  *
@@ -26,7 +44,7 @@ import {
  */
 export class ForbiddenError extends Error {
   /** Stable identifier for error boundary detection. */
-  readonly digest = "FORBIDDEN";
+  readonly digest = FORBIDDEN_DIGEST;
 
   constructor() {
     super("Forbidden");

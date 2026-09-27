@@ -17,9 +17,9 @@ import {
   getUserByEmail,
   getUserById,
   getUsersPaginated,
-  type ActiveUserSummary,
   type UserRow,
 } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { Role } from "@/generated/prisma/browser";
 import { isDeveloperEmail } from "@/lib/messaging/developer-emails";
 import {
@@ -39,7 +39,7 @@ import {
   UserListQuerySchema,
 } from "./schemas";
 
-export async function getActiveUsersAction(): Promise<ActiveUserSummary[]> {
+export async function getActiveUsersAction(): Promise<UserSummary[]> {
   await requireAuth();
   return getActiveUsers();
 }

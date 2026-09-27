@@ -5,12 +5,12 @@ import type { TaskCapabilities } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { createFieldValidator } from "@/lib/validation/form-utils";
 
 export interface TaskMetadataFieldsProps {
   task: TaskDetailRow;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
   capabilities: TaskCapabilities;
   title: string;
   onTitleChange: (value: string) => void;

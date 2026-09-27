@@ -11,7 +11,7 @@ import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
 import type { CaseRow } from "@/features/cases/queries";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { CaseStatus, type Role } from "@/generated/prisma/browser";
 import { useUrlFilters } from "@/lib/hooks/useUrlFilters";
 import { can } from "@/lib/security/rbac";
@@ -71,7 +71,7 @@ const columns: ColumnDef<CaseRow>[] = [
 interface CaseTableProps {
   initialCases?: CaseRow[];
   initialCursor?: string | null;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
   userRole: Role | null;
 }
 

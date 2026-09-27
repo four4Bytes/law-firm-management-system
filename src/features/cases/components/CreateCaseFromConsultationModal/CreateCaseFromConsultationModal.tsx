@@ -10,7 +10,7 @@ import { CaseCreatePayloadSchema } from "@/features/cases/schemas";
 import { acceptConsultationWithCaseAction } from "@/features/consultations/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
@@ -24,7 +24,7 @@ interface CreateCaseFromConsultationModalProps {
   onCancel?: () => void;
   consultationId: string;
   defaultTitle: string;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
 }
 
 interface Fields {

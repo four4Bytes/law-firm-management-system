@@ -1,4 +1,5 @@
 import type { StatusBadgeVariant } from "@/components/ui/StatusBadge/StatusBadge";
+import type { UserSummary } from "@/features/users/types";
 import { ReviewDecision, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 
 export interface TaskStatusHintInput {
@@ -30,12 +31,6 @@ export function getTaskStatusHint(task: TaskStatusHintInput): string {
   return "All approvals complete";
 }
 
-export interface DirectoryUser {
-  id: string;
-  name: string;
-  is_online: boolean;
-}
-
 export interface TaskMemberDisplayRow {
   id: string;
   name: string;
@@ -56,13 +51,13 @@ export interface ReviewerSnapshot {
 }
 
 export interface AssigneeDisplayPayload {
-  users: DirectoryUser[];
+  users: UserSummary[];
   selectedIds: Set<string>;
   snapshot: AssigneeSnapshot[];
 }
 
 export interface ReviewerDisplayPayload {
-  users: DirectoryUser[];
+  users: UserSummary[];
   selectedIds: Set<string>;
   snapshot: ReviewerSnapshot[];
   createdByUserId?: string;
@@ -106,7 +101,7 @@ export function resolveReviewerDisplayRows(
   const { users, selectedIds, snapshot, createdByUserId } = payload;
   const snapshotByUserId = new Map(snapshot.map((entry) => [entry.reviewer_user_id, entry]));
   const directoryIds = new Set(users.map((user) => user.id));
-  const toRow = (user: DirectoryUser): TaskMemberDisplayRow => {
+  const toRow = (user: UserSummary): TaskMemberDisplayRow => {
     const saved = snapshotByUserId.get(user.id);
     return {
       id: user.id,

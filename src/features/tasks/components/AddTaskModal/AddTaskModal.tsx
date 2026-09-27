@@ -12,7 +12,7 @@ import { UploadQueue } from "@/features/documents/components/UploadQueue/UploadQ
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/files/file-types";
 import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/hooks/toast-utils";
 import { useFileUpload } from "@/lib/hooks/useFileUpload";
@@ -30,7 +30,7 @@ interface AddTaskModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   caseId: string;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
   currentUserId: string | null;
   isLoading?: boolean;
 }

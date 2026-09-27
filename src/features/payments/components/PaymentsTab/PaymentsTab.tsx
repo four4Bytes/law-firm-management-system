@@ -18,16 +18,18 @@ import {
 import { AddPaymentModal } from "@/features/payments/components/AddPaymentModal/AddPaymentModal";
 import { EditPaymentModal } from "@/features/payments/components/EditPaymentModal/EditPaymentModal";
 import type { PaymentRow } from "@/features/payments/queries";
-import { PaymentStatus } from "@/generated/prisma/browser";
+import { PaymentStatus, type Role } from "@/generated/prisma/browser";
 import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
 import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
 import { formatDate } from "@/lib/primitives/date";
+import { can } from "@/lib/security/rbac";
 
 import styles from "./PaymentsTab.module.css";
 
 interface Props {
   caseId?: string;
   consultationId?: string;
+  userRole: Role | null;
 }
 
 const statusClassMap: Record<PaymentStatus, StatusBadgeVariant> = {
@@ -74,11 +76,13 @@ const columns: ColumnDef<PaymentRow>[] = [
   },
 ];
 
-export function PaymentsTab({ caseId, consultationId }: Props) {
+export function PaymentsTab({ caseId, consultationId, userRole }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editPayment, setEditPayment] = useState<PaymentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PaymentRow | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const canCreate = can(userRole, "payment.create");
   const {
     pendingId: pendingEditId,
     run: runEditFetch,
@@ -159,7 +163,7 @@ export function PaymentsTab({ caseId, consultationId }: Props) {
         filters={paymentFilters}
         selectionMode="none"
         collectionDependencies={[pendingEditId]}
-        renderAddButton
+        renderAddButton={canCreate}
         addButtonLabel="Add Payment"
         onAddButtonPress={() => setIsAddOpen(true)}
         refreshTrigger={refreshTrigger}

@@ -18,6 +18,42 @@ import {
   type ActionStatusResponse,
 } from "@/lib/security/action-response";
 
+/** Stable `digest` value identifying a {@link ForbiddenError} across the server/client boundary. */
+export const FORBIDDEN_DIGEST = "FORBIDDEN";
+
+/**
+ * Narrows an unknown thrown value to a server-thrown {@link ForbiddenError}.
+ *
+ * Server Actions re-throw typed errors to the client with their `message`
+ * stripped, so client components must match on `digest` rather than `instanceof`
+ * or `message`. Use this instead of hand-rolling the digest comparison.
+ *
+ * @param error - The value caught by a `catch` clause.
+ * @returns `true` when the value is a forbidden-access error.
+ */
+export function isForbiddenError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("digest" in error)) return false;
+  return error.digest === FORBIDDEN_DIGEST;
+}
+
+/**
+ * Narrows an unknown thrown value to a Prisma "record not found" failure.
+ *
+ * Raised by `update`/`delete` when the target row is already gone, which happens
+ * when a record is deleted between a prior read and a later write. Matched on
+ * the `code` field rather than `instanceof Prisma.PrismaClientKnownRequestError`
+ * so this module stays importable from client-reachable code: the generated
+ * `client` entry pulls in `node:` builtins and breaks `next build`, while the
+ * `browser` entry does not export the error classes.
+ *
+ * @param error - The value caught by a `catch` clause.
+ * @returns `true` when the value is a not-found Prisma error.
+ */
+export function isRecordNotFoundError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error)) return false;
+  return error.code === "P2025";
+}
+
 /**
  * Error thrown when a user lacks permission for an action.
  *
@@ -26,7 +62,7 @@ import {
  */
 export class ForbiddenError extends Error {
   /** Stable identifier for error boundary detection. */
-  readonly digest = "FORBIDDEN";
+  readonly digest = FORBIDDEN_DIGEST;
 
   constructor() {
     super("Forbidden");

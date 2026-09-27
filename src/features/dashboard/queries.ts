@@ -2,7 +2,7 @@ import { cache } from "react";
 
 import type { Prisma } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/infra/prisma";
-import { getStartOfDay } from "@/lib/primitives/date";
+import { getEndOfDay, getStartOfDay } from "@/lib/primitives/date";
 
 export type DashboardStats = {
   openCases: number;
@@ -68,7 +68,7 @@ export const getDashboardStats = cache(
 
     const now = new Date();
     const startOfDay = getStartOfDay(now);
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const endOfDay = getEndOfDay(now);
 
     const casesFilter = casesUserId ? { caseAssignments: { some: { user_id: casesUserId } } } : {};
     const consultationsFilter = consultationsUserId

@@ -1,4 +1,5 @@
 import { prisma, type TransactionClient } from "@/lib/infra/prisma";
+import { getAppTimeZone, getToday } from "@/lib/primitives/date";
 
 import type { NotificationDispatchPayload } from "./schemas";
 
@@ -43,8 +44,9 @@ export async function pruneNotifications(retentionDays: number): Promise<number>
     throw new Error("retentionDays must be a non-negative safe integer");
   }
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - retentionDays);
+  // Start of the day N days ago in the app timezone. `setDate` on a live Date
+  // would use the server's zone, so the boundary would drift with the host's TZ.
+  const cutoff = getToday().subtract({ days: retentionDays }).toDate(getAppTimeZone());
 
   const result = await prisma.notification.deleteMany({
     where: { created_at: { lt: cutoff } },

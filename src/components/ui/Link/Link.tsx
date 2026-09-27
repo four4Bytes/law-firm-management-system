@@ -8,8 +8,21 @@ import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation
 
 import styles from "./Link.module.css";
 
-export function Link({ className, onPress, href, target, download, ...props }: RACLinkProps) {
+export interface LinkProps extends RACLinkProps {
+  variant?: "inline" | "unstyled";
+}
+
+export function Link({
+  className,
+  onPress,
+  href,
+  target,
+  download,
+  variant = "inline",
+  ...props
+}: LinkProps) {
   const { startLoading } = useNavigationProgress();
+  const variantClassName = variant === "unstyled" ? undefined : styles.link;
 
   return (
     <RACLink
@@ -17,7 +30,7 @@ export function Link({ className, onPress, href, target, download, ...props }: R
       href={href}
       target={target}
       download={download}
-      className={clsx(styles.link, className)}
+      className={clsx(variantClassName, className)}
       onPress={(e) => {
         const isExternal = href && (href.startsWith("http://") || href.startsWith("https://"));
         const hasModifier = e.ctrlKey || e.metaKey || e.shiftKey || e.altKey;

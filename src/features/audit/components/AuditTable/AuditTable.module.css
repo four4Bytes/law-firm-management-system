@@ -2,8 +2,10 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
+  cursor: pointer;
   color: var(--color-brand-primary);
   text-decoration: none;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
 }
 

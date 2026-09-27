@@ -10,7 +10,7 @@ import {
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 
 import styles from "./AssigneeReviewerPicker.module.css";
 
@@ -18,7 +18,7 @@ const EMPTY_ASSIGNEE_SNAPSHOT: TaskDetailRow["assignTo"] = [];
 const EMPTY_REVIEWER_SNAPSHOT: TaskDetailRow["reviewers"] = [];
 
 export interface AssigneeReviewerPickerProps {
-  users: ActiveUserSummary[];
+  users: UserSummary[];
   assigneeIds: Set<string>;
   onAssigneeIdsChange: (ids: Set<string>) => void;
   reviewerIds: Set<string>;

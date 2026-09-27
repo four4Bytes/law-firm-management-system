@@ -187,18 +187,18 @@ An internal note attached to a case, consultation, or task.
 
 A file attachment linked to a case, consultation, or task.
 
-| Field        | Type      | Required | Description                               |
-| ------------ | --------- | -------- | ----------------------------------------- |
-| File Name    | Text      | Yes      | Original file name                        |
-| File Path    | Text      | Yes      | Storage location (internal)               |
-| File Type    | Text      | Yes      | MIME type (e.g., "application/pdf")       |
-| File Size    | Number    | No       | Size in bytes                             |
-| Case         | Link      | No       | The case this document belongs to         |
-| Consultation | Link      | No       | The consultation this document belongs to |
-| Task         | Link      | No       | The task this document belongs to         |
-| Uploaded By  | Link      | Yes      | The user who uploaded the file            |
-| Created      | Timestamp | Yes      | When the file was uploaded                |
-| Updated      | Timestamp | Yes      | When the record was last modified         |
+| Field        | Type      | Required | Description                                                                           |
+| ------------ | --------- | -------- | ------------------------------------------------------------------------------------- |
+| File Name    | Text      | Yes      | Original file name                                                                    |
+| File Path    | Text      | Yes      | Storage location (internal)                                                           |
+| File Type    | Text      | Yes      | MIME type derived from the extension (e.g., "application/pdf"); never client-supplied |
+| File Size    | Number    | No       | Size in bytes                                                                         |
+| Case         | Link      | No       | The case this document belongs to                                                     |
+| Consultation | Link      | No       | The consultation this document belongs to                                             |
+| Task         | Link      | No       | The task this document belongs to                                                     |
+| Uploaded By  | Link      | Yes      | The user who uploaded the file                                                        |
+| Created      | Timestamp | Yes      | When the file was uploaded                                                            |
+| Updated      | Timestamp | Yes      | When the record was last modified                                                     |
 
 > Document is optionally linked to a Case, Consultation, or Task. All three foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
 

@@ -12,7 +12,7 @@ import { UploadQueue } from "@/features/documents/components/UploadQueue/UploadQ
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
 import { TaskCreatePayloadSchema } from "@/features/tasks/schemas";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/files/file-types";
 import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/hooks/toast-utils";
 import { useFileUpload } from "@/lib/hooks/useFileUpload";
@@ -30,9 +30,13 @@ interface AddTaskModalProps {
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   caseId: string;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
   currentUserId: string | null;
   isLoading?: boolean;
+}
+
+function defaultReviewerIds(currentUserId: string | null): Set<string> {
+  return currentUserId ? new Set([currentUserId]) : new Set<string>();
 }
 
 export function AddTaskModal({
@@ -47,8 +51,10 @@ export function AddTaskModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
+  // Safe to seed at init: `currentUserId` arrives as a server prop on first
+  // render, so there is no window where it is still null.
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(() =>
-    currentUserId ? new Set([currentUserId]) : new Set<string>(),
+    defaultReviewerIds(currentUserId),
   );
   const [isPending, setIsPending] = useState(false);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
@@ -61,7 +67,7 @@ export function AddTaskModal({
     setTitle("");
     setDescription("");
     setAssigneeIds(new Set());
-    setReviewerIds(currentUserId ? new Set([currentUserId]) : new Set<string>());
+    setReviewerIds(defaultReviewerIds(currentUserId));
     setCreatedTaskId(null);
     setAddedReviewerIds(new Set());
     resetFiles();

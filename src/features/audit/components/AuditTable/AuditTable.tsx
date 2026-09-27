@@ -35,7 +35,7 @@ const columns: ColumnDef<AuditLogRow>[] = [
         return <span className={styles.deleted}>{config.label} (Deleted)</span>;
       }
       return (
-        <Link href={config.href(r.entityId)} className={styles.entityLink}>
+        <Link href={config.href(r.entityId)} variant="unstyled" className={styles.entityLink}>
           {config.label}
           <FaArrowUpRightFromSquare className={styles.linkIcon} />
         </Link>

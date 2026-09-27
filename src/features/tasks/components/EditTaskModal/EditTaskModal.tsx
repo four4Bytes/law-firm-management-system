@@ -19,7 +19,7 @@ import { withLockedReviewer } from "@/features/tasks/display";
 import { useTaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
 import {
   createFieldValidator,
@@ -38,7 +38,7 @@ interface EditTaskModalProps {
   onSuccess: () => void;
   task: TaskDetailRow;
   capabilities: TaskCapabilities;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
   currentUserId: string;
 }
 

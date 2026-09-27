@@ -7,6 +7,8 @@ import {
   getAppTimeZone,
   getDaypartGreeting,
   getStartOfDay,
+  toCalendarDate,
+  toTimeValue,
 } from "@/lib/primitives/date";
 
 const originalAppTimeZone = process.env.APP_TIMEZONE;
@@ -54,6 +56,57 @@ describe("combineDateTime", () => {
     process.env.APP_TIMEZONE = "UTC";
     const result = combineDateTime(new CalendarDate(2026, 8, 9), new Time(9, 30));
     expect(result.toISOString()).toBe("2026-08-09T09:30:00.000Z");
+  });
+});
+
+describe("picker round-trip", () => {
+  // Oracle: read the same instant through Intl in the app timezone. toCalendarDate
+  // and toTimeValue must agree with it, which is only true if they read in the
+  // app zone rather than the ambient/browser one.
+  const appZoneParts = (date: Date) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: getAppTimeZone(),
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const read = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+    return { year: read("year"), month: read("month"), day: read("day"), hour: read("hour") };
+  };
+
+  it.each([
+    ["Asia/Manila", 0, 0],
+    ["Asia/Manila", 9, 0],
+    ["Asia/Manila", 23, 30],
+    ["UTC", 0, 0],
+    ["America/New_York", 14, 45],
+    ["Pacific/Auckland", 0, 0],
+  ])("reads %s %s:%s back in the app timezone", (zone, hour, minute) => {
+    process.env.APP_TIMEZONE = zone;
+    const instant = combineDateTime(new CalendarDate(2026, 8, 9), new Time(hour, minute));
+    const expected = appZoneParts(instant);
+
+    expect(toCalendarDate(instant)).toEqual(
+      new CalendarDate(expected.year, expected.month, expected.day),
+    );
+    expect(toTimeValue(instant).hour).toBe(expected.hour);
+    expect(toTimeValue(instant).minute).toBe(minute);
+  });
+
+  it.each([
+    ["Asia/Manila", 0, 0],
+    ["Asia/Manila", 9, 0],
+    ["Asia/Manila", 23, 30],
+    ["America/New_York", 0, 0],
+    ["Pacific/Auckland", 0, 0],
+  ])("round-trips a %s %s:%s value unchanged", (zone, hour, minute) => {
+    process.env.APP_TIMEZONE = zone;
+    const original = combineDateTime(new CalendarDate(2026, 8, 9), new Time(hour, minute));
+
+    expect(combineDateTime(toCalendarDate(original), toTimeValue(original))).toEqual(original);
   });
 });
 

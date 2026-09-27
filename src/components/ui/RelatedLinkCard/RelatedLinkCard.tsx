@@ -18,7 +18,7 @@ interface RelatedLinkCardProps {
 
 export function RelatedLinkCard({ href, label, title, icon, className }: RelatedLinkCardProps) {
   return (
-    <Link href={href} className={clsx(styles.card, className)}>
+    <Link href={href} variant="unstyled" className={clsx(styles.card, className)}>
       {icon && <span className={styles.icon}>{icon}</span>}
       <span className={styles.label}>{label}</span>
       <span className={styles.title}>{title}</span>

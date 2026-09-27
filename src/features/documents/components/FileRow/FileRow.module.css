@@ -36,11 +36,21 @@
     text-align: left;
   }
 
+  .type,
   .size {
     flex-shrink: 0;
-    min-width: 4.5rem;
     text-align: right;
     color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+  }
+
+  .type {
+    min-width: 3rem;
+    text-transform: uppercase;
+  }
+
+  .size {
+    min-width: 4.5rem;
   }
 
   .trailing {

@@ -2,7 +2,9 @@ import { getConsultationsPaginatedAction } from "@/features/consultations/action
 import { ConsultationTable } from "@/features/consultations/components/ConsultationTable/ConsultationTable";
 import { ConsultationStatusFilterParamSchema } from "@/features/consultations/schemas";
 import { getActiveUsers } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { auth } from "@/lib/infra/auth";
+import { fulfilledOrNull } from "@/lib/primitives/promise";
 
 import styles from "./page.module.css";
 
@@ -15,10 +17,15 @@ export default async function ConsultationPage({ searchParams }: ConsultationPag
   const { status } = await searchParams;
   const statuses = ConsultationStatusFilterParamSchema.parse(status);
   const filters = statuses.length > 0 ? { status: statuses } : undefined;
-  const [initial, users] = await Promise.all([
+  const [initialResult, usersResult] = await Promise.allSettled([
     getConsultationsPaginatedAction({ pageSize: 10, ...(filters ? { filters } : {}) }),
     getActiveUsers(),
   ]);
+
+  const initial = fulfilledOrNull(initialResult);
+  if (!initial) throw new Error("Failed to load consultations");
+
+  const users: UserSummary[] = fulfilledOrNull(usersResult) ?? [];
 
   return (
     <div className={styles.wrapper}>

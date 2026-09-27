@@ -6,12 +6,9 @@ import {
 } from "@/features/dashboard/actions";
 import { DashboardContent } from "@/features/dashboard/components/DashboardContent/DashboardContent";
 import { auth } from "@/lib/infra/auth";
+import { fulfilledOrNull } from "@/lib/primitives/promise";
 
 import styles from "./page.module.css";
-
-function fulfilledOrNull<T>(result: PromiseSettledResult<T>): T | null {
-  return result.status === "fulfilled" ? result.value : null;
-}
 
 export default async function DashboardPage() {
   const [statsResult, recentCasesResult, upcomingConsultationsResult, upcomingMilestonesResult] =

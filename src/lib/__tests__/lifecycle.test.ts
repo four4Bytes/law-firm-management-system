@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { CaseStatus, ConsultationStatus, TaskStatus } from "@/generated/prisma/browser";
+import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
 import {
   canTransition,
   CASE_TRANSITIONS,
   CONSULTATION_TRANSITIONS,
-  isSubdataLocked,
   isTerminalStatus,
 } from "@/lib/domain/lifecycle";
 
@@ -52,28 +51,5 @@ describe("isTerminalStatus", () => {
     expect(isTerminalStatus(CONSULTATION_TRANSITIONS, ConsultationStatus.Scheduled)).toBe(false);
     expect(isTerminalStatus(CONSULTATION_TRANSITIONS, ConsultationStatus.Cancelled)).toBe(false);
     expect(isTerminalStatus(CASE_TRANSITIONS, CaseStatus.Open)).toBe(false);
-  });
-});
-
-describe("isSubdataLocked", () => {
-  it("locks terminal consultations", () => {
-    expect(isSubdataLocked("consultation", ConsultationStatus.Accepted)).toBe(true);
-    expect(isSubdataLocked("consultation", ConsultationStatus.Rejected)).toBe(true);
-    expect(isSubdataLocked("consultation", ConsultationStatus.Cancelled)).toBe(true);
-    expect(isSubdataLocked("consultation", ConsultationStatus.Scheduled)).toBe(false);
-    expect(isSubdataLocked("consultation", ConsultationStatus.Completed)).toBe(false);
-  });
-
-  it("locks terminal cases", () => {
-    expect(isSubdataLocked("case", CaseStatus.Closed)).toBe(true);
-    expect(isSubdataLocked("case", CaseStatus.Settled)).toBe(true);
-    expect(isSubdataLocked("case", CaseStatus.Terminated)).toBe(true);
-    expect(isSubdataLocked("case", CaseStatus.Open)).toBe(false);
-  });
-
-  it("locks done tasks", () => {
-    expect(isSubdataLocked("task", TaskStatus.Done)).toBe(true);
-    expect(isSubdataLocked("task", TaskStatus.Pending)).toBe(false);
-    expect(isSubdataLocked("task", TaskStatus.InReview)).toBe(false);
   });
 });

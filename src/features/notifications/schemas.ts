@@ -24,7 +24,6 @@ export const NotificationDispatchSchema = z.object({
 
 export type NotificationDispatchPayload = z.infer<typeof NotificationDispatchSchema>;
 
-/** Payload for fetching unread notifications with a client-specified limit. */
 export const UnreadNotificationsSchema = z.object({
   limit: LimitSchema,
 });

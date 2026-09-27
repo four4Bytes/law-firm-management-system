@@ -68,8 +68,10 @@ export function TaskMetadataFields({
         assigneeSnapshot={task.assignTo}
         reviewerSnapshot={task.reviewers}
         creatorUserId={task.created_by_user_id}
-        isAssigneeDisabled={isPending || !capabilities.canEdit}
-        isReviewerDisabled={isPending || !capabilities.canManageReviewers}
+        isAssigneeDisabled={isPending || !capabilities.canEditRoster}
+        isReviewerDisabled={
+          isPending || !capabilities.canEditRoster || !capabilities.canManageReviewers
+        }
         validate={fieldValidator}
       />
     </>

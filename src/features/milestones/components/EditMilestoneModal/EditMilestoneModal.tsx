@@ -15,7 +15,7 @@ import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { updateMilestoneAction } from "@/features/milestones/actions";
 import type { MilestoneRow } from "@/features/milestones/queries";
 import { MilestoneUpdatePayloadSchema } from "@/features/milestones/schemas";
-import { milestoneStatusOptions } from "@/features/milestones/status";
+import { isTerminalMilestoneStatus, milestoneStatusOptions } from "@/features/milestones/status";
 import { CaseMilestoneStatus } from "@/generated/prisma/browser";
 import { toastError } from "@/lib/hooks/toast-utils";
 import { useModalForm } from "@/lib/hooks/useModalForm";
@@ -66,6 +66,16 @@ export function EditMilestoneModal({
     description !== (milestone.description ?? "") ||
     dueDateChanged ||
     statusChanged;
+
+  // Mirrors the date-reschedule lock in `updateMilestoneAction`: a terminal
+  // milestone keeps its deadline unless the same save reopens it to Pending,
+  // which is the only way the date becomes editable again.
+  const savedStatus = milestone.status as CaseMilestoneStatus;
+  const dueDateLocked =
+    isTerminalMilestoneStatus(savedStatus) && status !== CaseMilestoneStatus.Pending;
+  const dueDateLockedDescription = dueDateLocked
+    ? "Reopen to Pending to change the due date."
+    : undefined;
 
   // The two rules couple Status and Due Date, so both fields report them. RAC
   // surfaces a field's own error only, which is why the status select cannot
@@ -194,14 +204,16 @@ export function EditMilestoneModal({
             label="Due Date"
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
-            isDisabled={isPending}
+            isDisabled={isPending || dueDateLocked}
+            description={dueDateLockedDescription}
             validate={validateDueDate}
           />
           <TimeField
             label="Due Time"
             value={dueTime}
             onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
-            isDisabled={isPending}
+            isDisabled={isPending || dueDateLocked}
+            description={dueDateLockedDescription}
           />
           <Select
             label="Status"
@@ -211,7 +223,7 @@ export function EditMilestoneModal({
             description={statusDescription()}
             validate={validateStatus}
           >
-            {milestoneStatusOptions(milestone.status as CaseMilestoneStatus).map((s) => (
+            {milestoneStatusOptions(savedStatus).map((s) => (
               <SelectItem key={s} id={s}>
                 {s}
               </SelectItem>

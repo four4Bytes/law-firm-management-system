@@ -24,7 +24,7 @@ No workflow-specific roles. `milestone.update` on the record (assigned-or-own sc
 | `Done`      | `Pending` (reopen)  |
 | `Cancelled` | `Pending` (reopen)  |
 
-Terminality (`isTerminalMilestoneStatus`) means "no outcome change", not "frozen forever" — per [lifecycle.md](./lifecycle.md) §3, a `Done` or `Cancelled` milestone keeps a fully editable title, description, and due date. Milestones have **no field locks**; integrity comes from the audit trail. Same-status transitions are rejected, and a save that changes nothing returns early as a no-op.
+Terminality (`isTerminalMilestoneStatus`) means "no outcome change", not "frozen forever" — per [lifecycle.md](./lifecycle.md) §3, a `Done` or `Cancelled` milestone keeps a fully editable title and description, and integrity comes from the audit trail. The one exception is the due date, which is date-locked like the consultation booking ([lifecycle.md](./lifecycle.md) §4, see §4.4 below). Same-status transitions are rejected, and a save that changes nothing returns early as a no-op.
 
 The Edit modal's status select offers only the current status plus legal targets, so an impossible move is unselectable rather than a server rejection.
 
@@ -50,13 +50,24 @@ Because the rule couples two fields, it is surfaced on **both** of them: the `Da
 
 ### 4.2 Reschedule confirmation
 
-Changing the due date asks for explicit confirmation showing old → new, mirroring the consultation reschedule flow ([consultation-workflow.md](./consultation-workflow.md)). The rationale is the side effect, not a lock: a due-date change re-arms reminders and notifies every case assignee. The copy names both consequences. A milestone is never locked, so the confirm is a warning rather than a barrier — there is no `isLocked` suppression here, unlike the consultation flow.
+Changing the due date asks for explicit confirmation showing old → new, mirroring the consultation reschedule flow ([consultation-workflow.md](./consultation-workflow.md)). The rationale is the side effect: a due-date change re-arms reminders and notifies every case assignee, and the copy names both consequences. Because of the lock in §4.4, a confirmed reschedule can only ever be a `Pending` milestone or a reopen, so the copy is always accurate.
 
 The confirm fires only on a genuine change, per the minute-precision comparison above. The date rules are re-checked after the user confirms, so a record that lapsed while the modal sat open fails before the request rather than after it. React Aria native validation runs before the handler, so an invalid date never reaches the dialog.
 
 ### 4.3 No-op saves
 
 The action short-circuits when nothing actually changed, and the modal disables Save until a real edit exists (`isDirty`). Without both, an unedited save would report "Milestone updated" while writing nothing.
+
+### 4.4 Date-reschedule lock
+
+The due date and time are editable only while the milestone is `Pending`, mirroring the consultation booking lock ([lifecycle.md](./lifecycle.md) §4). A concluded milestone is a settled commitment; moving its deadline re-notifies every case assignee and re-arms reminders for work nobody is waiting on. This is a **date** lock, not a content lock — title and description stay editable at every status.
+
+Enforced on both sides:
+
+- **Action** — `updateMilestoneAction` returns the `locked` envelope before the write when the date changed, the saved status is terminal, **and** the save is not reopening to `Pending`. The comparison floors both sides to the minute, matching the no-op check.
+- **Modal** — the `DatePicker` and `TimeField` are disabled with a description naming the way out. Selecting `Pending` re-enables both immediately, so the reopen path is the visible route to a new deadline rather than a dead end.
+
+The reopen exemption is load-bearing, not a convenience: per §4.1 a lapsed milestone cannot become `Pending` without moving the date forward, so a lock without the exemption would block the only legal way out of exactly the state most likely to need reopening.
 
 ## 5. Reopen semantics
 

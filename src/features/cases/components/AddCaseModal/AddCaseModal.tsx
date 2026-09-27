@@ -12,7 +12,7 @@ import { createCaseWithClientAction } from "@/features/cases/actions";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/hooks/useModalForm";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
@@ -23,7 +23,7 @@ interface AddCaseModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: (caseId: string) => void;
-  users: ActiveUserSummary[];
+  users: UserSummary[];
 }
 
 interface ClientFields {

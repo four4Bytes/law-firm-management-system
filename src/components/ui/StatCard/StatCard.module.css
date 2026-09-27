@@ -65,7 +65,7 @@
   }
 }
 
-.card.link {
+.card.interactive {
   cursor: pointer;
   text-decoration: none;
   color: inherit;
@@ -75,7 +75,7 @@
     outline-offset: 2px;
   }
 
-  &:hover .chevron,
+  /* RAC sets data-hovered/data-focus-visible; the bare :hover is redundant. */
   &[data-hovered] .chevron,
   &[data-focus-visible] .chevron {
     opacity: 1;

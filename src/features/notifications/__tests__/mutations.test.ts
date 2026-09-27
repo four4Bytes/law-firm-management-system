@@ -9,14 +9,23 @@ vi.mock("@/lib/infra/prisma", () => ({
   },
 }));
 
+const originalAppTimeZone = process.env.APP_TIMEZONE;
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
+  // 2026-08-09 18:00 in Manila.
   vi.setSystemTime(new Date("2026-08-09T10:00:00Z"));
+  process.env.APP_TIMEZONE = "Asia/Manila";
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  if (originalAppTimeZone === undefined) {
+    delete process.env.APP_TIMEZONE;
+  } else {
+    process.env.APP_TIMEZONE = originalAppTimeZone;
+  }
 });
 
 describe("pruneNotifications", () => {
@@ -26,8 +35,9 @@ describe("pruneNotifications", () => {
     const result = await pruneNotifications(90);
 
     expect(result).toBe(3);
+    // Start of 2026-05-11 in Manila, not "now minus 90 days" on the host's clock.
     expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
-      where: { created_at: { lt: new Date("2026-05-11T10:00:00Z") } },
+      where: { created_at: { lt: new Date("2026-05-10T16:00:00Z") } },
     });
   });
 

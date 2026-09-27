@@ -87,3 +87,34 @@ export const LinkedTask: Story = {
     onDownload: noop,
   },
 };
+
+/** A row uploaded before extension-based resolution, with no usable stored type. */
+export const LegacyEmptyType: Story = {
+  args: {
+    document: createDocument({
+      id: "d4",
+      file_name: "Client-Intake-Form.docx",
+      file_type: "",
+    }),
+    isBusy: false,
+    onDownload: noop,
+  },
+};
+
+export const MetadataHidden: Story = {
+  args: {
+    document: createDocument(),
+    isBusy: false,
+    showSize: false,
+    showFileType: false,
+    onDownload: noop,
+  },
+};
+
+export const UnknownSize: Story = {
+  args: {
+    document: createDocument({ file_size: null }),
+    isBusy: false,
+    onDownload: noop,
+  },
+};

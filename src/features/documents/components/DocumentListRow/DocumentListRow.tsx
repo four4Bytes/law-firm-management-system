@@ -12,6 +12,7 @@ interface DocumentListRowProps {
   document: DocumentRow;
   isBusy: boolean;
   showSize?: boolean;
+  showFileType?: boolean;
   isDownloading?: boolean;
   className?: string;
   onDownload?: (document: DocumentRow) => void;
@@ -23,6 +24,7 @@ export function DocumentListRow({
   document,
   isBusy,
   showSize = true,
+  showFileType = true,
   isDownloading,
   className,
   onDownload,
@@ -35,7 +37,8 @@ export function DocumentListRow({
     <FileRow
       fileName={file_name}
       fileType={file_type}
-      fileSize={showSize ? file_size : null}
+      fileSize={showSize ? file_size : undefined}
+      showFileType={showFileType}
       trailing={
         <>
           {onView && (

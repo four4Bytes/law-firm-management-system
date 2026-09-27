@@ -9,6 +9,7 @@ import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { getParentPath } from "@/lib/domain/path";
+import { getFileDescriptor, getFileExtension } from "@/lib/files/file-types";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { isWithinUploadSizeLimit } from "@/lib/files/upload-policy";
 import {
@@ -16,6 +17,7 @@ import {
   getObjectSize,
   getPresignedFileUrl,
   getPresignedUploadUrl,
+  isKeyWithinPrefix,
   objectExists,
 } from "@/lib/infra/s3";
 import {
@@ -56,6 +58,19 @@ interface DocumentParentPayload {
   taskId?: string | null;
 }
 
+/** The storage namespace a document's parent owns, as used in S3 object keys. */
+interface DocumentParentRef {
+  parentType: string;
+  parentId: string;
+}
+
+/** Parent linkage as it appears on a document payload, matching the stored columns. */
+interface DocumentParentLinkage {
+  case_id?: string | null;
+  consultation_id?: string | null;
+  task_id?: string | null;
+}
+
 async function getDocumentParentAccessContext({
   userId,
   caseId,
@@ -72,6 +87,38 @@ async function getDocumentParentAccessContext({
     return getConsultationAccessContext(userId, consultationId);
   }
   throw new Error("Invalid query parameters");
+}
+
+/**
+ * Resolves the storage namespace for a document's parent, shared by the presign
+ * and confirm steps. The upload schemas enforce exactly one parent reference.
+ */
+function resolveDocumentParentRef(parent: DocumentParentLinkage): DocumentParentRef {
+  const { case_id, consultation_id, task_id } = parent;
+
+  if (case_id) return { parentType: "cases", parentId: case_id };
+  if (task_id) return { parentType: "tasks", parentId: task_id };
+  if (consultation_id) return { parentType: "consultations", parentId: consultation_id };
+  throw new Error("Invalid upload payload");
+}
+
+/**
+ * Whether an upload key is consistent with the declared file name and the parent
+ * the caller just authorized. `file_path` arrives from the client, so without
+ * this a user could attach an object belonging to another case they can also
+ * read, and a row's name could disagree with the stored object.
+ */
+function isConsistentUploadKey({
+  key,
+  fileName,
+  parentRef,
+}: {
+  key: string;
+  fileName: string;
+  parentRef: DocumentParentRef;
+}): boolean {
+  if (!isKeyWithinPrefix(key, parentRef.parentType, parentRef.parentId)) return false;
+  return key.toLowerCase().endsWith(`.${getFileExtension(fileName)}`);
 }
 
 export async function getDocumentsPaginatedAction(
@@ -107,6 +154,7 @@ export async function getDocumentUploadUrlAction(
 ): Promise<{
   key: string;
   uploadUrl: string;
+  contentType: string;
 }> {
   const session = await requireAuth();
 
@@ -115,7 +163,7 @@ export async function getDocumentUploadUrlAction(
     throw new Error("Invalid upload payload");
   }
 
-  const { file_name, file_type, case_id, consultation_id, task_id } = parsed.data;
+  const { file_name, case_id, consultation_id, task_id } = parsed.data;
 
   const parentAccess = await getDocumentParentAccessContext({
     userId: session.id,
@@ -127,12 +175,12 @@ export async function getDocumentUploadUrlAction(
     throw new ForbiddenError();
   }
 
-  const parentType = case_id ? "cases" : task_id ? "tasks" : "consultations";
-  const parentId = case_id ?? task_id ?? consultation_id!;
-  const key = generateKey(parentType, parentId, file_name);
-  const uploadUrl = await getPresignedUploadUrl(key, file_type);
+  const parentRef = resolveDocumentParentRef({ case_id, consultation_id, task_id });
+  const key = generateKey(parentRef.parentType, parentRef.parentId, file_name);
+  const { mime } = getFileDescriptor({ fileName: file_name });
+  const uploadUrl = await getPresignedUploadUrl(key, mime);
 
-  return { key, uploadUrl };
+  return { key, uploadUrl, contentType: mime };
 }
 
 export async function confirmDocumentUploadAction(
@@ -143,9 +191,11 @@ export async function confirmDocumentUploadAction(
   const parsed = DocumentConfirmPayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("upload confirmation");
 
-  const { file_name, file_type, file_path, case_id, consultation_id, task_id } = parsed.data;
+  const { file_name, file_path, case_id, consultation_id, task_id } = parsed.data;
+  const { mime: file_type } = getFileDescriptor({ fileName: file_name });
 
   try {
+    const parentRef = resolveDocumentParentRef({ case_id, consultation_id, task_id });
     const parentAccess = await getDocumentParentAccessContext({
       userId: session.id,
       caseId: case_id,
@@ -153,6 +203,10 @@ export async function confirmDocumentUploadAction(
       taskId: task_id,
     });
     if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
+      return actionForbidden();
+    }
+
+    if (!isConsistentUploadKey({ key: file_path, fileName: file_name, parentRef })) {
       return actionForbidden();
     }
 

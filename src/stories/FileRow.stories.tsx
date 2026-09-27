@@ -51,11 +51,37 @@ export const ImageWithThumbnail: Story = {
   },
 };
 
+/** The browser reported no type, which the extension resolves on its own. */
+export const MissingMimeType: Story = {
+  args: {
+    fileName: "Client-Intake-Form.docx",
+    fileType: "",
+    fileSize: 245_760,
+  },
+};
+
 export const UnknownSize: Story = {
   args: {
     fileName: "scanned-document.bin",
     fileType: "application/octet-stream",
     fileSize: null,
+  },
+};
+
+/** Size omitted entirely, as opposed to `null`, which renders "Unknown". */
+export const SizeHidden: Story = {
+  args: {
+    fileName: "Property Deed - Lot 24-B.pdf",
+    fileType: "application/pdf",
+  },
+};
+
+export const TypeHidden: Story = {
+  args: {
+    fileName: "Property Deed - Lot 24-B.pdf",
+    fileType: "application/pdf",
+    fileSize: 1_842_944,
+    showFileType: false,
   },
 };
 

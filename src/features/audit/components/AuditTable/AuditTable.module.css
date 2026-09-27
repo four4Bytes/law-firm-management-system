@@ -1,0 +1,23 @@
+.entityLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  color: var(--color-brand-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.entityLink[data-hovered] {
+  text-decoration: underline;
+}
+
+.deleted {
+  color: var(--color-text-disabled, var(--color-text-secondary));
+  font-style: italic;
+}
+
+.linkIcon {
+  font-size: var(--font-size-xs);
+}

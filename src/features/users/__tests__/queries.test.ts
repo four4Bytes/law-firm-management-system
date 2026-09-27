@@ -291,7 +291,7 @@ describe("getActiveUsers", () => {
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: { is_active: true },
       select: { id: true, name: true, last_seen_at: true },
-      orderBy: { name: "asc" },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
     });
   });
 

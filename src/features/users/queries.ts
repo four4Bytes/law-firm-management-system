@@ -5,6 +5,7 @@ import { prisma } from "@/lib/infra/prisma";
 import type { PageQuery } from "@/lib/primitives/types";
 
 import { isUserOnline } from "./onlineStatus";
+import type { UserSummary } from "./types";
 
 export const getActiveUserIds = cache(async (payload: { ids: string[] }): Promise<string[]> => {
   const { ids } = payload;
@@ -16,13 +17,11 @@ export const getActiveUserIds = cache(async (payload: { ids: string[] }): Promis
   return users.map((u) => u.id);
 });
 
-export type ActiveUserSummary = Pick<User, "id" | "name"> & { is_online: boolean };
-
-export const getActiveUsers = cache(async (): Promise<ActiveUserSummary[]> => {
+export const getActiveUsers = cache(async (): Promise<UserSummary[]> => {
   const users = await prisma.user.findMany({
     where: { is_active: true },
     select: { id: true, name: true, last_seen_at: true },
-    orderBy: { name: "asc" },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
   });
   return users.map((user) => ({
     id: user.id,

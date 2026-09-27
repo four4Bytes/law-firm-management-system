@@ -7,7 +7,9 @@ import {
 } from "@/lib/security/action-response";
 import {
   DeactivatedError,
+  FORBIDDEN_DIGEST,
   ForbiddenError,
+  isForbiddenError,
   StatusConflictError,
   TaskLockedError,
   toActionResponse,
@@ -106,5 +108,26 @@ describe("toActionResponse", () => {
       "[delete payment]",
       expect.stringContaining("connection refused"),
     );
+  });
+});
+
+describe("isForbiddenError", () => {
+  it("identifies a ForbiddenError instance", () => {
+    expect(isForbiddenError(new ForbiddenError())).toBe(true);
+  });
+
+  it("identifies a server-rethrown forbidden error by its digest", () => {
+    expect(isForbiddenError({ digest: FORBIDDEN_DIGEST, message: "An error occurred" })).toBe(true);
+  });
+
+  it.each([
+    ["a different error class", new UnauthorizedError()],
+    ["an unrelated digest", { digest: "TASK_LOCKED" }],
+    ["a plain error", new Error("Forbidden")],
+    ["null", null],
+    ["undefined", undefined],
+    ["a non-object", "FORBIDDEN"],
+  ])("returns false for %s", (_label, value) => {
+    expect(isForbiddenError(value)).toBe(false);
   });
 });

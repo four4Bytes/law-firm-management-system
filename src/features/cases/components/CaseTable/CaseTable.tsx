@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 import type { ColumnDef } from "@/components/ui/DataTable/DataTable";
 import { ServerDataTable } from "@/components/ui/ServerDataTable/ServerDataTable";
@@ -11,10 +11,8 @@ import { useNavigationProgress } from "@/components/ui/TopProgressBar/navigation
 import { getCasesPaginatedAction } from "@/features/cases/actions";
 import { AddCaseModal } from "@/features/cases/components/AddCaseModal/AddCaseModal";
 import type { CaseRow } from "@/features/cases/queries";
-import { getActiveUsersAction } from "@/features/users/actions";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { CaseStatus, type Role } from "@/generated/prisma/browser";
-import { toastError } from "@/lib/hooks/toast-utils";
 import { useUrlFilters } from "@/lib/hooks/useUrlFilters";
 import { can } from "@/lib/security/rbac";
 
@@ -73,30 +71,17 @@ const columns: ColumnDef<CaseRow>[] = [
 interface CaseTableProps {
   initialCases?: CaseRow[];
   initialCursor?: string | null;
+  users: UserSummary[];
   userRole: Role | null;
 }
 
-export function CaseTable({ initialCases, initialCursor, userRole }: CaseTableProps) {
+export function CaseTable({ initialCases, initialCursor, users, userRole }: CaseTableProps) {
   const router = useRouter();
   const { startLoading } = useNavigationProgress();
   const [urlFilters, setUrlFilters] = useUrlFilters(caseFilters);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [users, setUsers] = useState<ActiveUserSummary[]>([]);
 
   const canCreate = can(userRole, "case.create");
-
-  const openAddModal = useCallback(async () => {
-    try {
-      const users = await getActiveUsersAction();
-      setUsers(users);
-      setIsAddOpen(true);
-    } catch {
-      toastError(
-        "Failed to load users",
-        "The team member list could not be loaded. Please try again.",
-      );
-    }
-  }, []);
 
   return (
     <>
@@ -123,7 +108,7 @@ export function CaseTable({ initialCases, initialCursor, userRole }: CaseTablePr
         }}
         renderAddButton={canCreate}
         addButtonLabel="Add Case"
-        onAddButtonPress={openAddModal}
+        onAddButtonPress={() => setIsAddOpen(true)}
       />
 
       {isAddOpen && (

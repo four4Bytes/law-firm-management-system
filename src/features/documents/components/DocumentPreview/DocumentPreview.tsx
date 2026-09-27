@@ -11,12 +11,12 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 import { FileIcon } from "@/features/documents/components/FileIcon/FileIcon";
 import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { AuthorizedDocument } from "@/features/documents/queries";
+import { formatFileCategoryName, formatFileSize, isPlayableVideo } from "@/lib/files/file-format";
 import {
-  classifyFileType,
-  formatFileCategoryName,
-  formatFileSize,
-  isPlayableVideo,
-} from "@/lib/files/file-format";
+  getFileDescriptor,
+  type FileCategory,
+  type FileTypeDescriptor,
+} from "@/lib/files/file-types";
 import { canPreviewTextInline, readTextPreview, sliceTextPreview } from "@/lib/files/text-preview";
 import { formatDate } from "@/lib/primitives/date";
 
@@ -32,22 +32,23 @@ interface DocumentPreviewProps {
 
 interface DocumentContentProps {
   document: AuthorizedDocument;
+  file: FileTypeDescriptor;
   src: string;
   onDownload: () => void;
 }
 
 function Placeholder({
-  fileType,
+  category,
   message,
   onDownload,
 }: {
-  fileType: string;
+  category: FileCategory;
   message: string;
   onDownload: () => void;
 }) {
   return (
     <div className={styles.fallback}>
-      <FileIcon fileType={fileType} className={styles.fallbackIcon} />
+      <FileIcon category={category} className={styles.fallbackIcon} />
       <p className={styles.fallbackMessage}>{message}</p>
       <Button variant="secondary" onPress={onDownload}>
         <FaDownload aria-hidden="true" /> Download
@@ -56,9 +57,9 @@ function Placeholder({
   );
 }
 
-function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
-  const { file_type, file_name, file_size } = document;
-  const category = classifyFileType(file_type);
+function DocumentContent({ document, file, src, onDownload }: DocumentContentProps) {
+  const { file_name, file_size } = document;
+  const { category, mime } = file;
   const isText = category === "txt" && canPreviewTextInline(file_size ?? null);
   const [textState, setTextState] = useState<TextPreviewState | null>(null);
 
@@ -103,10 +104,10 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
   }
 
   if (category === "video") {
-    if (!isPlayableVideo(file_type)) {
+    if (!isPlayableVideo(mime)) {
       return (
         <Placeholder
-          fileType={file_type}
+          category={category}
           message="This video format cannot be played in your browser. Download it to view the footage."
           onDownload={onDownload}
         />
@@ -124,7 +125,7 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
     return (
       <object data={src} type="application/pdf" className={styles.pdf}>
         <Placeholder
-          fileType={file_type}
+          category={category}
           message="Preview unavailable in this browser. Download the file to read it."
           onDownload={onDownload}
         />
@@ -136,7 +137,7 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
     if (text === null) {
       return textFailed ? (
         <Placeholder
-          fileType={file_type}
+          category={category}
           message="The preview could not be loaded."
           onDownload={onDownload}
         />
@@ -156,7 +157,7 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
 
   return (
     <Placeholder
-      fileType={file_type}
+      category={category}
       message={
         canPreviewTextInline(file_size ?? null)
           ? "This file type cannot be previewed. Download the file to read it."
@@ -176,22 +177,24 @@ function DocumentContent({ document, src, onDownload }: DocumentContentProps) {
 export function DocumentPreview({ document, src, className }: DocumentPreviewProps) {
   const { handleDownload } = useDocumentDownload();
   const download = () => void handleDownload(document);
+  const { file_name, file_type, file_size, uploadedBy, created_at } = document;
+  const file = getFileDescriptor({ fileName: file_name, fileType: file_type });
 
   return (
     <div className={clsx(styles.preview, className)}>
       <div className={styles.header}>
         <div className={styles.heading}>
-          <span className={styles.title} title={document.file_name}>
-            {document.file_name}
+          <span className={styles.title} title={file_name}>
+            {file_name}
           </span>
           <span className={styles.subtitle}>
-            {`${formatFileCategoryName(document.file_type)} · ${formatFileSize(document.file_size)} · Uploaded by ${document.uploadedBy} on ${formatDate(document.created_at)}`}
+            {`${formatFileCategoryName(file.category)} · ${formatFileSize(file_size)} · Uploaded by ${uploadedBy} on ${formatDate(created_at)}`}
           </span>
         </div>
       </div>
 
       <div className={styles.stage}>
-        <DocumentContent document={document} src={src} onDownload={download} />
+        <DocumentContent document={document} file={file} src={src} onDownload={download} />
       </div>
 
       <p className={styles.contextNote}>

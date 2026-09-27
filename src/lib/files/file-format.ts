@@ -1,4 +1,6 @@
-/** File-size and MIME-type presentation helpers for document attachments. */
+/** File-size and file-label presentation helpers for document attachments. */
+
+import { getFileDescriptor, type FileCategory, type FileTypeInput } from "@/lib/files/file-types";
 
 /**
  * Formats a byte count as a human-readable size (e.g. "1.5 MB"); `null` yields "Unknown".
@@ -23,55 +25,41 @@ export function formatFileSize(bytes: number | null): string {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-/** Coarse classification of a MIME type into a display category. */
-export type FileCategory =
-  "pdf" | "doc" | "xls" | "ppt" | "img" | "video" | "zip" | "txt" | "unknown";
+/**
+ * Returns a short label for a file (e.g. "DOCX").
+ *
+ * @param payload - The file name and its stored MIME type.
+ * @returns A short label, or an empty string when the file type is unknown, so
+ *   callers can omit the label instead of rendering a placeholder.
+ */
+export function formatFileType(payload: FileTypeInput): string {
+  return getFileDescriptor(payload).label;
+}
+
+/** Human-readable names for each file category. */
+const FILE_CATEGORY_NAMES: Record<FileCategory, string> = {
+  pdf: "PDF Document",
+  doc: "Word Document",
+  xls: "Spreadsheet",
+  ppt: "Presentation",
+  img: "Image",
+  video: "Video",
+  zip: "Archive",
+  txt: "Text File",
+  unknown: "File",
+};
 
 /**
- * Maps a MIME type string to its {@link FileCategory}.
+ * Returns a descriptive human-readable name for a file category (e.g. "PDF Document").
  *
- * @param fileType - The MIME type string (e.g. "application/pdf").
- * @returns The matching file category.
+ * Takes an already-resolved category so callers that have a
+ * {@link FileTypeDescriptor} do not re-resolve it.
+ *
+ * @param category - The resolved file category.
+ * @returns The category's display name, or "File" for the unknown category.
  */
-export function classifyFileType(fileType: string): FileCategory {
-  const type = fileType.toLowerCase();
-
-  if (type.includes("pdf")) return "pdf";
-  if (
-    type.includes("excel") ||
-    type.includes("spreadsheet") ||
-    type.includes("sheet") ||
-    type.includes("xls")
-  )
-    return "xls";
-  if (type.includes("presentation") || type.includes("ppt")) return "ppt";
-  if (type.includes("word") || type.includes("document") || type.includes("doc")) return "doc";
-  if (
-    type.includes("image") ||
-    type.includes("png") ||
-    type.includes("jpg") ||
-    type.includes("jpeg") ||
-    type.includes("gif")
-  )
-    return "img";
-  if (
-    type.includes("video") ||
-    type.includes("mpeg") ||
-    type.includes("mp4") ||
-    type.includes("webm")
-  )
-    return "video";
-  if (
-    type.includes("zip") ||
-    type.includes("rar") ||
-    type.includes("tar") ||
-    type.includes("gz") ||
-    type.includes("archive")
-  )
-    return "zip";
-  if (type.includes("text") || type.includes("csv")) return "txt";
-
-  return "unknown";
+export function formatFileCategoryName(category: FileCategory): string {
+  return FILE_CATEGORY_NAMES[category];
 }
 
 /**
@@ -94,55 +82,6 @@ export function truncateFilename(name: string, maxLen = 45): string {
   return name.slice(0, available) + "..." + ext;
 }
 
-/** Display labels for each {@link FileCategory}. */
-const FILE_TYPE_LABELS: Record<FileCategory, string> = {
-  pdf: "PDF",
-  doc: "DOCX",
-  xls: "XLSX",
-  ppt: "PPT",
-  img: "IMG",
-  video: "VIDEO",
-  zip: "ZIP",
-  txt: "TXT",
-  unknown: "",
-};
-
-/**
- * Returns a short human-readable label for a MIME type (e.g. "PDF", "XLSX").
- *
- * @param fileType - The MIME type string.
- * @returns A short label, or the fallback suffix if unknown.
- */
-export function formatFileType(fileType: string): string {
-  const category = classifyFileType(fileType);
-  const label = FILE_TYPE_LABELS[category];
-  if (label) return label;
-  return fileType.split("/").pop()?.toUpperCase() ?? fileType;
-}
-
-/** Human-readable names for each {@link FileCategory}. */
-const FILE_CATEGORY_NAMES: Record<FileCategory, string> = {
-  pdf: "PDF Document",
-  doc: "Word Document",
-  xls: "Spreadsheet",
-  ppt: "Presentation",
-  img: "Image",
-  video: "Video",
-  zip: "Archive",
-  txt: "Text File",
-  unknown: "File",
-};
-
-/**
- * Returns a descriptive human-readable name for a MIME type (e.g. "PDF Document").
- *
- * @param fileType - The MIME type string.
- * @returns The category's display name, or "File" when unrecognized.
- */
-export function formatFileCategoryName(fileType: string): string {
-  return FILE_CATEGORY_NAMES[classifyFileType(fileType)];
-}
-
 /** Video MIME types browsers can play inline without a transcode step. */
 const PLAYABLE_VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "video/x-m4v"]);
 
@@ -152,9 +91,11 @@ const PLAYABLE_VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktim
  * stored normally but fall back to a download prompt instead of a player that
  * would silently fail.
  *
- * @param fileType - The MIME type string.
+ * @param mime - The MIME type, normalized internally so casing and parameters
+ *   (e.g. "video/mp4; codecs=avc1") do not affect the result.
  * @returns `true` when an inline `<video>` preview can be offered.
  */
-export function isPlayableVideo(fileType: string): boolean {
-  return PLAYABLE_VIDEO_TYPES.has(fileType.toLowerCase().split(";")[0].trim());
+export function isPlayableVideo(mime: string): boolean {
+  const normalized = mime.split(";")[0].trim().toLowerCase();
+  return PLAYABLE_VIDEO_TYPES.has(normalized);
 }

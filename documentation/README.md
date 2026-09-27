@@ -12,11 +12,13 @@
 | [RBAC](./RBAC.md)                                   | Role Based Access Control (canonical)                                             |
 | [Notifications](./notifications.md)                 | Notification & reminder pipelines (canonical)                                     |
 | [Lifecycle](./lifecycle.md)                         | Status transitions and the only field locks in the system (canonical)             |
+| [Dates & timezones](./dates-and-timezones.md)       | The app-timezone rule, the helpers, and the two drift failure modes (canonical)   |
 | [Case workflow](./case-workflow.md)                 | Case status matrix, closing flow, reopen                                          |
 | [Consultation workflow](./consultation-workflow.md) | Consultation status matrix, accept-to-case handoff, rescheduling                  |
 | [Task review workflow](./task-review-workflow.md)   | Task derivation, review chain, reopen                                             |
+| [Milestone workflow](./milestone-workflow.md)       | Milestone status matrix, due-date rules, reschedule, reopen                       |
 | [Open questions](./open-questions.md)               | Unvalidated product decisions to confirm with the client                          |
-| [Testing](./testing.md)                             | Test conventions, fixtures, and helpers (see also `AGENTS.md` §12)                |
+| [Testing](./testing.md)                             | Test conventions, fixtures, and helpers (see also `AGENTS.md`)                    |
 | [Seeding](./seeding.md)                             | Seed scenarios: which rows demonstrate what                                       |
 
 For a quickstart, see [Getting Started](./getting-started.md).

@@ -29,7 +29,7 @@ import { AttachmentsTab } from "@/features/documents/components/AttachmentsTab/A
 import { NotesTab } from "@/features/notes/components/NotesTab/NotesTab";
 import { PaymentsTab } from "@/features/payments/components/PaymentsTab/PaymentsTab";
 import { getActiveUsersAction } from "@/features/users/actions";
-import type { ActiveUserSummary } from "@/features/users/queries";
+import type { UserSummary } from "@/features/users/types";
 import { ConsultationStatus, type Role } from "@/generated/prisma/browser";
 import {
   toastActionError,
@@ -39,6 +39,7 @@ import {
   toastSuccess,
 } from "@/lib/hooks/toast-utils";
 import { useStatusWorkflow } from "@/lib/hooks/useStatusWorkflow";
+import { isForbiddenError } from "@/lib/security/errors";
 import { can, type AccessContext } from "@/lib/security/rbac";
 
 import { ConsultationOverview } from "../ConsultationOverview/ConsultationOverview";
@@ -67,7 +68,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
   );
 
   const [showCaseModal, setShowCaseModal] = useState(false);
-  const [workflowUsers, setWorkflowUsers] = useState<ActiveUserSummary[]>([]);
+  const [workflowUsers, setWorkflowUsers] = useState<UserSummary[]>([]);
   const [decisionModal, setDecisionModal] = useState<Extract<
     ConsultationStatus,
     "Rejected" | "Cancelled"
@@ -126,8 +127,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
       }
       setEditData({ consultation, clientData });
     } catch (error) {
-      const isForbidden = (error as { digest?: string })?.digest === "FORBIDDEN";
-      if (isForbidden) {
+      if (isForbiddenError(error)) {
         toastDenied();
         return;
       }
@@ -270,7 +270,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
             )}
             {validTabs.includes("payments") && (
               <TabPanel id="payments">
-                <PaymentsTab consultationId={overview.id} />
+                <PaymentsTab consultationId={overview.id} userRole={userRole} />
               </TabPanel>
             )}
             {validTabs.includes("activity") && (

@@ -60,7 +60,7 @@ export const ReadOnly: Story = {
   },
 };
 
-export const WithoutSize: Story = {
+export const WithoutMetadata: Story = {
   args: {
     documents: [
       createDocument(),
@@ -68,12 +68,13 @@ export const WithoutSize: Story = {
     ],
     isBusy: false,
     showSize: false,
+    showFileType: false,
     onDownload: noop,
   },
   parameters: {
     docs: {
       description: {
-        story: "Used where the surrounding row already shows size metadata (task attachments).",
+        story: "Used where the surrounding row already shows size and type metadata.",
       },
     },
   },

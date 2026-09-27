@@ -10,6 +10,7 @@ import { FileIcon } from "@/features/documents/components/FileIcon/FileIcon";
 import { useDocumentDownload } from "@/features/documents/hooks/useDocumentDownload";
 import type { DocumentRow } from "@/features/documents/queries";
 import { formatFileCategoryName, formatFileSize } from "@/lib/files/file-format";
+import { getFileDescriptor } from "@/lib/files/file-types";
 import { formatDateTime } from "@/lib/primitives/date";
 
 import styles from "./DocumentDetailsModal.module.css";
@@ -27,18 +28,19 @@ export function DocumentDetailsModal({
 }: DocumentDetailsModalProps) {
   const { handleDownload, pendingIds } = useDocumentDownload();
   const isDownloading = pendingIds.has(document.id);
+  const file = getFileDescriptor({ fileName: document.file_name, fileType: document.file_type });
 
   return (
     <Modal title="Attachment details" isOpen={isOpen} onOpenChange={onOpenChange}>
       <div className={styles.content}>
         <div className={styles.heading}>
-          <FileIcon fileType={document.file_type} className={styles.icon} />
+          <FileIcon category={file.category} className={styles.icon} />
           <div className={styles.headingText}>
             <span className={styles.fileName} title={document.file_name}>
               {document.file_name}
             </span>
             <span className={styles.meta}>
-              {`${formatFileCategoryName(document.file_type)} · ${formatFileSize(document.file_size)}`}
+              {`${formatFileCategoryName(file.category)} · ${formatFileSize(document.file_size)}`}
             </span>
           </div>
         </div>

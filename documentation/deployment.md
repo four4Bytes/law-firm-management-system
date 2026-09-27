@@ -247,9 +247,9 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
 
 4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
-The cron runs daily at **app-timezone midnight**. Vercel interprets the schedule in **UTC**, so the expression is written as the UTC instant that equals local midnight: `0 16 * * *` is 16:00 UTC, which is 00:00 the next day in `Asia/Manila`. This matches the self-hosted `node-cron` in `src/instrumentation.ts`, which schedules `0 0 * * *` with `timezone: getAppTimeZone()`.
+With the default `APP_TIMEZONE=Asia/Manila`, the cron runs daily at **app-timezone midnight**. Vercel interprets the schedule in **UTC**, so the expression is written as the UTC instant that equals local midnight: `0 16 * * *` is 16:00 UTC, which is 00:00 the next day in `Asia/Manila`. This matches the self-hosted `node-cron` in `src/instrumentation.ts`, which schedules `0 0 * * *` with `timezone: getAppTimeZone()`.
 
-**Changing `APP_TIMEZONE` requires updating `vercel.json` too.** The offset is baked into the expression, so a zone other than UTC+8 needs a different hour (and, across a DST boundary, a different minute — the Philippines has no DST, but most zones do). `vercel.json` cannot hold comments, so this table is the record of the conversion:
+**Changing `APP_TIMEZONE` requires updating `vercel.json` too.** The UTC offset is baked into each schedule, so offset changes may require changing the UTC hour and/or minute (and the weekday for a weekly job). A fixed Vercel schedule cannot maintain local midnight year-round in a timezone with DST; update `vercel.json` and redeploy whenever the offset changes. `vercel.json` cannot hold comments, so this table records the conversion:
 
 | Job          | Local time (`Asia/Manila`) | `vercel.json` expression | UTC instant    |
 | ------------ | -------------------------- | ------------------------ | -------------- |
@@ -296,9 +296,10 @@ The example above runs the GC sweep weekly on **Sunday at 03:00 `Asia/Manila`** 
 
 ### Setting up with self-hosted cron
 
-Add a systemd timer or cron entry that calls the endpoint with the bearer token:
+Set the external scheduler's timezone to UTC. For a cron implementation that supports `CRON_TZ`, use this entry to call the endpoint with the bearer token:
 
 ```bash
 # Example: weekly at 03:00 Asia/Manila on Sunday (19:00 UTC Saturday)
+CRON_TZ=UTC
 0 19 * * 6 curl --fail --silent --show-error -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/api/cron/storage-gc
 ```

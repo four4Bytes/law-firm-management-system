@@ -37,6 +37,24 @@ export function isForbiddenError(error: unknown): boolean {
 }
 
 /**
+ * Narrows an unknown thrown value to a Prisma "record not found" failure.
+ *
+ * Raised by `update`/`delete` when the target row is already gone, which happens
+ * when a record is deleted between a prior read and a later write. Matched on
+ * the `code` field rather than `instanceof Prisma.PrismaClientKnownRequestError`
+ * so this module stays importable from client-reachable code: the generated
+ * `client` entry pulls in `node:` builtins and breaks `next build`, while the
+ * `browser` entry does not export the error classes.
+ *
+ * @param error - The value caught by a `catch` clause.
+ * @returns `true` when the value is a not-found Prisma error.
+ */
+export function isRecordNotFoundError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error)) return false;
+  return error.code === "P2025";
+}
+
+/**
  * Error thrown when a user lacks permission for an action.
  *
  * Uses a stable `digest` property so error boundaries can reliably identify

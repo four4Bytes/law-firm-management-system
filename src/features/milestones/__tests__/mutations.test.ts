@@ -1,11 +1,14 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/infra/prisma";
+import { StatusConflictError } from "@/lib/security/errors";
 
 import { createMilestone, deleteMilestone, updateMilestone } from "../mutations";
 
 vi.mock("@/lib/infra/prisma", () => ({
-  prisma: { caseMilestone: { create: vi.fn(), update: vi.fn(), delete: vi.fn() } },
+  prisma: {
+    caseMilestone: { create: vi.fn(), update: vi.fn(), updateMany: vi.fn(), delete: vi.fn() },
+  },
 }));
 
 beforeEach(() => {
@@ -254,4 +257,68 @@ it("propagates error when creating milestone fails", async () => {
       created_by_user_id: "u1",
     }),
   ).rejects.toThrow(error);
+});
+
+const base = {
+  title: "File complaint",
+  description: "Draft",
+  due_date: new Date("2026-08-09T09:00:00.000Z"),
+  status: "Pending" as const,
+};
+
+it("updates by id when no expected status is supplied", async () => {
+  vi.mocked(prisma.caseMilestone.update).mockResolvedValue({ id: "m1" } as never);
+
+  await updateMilestone("m1", base);
+
+  expect(prisma.caseMilestone.update).toHaveBeenCalledWith({
+    where: { id: "m1" },
+    data: expect.objectContaining({ title: "File complaint" }),
+    select: { id: true },
+  });
+  expect(prisma.caseMilestone.updateMany).not.toHaveBeenCalled();
+});
+
+it("guards on the expected status when one is supplied", async () => {
+  vi.mocked(prisma.caseMilestone.updateMany).mockResolvedValue({ count: 1 } as never);
+
+  await updateMilestone("m1", { ...base, expectedStatus: "Pending" });
+
+  expect(prisma.caseMilestone.updateMany).toHaveBeenCalledWith({
+    where: { id: "m1", status: "Pending" },
+    data: expect.objectContaining({ status: "Pending" }),
+  });
+  expect(prisma.caseMilestone.update).not.toHaveBeenCalled();
+});
+
+it("throws a status conflict when the guarded update matches no row", async () => {
+  vi.mocked(prisma.caseMilestone.updateMany).mockResolvedValue({ count: 0 } as never);
+
+  await expect(updateMilestone("m1", { ...base, expectedStatus: "Pending" })).rejects.toThrow(
+    StatusConflictError,
+  );
+});
+
+it("still clears reminder timing through the guarded path", async () => {
+  vi.mocked(prisma.caseMilestone.updateMany).mockResolvedValue({ count: 1 } as never);
+
+  await updateMilestone("m1", {
+    ...base,
+    resetReminderTiming: true,
+    expectedStatus: "Pending",
+  });
+
+  expect(prisma.caseMilestone.updateMany).toHaveBeenCalledWith({
+    where: { id: "m1", status: "Pending" },
+    data: expect.objectContaining({ last_reminded_at: null }),
+  });
+});
+
+it("does not leak expectedStatus into the written fields", async () => {
+  vi.mocked(prisma.caseMilestone.updateMany).mockResolvedValue({ count: 1 } as never);
+
+  await updateMilestone("m1", { ...base, expectedStatus: "Pending" });
+
+  const { data } = vi.mocked(prisma.caseMilestone.updateMany).mock.calls[0][0];
+  expect(data).not.toHaveProperty("expectedStatus");
 });

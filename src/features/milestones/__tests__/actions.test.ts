@@ -1,8 +1,10 @@
+import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getCaseAccessContext, getCaseAssigneeIds } from "@/features/cases/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role } from "@/generated/prisma/browser";
+import { StatusConflictError } from "@/lib/security/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
@@ -446,6 +448,102 @@ describe("updateMilestoneAction", () => {
     });
     expect(updateMilestone).not.toHaveBeenCalled();
   });
+  it("passes the loaded status as the concurrency guard", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    await updateMilestoneAction({
+      milestoneId: uuid,
+      title: "Renamed",
+      description: undefined,
+      due_date: new Date("2024-06-01"),
+      status: "Done" as const,
+    });
+
+    expect(updateMilestone).toHaveBeenCalledWith(
+      uuid,
+      expect.objectContaining({ expectedStatus: milestoneRecord.status }),
+    );
+  });
+
+  it("reports a concurrent status change as a conflict", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockRejectedValue(new StatusConflictError());
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: "Renamed",
+      description: undefined,
+      due_date: new Date("2024-06-01"),
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Record changed",
+        description: "Another user changed this record just now. Refresh the page and try again.",
+      },
+    });
+  });
+
+  it("reports a milestone deleted mid-save as not found", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockRejectedValue({ code: "P2025" });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: "Renamed",
+      description: undefined,
+      due_date: new Date("2024-06-01"),
+      status: "Done" as const,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: { code: "not_found", title: "Milestone not found", description: expect.any(String) },
+    });
+  });
+
+  it("treats a sub-minute due_date difference as no change", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue({
+      ...milestoneRecord,
+      due_date: new Date("2024-06-01T09:00:30.000Z"),
+    });
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const result = await updateMilestoneAction({
+      milestoneId: uuid,
+      title: milestoneRecord.title,
+      description: undefined,
+      due_date: new Date("2024-06-01T09:00:00.000Z"),
+      status: milestoneRecord.status,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateMilestone).not.toHaveBeenCalled();
+  });
+
+  it("revalidates the case detail and the case list on update", async () => {
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(updateMilestone).mockResolvedValue(milestoneRecord);
+
+    await updateMilestoneAction({
+      milestoneId: uuid,
+      title: "Renamed",
+      description: undefined,
+      due_date: new Date("2024-06-01"),
+      status: "Done" as const,
+    });
+
+    expect(revalidatePath).toHaveBeenCalledWith(`/case/${uuid}`);
+    expect(revalidatePath).toHaveBeenCalledWith("/case");
+  });
 });
 
 describe("updateMilestoneAction notifications", () => {
@@ -535,5 +633,15 @@ describe("deleteMilestoneAction", () => {
     const result = await deleteMilestoneAction({ milestoneId: uuid });
 
     expect(result).toEqual({ success: true });
+  });
+
+  it("revalidates the case list on delete", async () => {
+    vi.mocked(getMilestoneAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getMilestoneById).mockResolvedValue(milestoneRecord);
+    vi.mocked(deleteMilestone).mockResolvedValue(milestoneRecord);
+
+    await deleteMilestoneAction({ milestoneId: uuid });
+
+    expect(revalidatePath).toHaveBeenCalledWith("/case");
   });
 });

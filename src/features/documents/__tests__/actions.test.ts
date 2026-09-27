@@ -5,8 +5,8 @@ import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role, TaskStatus } from "@/generated/prisma/browser";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { DEFAULT_MAX_UPLOAD_BYTES } from "@/lib/files/upload-policy";
-import { generateKey, getObjectSize, getPresignedUploadUrl } from "@/lib/infra/s3";
-import { actionInvalid } from "@/lib/security/action-response";
+import { getObjectSize, getPresignedUploadUrl } from "@/lib/infra/s3";
+import { actionForbidden, actionInvalid } from "@/lib/security/action-response";
 import { ForbiddenError } from "@/lib/security/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
 import { mockSessionUser, mockTask } from "@/test-utils/fixtures";
@@ -60,8 +60,9 @@ vi.mock("@/lib/domain/path", () => ({
   getParentPath: vi.fn(),
 }));
 
-vi.mock("@/lib/infra/s3", () => ({
-  generateKey: vi.fn(),
+// I/O is mocked; the pure key helpers stay real so tests exercise the real prefix logic.
+vi.mock("@/lib/infra/s3", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/infra/s3")>()),
   getObjectSize: vi.fn(),
   getPresignedFileUrl: vi.fn(),
   getPresignedUploadUrl: vi.fn(),
@@ -98,7 +99,7 @@ const sessionParalegal = mockSessionUser({
 
 const documentRecord = {
   id: "d1",
-  file_path: "cases/c1/file.pdf",
+  file_path: `cases/${uuid}/file.pdf`,
   file_name: "file.pdf",
   case_id: uuid,
   consultation_id: null,
@@ -118,7 +119,7 @@ describe("confirmDocumentUploadAction", () => {
   const payload = {
     file_name: "a.pdf",
     file_size: 10,
-    file_path: "cases/c1/a.pdf",
+    file_path: `cases/${uuid}/a.pdf`,
     case_id: uuid,
   };
 
@@ -141,13 +142,61 @@ describe("confirmDocumentUploadAction", () => {
   it("derives the stored type from the file name rather than trusting the client", async () => {
     vi.mocked(createDocument).mockResolvedValue({ id: uuid });
 
-    await confirmDocumentUploadAction({ ...payload, file_name: "brief.docx" });
+    await confirmDocumentUploadAction({
+      file_name: "brief.docx",
+      file_path: `cases/${uuid}/brief.docx`,
+      file_size: 10,
+      case_id: uuid,
+    });
 
     expect(createDocument).toHaveBeenCalledWith(
       expect.objectContaining({
         file_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       }),
     );
+  });
+
+  it("accepts a key whose extension differs only in case from the file name", async () => {
+    vi.mocked(createDocument).mockResolvedValue({ id: uuid });
+
+    const result = await confirmDocumentUploadAction({
+      file_name: "Deed.PDF",
+      file_path: `cases/${uuid}/generated.PDF`,
+      file_size: 10,
+      case_id: uuid,
+    });
+
+    expect(result).toEqual({ success: true, data: { id: uuid } });
+  });
+
+  it("rejects a key belonging to another case the caller can also read", async () => {
+    const otherCaseId = "6ba7b810-9dad-41d1-80b4-00c04fd430c8";
+
+    const result = await confirmDocumentUploadAction({
+      ...payload,
+      file_path: `cases/${otherCaseId}/a.pdf`,
+    });
+
+    expect(result).toEqual(actionForbidden());
+    expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("rejects a key that does not match the declared file name's extension", async () => {
+    const result = await confirmDocumentUploadAction({
+      file_name: "evidence.pdf",
+      file_path: `cases/${uuid}/smuggled.zip`,
+      file_size: 10,
+      case_id: uuid,
+    });
+
+    expect(result).toEqual(actionForbidden());
+    expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("rejects a mismatched key before probing storage for it", async () => {
+    await confirmDocumentUploadAction({ ...payload, file_path: `consultations/${uuid}/a.pdf` });
+
+    expect(getObjectSize).not.toHaveBeenCalled();
   });
 
   it.each([null, -1, 0, DEFAULT_MAX_UPLOAD_BYTES + 1])(
@@ -166,7 +215,6 @@ describe("confirmDocumentUploadAction", () => {
 describe("getDocumentUploadUrlAction", () => {
   beforeEach(() => {
     vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
-    vi.mocked(generateKey).mockReturnValue("cases/c1/generated.pdf");
   });
 
   it("signs the upload with the type derived from the file name", async () => {
@@ -175,12 +223,33 @@ describe("getDocumentUploadUrlAction", () => {
       case_id: uuid,
     });
 
-    expect(result).toEqual({
-      key: "cases/c1/generated.pdf",
-      uploadUrl: undefined,
-      contentType: "application/pdf",
+    expect(result.contentType).toBe("application/pdf");
+    expect(getPresignedUploadUrl).toHaveBeenCalledWith(result.key, "application/pdf");
+  });
+
+  it("issues a key inside the authorized case's namespace", async () => {
+    const result = await getDocumentUploadUrlAction({
+      file_name: "declaration.pdf",
+      case_id: uuid,
     });
-    expect(getPresignedUploadUrl).toHaveBeenCalledWith("cases/c1/generated.pdf", "application/pdf");
+
+    expect(result.key.startsWith(`cases/${uuid}/`)).toBe(true);
+    expect(result.key.endsWith(".pdf")).toBe(true);
+  });
+
+  it("issues a key inside the task's namespace for a task-scoped upload", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+
+    const result = await getDocumentUploadUrlAction({
+      file_name: "proof.pdf",
+      task_id: uuid,
+    });
+
+    expect(result.key.startsWith(`tasks/${uuid}/`)).toBe(true);
   });
 
   it("rejects a file name outside the upload allowlist", async () => {
@@ -312,7 +381,7 @@ describe("documents on a done task", () => {
     const result = await confirmDocumentUploadAction({
       file_name: "a.pdf",
       file_size: 10,
-      file_path: "tasks/t1/a.pdf",
+      file_path: `tasks/${uuid}/a.pdf`,
       case_id: null,
       consultation_id: null,
       task_id: uuid,
@@ -399,7 +468,7 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
     const result = await confirmDocumentUploadAction({
       ...uploadArgs,
       file_size: 10,
-      file_path: "tasks/t1/a.pdf",
+      file_path: `tasks/${uuid}/a.pdf`,
     });
 
     expect(result).toEqual({

@@ -64,6 +64,11 @@ function bucket(): string {
   return getRequiredEnvVar("S3_BUCKET");
 }
 
+/** Builds the key prefix owning every object for one parent. */
+function buildKeyPrefix(parentType: string, parentId: string): string {
+  return `${parentType}/${parentId}/`;
+}
+
 /**
  * Builds a storage key of the form `${parentType}/${parentId}/${uuid}.${ext}`.
  *
@@ -77,7 +82,20 @@ export function generateKey(parentType: string, parentId: string, fileName: stri
   const ext =
     dotIndex !== -1 && dotIndex < fileName.length - 1 ? fileName.slice(dotIndex + 1) : "bin";
   const uuid = crypto.randomUUID();
-  return `${parentType}/${parentId}/${uuid}.${ext}`;
+  return `${buildKeyPrefix(parentType, parentId)}${uuid}.${ext}`;
+}
+
+/**
+ * Whether a storage key sits under the given parent's prefix. Used to check keys
+ * that arrive from an untrusted client.
+ *
+ * @param key - The storage key to test.
+ * @param parentType - The expected parent resource type (e.g. "cases").
+ * @param parentId - The expected parent resource UUID.
+ * @returns `true` when the key sits under the parent's prefix.
+ */
+export function isKeyWithinPrefix(key: string, parentType: string, parentId: string): boolean {
+  return key.startsWith(buildKeyPrefix(parentType, parentId));
 }
 
 /**

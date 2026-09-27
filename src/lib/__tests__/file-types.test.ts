@@ -74,10 +74,18 @@ describe("getFileDescriptor", () => {
     expect(classifyFileType({ fileName: "unknown-b", fileType: excel })).toBe("xls");
   });
 
-  it("discards MIME parameters before classifying", () => {
-    expect(
-      getFileDescriptor({ fileName: "clip.mp4", fileType: "video/mp4; codecs=avc1" }).mime,
-    ).toBe("video/mp4");
+  it("normalizes casing and discards MIME parameters on the fallback path", () => {
+    // An unregistered extension is required to reach the MIME fallback at all.
+    expect(getFileDescriptor({ fileName: "clip.bin", fileType: "VIDEO/MP4; CODECS=avc1" })).toEqual(
+      { category: "video", label: "VIDEO", mime: "video/mp4" },
+    );
+  });
+
+  it("ignores an inherited property name as an extension", () => {
+    const expected = { category: "unknown", label: "", mime: "application/octet-stream" };
+
+    expect(getFileDescriptor({ fileName: "report.constructor" })).toEqual(expected);
+    expect(getFileDescriptor({ fileName: "report.toString" })).toEqual(expected);
   });
 
   it("returns a labelless generic descriptor when neither signal is informative", () => {

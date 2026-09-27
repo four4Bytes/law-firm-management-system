@@ -2,23 +2,21 @@
  * Central lifecycle policy: every "when" question in one place.
  *
  * RBAC (`src/lib/rbac.ts`) answers *who may act on what*. This module answers
- * *when an action is legal given record state*: status transitions,
- * terminality, and append-only locks on terminal records. Server actions
- * consult these predicates instead of hand-rolling status checks, and
- * `documentation/lifecycle.md` mirrors the tables below.
+ * *when an action is legal given record state*: status transitions and
+ * terminality. Server actions consult these predicates instead of hand-rolling
+ * status checks, and `documentation/lifecycle.md` mirrors the tables below.
+ *
+ * Terminal status is deliberately **not** a content lock. There is no
+ * `isSubdataLocked` here, and there should not be one: record integrity is
+ * served by the audit trail, not by refusing writes. The only content freezes
+ * in the system are the field locks in `documentation/lifecycle.md` §4, which
+ * live next to the state machines they guard. See that document before adding
+ * a status-dependent write restriction here.
  *
  * @module lib/lifecycle
  */
 
-import {
-  CaseMilestoneStatus,
-  CaseStatus,
-  ConsultationStatus,
-  TaskStatus,
-} from "@/generated/prisma/browser";
-
-/** Entities with a status lifecycle. */
-export type LifecycleEntity = "consultation" | "case" | "task";
+import { CaseMilestoneStatus, CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
 
 /** Transition table: every legal move out of each status. */
 export type TransitionTable<S extends string> = Readonly<Record<S, readonly S[]>>;
@@ -74,43 +72,4 @@ export function canTransition<S extends string>(
  */
 export function isTerminalStatus<S extends string>(table: TransitionTable<S>, status: S): boolean {
   return (table[status] ?? []).length === 0;
-}
-
-/**
- * Consultation statuses whose notes and files are append-only. Note this is
- * not the terminal set: Cancelled can rebook, but while cancelled the record
- * is still locked (rebooking restores editing automatically).
- */
-const SUBDATA_LOCKED_CONSULTATION_STATUSES: ReadonlySet<string> = new Set([
-  ConsultationStatus.Accepted,
-  ConsultationStatus.Rejected,
-  ConsultationStatus.Cancelled,
-]);
-
-/** Case statuses whose notes and files are append-only. */
-const SUBDATA_LOCKED_CASE_STATUSES: ReadonlySet<string> = new Set([
-  CaseStatus.Closed,
-  CaseStatus.Settled,
-  CaseStatus.Terminated,
-]);
-
-/**
- * Determines whether an entity's notes and files are append-only: new
- * entries welcome, existing ones refuse update and delete. The lock follows
- * current status, so rebooking or reopening restores editing automatically.
- * Reads, uploads, and payments are never locked by this predicate.
- *
- * @param entity - Which lifecycle to consult.
- * @param status - The record's current status.
- * @returns True when existing notes/files must refuse mutation.
- */
-export function isSubdataLocked(entity: LifecycleEntity, status: string): boolean {
-  switch (entity) {
-    case "consultation":
-      return SUBDATA_LOCKED_CONSULTATION_STATUSES.has(status);
-    case "case":
-      return SUBDATA_LOCKED_CASE_STATUSES.has(status);
-    case "task":
-      return status === TaskStatus.Done;
-  }
 }

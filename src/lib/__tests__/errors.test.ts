@@ -3,12 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   actionDeactivated,
   actionForbidden,
-  actionRecordLocked,
+  actionTaskLocked,
 } from "@/lib/security/action-response";
 import {
   DeactivatedError,
   ForbiddenError,
-  RecordLockedError,
   StatusConflictError,
   TaskLockedError,
   toActionResponse,
@@ -44,22 +43,8 @@ describe("toActionResponse", () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it("maps TaskLockedError to the locked preset", () => {
-    expect(toActionResponse(new TaskLockedError(), "create note")).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Task locked",
-        description: "This task is done and its attachments are locked",
-      },
-    });
-    expect(errorSpy).not.toHaveBeenCalled();
-  });
-
-  it("maps RecordLockedError to the record-locked preset", () => {
-    expect(toActionResponse(new RecordLockedError("Consultation"), "update note")).toEqual(
-      actionRecordLocked("Consultation"),
-    );
+  it("maps TaskLockedError to the locked preset, naming the reopen path", () => {
+    expect(toActionResponse(new TaskLockedError(), "update task")).toEqual(actionTaskLocked());
     expect(errorSpy).not.toHaveBeenCalled();
   });
 

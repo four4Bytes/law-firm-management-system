@@ -8,13 +8,14 @@ import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
-import { NotificationType, TaskStatus } from "@/generated/prisma/browser";
+import { NotificationType, TaskStatus, type Task } from "@/generated/prisma/browser";
 import { logError } from "@/lib/infra/logger";
 import {
   actionConflict,
   actionForbidden,
   actionInvalid,
   actionNotFound,
+  actionTaskLocked,
   type ActionDataResponse,
   type ActionStatusResponse,
 } from "@/lib/security/action-response";
@@ -29,6 +30,7 @@ import {
   createTask,
   deleteTask,
   removeTaskReviewer,
+  reopenTask,
   setAssignmentStatus,
   updateTask,
 } from "./mutations";
@@ -58,14 +60,44 @@ import {
   wouldLeaveNoReviewer,
 } from "./validation";
 
-/** Per-user capabilities on a single task, computed server-side (never client RBAC). */
+// Per-user capabilities on a single task, always computed server-side. Never
+// gate UI on a client-side RBAC re-check — use these.
 export interface TaskCapabilities {
   isCreator: boolean;
   isReviewer: boolean;
   canSubmit: boolean;
   canReview: boolean;
   canManageReviewers: boolean;
+  // Content (title, description, notes, files) is editable in every status.
   canEdit: boolean;
+  // The assignee/reviewer roster is frozen while the task is `Done`.
+  canEditRoster: boolean;
+  // Explicit `Done → Pending` reopen, offered to the creator and reviewers.
+  canReopen: boolean;
+}
+
+interface TaskStatusChangePayload {
+  actorUserId: string;
+  task: Pick<Task, "case_id" | "title" | "status">;
+  to: TaskStatus;
+}
+
+// `Task.status` is derived and has no writer of its own, so this is the only
+// place the audit trail learns it moved. The no-op check lives here rather than
+// at each call site because a status can legitimately survive the action that
+// triggered it — one reviewer approving while another is still `Pending` leaves
+// the task `InReview` — and "from InReview to InReview" would be a false entry.
+async function logTaskStatusChange(payload: TaskStatusChangePayload): Promise<void> {
+  const { actorUserId, task, to } = payload;
+  if (task.status === to) return;
+
+  await logAudit({
+    actorUserId,
+    action: "task.status_changed",
+    entityType: "Case",
+    entityId: task.case_id,
+    details: `Changed task status from ${task.status} to ${to}: "${task.title}"`,
+  });
 }
 
 export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
@@ -98,6 +130,8 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
         canReview: false,
         canManageReviewers: false,
         canEdit: false,
+        canEditRoster: false,
+        canReopen: false,
       },
     };
   }
@@ -115,7 +149,13 @@ export async function getTaskDetailRowByIdAction(taskId: string): Promise<{
       isAssignee && (row.status === TaskStatus.Pending || row.status === TaskStatus.InReview),
     canReview: isReviewer && row.status === TaskStatus.InReview && !reviewer?.reviewed_at,
     canManageReviewers: isCreator || isReviewer,
-    canEdit: canUpdate && row.status !== TaskStatus.Done,
+    canEdit: canUpdate,
+    canEditRoster: canUpdate && row.status !== TaskStatus.Done,
+    // Mirrors `reopenTaskAction`, which also requires `task.update`. Without
+    // `canUpdate` a creator can hold `own` yet lack UPDATE (Process Server's
+    // cell is `ASSIGNED + TASK_ONLY`), and would be offered a reopen the
+    // server always refuses.
+    canReopen: canUpdate && (isCreator || isReviewer) && row.status === TaskStatus.Done,
   };
 
   return { row, canUpdate, capabilities, currentUserId: session.id };
@@ -233,11 +273,14 @@ export async function updateTaskAction(
       (existingAssigneeIds.length !== assignee_ids.length ||
         !existingAssigneeIds.every((id) => assignee_ids.includes(id)));
 
-    if (existing.status === TaskStatus.Done) {
-      return actionConflict(
-        "Task locked",
-        "A completed task is locked. Add a reviewer to reopen it before making changes.",
-      );
+    const existingReviewerIds = new Set(existing.taskReviewers.map((r) => r.reviewer_user_id));
+    const reviewersChanged =
+      (reviewer_ids !== undefined && reviewer_ids.some((id) => !existingReviewerIds.has(id))) ||
+      (removed_reviewer_ids !== undefined && removed_reviewer_ids.length > 0);
+    const rosterChanged = assigneesChanged || reviewersChanged;
+
+    if (existing.status === TaskStatus.Done && rosterChanged) {
+      return actionTaskLocked();
     }
 
     if (assigneesChanged && !access.own) {
@@ -274,7 +317,7 @@ export async function updateTaskAction(
       return { success: true };
     }
 
-    await updateTask(taskId, {
+    const { status: taskStatus } = await updateTask(taskId, {
       title,
       description,
       assignee_ids,
@@ -290,6 +333,10 @@ export async function updateTaskAction(
         entityId: existing.case_id,
         details: `Updated task: "${title}"`,
       });
+
+      // A roster change can re-derive the status without any assignment or
+      // decision moving, so the status audit cannot live on those actions alone.
+      await logTaskStatusChange({ actorUserId: session.id, task: existing, to: taskStatus });
 
       const newAssigneeIds = diffNewAssigneeIds(
         parsed.data.assignee_ids ?? existingAssigneeIds,
@@ -370,17 +417,15 @@ export async function submitTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return actionNotFound("Task");
 
-    if (existing.status !== TaskStatus.Pending && existing.status !== TaskStatus.InReview) {
-      return actionConflict("Task locked", "The task is locked and cannot be submitted.");
-    }
-
     const access = await getTaskAccessContext(session.id, taskId);
     if (!can(session.role, "task.update", access)) return actionForbidden();
 
     const isAssignee = existing.taskAssignments.some((a) => a.user_id === session.id);
     if (!isAssignee) return actionForbidden();
 
-    const before = existing.status;
+    // State checks come after authorization so the envelope cannot leak status.
+    if (existing.status === TaskStatus.Done) return actionTaskLocked();
+
     const { taskStatus } = await setAssignmentStatus(taskId, session.id, status);
 
     after(async () => {
@@ -392,7 +437,9 @@ export async function submitTaskAction(
         details: `Submitted task for review: "${existing.title}"`,
       });
 
-      if (taskStatus === TaskStatus.InReview && before !== TaskStatus.InReview) {
+      await logTaskStatusChange({ actorUserId: session.id, task: existing, to: taskStatus });
+
+      if (taskStatus === TaskStatus.InReview && existing.status !== TaskStatus.InReview) {
         try {
           const reviewers = await getTaskReviewers(taskId);
           const reviewerIds = reviewers.map((r) => r.reviewer_user_id);
@@ -435,15 +482,21 @@ export async function reviewTaskAction(
     const existing = await getTaskById(taskId);
     if (!existing) return actionNotFound("Task");
 
-    if (existing.status !== TaskStatus.InReview) {
-      return actionConflict("Cannot review task", "Only tasks in review can be reviewed.");
-    }
-
     const access = await getTaskAccessContext(session.id, taskId);
     const review = existing.taskReviewers.find((r) => r.reviewer_user_id === session.id);
     if (!can(session.role, "task.update", access) || !review) {
       return actionForbidden();
     }
+
+    // State checks come after authorization so the envelope cannot leak status.
+    if (existing.status === TaskStatus.Done) return actionTaskLocked();
+    if (existing.status !== TaskStatus.InReview) {
+      return actionConflict(
+        "Cannot review task",
+        "Only tasks in review can be reviewed. Assignees must mark their work done first.",
+      );
+    }
+
     if (review.reviewed_at) {
       return actionConflict("Already reviewed", "You have already reviewed this task.");
     }
@@ -465,6 +518,8 @@ export async function reviewTaskAction(
         entityId: existing.case_id,
         details: `Review ${decision} on task "${existing.title}"`,
       });
+
+      await logTaskStatusChange({ actorUserId: session.id, task: existing, to: taskStatus });
 
       if (taskStatus === TaskStatus.Pending || taskStatus === TaskStatus.Done) {
         await notifyRecipients(session.id, {
@@ -594,5 +649,65 @@ export async function removeTaskReviewerAction(
     return { success: true };
   } catch (error) {
     return toActionResponse(error, "remove reviewer");
+  }
+}
+
+export async function reopenTaskAction(
+  payload: z.input<typeof TaskIdSchema>,
+): Promise<ActionDataResponse<{ taskStatus: TaskStatus }>> {
+  const session = await requireAuth();
+
+  const parsed = TaskIdSchema.safeParse(payload);
+  if (!parsed.success) return actionInvalid("task");
+
+  const { taskId } = parsed.data;
+
+  try {
+    const existing = await getTaskById(taskId);
+    if (!existing) return actionNotFound("Task");
+
+    const access = await getTaskAccessContext(session.id, taskId);
+    const isReviewer = existing.taskReviewers.some((r) => r.reviewer_user_id === session.id);
+    if (!can(session.role, "task.update", access) || (!access.own && !isReviewer)) {
+      return actionForbidden();
+    }
+
+    if (existing.status !== TaskStatus.Done) {
+      return actionConflict(
+        "Task is not completed",
+        "Only a completed task can be reopened. This task is still in progress.",
+      );
+    }
+
+    const { taskStatus } = await reopenTask(taskId);
+    const assigneeIds = existing.taskAssignments.map((a) => a.user_id);
+
+    after(async () => {
+      await logAudit({
+        actorUserId: session.id,
+        action: "task.reopened",
+        entityType: "Case",
+        entityId: existing.case_id,
+        details: `Changed task status from ${TaskStatus.Done} to ${taskStatus}: "${existing.title}". Reset all reviewer approvals to Pending and all assignee marks to Todo`,
+      });
+
+      if (assigneeIds.length > 0) {
+        await notifyRecipients(session.id, {
+          userIds: assigneeIds,
+          type: NotificationType.TaskStatusChanged,
+          title: `Task reopened: ${existing.title}`,
+          message: `Task "${existing.title}" was reopened and your work was reset to not started`,
+          actionUrl: `/case/${existing.case_id}`,
+          caseId: existing.case_id,
+          taskId,
+        });
+      }
+    });
+
+    revalidatePath(`/case/${existing.case_id}`);
+
+    return { success: true, data: { taskStatus } };
+  } catch (error) {
+    return toActionResponse(error, "reopen task");
   }
 }

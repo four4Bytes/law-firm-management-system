@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Separator } from "@/components/ui/Separator/Separator";
-import { updateTaskAction, type TaskCapabilities } from "@/features/tasks/actions";
+import {
+  reopenTaskAction,
+  updateTaskAction,
+  type TaskCapabilities,
+} from "@/features/tasks/actions";
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { withLockedReviewer } from "@/features/tasks/display";
@@ -16,7 +20,6 @@ import { useTaskWorkflow } from "@/features/tasks/hooks/useTaskWorkflow";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import type { ActiveUserSummary } from "@/features/users/queries";
-import { TaskStatus } from "@/generated/prisma/browser";
 import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
 import {
   createFieldValidator,
@@ -58,7 +61,8 @@ export function EditTaskModal({
     ),
   );
   const [isPending, setIsPending] = useState(false);
-  const [pendingReviewerIds, setPendingReviewerIds] = useState<Set<string> | null>(null);
+  const [isReopening, setIsReopening] = useState(false);
+  const [isReopenPending, setIsReopenPending] = useState(false);
 
   const workflow = useTaskWorkflow({
     task,
@@ -67,30 +71,49 @@ export function EditTaskModal({
     onSuccess,
   });
 
-  function handleReviewerIdsChange(next: Set<string>): void {
-    if (workflow.localStatus === TaskStatus.Done && next.size > reviewerIds.size) {
-      setPendingReviewerIds(next);
-      return;
-    }
-    setReviewerIds(next);
-  }
-
   const initialAssigneeIds = new Set(task.assignee_ids);
   const initialReviewerIds = withLockedReviewer(
     new Set(task.reviewers.map((r) => r.reviewer_user_id)),
     task.created_by_user_id,
   );
-  const isDirty =
-    title !== task.title ||
-    description !== (task.description ?? "") ||
-    assigneeIds.size !== initialAssigneeIds.size ||
-    reviewerIds.size !== initialReviewerIds.size ||
-    [...assigneeIds].some((id) => !initialAssigneeIds.has(id)) ||
-    [...reviewerIds].some((id) => !initialReviewerIds.has(id));
+  const contentChanged = title !== task.title || description !== (task.description ?? "");
+  const rosterChanged =
+    capabilities.canEditRoster &&
+    (assigneeIds.size !== initialAssigneeIds.size ||
+      reviewerIds.size !== initialReviewerIds.size ||
+      [...assigneeIds].some((id) => !initialAssigneeIds.has(id)) ||
+      [...reviewerIds].some((id) => !initialReviewerIds.has(id)));
+  const isDirty = contentChanged || rosterChanged;
 
   function handleCancel() {
     if (isPending) return;
     onOpenChange(false);
+  }
+
+  async function handleReopen() {
+    if (isReopening) return;
+    setIsReopening(true);
+
+    try {
+      const result = await reopenTaskAction({ taskId: task.id });
+      if (!result.success) {
+        toastActionError(result, "reopen task");
+        return;
+      }
+      toastSuccess(
+        "Task reopened",
+        "All reviewer approvals were reset to pending and all assignee marks to not started.",
+      );
+      onOpenChange(false);
+      onSuccess();
+    } catch {
+      toastError(
+        "Unexpected error",
+        "Something went wrong while reopening the task. Please try again.",
+      );
+    } finally {
+      setIsReopening(false);
+    }
   }
 
   async function handleSave(event: React.SyntheticEvent) {
@@ -99,7 +122,7 @@ export function EditTaskModal({
     setIsPending(true);
 
     try {
-      if (capabilities.canEdit || capabilities.canManageReviewers) {
+      if (capabilities.canEdit) {
         const current = new Set(task.reviewers.map((r) => r.reviewer_user_id));
         const addedReviewers = [...reviewerIds].filter((id) => !current.has(id));
         const removedReviewers = [...current].filter((id) => !reviewerIds.has(id));
@@ -144,11 +167,6 @@ export function EditTaskModal({
 
   return (
     <Modal title="Task" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
-      {workflow.localStatus === TaskStatus.Done && (
-        <div className={styles.banner}>
-          Completed — editing locked. To reopen, add a new reviewer (resets to Pending).
-        </div>
-      )}
       <Form onSubmit={handleSave} validationBehavior="native" className={styles.form}>
         <div className={styles.columns}>
           <div className={clsx(styles.column, styles.columnScroll)}>
@@ -163,7 +181,7 @@ export function EditTaskModal({
               assigneeIds={assigneeIds}
               onAssigneeIdsChange={setAssigneeIds}
               reviewerIds={reviewerIds}
-              onReviewerIdsChange={handleReviewerIdsChange}
+              onReviewerIdsChange={setReviewerIds}
               isPending={isPending}
               fieldValidator={createFieldValidator(TaskCreatePayloadSchema.shape.assignee_ids)}
             />
@@ -182,7 +200,6 @@ export function EditTaskModal({
               taskId={task.id}
               canEdit={capabilities.canEdit}
               onSuccess={onSuccess}
-              readOnly={workflow.localStatus === TaskStatus.Done}
             />
           </div>
 
@@ -193,12 +210,22 @@ export function EditTaskModal({
               taskId={task.id}
               canEdit={capabilities.canEdit}
               onSuccess={onSuccess}
-              readOnly={workflow.localStatus === TaskStatus.Done}
             />
           </div>
         </div>
 
         <div className={styles.actions}>
+          {capabilities.canReopen && (
+            <Button
+              variant="secondary"
+              type="button"
+              onPress={() => setIsReopenPending(true)}
+              isDisabled={isPending || isReopening}
+              isPending={isReopening}
+            >
+              Reopen task
+            </Button>
+          )}
           <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
             Cancel
           </Button>
@@ -208,18 +235,19 @@ export function EditTaskModal({
         </div>
       </Form>
       <ConfirmDialog
-        isOpen={pendingReviewerIds !== null}
+        isOpen={isReopenPending}
         onOpenChange={(open) => {
-          if (!open) setPendingReviewerIds(null);
+          if (!open) setIsReopenPending(false);
         }}
         title="Reopen task"
         confirmLabel="Reopen"
         onConfirm={() => {
-          if (pendingReviewerIds) setReviewerIds(pendingReviewerIds);
-          setPendingReviewerIds(null);
+          setIsReopenPending(false);
+          void handleReopen();
         }}
       >
-        This will reopen the completed task and reset all approvals to Pending. Continue?
+        Reopening resets every reviewer&apos;s approval to pending and every assignee&apos;s mark to
+        not started. The title, description, notes, and files are kept.
       </ConfirmDialog>
     </Modal>
   );

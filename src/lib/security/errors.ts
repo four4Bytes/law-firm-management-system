@@ -12,8 +12,7 @@ import {
   actionConflict,
   actionDeactivated,
   actionForbidden,
-  actionLocked,
-  actionRecordLocked,
+  actionTaskLocked,
   actionUnauthorized,
   unknownActionError,
   type ActionStatusResponse,
@@ -71,26 +70,27 @@ export class DeactivatedError extends Error {
 }
 
 /**
- * Error thrown when a mutation targets a Note or Document whose parent
- * task is `Done`. A done task is terminal, so its attachments are
- * write-locked (create/update/delete refused).
+ * Error thrown when a mutation would change a `Done` task's assignee roster,
+ * reviewer roster, assignment state, or approval decisions. Those are the only
+ * things a completed task freezes — its title, description, notes, and files
+ * stay editable, and it can still be deleted.
+ *
+ * The roster is frozen because it defines who "all reviewers approved" refers
+ * to, so editing it would retroactively change the meaning of the approval.
  */
 export class TaskLockedError extends Error {
   /** Stable identifier for error boundary detection. */
   readonly digest = "TASK_LOCKED";
 
   constructor() {
-    super("This task is done and its attachments are locked");
+    super(TASK_LOCKED_MESSAGE);
     this.name = "TaskLockedError";
   }
 }
 
-/**
- * Message returned when a mutation targets a Note or Document whose parent
- * task is `Done`. A done task is terminal, so its attachments are
- * write-locked (create/update/delete refused).
- */
-export const TASK_LOCKED_MESSAGE = "This task is done and its attachments are locked";
+/** User-facing copy for {@link TaskLockedError}; names the reopen path. */
+export const TASK_LOCKED_MESSAGE =
+  "This task is completed, so its assignees, reviewers, and approvals are locked. Reopen the task to make changes.";
 
 export class TaskValidationError extends Error {
   readonly digest = "TASK_VALIDATION";
@@ -102,25 +102,6 @@ export class TaskValidationError extends Error {
     this.name = "TaskValidationError";
     this.title = title;
     this.description = description;
-  }
-}
-
-/**
- * Error thrown when mutating notes or files on a terminal consultation or
- * case. Terminal records are append-only: new notes and files are welcome,
- * but existing ones can no longer be edited or deleted.
- */
-export class RecordLockedError extends Error {
-  /** Stable identifier for error boundary detection. */
-  readonly digest = "RECORD_LOCKED";
-
-  /** Human-readable entity name used in the user-facing message. */
-  readonly entity: string;
-
-  constructor(entity: string) {
-    super(`${entity} is locked`);
-    this.name = "RecordLockedError";
-    this.entity = entity;
   }
 }
 
@@ -171,8 +152,7 @@ export function toActionResponse(
   if (error instanceof ForbiddenError) return actionForbidden();
   if (error instanceof DeactivatedError) return actionDeactivated();
   if (error instanceof UnauthorizedError) return actionUnauthorized();
-  if (error instanceof TaskLockedError) return actionLocked();
-  if (error instanceof RecordLockedError) return actionRecordLocked(error.entity);
+  if (error instanceof TaskLockedError) return actionTaskLocked();
   if (error instanceof TaskValidationError) {
     return actionConflict(error.title, error.description);
   }

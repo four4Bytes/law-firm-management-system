@@ -1,24 +1,16 @@
 import { CaseStatus } from "@/generated/prisma/browser";
 import { canTransition, CASE_TRANSITIONS } from "@/lib/domain/lifecycle";
 
-/** Allowed transitions for each case status. */
 export const CASE_STATUS_TRANSITIONS = CASE_TRANSITIONS;
 
-/**
- * Determines whether a status transition is valid according to the case
- * state machine. A transition to the same status is not considered valid for
- * explicit status-change actions.
- */
+// A same-status move is never valid here; no-op saves are handled separately.
 export function isValidCaseStatusTransition(from: CaseStatus, to: CaseStatus): boolean {
   return canTransition(CASE_TRANSITIONS, from, to);
 }
 
-/**
- * Terminal outcomes have no forward transitions — only the reopen edge back
- * to Open. Resumed litigation stays on the same matter record (same court,
- * docket, client, fees, documents) instead of fragmenting across two
- * records. Every reopen is an explicit, confirmed, audited transition.
- */
+// Terminal means no forward edge except reopen — resumed litigation stays on the
+// same matter record (same court, docket, client, fees, documents) rather than
+// fragmenting across two. Every reopen is an explicit, confirmed, audited edge.
 export function isTerminalCaseStatus(status: CaseStatus): boolean {
   return (
     status === CaseStatus.Closed ||
@@ -27,10 +19,8 @@ export function isTerminalCaseStatus(status: CaseStatus): boolean {
   );
 }
 
-/**
- * Describes what can legally happen next from a status so rejected
- * transitions can point the user at a valid move instead of a dead end.
- */
+// Names the legal next move so a rejected transition can point somewhere valid
+// instead of dead-ending the user.
 export function describeCaseNextSteps(from: CaseStatus): string {
   if (isTerminalCaseStatus(from)) {
     return "reopen it";

@@ -10,13 +10,19 @@ import {
   type ToastProps,
 } from "react-aria-components";
 import { flushSync } from "react-dom";
-import { FaCircleCheck, FaCircleInfo, FaTriangleExclamation, FaXmark } from "react-icons/fa6";
+import {
+  FaCircleCheck,
+  FaCircleInfo,
+  FaLock,
+  FaTriangleExclamation,
+  FaXmark,
+} from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 
 import styles from "./Toast.module.css";
 
-export type ToastVariant = "success" | "info" | "error";
+export type ToastVariant = "success" | "info" | "warning" | "error";
 
 export interface ToastLink {
   label: string;
@@ -30,18 +36,19 @@ export interface ToastContent {
   link?: ToastLink;
 }
 
-/** Maximum toasts on screen at once; extras wait until one closes. */
 export const MAX_VISIBLE_TOASTS = 4;
 
 const variantClassMap: Record<ToastVariant, string> = {
   success: styles.success,
   info: styles.info,
+  warning: styles.warning,
   error: styles.error,
 };
 
 const variantIconMap: Record<ToastVariant, typeof FaCircleCheck> = {
   success: FaCircleCheck,
   info: FaCircleInfo,
+  warning: FaLock,
   error: FaTriangleExclamation,
 };
 

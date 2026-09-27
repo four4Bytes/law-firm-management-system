@@ -2,19 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
-import { Role } from "@/generated/prisma/browser";
+import { Role, TaskStatus } from "@/generated/prisma/browser";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { DEFAULT_MAX_UPLOAD_BYTES } from "@/lib/files/upload-policy";
 import { getObjectSize } from "@/lib/infra/s3";
 import { actionInvalid } from "@/lib/security/action-response";
-import {
-  ForbiddenError,
-  RecordLockedError,
-  TASK_LOCKED_MESSAGE,
-  TaskLockedError,
-} from "@/lib/security/errors";
+import { ForbiddenError } from "@/lib/security/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
-import { mockSessionUser } from "@/test-utils/fixtures";
+import { mockSessionUser, mockTask } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
 import {
@@ -27,8 +22,8 @@ import {
 import {
   createDocument,
   createDocumentForTask,
+  deleteDocument,
   deleteDocumentForTask,
-  deleteDocumentWithParentCheck,
 } from "../mutations";
 import { getAuthorizedDocument, getDocumentAccessContext, getDocumentById } from "../queries";
 
@@ -86,7 +81,7 @@ vi.mock("../queries", () => ({
 
 vi.mock("../mutations", () => ({
   createDocument: vi.fn(),
-  deleteDocumentWithParentCheck: vi.fn(),
+  deleteDocument: vi.fn(),
   createDocumentForTask: vi.fn(),
   deleteDocumentForTask: vi.fn(),
 }));
@@ -202,55 +197,19 @@ describe("deleteDocumentAction", () => {
     const result = await deleteDocumentAction({ documentId: uuid });
 
     expect(result).toEqual({ success: true });
-    expect(deleteDocumentWithParentCheck).toHaveBeenCalledWith(uuid, expect.any(Object));
+    expect(deleteDocument).toHaveBeenCalledWith(uuid);
     expect(deleteDocumentFiles).toHaveBeenCalledWith([documentRecord.file_path]);
   });
 });
 
-describe("terminal record lock", () => {
+describe("documents on terminal records", () => {
   beforeEach(() => {
     setupAuth(sessionLawyer);
     vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
-    vi.mocked(deleteDocumentWithParentCheck).mockResolvedValue({ id: uuid });
+    vi.mocked(deleteDocument).mockResolvedValue({ id: uuid });
   });
 
-  it("refuses to delete a file on a cancelled consultation", async () => {
-    vi.mocked(getDocumentById).mockResolvedValue({
-      ...documentRecord,
-      case_id: null,
-      consultation_id: uuid,
-    });
-    vi.mocked(deleteDocumentWithParentCheck).mockRejectedValue(
-      new RecordLockedError("Consultation"),
-    );
-
-    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Consultation locked",
-        description:
-          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
-      },
-    });
-    expect(deleteDocumentFiles).not.toHaveBeenCalled();
-  });
-
-  it("refuses to delete a file on a settled case", async () => {
-    vi.mocked(deleteDocumentWithParentCheck).mockRejectedValue(new RecordLockedError("Case"));
-
-    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Case locked",
-        description:
-          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
-      },
-    });
-  });
-
-  it("allows deleting a file on a live consultation", async () => {
+  it("deletes a file on a cancelled consultation", async () => {
     vi.mocked(getDocumentById).mockResolvedValue({
       ...documentRecord,
       case_id: null,
@@ -258,70 +217,59 @@ describe("terminal record lock", () => {
     });
 
     expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
+    expect(deleteDocumentFiles).toHaveBeenCalledWith([documentRecord.file_path]);
   });
 
-  it("refuses to delete a task file when the parent case is locked", async () => {
+  it("deletes a case file without consulting the parent case status", async () => {
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
+    expect(deleteDocument).toHaveBeenCalledWith(uuid);
+    expect(deleteDocumentForTask).not.toHaveBeenCalled();
+  });
+
+  it("deletes a task file whose parent case is closed", async () => {
     vi.mocked(getDocumentById).mockResolvedValue({
       ...documentRecord,
       task_id: uuid,
-      task: { case_id: uuid, status: "Pending" as const },
+      task: { case_id: uuid, status: TaskStatus.Done },
     });
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
       own: false,
       taskOnly: true,
     });
-    vi.mocked(deleteDocumentForTask).mockRejectedValue(new RecordLockedError("Case"));
+    vi.mocked(deleteDocumentForTask).mockResolvedValue({ id: uuid });
 
-    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Case locked",
-        description:
-          "This record is locked. You can still add notes and files, but existing ones cannot be edited or deleted.",
-      },
-    });
-    expect(deleteDocumentFiles).not.toHaveBeenCalled();
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
   });
 });
 
-describe("task subdata lock", () => {
+describe("documents on a done task", () => {
   const doneTask = {
-    id: uuid,
-    status: "Done" as const,
-    case_id: uuid,
-  } as unknown as Awaited<ReturnType<typeof getTaskById>>;
+    ...mockTask({ id: uuid, case_id: uuid, status: TaskStatus.Done }),
+    taskAssignments: [],
+    taskReviewers: [],
+  };
 
   beforeEach(() => {
-    vi.mocked(getTaskAccessContext).mockResolvedValue({
-      assigned: true,
-      own: false,
-      taskOnly: true,
-    });
-    vi.mocked(getDocumentAccessContext).mockResolvedValue({
-      assigned: true,
-      own: true,
-    });
+    setupAuth(sessionLawyer);
+    vi.mocked(getTaskById).mockResolvedValue(doneTask);
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
   });
 
-  it("refuses to issue an upload URL for a done task", async () => {
-    vi.mocked(getTaskById).mockResolvedValue(doneTask);
+  it("issues an upload URL for a done task", async () => {
+    const result = await getDocumentUploadUrlAction({
+      file_name: "a.pdf",
+      file_type: "application/pdf",
+      case_id: null,
+      consultation_id: null,
+      task_id: uuid,
+    });
 
-    await expect(
-      getDocumentUploadUrlAction({
-        file_name: "a.pdf",
-        file_type: "application/pdf",
-        case_id: null,
-        consultation_id: null,
-        task_id: uuid,
-      }),
-    ).rejects.toThrow(TASK_LOCKED_MESSAGE);
+    expect(result).toHaveProperty("uploadUrl");
   });
 
-  it("refuses to confirm a document upload on a done task", async () => {
-    vi.mocked(getTaskById).mockResolvedValue(doneTask);
-    vi.mocked(createDocumentForTask).mockRejectedValue(new TaskLockedError());
+  it("confirms a document upload on a done task", async () => {
+    vi.mocked(createDocumentForTask).mockResolvedValue({ id: "d1" });
 
     const result = await confirmDocumentUploadAction({
       file_name: "a.pdf",
@@ -333,35 +281,23 @@ describe("task subdata lock", () => {
       task_id: uuid,
     });
 
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Task locked",
-        description: TASK_LOCKED_MESSAGE,
-      },
-    });
-    expect(createDocumentForTask).toHaveBeenCalledWith(expect.objectContaining({ taskId: uuid }));
+    expect(result).toEqual({ success: true, data: { id: "d1" } });
   });
 
-  it("refuses to delete a document on a done task", async () => {
+  it("deletes a document on a done task", async () => {
     vi.mocked(getDocumentById).mockResolvedValue({
       ...documentRecord,
       task_id: uuid,
       task: doneTask,
     });
-    vi.mocked(deleteDocumentForTask).mockRejectedValue(new TaskLockedError());
-
-    const result = await deleteDocumentAction({ documentId: uuid });
-
-    expect(result).toEqual({
-      success: false,
-      error: {
-        code: "locked",
-        title: "Task locked",
-        description: TASK_LOCKED_MESSAGE,
-      },
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
     });
+    vi.mocked(deleteDocumentForTask).mockResolvedValue({ id: uuid });
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
     expect(deleteDocumentForTask).toHaveBeenCalledWith(uuid, uuid);
   });
 });

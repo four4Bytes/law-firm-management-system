@@ -25,6 +25,7 @@ import {
   actionConflict,
   actionForbidden,
   actionInvalid,
+  actionLocked,
   actionNotFound,
   type ActionDataResponse,
   type ActionStatusResponse,
@@ -314,16 +315,16 @@ export async function updateConsultationAction(
     }
 
     if (await isAcceptedWithCase(consultationId, existing.status)) {
-      return actionConflict(
-        "Consultation already accepted",
-        "This consultation has been accepted and linked to a case. Update the case instead.",
+      return actionLocked(
+        "Consultation",
+        "This consultation was accepted and handed off to a case, so its details are read-only. Update the case instead.",
       );
     }
 
     const bookingChanged = existing.booking_datetime.getTime() !== booking_datetime.getTime();
     if (bookingChanged && existing.status !== ConsultationStatus.Scheduled) {
-      return actionConflict(
-        "Booking date is locked",
+      return actionLocked(
+        "Consultation",
         `The booking date can only change while a consultation is scheduled. This consultation is ${existing.status}.`,
       );
     }
@@ -419,17 +420,17 @@ export async function updateConsultationWithClientAction(
     }
 
     if (await isAcceptedWithCase(consultation_id, existing.status)) {
-      return actionConflict(
-        "Consultation already accepted",
-        "This consultation has been accepted and linked to a case. Update the case instead.",
+      return actionLocked(
+        "Consultation",
+        "This consultation was accepted and handed off to a case, so its details are read-only. Update the case instead.",
       );
     }
 
     const bookingChanged =
       existing.booking_datetime.getTime() !== consultation.booking_datetime.getTime();
     if (bookingChanged && existing.status !== ConsultationStatus.Scheduled) {
-      return actionConflict(
-        "Booking date is locked",
+      return actionLocked(
+        "Consultation",
         `The booking date can only change while a consultation is scheduled. This consultation is ${existing.status}.`,
       );
     }
@@ -527,6 +528,13 @@ export async function changeConsultationStatusAction(
       return actionForbidden();
     }
 
+    if (await isAcceptedWithCase(consultationId, existing.status)) {
+      return actionLocked(
+        "Consultation",
+        "This consultation was accepted and handed off to a case, so its status is read-only. Update the case instead.",
+      );
+    }
+
     if (status === ConsultationStatus.Accepted) {
       return actionConflict(
         "Accept from the consultation page",
@@ -543,13 +551,6 @@ export async function changeConsultationStatusAction(
 
     const timingError = checkBookingTiming(status, existing.booking_datetime);
     if (timingError) return timingError;
-
-    if (await isAcceptedWithCase(consultationId, existing.status)) {
-      return actionConflict(
-        "Consultation already accepted",
-        "This consultation has been accepted and linked to a case. Update the case instead of changing the consultation status.",
-      );
-    }
 
     if (
       reason &&

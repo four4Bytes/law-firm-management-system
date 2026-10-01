@@ -6,14 +6,14 @@
 - **pnpm** 11
 - **Docker** + **Docker Compose** (for local Postgres, SeaweedFS & Mailpit)
 
-> **Nix users:** you don't need to install Node/pnpm manually — `flake.nix` + `flake.lock` pin them.
+> **Nix users:** you don't need to install Node/pnpm manually - `flake.nix` + `flake.lock` pin them.
 
 ## Reproducible dev environment with Nix
 
 `flake.nix` provides a pinned shell (Node 22, pnpm 11.10.0 via corepack, Prisma, Docker) for `x86_64-linux`, `aarch64-linux`, `aarch64-darwin` via `nixpkgs.lib.genAttrs` (`x86_64-darwin` dropped in nixpkgs 26.11). `flake.lock` makes it reproducible.
 
 ```bash
-direnv allow          # via .envrc + nix-direnv — keeps your current shell/plugins (recommended)
+direnv allow          # via .envrc + nix-direnv - keeps your current shell/plugins (recommended)
 # or
 nix develop -c $SHELL # manual, without direnv; bare `nix develop` spawns bash
 ```
@@ -51,7 +51,7 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 | `.env`                                                    | Next.js dev server, Prisma CLI, seed script, Vitest     | Application runtime variables        |
 | `.env.dev`                                                | `make dev-*` targets only (Docker Compose dev stack)    | Infrastructure-only variables        |
 | `.env.prod`                                               | `make prod-*` targets (Docker Compose production stack) | Infrastructure **and** app variables |
-| `.env.example` / `.env.dev.example` / `.env.prod.example` | — (templates to copy)                                   |                                      |
+| `.env.example` / `.env.dev.example` / `.env.prod.example` | - (templates to copy)                                   |                                      |
 
 `.env.prod` is combined because in production the Next.js app runs inside a container and receives its runtime environment from that same file.
 

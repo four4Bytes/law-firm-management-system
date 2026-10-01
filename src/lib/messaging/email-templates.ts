@@ -3,7 +3,7 @@
  *
  * Each exported template accepts a {@link TemplateContext} and returns a
  * complete HTML string. Styles are defined in the shared `s` object and
- * applied via inline style attributes — the only reliable approach for
+ * applied via inline style attributes - the only reliable approach for
  * email clients.
  */
 

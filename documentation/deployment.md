@@ -10,8 +10,8 @@ The project uses **CalVer** (Calendar Versioning) with automatic tagging on ever
 v{YYYY}.{MM}.{DD}.{PATCH}
 ```
 
-- `YYYY` — 4-digit year, `MM` — 2-digit month, `DD` — 2-digit day
-- `PATCH` — zero-based increment for the day (resets daily)
+- `YYYY` - 4-digit year, `MM` - 2-digit month, `DD` - 2-digit day
+- `PATCH` - zero-based increment for the day (resets daily)
 
 Examples: `v2026.07.12.0`, `v2026.07.12.1`, `v2026.08.01.0`
 
@@ -83,15 +83,15 @@ Dependabot (`.github/dependabot.yml`) opens weekly npm dependency PRs against **
 
 On every push to `main` or `dev`, the **`ci`** stage runs; **`release`** → **`docker`** run only on pushes to `main` (PRs run `ci` only). A failing check blocks merging. Concurrency cancels prior runs on the same ref except `main`.
 
-**`ci`** — `ubuntu-latest`: Node 22 via `pnpm/action-setup` + `setup-node` (pnpm cache), `pnpm install --frozen-lockfile`, then `pnpm build` → `pnpm validate` → `pnpm test` (ESLint and Next.js build caches are persisted between runs).
+**`ci`** - `ubuntu-latest`: Node 22 via `pnpm/action-setup` + `setup-node` (pnpm cache), `pnpm install --frozen-lockfile`, then `pnpm build` → `pnpm validate` → `pnpm test` (ESLint and Next.js build caches are persisted between runs).
 
-**`release`** — push to `main` only (non-PR, `workflow_dispatch` allowed), requires `ci`; authenticated via a dedicated GitHub App using the `RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY` secrets (elevates to `contents: write`):
+**`release`** - push to `main` only (non-PR, `workflow_dispatch` allowed), requires `ci`; authenticated via a dedicated GitHub App using the `RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY` secrets (elevates to `contents: write`):
 
 1. Computes the next CalVer tag `v{YYYY}.{MM}.{DD}.{PATCH}` (increments same-day tags, skips if the tag already exists).
 2. Generates the changelog from PRs merged into **`main`** (`generate-notes` with `target_commitish="main"` + `previous_tag_name`, categories from `.github/release.yml` excluding `skip-changelog`; header is prepended in the workflow since `release.yml` `header` is unsupported).
 3. Creates the GitHub Release tagged with the CalVer, targeting the `main` HEAD (tag-only, no `package.json` commit).
 
-**`docker`** — push to `main` only, requires `release`: builds from the root `Dockerfile` with `NEXT_PUBLIC_APP_VERSION` = CalVer version and pushes `ghcr.io/four4bytes/law-firm-management-system` under the **CalVer tag** and **`latest`** (GHCR auth via the automatic `GITHUB_TOKEN`, `packages: write`). See [Docker Image](#docker-image).
+**`docker`** - push to `main` only, requires `release`: builds from the root `Dockerfile` with `NEXT_PUBLIC_APP_VERSION` = CalVer version and pushes `ghcr.io/four4bytes/law-firm-management-system` under the **CalVer tag** and **`latest`** (GHCR auth via the automatic `GITHUB_TOKEN`, `packages: write`). See [Docker Image](#docker-image).
 
 ### Required repository secrets
 
@@ -109,7 +109,7 @@ Every PR targeting `dev` or `main` is automatically reviewed by [CodeRabbit](htt
 - Reviews are posted as PR comments within minutes of opening.
 - Address CodeRabbit findings before requesting a human review.
 
-No local configuration — enabled at the GitHub organization level.
+No local configuration - enabled at the GitHub organization level.
 
 ## Docker Image
 
@@ -170,7 +170,7 @@ Optionally, override the version at deploy time by setting `NEXT_PUBLIC_APP_VERS
 
 ## Storage Encryption
 
-Object storage is encrypted **at rest** using SeaweedFS Server-Side Encryption (SSE-S3) with a single key-encryption key. This is transparent to the application — the app uploads via presigned `PutObject` URLs and never sets encryption headers; SeaweedFS encrypts each object on write.
+Object storage is encrypted **at rest** using SeaweedFS Server-Side Encryption (SSE-S3) with a single key-encryption key. This is transparent to the application - the app uploads via presigned `PutObject` URLs and never sets encryption headers; SeaweedFS encrypts each object on write.
 
 ### Configuration
 
@@ -203,7 +203,7 @@ aws --endpoint-url http://localhost:9000 s3api head-object --bucket law-firm-fil
 
 ### How it works
 
-The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` daily — all behavioral rules (recipients, windows, claim/suppress semantics, retention) live in the spec linked above. This section only covers the operational setup required to run it.
+The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` daily - all behavioral rules (recipients, windows, claim/suppress semantics, retention) live in the spec linked above. This section only covers the operational setup required to run it.
 
 ### Trigger mechanism
 
@@ -219,7 +219,7 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
 | `DEFAULT_REMINDER_DAYS`       | No             | `3`           | Global fallback when a milestone/consultation has no per-record `reminder_days` set                                                                      |
 | `NOTIFICATION_RETENTION_DAYS` | No             | `90`          | Delete Notification rows older than this many days (runs with the daily job)                                                                             |
 | `APP_TIMEZONE`                | No             | `Asia/Manila` | IANA timezone for server-side date/time formatting, the reminder day boundary, and the self-hosted cron trigger (set to any IANA zone for worldwide use) |
-| `CRON_SECRET`                 | Yes (all envs) | —             | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables.                               |
+| `CRON_SECRET`                 | Yes (all envs) | -             | Shared secret for authenticating cron requests. Generate with `openssl rand -hex 32`. Add to Vercel Environment Variables.                               |
 
 ### Setting up with Vercel Cron Jobs
 
@@ -242,9 +242,9 @@ The job calls `runReminderCheck()` in `src/features/reminders/scheduler.ts` dail
    openssl rand -hex 32
    ```
 
-3. **Add it to Vercel** — Project Dashboard → Settings → Environment Variables → add `CRON_SECRET`.
+3. **Add it to Vercel** - Project Dashboard → Settings → Environment Variables → add `CRON_SECRET`.
 
-4. **Deploy** — `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
+4. **Deploy** - `vercel --prod`. Vercel automatically registers the cron and sends the `Authorization: Bearer <CRON_SECRET>` header on each invocation.
 
 With the default `APP_TIMEZONE=Asia/Manila`, the cron runs daily at **app-timezone midnight**. Vercel interprets the schedule in **UTC**, so the expression is written as the UTC instant that equals local midnight: `0 16 * * *` is 16:00 UTC, which is 00:00 the next day in `Asia/Manila`. This matches the self-hosted `node-cron` in `src/instrumentation.ts`, which schedules `0 0 * * *` with `timezone: getAppTimeZone()`.
 
@@ -291,7 +291,7 @@ Add the storage-gc path to your `vercel.json`:
 }
 ```
 
-The example above runs the GC sweep weekly on **Sunday at 03:00 `Asia/Manila`** — 19:00 UTC on Saturday, after the daily reminders job. Adjust the schedule to suit your retention needs, keeping the UTC conversion in mind.
+The example above runs the GC sweep weekly on **Sunday at 03:00 `Asia/Manila`** - 19:00 UTC on Saturday, after the daily reminders job. Adjust the schedule to suit your retention needs, keeping the UTC conversion in mind.
 
 ### Setting up with self-hosted cron
 

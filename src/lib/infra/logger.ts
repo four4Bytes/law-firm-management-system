@@ -2,7 +2,7 @@
  * Minimal server-side structured logger.
  *
  * All unclassified failures caught inside Server Actions flow through
- * {@link logError} so the cause is never silently discarded — the client only
+ * {@link logError} so the cause is never silently discarded - the client only
  * ever receives the sanitized {@link ActionError} envelope, while the full
  * error (message + stack) stays in server logs.
  *

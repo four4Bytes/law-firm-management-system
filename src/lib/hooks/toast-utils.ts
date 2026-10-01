@@ -3,7 +3,7 @@
 /**
  * Shared toast helpers for surfacing Server Action results and app events.
  *
- * Every toast carries a title and a description — both are mandatory. These
+ * Every toast carries a title and a description - both are mandatory. These
  * helpers are the only sanctioned way for feature components to enqueue
  * toasts; ad-hoc `queue.add(...)` calls are banned to keep wording, timeout,
  * and title/description placement consistent across the app.
@@ -63,13 +63,13 @@ export function toastError(title: string, description: string): void {
 /**
  * Renders the structured error from a failed write action as a toast.
  *
- * A `locked` failure is not a user error — the record is in a state where the
- * operation is intentionally unavailable — so it renders as a warning rather
+ * A `locked` failure is not a user error - the record is in a state where the
+ * operation is intentionally unavailable - so it renders as a warning rather
  * than an error, and skips the access-denied link.
  *
  * When the envelope carries no {@link ActionError} (e.g. the request threw
  * before a response arrived), a sanitized fallback built from `operation`
- * is shown instead — mirroring the server's own unknown-error copy.
+ * is shown instead - mirroring the server's own unknown-error copy.
  *
  * @param response - The failed action's envelope.
  * @param operation - Verb phrase describing the attempted operation

@@ -54,6 +54,12 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - `pnpm prisma:studio` - Prisma Studio
 - `pnpm prepare` - husky + prisma generate (runs on install)
 - `direnv allow` (keeps shell) / `nix develop -c $SHELL` - pinned devShell via `flake.nix`
+- `make help` - show the available Makefile targets
+- `make dev` / `make dev-up` - start development infrastructure and the application / start dev containers
+- `make dev-down` / `make dev-clean` / `make dev-reset` - stop, clean, or reset the development environment
+- `make prod` / `make prod-up` - build and start the production container stack
+- `make prod-down` / `make prod-ps` / `make prod-reset` - stop, inspect, or reset the production environment
+- `make down` / `make clean` / `make reset` - stop, clean, or reset all container environments
 
 ## 3. Tech Stack
 

@@ -177,7 +177,7 @@ Object storage is encrypted **at rest** using SeaweedFS Server-Side Encryption (
 Set these in `.env.dev` / `.env.prod` **before** running `make dev-up` / `make prod-up`:
 
 ```bash
-SEAWEEDFS_SSE_KEY=lawfirm-sse:<secret>           # Stable SSE-S3 key
+SEAWEEDFS_SSE_KEK=<64-character-hex-key>          # Stable 256-bit SSE-S3 KEK
 ```
 
 Generate the key:
@@ -188,7 +188,7 @@ openssl rand -hex 32     # → outputs a 64-character hex string
 
 **Use a different key per environment** (dev vs prod) and store it in a secrets manager. Do not commit it. Losing the key means permanent loss of all stored documents.
 
-The `createbuckets` init container uses the AWS CLI against SeaweedFS to declare the bucket's default SSE-S3 rule. SeaweedFS receives the key through `WEED_S3_SSE_KEY`.
+The SeaweedFS service receives the KEK through `WEED_S3_SSE_KEK`. The `createbuckets` init container uses the AWS CLI against SeaweedFS to declare the bucket's default SSE-S3 rule.
 
 ### Verification
 

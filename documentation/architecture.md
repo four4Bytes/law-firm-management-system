@@ -115,20 +115,20 @@ src/
 
 ### Shared library groups
 
-`src/lib/` is grouped by role (no barrels — import the deep path, e.g.
+`src/lib/` is grouped by role (no barrels - import the deep path, e.g.
 `@/lib/security/rbac`). New shared modules go in the matching group; no new root-level
 files (only `__tests__/`, which stays flat):
 
-- **infra/** — singletons, config, cross-cutting services (`prisma`, `auth`, `s3`, `env`, `logger`)
-- **security/** — enforcement + error envelopes (`auth-guards`, `rbac`, `errors`, `action-response`)
-- **validation/** — Zod builders + shared schemas (`form-utils`, `schemas`)
-- **domain/** — DB/business-adjacent logic (`lifecycle`, `row-locks`, `pagination`, `path`, `sort`)
-- **primitives/** — dependency-free primitives (`date`, `types`)
-- **files/** — file/storage helpers (`file-types`, `file-format`, `storage-cleanup`)
-- **messaging/** — outbound comms (`email`, `email-templates`, `developer-emails`)
-- **hooks/** — client-only UI helpers (`use*` hooks, `toast-utils`)
+- **infra/** - singletons, config, cross-cutting services (`prisma`, `auth`, `s3`, `env`, `logger`)
+- **security/** - enforcement + error envelopes (`auth-guards`, `rbac`, `errors`, `action-response`)
+- **validation/** - Zod builders + shared schemas (`form-utils`, `schemas`)
+- **domain/** - DB/business-adjacent logic (`lifecycle`, `row-locks`, `pagination`, `path`, `sort`)
+- **primitives/** - dependency-free primitives (`date`, `types`)
+- **files/** - file/storage helpers (`file-types`, `file-format`, `storage-cleanup`)
+- **messaging/** - outbound comms (`email`, `email-templates`, `developer-emails`)
+- **hooks/** - client-only UI helpers (`use*` hooks, `toast-utils`)
 
-Layering: `lib/` must not import from `features/` — enforced by ESLint
+Layering: `lib/` must not import from `features/` - enforced by ESLint
 (`no-restricted-imports`). The only exceptions are `infra/auth.ts` (NextAuth needs user
 lookup) and `hooks/useFileUpload.ts` (upload hook shared by documents + tasks).
 
@@ -136,8 +136,8 @@ lookup) and `hooks/useFileUpload.ts` (upload hook shared by documents + tasks).
 
 ### API Routes vs Server Actions
 
-- **API Routes** — Restricted to NextAuth (`app/api/auth/[...nextauth]/`) and cron webhooks (`app/api/cron/reminders/`, `app/api/cron/storage-gc/`). Do not create custom REST endpoints for application data.
-- **Server Actions** (`actions.ts`) — The primary mechanism for all data mutation, form submission, and infrastructure execution (including generating S3 presigned URLs). Every structural modification to application state routes through a Server Action.
+- **API Routes** - Restricted to NextAuth (`app/api/auth/[...nextauth]/`) and cron webhooks (`app/api/cron/reminders/`, `app/api/cron/storage-gc/`). Do not create custom REST endpoints for application data.
+- **Server Actions** (`actions.ts`) - The primary mechanism for all data mutation, form submission, and infrastructure execution (including generating S3 presigned URLs). Every structural modification to application state routes through a Server Action.
 
 ### Feature Domain Pattern
 
@@ -170,12 +170,12 @@ File uploads never stream through the Next.js runtime:
 
 | Concern              | Mechanism                                                                                                                                                                                                                                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth**             | `requireAuth()` — centralized, returns verified session                                                                                                                                                                                                                                               |
-| **Role enforcement** | `requirePermission(...)` for context-free cells; `requireAuth()` + `can(role, permission, accessContext)` per record — matrix in `src/lib/security/rbac.ts` (mirrors RBAC.md)                                                                                                                         |
+| **Auth**             | `requireAuth()` - centralized, returns verified session                                                                                                                                                                                                                                               |
+| **Role enforcement** | `requirePermission(...)` for context-free cells; `requireAuth()` + `can(role, permission, accessContext)` per record - matrix in `src/lib/security/rbac.ts` (mirrors RBAC.md)                                                                                                                         |
 | **Input validation** | Zod schemas (declared in feature `schemas.ts`, imported by actions)                                                                                                                                                                                                                                   |
-| **String hygiene**   | `.trim().min(1).max()` — reject whitespace-only, enforce DB limits                                                                                                                                                                                                                                    |
-| **IDs**              | `.uuid()` or `.cuid()` — never `as` casts                                                                                                                                                                                                                                                             |
-| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` — never raw strings                                                                                                                                                                                                                            |
+| **String hygiene**   | `.trim().min(1).max()` - reject whitespace-only, enforce DB limits                                                                                                                                                                                                                                    |
+| **IDs**              | `.uuid()` or `.cuid()` - never `as` casts                                                                                                                                                                                                                                                             |
+| **Enums**            | `z.enum(PrismaEnum)` from `@/generated/prisma/browser` - never raw strings                                                                                                                                                                                                                            |
 | **Action responses** | Reads return data directly (throw for unrecoverable); writes return `ActionStatusResponse` with a structured `{ code, title, description }` error built via `src/lib/security/action-response.ts` factories and the `toActionResponse` catch-mapper (unknown causes logged server-side, never leaked) |
 | **Client bundle**    | Import Prisma types from `@/generated/prisma/browser`, never `client` (avoid `node:` module breakage)                                                                                                                                                                                                 |
 
@@ -183,13 +183,13 @@ File uploads never stream through the Next.js runtime:
 
 See [AGENTS.md](../AGENTS.md) for the full conventions reference covering:
 
-- **Styling** — CSS Modules, design tokens, flexbox-first responsive
-- **Components** — RAC wrapping pattern, `"use client"` boundary, prop interfaces
-- **Data Layer** — actions/queries/mutations split, presigned URL flow
-- **Testing** — `__tests__/` co-location, `vi.mock(prisma)`, no `as any`
-- **Async/Error** — `async/await`, structured error responses, toast surface
-- **TypeScript** — no inline destructured types, domain-driven naming, explicit return types at boundaries
-- **Documentation** — JSDoc required on `src/lib/` only
+- **Styling** - CSS Modules, design tokens, flexbox-first responsive
+- **Components** - RAC wrapping pattern, `"use client"` boundary, prop interfaces
+- **Data Layer** - actions/queries/mutations split, presigned URL flow
+- **Testing** - `__tests__/` co-location, `vi.mock(prisma)`, no `as any`
+- **Async/Error** - `async/await`, structured error responses, toast surface
+- **TypeScript** - no inline destructured types, domain-driven naming, explicit return types at boundaries
+- **Documentation** - JSDoc required on `src/lib/` only
 
 ## App Version
 

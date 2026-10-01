@@ -1,4 +1,4 @@
-# AGENTS.md — Law Firm Management System
+# AGENTS.md - Law Firm Management System
 
 Conventions for AI coding agents working in this repo. Read this file before writing code, and follow it over general defaults.
 
@@ -23,7 +23,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 
 - Never commit, push, or create PRs unless explicitly asked.
 - Read the actual file first. Don't assume you know what's in it.
-- After making changes, run only the commands the touched files need — not the full `pnpm validate`:
+- After making changes, run only the commands the touched files need - not the full `pnpm validate`:
 
   | Files touched                                       | Run                                                          |
   | --------------------------------------------------- | ------------------------------------------------------------ |
@@ -33,7 +33,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
   | `tsconfig.json`, `next.config.*`, `eslint.config.*` | `pnpm validate`                                              |
   | Mix of the above                                    | Union of their commands                                      |
 
-  `.ts`/`.tsx` always gets the full `format && lint && tsc` — `tsc --noEmit` checks the whole
+  `.ts`/`.tsx` always gets the full `format && lint && tsc` - `tsc --noEmit` checks the whole
   project graph, so it can't be scoped to one file. Run `pnpm build` too if the change touches
   `.ts`/`.tsx`, `schema.prisma`, or config.
 
@@ -53,7 +53,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - `pnpm prisma:seed` - `tsx prisma/seed.ts`
 - `pnpm prisma:studio` - Prisma Studio
 - `pnpm prepare` - husky + prisma generate (runs on install)
-- `direnv allow` (keeps shell) / `nix develop -c $SHELL` — pinned devShell via `flake.nix`
+- `direnv allow` (keeps shell) / `nix develop -c $SHELL` - pinned devShell via `flake.nix`
 
 ## 3. Tech Stack
 
@@ -61,7 +61,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - Language: TypeScript strict, `@/*` alias for `./src/*`.
 - Styling: CSS Modules + design tokens (`src/styles/variables.css` primitives → semantic tokens).
   `clsx` for composition. Never inline styles.
-- UI: `react-aria-components` — wrap Aria primitives in local components (e.g. `Button.tsx` wraps
+- UI: `react-aria-components` - wrap Aria primitives in local components (e.g. `Button.tsx` wraps
   `Button as AriaButton`); extend Aria props, apply CSS modules via `clsx`, forward external
   `className`.
 - Icons: `react-icons` (subpath imports like `react-icons/fa6`).
@@ -72,36 +72,36 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - Storage: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` for managing document storage
   attachments via secure, server-generated presigned URLs.
 - Package Manager: pnpm (pinned `pnpm@11.10.0`), Node `>=22.0.0`.
-- Dev Environment: Nix flake (`flake.nix` + `flake.lock`) — `nix develop` gives pinned `nodejs_22`,
+- Dev Environment: Nix flake (`flake.nix` + `flake.lock`) - `nix develop` gives pinned `nodejs_22`,
   pnpm, prisma, docker per system via `genAttrs`. Non-Nix contributors install Node/pnpm manually.
 
 ## 4. Architecture
 
-- `src/app/(auth)/page.tsx` — unauthenticated login page.
-- `src/app/(dashboard)/` — authenticated section (Sidebar + Header shared layout). Dashboard routes:
+- `src/app/(auth)/page.tsx` - unauthenticated login page.
+- `src/app/(dashboard)/` - authenticated section (Sidebar + Header shared layout). Dashboard routes:
   `dashboard/`, `case/`, `consultation/`, `user/`, `settings/`, `audit/`.
-- API Routes — Restricted strictly to framework orchestration
+- API Routes - Restricted strictly to framework orchestration
   (`src/app/api/auth/[...nextauth]/route.ts`) and scheduled job webhooks (e.g.
   `src/app/api/cron/*/route.ts`). Do not create custom REST endpoints for application data under any
   circumstances.
-- Server Actions (`actions.ts`) — The primary mechanism for all data mutation, form submission, and
+- Server Actions (`actions.ts`) - The primary mechanism for all data mutation, form submission, and
   infrastructure execution (including generating storage presigned URLs). Every structural
   modification to application state must route through a Server Action.
-- `src/features/` — domain logic organized by feature (`auth/`, `users/`, `consultations/`,
+- `src/features/` - domain logic organized by feature (`auth/`, `users/`, `consultations/`,
   `cases/`, etc.).
   - Each domain contains `actions.ts` (orchestration, validation, and authorization), `queries.ts`
     (Prisma read operations), and `mutations.ts` (Prisma write operations).
   - Feature-specific components live in `src/features/{domain}/components/`.
-- `src/components/{ui,layout}/` — shared primitives (ui) and app chrome (layout). Domain-agnostic;
+- `src/components/{ui,layout}/` - shared primitives (ui) and app chrome (layout). Domain-agnostic;
   reusable across features.
-- `src/lib/` — shared code grouped by role (`infra/`, `security/`, `validation/`, `domain/`,
+- `src/lib/` - shared code grouped by role (`infra/`, `security/`, `validation/`, `domain/`,
   `primitives/`, `files/`, `messaging/`, `hooks/`): e.g. `infra/prisma.ts` (singleton), `infra/auth.ts`
   (NextAuth config), `infra/s3.ts` (S3 client instance initialization). New shared modules go in
-  the matching group — no new root-level files. `src/lib/` must not import from `src/features/`
+  the matching group - no new root-level files. `src/lib/` must not import from `src/features/`
   (ESLint-enforced) except `infra/auth.ts` and `hooks/useFileUpload.ts`.
-- `src/test-utils/` — test-only shared code (fixtures, auth setup). Never imported by production code.
-- `src/styles/` — design tokens (`variables.css`: primitives → semantic tokens).
-- `src/stories/` — Storybook stories for UI components, imported via `@/` aliases.
+- `src/test-utils/` - test-only shared code (fixtures, auth setup). Never imported by production code.
+- `src/styles/` - design tokens (`variables.css`: primitives → semantic tokens).
+- `src/stories/` - Storybook stories for UI components, imported via `@/` aliases.
 - Docker Compose for local Postgres: `docker compose up -d`.
 
 ## 5. Styling
@@ -110,7 +110,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 
 - Token system: primitives (`--raw-*`) → semantic tokens (`--color-*`, `--space-*`, etc.).
 - Prefer semantic tokens from `variables.css`. Hardcoded values are fine for one-off cases
-  (single-use spacing, border-radius, etc.) — creating a variable for a value used only once is
+  (single-use spacing, border-radius, etc.) - creating a variable for a value used only once is
   overengineering. Extract to `variables.css` when the same value appears twice or more.
 
 ### 5.2 CSS Modules
@@ -123,10 +123,10 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 
 ### 5.3 Responsive
 
-- Desktop-first approach CSS — mobile will be added later.
-- Use flexbox whenever possible — avoid grid.
-- `@media` only at `48rem` (use literal `rem` — CSS variables don't work in media queries).
-- Avoid the use of JS viewport detection or conditional mobile/desktop components for layout — use
+- Desktop-first approach CSS - mobile will be added later.
+- Use flexbox whenever possible - avoid grid.
+- `@media` only at `48rem` (use literal `rem` - CSS variables don't work in media queries).
+- Avoid the use of JS viewport detection or conditional mobile/desktop components for layout - use
   CSS where possible.
 
 ## 6. Components
@@ -134,26 +134,26 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 - Always scan and use existing components from `components/` first.
 - Scan `src/lib/` for existing utilities before creating new types/functions to avoid duplication.
 - Interactive/browser API components: start with `"use client"`.
-- Co-locate in `src/components/{category}/{ComponentName}/` — component, CSS module.
+- Co-locate in `src/components/{category}/{ComponentName}/` - component, CSS module.
 - Co-locate feature-specific components in `src/features/{domain}/components/`. Only put truly
   shared/reusable components in `src/components/ui/`.
 - Stories live in `src/stories/`, imported via `@/` aliases (no relative `./` imports).
 - Wrapping Aria components pattern: extend Aria props interface, add local variants/props, use
   explicit interface.
 - Extract component props into a named interface extending the Aria type when adding local
-  variants/props — keeps function signatures terse and consistent.
+  variants/props - keeps function signatures terse and consistent.
 
 ## 7. Data Layer & Asset Storage
 
 ### 7.1 Feature slices
 
 - Each feature domain (`src/features/{domain}/`) owns its data logic split across three files:
-  - `actions.ts` — Next.js Server Actions (`"use server"`). This layer acts as the security and
+  - `actions.ts` - Next.js Server Actions (`"use server"`). This layer acts as the security and
     evaluation perimeter. It enforces authentication, evaluates role authorization, validates inputs
     via Zod schemas, and orchestrates calls to underlying mutations or queries.
-  - `queries.ts` — Prisma read operations (`findUnique`, `findMany`, aggregate, etc.). Plain async
+  - `queries.ts` - Prisma read operations (`findUnique`, `findMany`, aggregate, etc.). Plain async
     functions (no `"use server"`).
-  - `mutations.ts` — Prisma write operations (`create`, `update`, `upsert`, `delete`, etc.). Plain
+  - `mutations.ts` - Prisma write operations (`create`, `update`, `upsert`, `delete`, etc.). Plain
     async functions.
 
 ### 7.2 Execution protocol
@@ -181,7 +181,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
   idempotent: it deletes each S3 object and logs but does not propagate individual failures, because
   the records are already gone. This guarantees no dangling `Document` rows pointing at missing
   files. Any S3 objects left behind by a cleanup failure are harmless orphans reclaimed by the
-  storage GC sweep (`src/app/api/cron/storage-gc`). Never reverse the order — deleting storage first
+  storage GC sweep (`src/app/api/cron/storage-gc`). Never reverse the order - deleting storage first
   would leave `Document` rows referencing missing blobs.
 
 ### 7.4 Prisma client entries
@@ -194,7 +194,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 ### 7.5 Client-side role checks (presentation only)
 
 - Use `can(userRole, permission, access?)` from `@/lib/rbac` for UI presentation (show/hide tabs,
-  buttons, columns). This is a pure boolean check — never use it for enforcement. All security
+  buttons, columns). This is a pure boolean check - never use it for enforcement. All security
   boundaries must remain server-side in Server Actions via `requirePermission(...)` (context-free
   cells) or `requireAuth()` + `can(...)` (record-scoped cells).
 - RBAC actions: Do **not** hide per-record action buttons (Edit, Delete, View, etc.) with
@@ -243,7 +243,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 
 - Read actions (paginated queries, single-record fetches): return data directly (e.g.,
   `Promise<{ rows: T[]; nextCursor: string | null }>`). Let framework error boundaries handle
-  failures — throw for unrecoverable errors. No wrapper needed.
+  failures - throw for unrecoverable errors. No wrapper needed.
 - Write actions (create, update, delete): wrap execution in try-catch and return
   `Promise<ActionStatusResponse>`. Use `ActionDataResponse<T>` when returning created/updated data
   alongside the status. This lets the client display inline error messages (toasts) without
@@ -255,7 +255,7 @@ Conventions for AI coding agents working in this repo. Read this file before wri
 
 - Invoke unified, centralized protection functions at the very top of the execution flow:
   `requireAuth()` (verified session) or `requirePermission(...permissions)` (context-free RBAC
-  cells). Both throw typed errors (`UnauthorizedError`, `ForbiddenError`) — there is no non-throwing
+  cells). Both throw typed errors (`UnauthorizedError`, `ForbiddenError`) - there is no non-throwing
   variant. For write actions that return `ActionStatusResponse`, call the throwing guards inside the
   action's existing `try` block and let `toActionResponse(...)` map `UnauthorizedError` → the
   unauthorized envelope ("Session expired") and `ForbiddenError` → the forbidden envelope ("Access
@@ -270,18 +270,18 @@ permission, accessContext)` (throws `"Forbidden"`) or `can(role, permission, acc
   instead of raw `FormData`. Any necessary coercion or extraction from forms must occur on the client
   side before triggering the transition boundary. Shared normalization/validation helpers live in
   `src/lib/validation/form-utils.ts` (`optionalString`, `requiredString`, `toDateValue`, `selectEnumHandler`,
-  `keysToSet`, `createFieldValidator`) and the `useModalForm` hook — reuse these instead of ad-hoc
+  `keysToSet`, `createFieldValidator`) and the `useModalForm` hook - reuse these instead of ad-hoc
   trimming or `as` casts.
 - Modal form validation: use React Aria's default `validationBehavior="native"`. Wrap a modal's
   fields + actions in a RAC `<Form onSubmit={handleSubmit}>` and make the submit button
   `type="submit"` (Cancel must be `type="button"`). On submit RAC runs each field's `validate`,
-  blocks `onSubmit`, and shows inline errors only when invalid — errors never appear on open. **Never
+  blocks `onSubmit`, and shows inline errors only when invalid - errors never appear on open. **Never
   use `validationBehavior="aria"`**: it renders a required field's error on mount (before any
   interaction), which is the premature-error regression. Keep the submit button enabled so RAC
   surfaces inline errors on submit; rely on `useModalForm`'s `schema` guard + toast for the
   server-side failure path. Define user-facing validation messages in the Zod schemas via the shared
   builders in `form-utils` (`requiredText`, `optionalText`, `positiveNumber`, `requiredEnum`,
-  `emailText`) — never surface raw Zod messages like "Invalid input: expected string, received
+  `emailText`) - never surface raw Zod messages like "Invalid input: expected string, received
   undefined".
 
 ## 9. Error Handling & Logging
@@ -289,7 +289,7 @@ permission, accessContext)` (throws `"Forbidden"`) or `can(role, permission, acc
 ### 9.1 Structured envelopes
 
 - Write actions never return raw string errors. Failures use `ActionStatusResponse.error = { code,
-title, description }` from `src/lib/security/action-response.ts`. `description` is mandatory — every
+title, description }` from `src/lib/security/action-response.ts`. `description` is mandatory - every
   user-facing failure explains what happened and what to do next.
 - Factory presets only: build failures with `actionForbidden()`, `actionNotFound(entity)`,
   `actionInvalid(entity)`, `actionConflict(title, description)`, `actionLocked(entity, description)`,
@@ -326,7 +326,7 @@ title, description }` from `src/lib/security/action-response.ts`. `description` 
   code pattern.
 - Never let a promise rejection go unhandled. In client components, surface failures through the
   shared toast helpers in `src/lib/hooks/toast-utils.ts` (`toastError`, `toastActionError`, etc.) or
-  appropriate error UI. In Server Actions, follow the Action Response Convention (§8.2) — catch and
+  appropriate error UI. In Server Actions, follow the Action Response Convention (§8.2) - catch and
   return a structured `ActionStatusResponse`.
 - Inside `useEffect`, wrap async work in a locally-scoped `async function` and invoke it (use `void`
   for fire-and-forget calls to keep intent explicit).
@@ -401,7 +401,7 @@ Do not introduce a new named interface or type alias for trivial object shapes (
 meaningful domain concept that is reused across multiple APIs, layers, or modules, give it a semantic
 name by aliasing the `Pick` (e.g. `type UserSummary = Pick<User, "id" | "name">`) rather than
 duplicating the property definitions. Only define a custom object type when the output intentionally
-diverges from the source model—for example, by combining data from multiple sources, adding computed
+diverges from the source model-for example, by combining data from multiple sources, adding computed
 fields, or reshaping the data.
 
 ## 12. Testing
@@ -410,22 +410,22 @@ fields, or reshaping the data.
   convention). Example: `src/features/users/__tests__/queries.test.ts`
 - Naming: `*.test.ts` for logic, `*.test.tsx` for components.
 - Structure: one `describe` per exported unit (action/query/mutation/helper), one `it` per behavior.
-  Collapse identical behavior across roles/inputs with `it.each` — never copy-paste a test body.
+  Collapse identical behavior across roles/inputs with `it.each` - never copy-paste a test body.
 - Fixtures first: build mock rows with `src/test-utils/fixtures.ts` (`mockUser`, `mockCase`, …),
   typed off Prisma models. Never define local row factories; rebase relational shapes via spread
   (`{...mockCase(), client: {...}}`).
 - Sessions: set auth state only via the shared helper (`setupAuth(...)` in `src/test-utils/`). Never
   inline session literals per test.
 - Mock `@/lib/prisma` via per-file `vi.mock` for data-layer tests (Vitest hoisting forbids
-  centralizing `vi.mock` itself — only rows and session setup are shared).
+  centralizing `vi.mock` itself - only rows and session setup are shared).
 - Assert behavior, not internals: prefer exact `toEqual` shapes over `toMatchObject`; never assert
   mock call order unless ordering is the contract.
 - No `as any`, no `as never`, no `Record<string, unknown>` wrappers. If a mock doesn't typecheck, the
-  query boundary is probably leaking a non-plain type (e.g. `Decimal`) — fix the query, not the test.
+  query boundary is probably leaking a non-plain type (e.g. `Decimal`) - fix the query, not the test.
 - Fake timers are scoped per test (`useFakeTimers`/`useRealTimers` inside the test). Never file-global
   timer state.
 - Do not test re-exports, framework behavior, or one-line pass-throughs. Every `it` must assert a
-  distinct behavior — no coverage theater.
+  distinct behavior - no coverage theater.
 - `src/test-utils/` is test-only shared code: visible via the `@/` alias, matched by no test glob,
   and exempt from the `src/lib/` TSDoc rule.
 - Full guide with examples: `documentation/testing.md`.
@@ -436,7 +436,7 @@ fields, or reshaping the data.
   workarounds.
 - Prefer readability over cleverness; if a compact expression requires mental parsing, write it as
   straightforward sequential code instead.
-- Named exports only — no default exports, except for Next.js special files (`page.tsx`,
+- Named exports only - no default exports, except for Next.js special files (`page.tsx`,
   `layout.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, `loading.tsx`, `route.tsx` etc.)
   which require a default export. Use inline `export default function` for these files.
 - PascalCase components/types; camelCase variables/functions/files (component dirs are PascalCase).

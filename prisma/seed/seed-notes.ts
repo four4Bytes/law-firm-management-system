@@ -33,7 +33,7 @@ const notes: NoteData[] = [
   },
   {
     content:
-      "Drafting petition — need to review previous psychological evaluation reports submitted during marriage counseling.",
+      "Drafting petition - need to review previous psychological evaluation reports submitted during marriage counseling.",
     caseTitle: "Gonzales Legal Separation",
     createdByEmail: "kevin.garcia@aninolaw.com",
     daysAgo: 2,
@@ -88,7 +88,7 @@ const notes: NoteData[] = [
   },
   {
     content:
-      "City planning office requested additional documents — environmental impact assessment and traffic study. Need to coordinate with client.",
+      "City planning office requested additional documents - environmental impact assessment and traffic study. Need to coordinate with client.",
     caseTitle: "Santiago Zoning Compliance Appeal",
     createdByEmail: "gina.reyes@aninolaw.com",
     daysAgo: 1,
@@ -117,21 +117,21 @@ const notes: NoteData[] = [
   {
     content:
       "Police blotter report and medical certificate from the alleged victim appear inconsistent with estafa elements. Strong motion to dismiss basis.",
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     daysAgo: 8,
   },
   {
     content:
       "Prosecution evidence shows complainant issued multiple demand letters but gave additional time to pay. Weakens their claim of deceit.",
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     createdByEmail: "nina.salvador@aninolaw.com",
     daysAgo: 3,
   },
   {
     content:
       "Client sent screenshots of GCash payment proofs showing partial payments to complainant. This undermines the estafa claim.",
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     daysAgo: 1,
   },
@@ -166,14 +166,14 @@ const notes: NoteData[] = [
   {
     content:
       "Term sheet received from Kairus Capital: Pre-money valuation PHP 80M, asking for 20% equity. Need to review liquidation preference clause carefully.",
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     createdByEmail: "angela.mercado@aninolaw.com",
     daysAgo: 5,
   },
   {
     content:
       "Client's cap table shows 3 existing shareholders with standard vesting. Need to ensure Series A terms don't disproportionately dilute founders.",
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     createdByEmail: "maya.fernandez@aninolaw.com",
     daysAgo: 3,
   },
@@ -193,7 +193,7 @@ const notes: NoteData[] = [
   },
   {
     content:
-      "Reviewed loan documents — interest rate increased from 8% to 18% without proper disclosure. Potential violation of Truth in Lending Act.",
+      "Reviewed loan documents - interest rate increased from 8% to 18% without proper disclosure. Potential violation of Truth in Lending Act.",
     caseTitle: "Santos Foreclosure Defense",
     createdByEmail: "nina.salvador@aninolaw.com",
     daysAgo: 3,
@@ -242,7 +242,7 @@ const notes: NoteData[] = [
   },
   {
     content:
-      "Outside our practice area — unlawful detainer with novel E-commerce Act issues. Referred to Atty. Dela Cruz of Cruz & Partners.",
+      "Outside our practice area - unlawful detainer with novel E-commerce Act issues. Referred to Atty. Dela Cruz of Cruz & Partners.",
     consultationClientEmail: "hernando.cruz@email.com",
     createdByEmail: "marco.lopez@aninolaw.com",
     daysAgo: 3,
@@ -264,7 +264,7 @@ const notes: NoteData[] = [
   },
   {
     content:
-      "Found material inconsistencies in complainant's timeline. The alleged demand letter was dated after the final payment was made — strong basis for motion.",
+      "Found material inconsistencies in complainant's timeline. The alleged demand letter was dated after the final payment was made - strong basis for motion.",
     taskTitle: "Review Prosecution Evidence",
     createdByEmail: "nina.salvador@aninolaw.com",
     daysAgo: 2,
@@ -308,21 +308,21 @@ const notes: NoteData[] = [
   {
     content:
       "Prosecution filed opposition to motion to dismiss arguing there is prima facie evidence of deceit. Need to prepare reply memorandum within 10 days.",
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     daysAgo: 2,
   },
   {
     content:
       "VC firm requesting additional diligence on IP portfolio. Need to gather patent application receipts, trademark registrations, and domain ownership records.",
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     createdByEmail: "angela.mercado@aninolaw.com",
     daysAgo: 1,
   },
   // ── Additional consultation notes ──
   {
     content:
-      "Medical records reviewed. Clear indication of post-surgical negligence — surgical sponge left in abdominal cavity. Strong basis for malpractice claim. Will draft engagement letter.",
+      "Medical records reviewed. Clear indication of post-surgical negligence - surgical sponge left in abdominal cavity. Strong basis for malpractice claim. Will draft engagement letter.",
     consultationClientEmail: "patricia.luna@email.com",
     createdByEmail: "kevin.garcia@aninolaw.com",
     daysAgo: 2,
@@ -392,21 +392,21 @@ const notes: NoteData[] = [
   },
   {
     content:
-      "Barangay mediation failed — Felipe Dimagiba refused to acknowledge the boundary encroachment despite the geodetic survey evidence. Will proceed with filing complaint in court.",
+      "Barangay mediation failed - Felipe Dimagiba refused to acknowledge the boundary encroachment despite the geodetic survey evidence. Will proceed with filing complaint in court.",
     caseTitle: "Lopez Property Boundary Litigation",
     createdByEmail: "marco.lopez@aninolaw.com",
     daysAgo: 6,
   },
   {
     content:
-      "LBAA decision received — assessed value reduced from PHP 5.0M to PHP 3.2M. Client very satisfied with the result. Assessment order to be forwarded to City Assessor for implementation.",
+      "LBAA decision received - assessed value reduced from PHP 5.0M to PHP 3.2M. Client very satisfied with the result. Assessment order to be forwarded to City Assessor for implementation.",
     caseTitle: "Hernandez Property Tax Protest",
     createdByEmail: "gina.reyes@aninolaw.com",
     daysAgo: 1,
   },
   {
     content:
-      "Settlement reason: Both parties agreed to a PHP 850,000 compromise package — separation pay, backwages, and attorney's fees. Agreement executed before the Labor Arbiter, case concluded without further litigation.",
+      "Settlement reason: Both parties agreed to a PHP 850,000 compromise package - separation pay, backwages, and attorney's fees. Agreement executed before the Labor Arbiter, case concluded without further litigation.",
     caseTitle: "Aquino Illegal Dismissal Settlement",
     createdByEmail: "miguel.cruz@aninolaw.com",
     daysAgo: 2,
@@ -421,20 +421,20 @@ const notes: NoteData[] = [
   {
     content:
       "Termination reason: Client instructed withdrawal after reaching an out-of-court family settlement with the heirs. Motion to withdraw filed with MTC Antipolo; filing fee refund processed.",
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     createdByEmail: "marco.lopez@aninolaw.com",
     daysAgo: 4,
   },
   {
     content:
-      "Demand letter served personally on all three heirs. Eldest heir indicated willingness to negotiate — endorsed to client for decision before filing.",
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+      "Demand letter served personally on all three heirs. Eldest heir indicated willingness to negotiate - endorsed to client for decision before filing.",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     createdByEmail: "ramon.flores@aninolaw.com",
     daysAgo: 30,
   },
   {
     content:
-      "NLRC decision on similar primo-tabakada doctrine reviewed for the position paper. Doctrine applies squarely — employer failed to prove just cause with substantial evidence.",
+      "NLRC decision on similar primo-tabakada doctrine reviewed for the position paper. Doctrine applies squarely - employer failed to prove just cause with substantial evidence.",
     caseTitle: "Aquino Illegal Dismissal Settlement",
     createdByEmail: "kevin.garcia@aninolaw.com",
     daysAgo: 20,

@@ -1,10 +1,10 @@
-# Task Review Workflow — Specification
+# Task Review Workflow - Specification
 
 ## 1. Overview
 
-Assignees do the work, reviewers approve it. A task moves `Pending → In Review → Done`. Rejection sends it back to `Pending` for rework. Task status is derived — no one sets it directly. Unwanted tasks are deleted, not cancelled.
+Assignees do the work, reviewers approve it. A task moves `Pending → In Review → Done`. Rejection sends it back to `Pending` for rework. Task status is derived - no one sets it directly. Unwanted tasks are deleted, not cancelled.
 
-`Done` is a **workflow** state, not a content freeze. While a task is `Done` the assignee roster, the reviewer roster, and every assignment/decision state are frozen, because changing them would change what "all approved" means. Title, description, notes, and files stay fully editable, and the task can be deleted — the same as in any other status. Reopening is an explicit action, not a side effect of the reviewer picker. See [Lifecycle](./lifecycle.md) §3 for why terminal status does not lock content.
+`Done` is a **workflow** state, not a content freeze. While a task is `Done` the assignee roster, the reviewer roster, and every assignment/decision state are frozen, because changing them would change what "all approved" means. Title, description, notes, and files stay fully editable, and the task can be deleted - the same as in any other status. Reopening is an explicit action, not a side effect of the reviewer picker. See [Lifecycle](./lifecycle.md) §3 for why terminal status does not lock content.
 
 ## 2. Roles
 
@@ -19,7 +19,7 @@ Assignees do the work, reviewers approve it. A task moves `Pending → In Review
 - Creator is always a reviewer.
 - Assignee list is creator-only. Reviewer list is creator + any reviewer (review chain).
 - Adding a user to a task auto-grants read-only case membership if needed (`ASSIGNED` fact). Task access also requires `TASK_ONLY` (see [RBAC](./RBAC.md)).
-- Assignees ≠ reviewers — enforced by server (`Assignee and reviewer must be distinct`).
+- Assignees ≠ reviewers - enforced by server (`Assignee and reviewer must be distinct`).
 
 ## 3. Statuses
 
@@ -28,7 +28,7 @@ Assignees do the work, reviewers approve it. A task moves `Pending → In Review
 | Status     | Meaning                                                     |
 | ---------- | ----------------------------------------------------------- |
 | `Pending`  | Work not yet ready for review (default, or after rejection) |
-| `InReview` | Every assignee marked done — awaiting reviewer decisions    |
+| `InReview` | Every assignee marked done - awaiting reviewer decisions    |
 | `Done`     | Every reviewer approved                                     |
 
 No `Cancelled`. Delete the task if it is no longer needed. Reopen it if the work is genuinely being redone.
@@ -61,7 +61,7 @@ Priority: rejection → approval → submission → todo.
 - Else if all assignees `Done` (and at least one assignee) → `InReview`.
 - Else → `Pending`.
 
-Decisions are only writable while `InReview` (`applyReviewDecision` refuses otherwise) and assignment flips are refused outright while `Done` (`setAssignmentStatus` throws `TaskLockedError`). Both guards are required: flipping one assignment on a `Done` task would re-derive the status straight back out of `Done` without anyone reviewing it. Content needs no guard — see §1.
+Decisions are only writable while `InReview` (`applyReviewDecision` refuses otherwise) and assignment flips are refused outright while `Done` (`setAssignmentStatus` throws `TaskLockedError`). Both guards are required: flipping one assignment on a `Done` task would re-derive the status straight back out of `Done` without anyone reviewing it. Content needs no guard - see §1.
 
 ### Reopen (`Done → Pending`)
 
@@ -72,7 +72,7 @@ Reopening is a single explicit action (`reopenTaskAction`), available to the cre
 
 The assignee's own work is deliberately not preserved: stale `Done` marks would re-derive the task straight back to `Done` with nobody having looked at it. The confirm dialog states both resets.
 
-Reopening is audited as `task.reopened` — the status move and both resets in one entry — and notifies assignees. It is deliberately not modelled as "add a reviewer" — that made unlocking the task depend on fabricating a real reviewer obligation, and was discoverable only from a banner. `addTaskReviewer` therefore refuses a `Done` task like any other roster change.
+Reopening is audited as `task.reopened` - the status move and both resets in one entry - and notifies assignees. It is deliberately not modelled as "add a reviewer" - that made unlocking the task depend on fabricating a real reviewer obligation, and was discoverable only from a banner. `addTaskReviewer` therefore refuses a `Done` task like any other roster change.
 
 ```
  Creator creates task
@@ -108,15 +108,15 @@ No new RBAC permissions. Uses existing `task.*` matrix ([RBAC](./RBAC.md)):
 
 | Operation while `Done`               | Behaviour | Enforced by                                              |
 | ------------------------------------ | --------- | -------------------------------------------------------- |
-| Edit title / description             | allowed   | —                                                        |
-| Add, edit, or delete notes and files | allowed   | —                                                        |
+| Edit title / description             | allowed   | -                                                        |
+| Add, edit, or delete notes and files | allowed   | -                                                        |
 | Edit assignee or reviewer roster     | refused   | `updateTask` / `addTaskReviewer` throw `TaskLockedError` |
 | Flip an assignment `Todo ⇄ Done`     | refused   | `setAssignmentStatus` throws `TaskLockedError`           |
 | Approve / request changes            | refused   | `applyReviewDecision` requires `InReview`                |
-| Reopen                               | allowed   | —                                                        |
+| Reopen                               | allowed   | -                                                        |
 | Delete                               | allowed   | Creator-only                                             |
 
-The roster and assignment refusals return the `locked` envelope, whose copy names the reopen path. Both also disable the control client-side (`canEditRoster`, `canToggleOwnSubmission`), so the envelope normally only surfaces when someone else changed the task while the modal was open. Reviewing a task that is not `InReview` returns a plain `conflict` instead — that is a state gate, not the freeze.
+The roster and assignment refusals return the `locked` envelope, whose copy names the reopen path. Both also disable the control client-side (`canEditRoster`, `canToggleOwnSubmission`), so the envelope normally only surfaces when someone else changed the task while the modal was open. Reviewing a task that is not `InReview` returns a plain `conflict` instead - that is a state gate, not the freeze.
 
 ## 5. Notifications
 
@@ -137,18 +137,18 @@ See [Notifications](./notifications.md).
 
 `Add Task` has no notes column (task does not exist yet).
 
-### Column 1 — Task Info
+### Column 1 - Task Info
 
 - Title, description, assignees (`UserList` with `Todo`/`Done` chips), reviewers (`UserList` with `Pending`/`Approved`/`Rejected`).
 - Assignee picker: creator-only, cross-disabled against reviewers. Reviewer picker: creator + reviewers. Both are disabled while `Done`, with a note explaining that the roster determines who approved the task and that reopening is the way out.
 - Title and description remain editable while `Done`.
-- `StatusBadge` only — no status select. Status is derived.
+- `StatusBadge` only - no status select. Status is derived.
 
-### Column 2 — Files
+### Column 2 - Files
 
-`FileList` + `DropZone` in edit; read-only in view. Hidden in view when empty. Editable while `Done` — a completed task still accepts follow-up attachments.
+`FileList` + `DropZone` in edit; read-only in view. Hidden in view when empty. Editable while `Done` - a completed task still accepts follow-up attachments.
 
-### Column 3 — Notes
+### Column 3 - Notes
 
 Review comments are task `Note`s (`task_id`). `[+] Add Note` in edit opens `AddNoteModal`; view is read-only. Previous notes stay visible after rejection to guide rework. Editable while `Done`.
 
@@ -157,7 +157,7 @@ Review comments are task `Note`s (`task_id`). `[+] Add Note` in edit opens `AddN
 - **Assignee:** `Mark done` / `Undo` toggle for own row (`Todo ⇄ Done`). Disabled unless it is the caller's own assignment and the task is not `Done`.
 - **Reviewer:** `Approve` / `Request changes` for own decision. Shown to reviewers, disabled unless `InReview` and until decided.
 - **Reviewer or creator:** `Reopen task` (confirm), shown only while `Done`. The confirm states both resets.
-- **Creator:** `Delete task` (confirm) at any status — replaces the old status select. No `Pending`/`Cancelled` options.
+- **Creator:** `Delete task` (confirm) at any status - replaces the old status select. No `Pending`/`Cancelled` options.
 
 All controls call server actions that re-derive status inside a `FOR UPDATE` transaction. Row actions in the table (View / Edit / Delete) are always rendered; server returns a toast if not allowed.
 
@@ -170,7 +170,7 @@ All controls call server actions that re-derive status inside a `FOR UPDATE` tra
 `task.created` / `task.updated` / `task.submitted` / `task.reviewed` / `task.reopened` /
 `task.status_changed` / `task.deleted`.
 
-`Task.status` is derived, so it has no writer of its own — the audit trail would otherwise never show
+`Task.status` is derived, so it has no writer of its own - the audit trail would otherwise never show
 it move. Submit, review, and roster change route through one helper that writes `task.status_changed`
 with `from X to Y` **only when the status actually moved**; a review that leaves the task `InReview`
 (one reviewer approving while another is still `Pending`) logs the decision and nothing more. Reopen

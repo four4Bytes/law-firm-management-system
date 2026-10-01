@@ -334,7 +334,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         title="Reject consultation"
         description="The consultation will be marked as rejected. This cannot be undone. You can still edit its concern, client, and team, but the booking is frozen."
         reasonLabel="Rejection reason"
-        reasonPlaceholder="Optional — why is this being rejected?"
+        reasonPlaceholder="Optional - why is this being rejected?"
         confirmLabel="Reject"
         reasonSchema={ConsultationStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
@@ -348,7 +348,7 @@ export function ConsultationDetail({ overview, access, userRole }: Props) {
         title="Cancel consultation"
         description="The consultation will be marked as cancelled. Its booking is frozen, but you can rebook it later. Concern, client, and team stay editable."
         reasonLabel="Cancellation reason"
-        reasonPlaceholder="Optional — why is this being cancelled?"
+        reasonPlaceholder="Optional - why is this being cancelled?"
         confirmLabel="Cancel consultation"
         reasonSchema={ConsultationStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}

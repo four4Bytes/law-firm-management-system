@@ -170,32 +170,31 @@ Optionally, override the version at deploy time by setting `NEXT_PUBLIC_APP_VERS
 
 ## Storage Encryption
 
-Object storage is encrypted **at rest** using MinIO Server-Side Encryption (SSE-S3) with a single master key. This is transparent to the application — the app uploads via presigned `PutObject` URLs and never sets encryption headers; MinIO encrypts each object on write.
+Object storage is encrypted **at rest** using SeaweedFS Server-Side Encryption (SSE-S3) with a single key-encryption key. This is transparent to the application — the app uploads via presigned `PutObject` URLs and never sets encryption headers; SeaweedFS encrypts each object on write.
 
 ### Configuration
 
 Set these in `.env.dev` / `.env.prod` **before** running `make dev-up` / `make prod-up`:
 
 ```bash
-MINIO_KMS_SECRET_KEY=lawfirm-sse:<base64-key>  # 32-byte base64 key
-MINIO_KMS_AUTO_ENCRYPTION=on                    # Encrypt every new object
+SEAWEEDFS_SSE_KEY=lawfirm-sse:<secret>           # Stable SSE-S3 key
 ```
 
 Generate the key:
 
 ```bash
-openssl rand -base64 32   # → outputs a 44-character base64 string
+openssl rand -hex 32     # → outputs a 64-character hex string
 ```
 
 **Use a different key per environment** (dev vs prod) and store it in a secrets manager. Do not commit it. Losing the key means permanent loss of all stored documents.
 
-The `createbuckets` init container in the Docker compose setup runs `mc encrypt set sse-s3 local/law-firm-files` so the bucket declares the default encryption rule.
+The `createbuckets` init container uses the AWS CLI against SeaweedFS to declare the bucket's default SSE-S3 rule. SeaweedFS receives the key through `WEED_S3_SSE_KEY`.
 
 ### Verification
 
 ```bash
-mc encrypt info local/law-firm-files          # → sse-s3 (lawfirm-sse)
-mc stat local/law-firm-files/OBJECT_KEY       # → Encryption method: AES256
+aws --endpoint-url http://localhost:9000 s3api get-bucket-encryption --bucket law-firm-files
+aws --endpoint-url http://localhost:9000 s3api head-object --bucket law-firm-files --key OBJECT_KEY
 ```
 
 ## Scheduled Reminder System

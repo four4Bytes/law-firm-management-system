@@ -154,7 +154,7 @@ Control characters (`\x00-\x1f`) and quotes (`"`, `\`) are stripped from filenam
 
 ### Storage Encryption at Rest
 
-MinIO SSE-S3 encrypts every object on write. The application never sets encryption headers — encryption is configured at the bucket level and is transparent. See [Deployment — Storage Encryption](./deployment.md#storage-encryption).
+SeaweedFS SSE-S3 encrypts every object on write. The application never sets encryption headers — encryption is configured at the bucket level and is transparent. See [Deployment — Storage Encryption](./deployment.md#storage-encryption).
 
 ## Environment Variable Safety
 

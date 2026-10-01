@@ -55,6 +55,6 @@ Terminal records stay fully editable at runtime, but the seed writes history dir
 
 ## Documents
 
-All 50 `Document` rows have real bytes in MinIO under parent-scoped keys
+All 50 `Document` rows have real bytes in SeaweedFS under parent-scoped keys
 (`cases/{id}/{file}`, `tasks/…`, `consultations/…`), so list, download, and delete flows work on a
 fresh seed. Content is placeholder text — replace with real files to demo further.

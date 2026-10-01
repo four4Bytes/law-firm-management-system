@@ -4,7 +4,7 @@
 
 - **Node.js** 22+
 - **pnpm** 11
-- **Docker** + **Docker Compose** (for local Postgres, MinIO & Mailpit)
+- **Docker** + **Docker Compose** (for local Postgres, SeaweedFS & Mailpit)
 
 > **Nix users:** you don't need to install Node/pnpm manually — `flake.nix` + `flake.lock` pin them.
 
@@ -64,11 +64,11 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 | `AUTH_GOOGLE_ID`                  | Yes      | Google OAuth client ID ([credentials console](https://console.cloud.google.com/apis/credentials))                   |
 | `AUTH_GOOGLE_SECRET`              | Yes      | Google OAuth client secret                                                                                          |
 | `DEVELOPER_EMAILS`                | Yes      | Comma-separated Google accounts allowed to sign in without being pre-registered (bootstrap Dev users)               |
-| `S3_ENDPOINT`                     | Yes      | S3-compatible endpoint (`http://localhost:9000` for local MinIO)                                                    |
+| `S3_ENDPOINT`                     | Yes      | S3-compatible endpoint (`http://localhost:9000` for local SeaweedFS)                                                |
 | `S3_REGION`                       | Yes      | Storage region (e.g. `us-east-1`)                                                                                   |
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes      | Storage credentials (MinIO defaults: `minioadmin` / `minioadmin`)                                                   |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes      | Storage credentials (local defaults: `s3admin` / `s3secret`)                                                        |
 | `S3_BUCKET`                       | Yes      | Bucket name for document storage (`law-firm-files`; created automatically by `make dev-up`)                         |
-| `S3_FORCE_PATH_STYLE`             | Yes      | Set `true` for MinIO/local endpoints                                                                                |
+| `S3_FORCE_PATH_STYLE`             | Yes      | Set `true` for SeaweedFS/local endpoints                                                                            |
 | `EMAIL_FROM`                      | Yes      | Sender address for transactional emails                                                                             |
 | `EMAIL_HOST` / `EMAIL_PORT`       | Yes      | SMTP host/port (Mailpit defaults: `localhost:1025`)                                                                 |
 | `EMAIL_USER` / `EMAIL_PASS`       | Yes      | SMTP credentials (Mailpit defaults: `mailpit` / `mailpit`)                                                          |
@@ -82,11 +82,11 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 
 ### Infrastructure Variables (.env.dev)
 
-| Variable                                              | Required | Description                                                                                                            |
-| ----------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Yes      | Postgres container credentials (dev defaults: `testing`)                                                               |
-| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`             | Yes      | MinIO container credentials (dev defaults: `minioadmin`)                                                               |
-| `MINIO_KMS_SECRET_KEY`                                | No       | Base64 key for MinIO SSE encryption at rest; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
+| Variable                                              | Required | Description                                                                                     |
+| ----------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Yes      | Postgres container credentials (dev defaults: `testing`)                                        |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY`                     | Yes      | SeaweedFS S3 credentials (dev defaults: `s3admin` / `s3secret`)                                 |
+| `SEAWEEDFS_SSE_KEY`                                   | Yes      | SeaweedFS SSE-S3 key; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
 
 ## Available Commands
 
@@ -114,7 +114,7 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 
 | Target            | Description                                               |
 | ----------------- | --------------------------------------------------------- |
-| `make dev-up`     | Start dev containers (Postgres + MinIO + Mailpit)         |
+| `make dev-up`     | Start dev containers (Postgres + SeaweedFS + Mailpit)     |
 | `make dev-down`   | Stop dev containers                                       |
 | `make dev-clean`  | Stop dev containers and remove volumes                    |
 | `make dev-reset`  | Down + up (hard reset dev environment)                    |

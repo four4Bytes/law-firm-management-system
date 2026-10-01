@@ -36,7 +36,7 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
-      WEED_S3_SSE_KEK: ${SEAWEEDFS_SSE_KEK}
+      WEED_S3_SSE_KEK: ${SEAWEEDFS_SSE_KEK:?Set SEAWEEDFS_SSE_KEK in .env.prod (generate with openssl rand -hex 32)}
     volumes:
       - seaweedfs_data:/data
     healthcheck:
@@ -76,7 +76,7 @@ services:
     entrypoint: >
       /bin/sh -c "
         until aws --endpoint-url http://seaweedfs:9000 s3api list-buckets >/dev/null 2>&1; do sleep 2; done &&
-        aws --endpoint-url http://seaweedfs:9000 s3api head-bucket --bucket law-firm-files 2>/dev/null || aws --endpoint-url http://seaweedfs:9000 s3api create-bucket --bucket law-firm-files &&
+        (aws --endpoint-url http://seaweedfs:9000 s3api head-bucket --bucket law-firm-files 2>/dev/null || aws --endpoint-url http://seaweedfs:9000 s3api create-bucket --bucket law-firm-files) &&
         aws --endpoint-url http://seaweedfs:9000 s3api put-bucket-encryption --bucket law-firm-files --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"AES256\"}}]}' &&
         aws --endpoint-url http://seaweedfs:9000 s3api put-bucket-cors --bucket law-firm-files --cors-configuration '{\"CORSRules\":[{\"AllowedOrigins\":[\"'"$$S3_CORS_ALLOWED_ORIGINS"'\"],\"AllowedMethods\":[\"GET\",\"PUT\",\"HEAD\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\"],\"MaxAgeSeconds\":3600}]}' &&
         echo 'Bucket law-firm-files created successfully'

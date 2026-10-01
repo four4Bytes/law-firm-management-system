@@ -82,11 +82,11 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 
 ### Infrastructure Variables (.env.dev)
 
-| Variable                                              | Required | Description                                                                                     |
-| ----------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Yes      | Postgres container credentials (dev defaults: `testing`)                                        |
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY`                     | Yes      | SeaweedFS S3 credentials (dev defaults: `s3admin` / `s3secret`)                                 |
-| `SEAWEEDFS_SSE_KEY`                                   | Yes      | SeaweedFS SSE-S3 key; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
+| Variable                                              | Required | Description                                                                                                      |
+| ----------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Yes      | Postgres container credentials (dev defaults: `testing`)                                                         |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY`                     | Yes      | SeaweedFS S3 credentials (dev defaults: `s3admin` / `s3secret`)                                                  |
+| `SEAWEEDFS_SSE_KEK`                                   | Yes      | 64-character hex SeaweedFS SSE-S3 KEK; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
 
 ## Available Commands
 

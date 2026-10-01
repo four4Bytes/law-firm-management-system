@@ -30,7 +30,7 @@ export async function createDocumentForTask(payload: TaskDocumentPayload): Promi
 }
 
 // Guards the action layer's ownership check: a mismatched task id must not reach
-// the delete. No transaction alongside it — no action moves a document between
+// the delete. No transaction alongside it - no action moves a document between
 // tasks, so `task_id` cannot change between the read and the write.
 export async function deleteDocumentForTask(
   taskId: string,

@@ -1,8 +1,8 @@
-# Case Workflow — Specification
+# Case Workflow - Specification
 
 ## 1. Overview
 
-A case moves `Open → Closed/Settled/Terminated`, and any concluded case can be reopened back to `Open`. Status changes go through one server action (`changeCaseStatusAction`) driven by header icon buttons — never a dropdown. `Open` covers the whole live matter (intake through active work); there is deliberately no separate "ongoing" state. Field edits never touch status, and creation always starts at `Open`.
+A case moves `Open → Closed/Settled/Terminated`, and any concluded case can be reopened back to `Open`. Status changes go through one server action (`changeCaseStatusAction`) driven by header icon buttons - never a dropdown. `Open` covers the whole live matter (intake through active work); there is deliberately no separate "ongoing" state. Field edits never touch status, and creation always starts at `Open`.
 
 ## 2. Roles
 
@@ -17,7 +17,7 @@ No workflow-specific roles. `case.update` on the record (assigned or managerial 
 | `Settled`    | Concluded by compromise (settlement / compromise agreement)      |
 | `Terminated` | Ended without resolution (withdrawn, dismissed, disengaged)      |
 
-The three endings are siblings distinguished by exit paperwork — that is what keeps them from meaning the same thing.
+The three endings are siblings distinguished by exit paperwork - that is what keeps them from meaning the same thing.
 
 ### Transition matrix (single source of truth: `CASE_STATUS_TRANSITIONS` in `src/features/cases/status.ts`)
 
@@ -28,7 +28,7 @@ The three endings are siblings distinguished by exit paperwork — that is what 
 | `Settled`    | `Open` (reopen)                   |
 | `Terminated` | `Open` (reopen)                   |
 
-Terminality (`isTerminalCaseStatus`) means "no outcome change", not "frozen forever": resumed litigation (reconsideration granted, remanded on appeal, settlement breached, dormant matter reactivated) stays on the same matter record — same court, docket, client, fees, documents — instead of fragmenting across two records. Every reopen is an explicit, confirmed, audited transition. Same-status transitions are rejected.
+Terminality (`isTerminalCaseStatus`) means "no outcome change", not "frozen forever": resumed litigation (reconsideration granted, remanded on appeal, settlement breached, dormant matter reactivated) stays on the same matter record - same court, docket, client, fees, documents - instead of fragmenting across two records. Every reopen is an explicit, confirmed, audited transition. Same-status transitions are rejected.
 
 ```
 New case (always Open)
@@ -46,7 +46,7 @@ New case (always Open)
 - **Create** (`CaseCreatePayloadSchema` / WithClient variant): status is accepted but the UI always submits `Open`. There is no status select on creation.
 - **Edit** (`CaseUpdatePayloadSchema` / `CaseDataSchema` update variant): carries **no status field**. Field edits can never change status.
 - **Status change** (`CaseStatusChangePayloadSchema`): accepts any enum value plus an optional `reason`; legality is enforced server-side by `isValidCaseStatusTransition()`. Illegal moves return `conflict / Invalid status change` naming the legal next steps (`describeCaseNextSteps()`).
-- **No content lock**: notes, files, tasks, milestones, and payments are editable on `Closed`/`Settled`/`Terminated` exactly as on `Open` — which matters because Philippine matters get reopened constantly (reconsideration granted, remanded on appeal, settlement breached). Integrity comes from the audit trail. See [Lifecycle](./lifecycle.md) §3.
+- **No content lock**: notes, files, tasks, milestones, and payments are editable on `Closed`/`Settled`/`Terminated` exactly as on `Open` - which matters because Philippine matters get reopened constantly (reconsideration granted, remanded on appeal, settlement breached). Integrity comes from the audit trail. See [Lifecycle](./lifecycle.md) §3.
 
 ## 4. Server actions (`src/features/cases/actions.ts`)
 
@@ -61,11 +61,11 @@ Guards use the throwing helpers inside the `try` block; `toActionResponse` maps 
 
 ## 5. Closing flow
 
-`CaseDetail` routes terminal targets to the shared `DecisionModal` (description names which ending applies + optional reason → `Closing reason:` / `Settlement reason:` / `Termination reason:` note). Reopening routes to a confirm dialog ("reopens a concluded matter — history stays intact — only if litigation genuinely resumed"). Reasons are consultation-workflow-style labelled notes on `case_id`, visible in the case Notes tab.
+`CaseDetail` routes terminal targets to the shared `DecisionModal` (description names which ending applies + optional reason → `Closing reason:` / `Settlement reason:` / `Termination reason:` note). Reopening routes to a confirm dialog ("reopens a concluded matter - history stays intact - only if litigation genuinely resumed"). Reasons are consultation-workflow-style labelled notes on `case_id`, visible in the case Notes tab.
 
 ## 6. UI
 
-- **Workflow buttons** (`CaseWorkflowActions`): ghost icon buttons from the matrix — gavel (close), handshake (settle), ban (terminate), rotate (reopen). Empty states render `null`. Never permission-gated client-side; denials surface via toast. `title` + `aria-label`; disabled while pending.
+- **Workflow buttons** (`CaseWorkflowActions`): ghost icon buttons from the matrix - gavel (close), handshake (settle), ban (terminate), rotate (reopen). Empty states render `null`. Never permission-gated client-side; denials surface via toast. `title` + `aria-label`; disabled while pending.
 - **Modals**: `AddCaseModal` and `CreateCaseFromConsultationModal` have no status select (always `Open`); `EditCaseModal` has no status control; shared `DecisionModal` per outcome + reopen `ConfirmDialog`; delete `ConfirmDialog` (existing copy).
 - **Table/detail**: `StatusBadge` display only (`Open` info, `Closed` done, `Settled` info, `Terminated` danger); no status select anywhere.
 

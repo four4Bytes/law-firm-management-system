@@ -21,7 +21,7 @@ export async function deleteNote(id: string): Promise<{ id: string }> {
 }
 
 // Guards the action layer's ownership check: a mismatched task id must not reach
-// the write. No transaction alongside it — no action moves a note between tasks,
+// the write. No transaction alongside it - no action moves a note between tasks,
 // so `task_id` cannot change between the read and the write.
 async function assertNoteBelongsToTask(taskId: string, noteId: string): Promise<void> {
   const note = await prisma.note.findUnique({ where: { id: noteId }, select: { task_id: true } });

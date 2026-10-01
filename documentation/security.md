@@ -13,7 +13,7 @@ The system uses **Google OAuth 2.0** as its sole authentication provider. There 
 
 1. User authenticates via Google.
 2. The `signIn` callback verifies `email_verified` is `true`.
-3. If the email is in `DEVELOPER_EMAILS` (allowlist), a developer account is upserted and access is granted. This bypasses the normal user database — used for bootstrapping and development.
+3. If the email is in `DEVELOPER_EMAILS` (allowlist), a developer account is upserted and access is granted. This bypasses the normal user database - used for bootstrapping and development.
 4. For non-developer emails: the user must exist in the `User` table and have `is_active = true`. Access is denied (`signIn` returns `false`) otherwise.
 5. On sign-in, the user's name and avatar are synced from Google via `syncUserFromGoogle`.
 
@@ -28,12 +28,12 @@ The system uses **Google OAuth 2.0** as its sole authentication provider. There 
 
 The `DEVELOPER_EMAILS` environment variable is a comma-separated list of email addresses that can sign in without being pre-registered in the User table. Each sign-in creates or updates a user record with the `Dev` role if one doesn't exist.
 
-**Purpose:** Bootstrapping — since there is no registration page, the first user(s) must get in somehow. The developer bypass is that mechanism.
+**Purpose:** Bootstrapping - since there is no registration page, the first user(s) must get in somehow. The developer bypass is that mechanism.
 
 **Lifecycle:**
 
 1. Add your email(s) to `DEVELOPER_EMAILS` in `.env`.
-2. Sign in via Google OAuth — a `Dev`-role user is created automatically.
+2. Sign in via Google OAuth - a `Dev`-role user is created automatically.
 3. Use the `Dev` account to create the first `Admin` users (via the user management UI).
 4. Once `Admin` users exist, either:
    - The `Dev` user deactivates or removes themselves, or
@@ -56,7 +56,7 @@ Defined in `src/lib/security/auth-guards.ts`.
 | `requirePermissionOrNull(...)` | `null` on denial | Same as `requirePermission`, but returns `null` instead of throwing. Use in write actions that return `ActionStatusResponse`.                                      |
 | `assertRecordPermission(...)`  | `"Forbidden"`    | Evaluates a record-scoped permission against an `AccessContext` and throws `"Forbidden"` when denied. Use after loading the record's access context.               |
 
-**Usage pattern** — every Server Action calls one of these at the top, then evaluates record-scoped permissions per record via `can(role, permission, accessContext)`:
+**Usage pattern** - every Server Action calls one of these at the top, then evaluates record-scoped permissions per record via `can(role, permission, accessContext)`:
 
 ```ts
 export async function createCaseAction(payload: CasePayload): Promise<ActionStatusResponse> {
@@ -74,9 +74,9 @@ The `Role` enum in `prisma/schema.prisma` defines: `Dev`, `Admin`, `BranchManage
 
 ### Lifecycle Guards (the _when_ axis)
 
-RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules live in `src/lib/domain/lifecycle.ts` (transition tables + `canTransition` / `isTerminalStatus`) and are enforced in Server Actions and mutations next to the state machine — never in the RBAC matrix.
+RBAC answers _who may act on what_; record state answers _when_. Lifecycle rules live in `src/lib/domain/lifecycle.ts` (transition tables + `canTransition` / `isTerminalStatus`) and are enforced in Server Actions and mutations next to the state machine - never in the RBAC matrix.
 
-Terminal status is **not** a content lock: a closed case, concluded consultation, or completed task keeps fully editable notes and files, and record integrity is guaranteed by the audit trail instead. The only freezes in the system are the enumerated field locks in [Lifecycle](./lifecycle.md) §4 — a consultation's booking date and its accepted-with-linked-case fields, and a done task's roster and assignment/decision states. Violations return the `locked` envelope.
+Terminal status is **not** a content lock: a closed case, concluded consultation, or completed task keeps fully editable notes and files, and record integrity is guaranteed by the audit trail instead. The only freezes in the system are the enumerated field locks in [Lifecycle](./lifecycle.md) §4 - a consultation's booking date and its accepted-with-linked-case fields, and a done task's roster and assignment/decision states. Violations return the `locked` envelope.
 
 ## Input Validation
 
@@ -95,9 +95,9 @@ Key validation conventions (see `src/lib/validation/form-utils.ts`):
 | `positiveNumber(max, label)`   | Coerced positive number capped at max.                                       |
 | `nonNegativeInteger(label)`    | Integer >= 0.                                                                |
 
-**String hygiene** — All string parameters are `.trim().min(1)` with a `.max()` matching DB column limits. Whitespace-only values are rejected.
+**String hygiene** - All string parameters are `.trim().min(1)` with a `.max()` matching DB column limits. Whitespace-only values are rejected.
 
-**IDs** — Validated as `.uuid()` or `.cuid()`. Never cast from raw input via `as`.
+**IDs** - Validated as `.uuid()` or `.cuid()`. Never cast from raw input via `as`.
 
 ### Typed Payloads (No Raw FormData)
 
@@ -109,7 +109,7 @@ Client components pass typed objects to actions, not raw `FormData`. Any form-to
 
 | Action Type                       | Return Type                                                       | Error Handling                                                                                          |
 | --------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Read (queries, paginated fetches) | Data directly (e.g. `Promise<{ rows: T[]; nextCursor: string }>`) | Throw for unrecoverable errors — framework error boundary handles display.                              |
+| Read (queries, paginated fetches) | Data directly (e.g. `Promise<{ rows: T[]; nextCursor: string }>`) | Throw for unrecoverable errors - framework error boundary handles display.                              |
 | Write (create, update, delete)    | `ActionStatusResponse` or `ActionDataResponse<T>`                 | Wrapped in `try/catch`. On failure: `{ success: false, error: "message" }`. Never leaks raw exceptions. |
 
 Defined in `src/lib/security/action-response.ts`:
@@ -154,7 +154,7 @@ Control characters (`\x00-\x1f`) and quotes (`"`, `\`) are stripped from filenam
 
 ### Storage Encryption at Rest
 
-SeaweedFS SSE-S3 encrypts every object on write. The application never sets encryption headers — encryption is configured at the bucket level and is transparent. See [Deployment — Storage Encryption](./deployment.md#storage-encryption).
+SeaweedFS SSE-S3 encrypts every object on write. The application never sets encryption headers - encryption is configured at the bucket level and is transparent. See [Deployment - Storage Encryption](./deployment.md#storage-encryption).
 
 ## Environment Variable Safety
 
@@ -181,7 +181,7 @@ All structural mutations are logged via `logAudit` in `src/features/audit/mutati
 | `entity_type` / `entity_id` | The affected resource                                                    |
 | `details`                   | Human-readable summary                                                   |
 
-Audit logs are **immutable** — they are created automatically by the system and no API exists to modify or delete them. All roles have read-only access.
+Audit logs are **immutable** - they are created automatically by the system and no API exists to modify or delete them. All roles have read-only access.
 
 Note create/update/delete entries retain only event metadata and the note ID; they must not copy note content, previews, or content-derived details. Deleting a note removes its content while its audit metadata remains. There is no automatic audit retention cutoff. This policy applies to newly written entries; any historical previews require a separate data cleanup.
 

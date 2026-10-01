@@ -61,7 +61,7 @@ import {
 } from "./validation";
 
 // Per-user capabilities on a single task, always computed server-side. Never
-// gate UI on a client-side RBAC re-check — use these.
+// gate UI on a client-side RBAC re-check - use these.
 export interface TaskCapabilities {
   isCreator: boolean;
   isReviewer: boolean;
@@ -85,8 +85,8 @@ interface TaskStatusChangePayload {
 // `Task.status` is derived and has no writer of its own, so this is the only
 // place the audit trail learns it moved. The no-op check lives here rather than
 // at each call site because a status can legitimately survive the action that
-// triggered it — one reviewer approving while another is still `Pending` leaves
-// the task `InReview` — and "from InReview to InReview" would be a false entry.
+// triggered it - one reviewer approving while another is still `Pending` leaves
+// the task `InReview` - and "from InReview to InReview" would be a false entry.
 async function logTaskStatusChange(payload: TaskStatusChangePayload): Promise<void> {
   const { actorUserId, task, to } = payload;
   if (task.status === to) return;

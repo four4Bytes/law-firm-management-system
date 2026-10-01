@@ -319,7 +319,7 @@ export function CaseDetail({ overview, access, userRole, currentUserId }: Props)
         confirmLabel="Reopen"
         onConfirm={handleReopenConfirm}
       >
-        This reopens a concluded matter — the case returns to Open with its full history intact.
+        This reopens a concluded matter - the case returns to Open with its full history intact.
         Only reopen if litigation has genuinely resumed.
       </ConfirmDialog>
 
@@ -329,9 +329,9 @@ export function CaseDetail({ overview, access, userRole, currentUserId }: Props)
           if (!open) setDecisionModal(null);
         }}
         title="Close case"
-        description="The case will be marked as closed. This records a successful conclusion — use settle for compromises, terminate for unresolved endings."
+        description="The case will be marked as closed. This records a successful conclusion - use settle for compromises, terminate for unresolved endings."
         reasonLabel="Closing reason"
-        reasonPlaceholder="Optional — how was this concluded?"
+        reasonPlaceholder="Optional - how was this concluded?"
         confirmLabel="Close case"
         reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
@@ -343,9 +343,9 @@ export function CaseDetail({ overview, access, userRole, currentUserId }: Props)
           if (!open) setDecisionModal(null);
         }}
         title="Settle case"
-        description="The case will be marked as settled. Use this for compromises and settlement agreements — not for judgments."
+        description="The case will be marked as settled. Use this for compromises and settlement agreements - not for judgments."
         reasonLabel="Settlement reason"
-        reasonPlaceholder="Optional — what were the settlement terms?"
+        reasonPlaceholder="Optional - what were the settlement terms?"
         confirmLabel="Settle case"
         reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}
@@ -357,9 +357,9 @@ export function CaseDetail({ overview, access, userRole, currentUserId }: Props)
           if (!open) setDecisionModal(null);
         }}
         title="Terminate case"
-        description="The case will be marked as terminated. Use this when the matter ends without resolution — withdrawal or dismissal."
+        description="The case will be marked as terminated. Use this when the matter ends without resolution - withdrawal or dismissal."
         reasonLabel="Termination reason"
-        reasonPlaceholder="Optional — why is this ending unresolved?"
+        reasonPlaceholder="Optional - why is this ending unresolved?"
         confirmLabel="Terminate case"
         reasonSchema={CaseStatusChangePayloadSchema.shape.reason}
         onConfirm={handleDecisionConfirm}

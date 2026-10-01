@@ -17,7 +17,7 @@
 | **Hooks**      | Husky + lint-staged                            | Pre-commit/pre-push gating                                    |
 | **Testing**    | Vitest + Playwright                            | Unit and browser testing                                      |
 | **Storybook**  | Storybook 10                                   | Component development environment                             |
-| **Infra**      | Docker + Docker Compose                        | Containerized Postgres and MinIO                              |
+| **Infra**      | Docker + Docker Compose                        | Containerized Postgres and SeaweedFS                          |
 | **CI/CD**      | GitHub Actions + Dependabot                    | Build, validate, release automation                           |
 
 ## Directory Layout

@@ -2,7 +2,7 @@ x-image: &app-image ghcr.io/four4bytes/law-firm-management-system:latest
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16.10-alpine
     container_name: postgres-prod
     restart: unless-stopped
     env_file: .env.prod
@@ -28,36 +28,55 @@ services:
       NODE_ENV: production
     command: ["pnpm", "prisma", "migrate", "deploy"]
 
-  minio:
-    image: minio/minio:latest
-    container_name: minio-prod
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.98
+    container_name: seaweedfs-prod
     restart: unless-stopped
     env_file: .env.prod
     environment:
-      MINIO_KMS_AUTO_ENCRYPTION: "on"
-    command: server /data --console-address ":9001"
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      WEED_S3_SSE_KEY: ${SEAWEEDFS_SSE_KEY}
     volumes:
-      - minio_data:/data
+      - seaweedfs_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      test: ["CMD-SHELL", "code=0; wget -q -O /dev/null http://127.0.0.1:9000/ || code=$$?; test $$code -eq 0 -o $$code -eq 1 -o $$code -eq 8"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command:
+      - server
+      - -dir=/data
+      - -ip=127.0.0.1
+      - -ip.bind=0.0.0.0
+      - -master.port=9333
+      - -volume.port=8080
+      - -filer
+      - -s3
+      - -s3.port=9000
+      - -s3.ip.bind=0.0.0.0
+      - -volume.max=0
+      - -master.volumeSizeLimitMB=1024
     expose:
       - "9000"
-      - "9001"
 
   createbuckets:
-    image: minio/mc:latest
+    image: amazon/aws-cli:2.27.41
     depends_on:
-      minio:
+      seaweedfs:
         condition: service_healthy
     env_file: .env.prod
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
     entrypoint: >
       /bin/sh -c "
-        mc alias set local http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD &&
-        mc mb --ignore-existing local/law-firm-files &&
-        mc encrypt set sse-s3 local/law-firm-files &&
+        until aws --endpoint-url http://seaweedfs:9000 s3api list-buckets >/dev/null 2>&1; do sleep 2; done &&
+        aws --endpoint-url http://seaweedfs:9000 s3api head-bucket --bucket law-firm-files 2>/dev/null || aws --endpoint-url http://seaweedfs:9000 s3api create-bucket --bucket law-firm-files &&
+        aws --endpoint-url http://seaweedfs:9000 s3api put-bucket-encryption --bucket law-firm-files --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"AES256\"}}]}' &&
         echo 'Bucket law-firm-files created successfully'
       "
 
@@ -82,4 +101,4 @@ services:
 
 volumes:
   postgres_data:
-  minio_data:
+  seaweedfs_data:

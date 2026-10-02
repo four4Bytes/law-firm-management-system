@@ -39,7 +39,7 @@ export interface FileTypeInput {
  * so an extension cannot be accepted without a category, label, and MIME type.
  *
  * Each MIME type is a hint inferred from the extension, not verified against the
- * file's bytes — the trust boundary the upload allowlist already applies. Treat
+ * file's bytes - the trust boundary the upload allowlist already applies. Treat
  * the entries as immutable; {@link getFileDescriptor} copies before returning.
  */
 const FILE_TYPE_REGISTRY: Readonly<Record<string, FileTypeDescriptor>> = {

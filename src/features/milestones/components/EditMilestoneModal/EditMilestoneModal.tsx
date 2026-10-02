@@ -107,12 +107,12 @@ export function EditMilestoneModal({
     if (status === CaseMilestoneStatus.Pending) {
       if (!statusChanged) return undefined;
       if (isBeforeToday(newDueDate)) {
-        return "Reopening restarts reminders, and a pending milestone cannot stay overdue — move the due date to today or later.";
+        return "Reopening restarts reminders, and a pending milestone cannot stay overdue - move the due date to today or later.";
       }
       return "Selecting Pending reopens this milestone and restarts its reminders.";
     }
     if (status === CaseMilestoneStatus.Done && isAfterToday(newDueDate)) {
-      return "A completed milestone cannot be due in the future — move the due date to today or earlier.";
+      return "A completed milestone cannot be due in the future - move the due date to today or earlier.";
     }
     return undefined;
   }

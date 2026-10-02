@@ -31,7 +31,7 @@ const notificationSeeds: NotificationSeed[] = [
     type: NotificationType.MilestoneStatusChanged,
     title: "Milestone cancelled: Barangay Mediation Attempt",
     message:
-      'Milestone "Barangay Mediation Attempt" for Lopez Property Boundary Litigation was cancelled — no settlement reached, proceeding to court.',
+      'Milestone "Barangay Mediation Attempt" for Lopez Property Boundary Litigation was cancelled - no settlement reached, proceeding to court.',
     is_read: true,
     daysAgo: 7,
     caseTitle: "Lopez Property Boundary Litigation",
@@ -76,10 +76,10 @@ const notificationSeeds: NotificationSeed[] = [
     type: NotificationType.MilestoneOverdue,
     title: "Milestone overdue: Due Diligence Document Submission",
     message:
-      'Milestone "Due Diligence Document Submission" for Ramirez Corp — Series A Funding is overdue by 1 day.',
+      'Milestone "Due Diligence Document Submission" for Ramirez Corp - Series A Funding is overdue by 1 day.',
     is_read: false,
     daysAgo: 0,
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     milestoneTitle: "Due Diligence Document Submission",
   },
   // ── TaskAssigned ──
@@ -151,20 +151,20 @@ const notificationSeeds: NotificationSeed[] = [
     type: NotificationType.CaseAssigned,
     title: "Case assigned: Fernandez Criminal Defense",
     message:
-      'You have been assigned to the case "Fernandez Criminal Defense — Estafa Case" (Criminal).',
+      'You have been assigned to the case "Fernandez Criminal Defense - Estafa Case" (Criminal).',
     is_read: false,
     daysAgo: 12,
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
   },
   {
     userEmail: "nina.salvador@aninolaw.com",
     type: NotificationType.CaseAssigned,
     title: "Case assigned: Fernandez Criminal Defense",
     message:
-      'You have been assigned to the case "Fernandez Criminal Defense — Estafa Case" (Criminal).',
+      'You have been assigned to the case "Fernandez Criminal Defense - Estafa Case" (Criminal).',
     is_read: false,
     daysAgo: 12,
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
   },
 ];
 

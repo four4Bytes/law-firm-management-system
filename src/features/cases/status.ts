@@ -8,7 +8,7 @@ export function isValidCaseStatusTransition(from: CaseStatus, to: CaseStatus): b
   return canTransition(CASE_TRANSITIONS, from, to);
 }
 
-// Terminal means no forward edge except reopen — resumed litigation stays on the
+// Terminal means no forward edge except reopen - resumed litigation stays on the
 // same matter record (same court, docket, client, fees, documents) rather than
 // fragmenting across two. Every reopen is an explicit, confirmed, audited edge.
 export function isTerminalCaseStatus(status: CaseStatus): boolean {

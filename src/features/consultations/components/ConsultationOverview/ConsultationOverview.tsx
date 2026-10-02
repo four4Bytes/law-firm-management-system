@@ -84,11 +84,11 @@ export function ConsultationOverview({
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Email</span>
-              <span className={styles.value}>{data.client.email ?? "—"}</span>
+              <span className={styles.value}>{data.client.email ?? "-"}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Address</span>
-              <span className={styles.value}>{data.client.address ?? "—"}</span>
+              <span className={styles.value}>{data.client.address ?? "-"}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Booking Date & Time</span>

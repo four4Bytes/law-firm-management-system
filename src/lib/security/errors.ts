@@ -108,7 +108,7 @@ export class DeactivatedError extends Error {
 /**
  * Error thrown when a mutation would change a `Done` task's assignee roster,
  * reviewer roster, assignment state, or approval decisions. Those are the only
- * things a completed task freezes — its title, description, notes, and files
+ * things a completed task freezes - its title, description, notes, and files
  * stay editable, and it can still be deleted.
  *
  * The roster is frozen because it defines who "all reviewers approved" refers
@@ -172,7 +172,7 @@ interface ConflictCopy {
  * without logging.
  * Prisma `P2002` unique violations map to a conflict when the caller supplies
  * {@link ConflictCopy}. Everything else is logged via `logError` and returned
- * as a sanitized unknown-error envelope — raw exceptions never reach the client.
+ * as a sanitized unknown-error envelope - raw exceptions never reach the client.
  *
  * @param error - The value caught in a Server Action `catch` block.
  * @param operation - Verb phrase for the fallback title

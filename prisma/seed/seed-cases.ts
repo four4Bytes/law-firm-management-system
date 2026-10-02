@@ -101,7 +101,7 @@ const cases: CaseData[] = [
   },
   {
     clientEmail: "danilo.fernandez@email.com",
-    title: "Fernandez Criminal Defense — Estafa Case",
+    title: "Fernandez Criminal Defense - Estafa Case",
     type: "Criminal",
     status: "Open",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
@@ -128,7 +128,7 @@ const cases: CaseData[] = [
   },
   {
     clientEmail: "sofia.ramirez@email.com",
-    title: "Ramirez Corp — Series A Funding",
+    title: "Ramirez Corp - Series A Funding",
     type: "Corporate",
     status: "Open",
     createdByEmail: "angela.mercado@aninolaw.com",
@@ -165,7 +165,7 @@ const cases: CaseData[] = [
   },
   {
     clientEmail: "divina.torres@email.com",
-    title: "Torres Ejectment Case — Withdrawn",
+    title: "Torres Ejectment Case - Withdrawn",
     type: "Civil Litigation",
     status: "Terminated",
     createdByEmail: "marco.lopez@aninolaw.com",

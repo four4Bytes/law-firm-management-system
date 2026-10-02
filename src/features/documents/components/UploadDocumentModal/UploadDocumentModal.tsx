@@ -193,7 +193,7 @@ export function UploadDocumentModal({
           <>
             <p className={styles.summary}>
               {`${fileEntries.length} file${fileEntries.length > 1 ? "s" : ""} · ${formatFileSize(totalBytes)}`}
-              {isBusy && ` — Uploading ${completedCount} of ${fileEntries.length}`}
+              {isBusy && ` - Uploading ${completedCount} of ${fileEntries.length}`}
             </p>
 
             <UploadQueue

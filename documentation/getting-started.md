@@ -1,21 +1,23 @@
 # Getting Started
 
-## Prerequisites
+## Choose your setup
 
-- **Node.js** 22+
-- **pnpm** 11
-- **Docker** + **Docker Compose** (for local Postgres, MinIO & Mailpit)
+**Recommended: Nix.** Follow the [Developer Environment Setup](./developer-environment.md) guide first. On Windows it includes WSL; on Linux/macOS, skip that step. `flake.nix` + `flake.lock` pin everything below, so you skip manual installs and secrets tooling just works.
 
-> **Nix users:** you don't need to install Node/pnpm manually — `flake.nix` + `flake.lock` pin them.
+**Without Nix (any OS, including native Windows):** install everything yourself:
 
-## Reproducible dev environment with Nix
+- Node.js 22+, pnpm 11.10.0, Git, OpenSSL
+- Docker + Docker Compose (for local Postgres, SeaweedFS & Mailpit)
+- just + sops + age (task runner and secret tooling)
 
-`flake.nix` provides a pinned shell (Node 22, pnpm 11.10.0 via corepack, Prisma, Docker) for `x86_64-linux`, `aarch64-linux`, `aarch64-darwin` via `nixpkgs.lib.genAttrs` (`x86_64-darwin` dropped in nixpkgs 26.11). `flake.lock` makes it reproducible.
+On native Windows use Git Bash, not PowerShell (install Git for Windows first).
+
+Enter the pinned shell (Nix only - skip this if you installed manually):
 
 ```bash
-direnv allow          # via .envrc + nix-direnv — keeps your current shell/plugins (recommended)
+direnv allow          # via .envrc + nix-direnv, keeps your shell (recommended)
 # or
-nix develop -c $SHELL # manual, without direnv; bare `nix develop` spawns bash
+nix develop -c $SHELL # without direnv; bare `nix develop` spawns bash
 ```
 
 ## Setup
@@ -25,16 +27,16 @@ nix develop -c $SHELL # manual, without direnv; bare `nix develop` spawns bash
 git clone https://github.com/four4Bytes/law-firm-management-system.git
 cd law-firm-management-system
 
-# 2. Enter dev shell if using Nix (direnv keeps your shell; bare nix develop spawns bash)
+# 2. Nix only: enter the dev shell (see above)
 direnv allow  # or: nix develop -c $SHELL
 
 # 3. Install + env
 pnpm install
-cp .env.example .env
-cp .env.dev.example .env.dev
+just secrets-decrypt   # needs the age key - see ./secrets.md
+# Without the age key: cp .env.example .env && cp .env.dev.example .env.dev
 
 # 4. Start infra and DB
-make dev-up
+just dev-up
 pnpm prisma:migrate
 pnpm prisma:seed
 
@@ -42,16 +44,19 @@ pnpm prisma:seed
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhost:8025](http://localhost:8025).
+Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhost:8025](http://localhost:8025). SeaweedFS filer (file browser) at [http://localhost:8888](http://localhost:8888).
 
 ## Environment Files
 
 | File                                                      | Consumed by                                             | Contents                             |
 | --------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------ |
 | `.env`                                                    | Next.js dev server, Prisma CLI, seed script, Vitest     | Application runtime variables        |
-| `.env.dev`                                                | `make dev-*` targets only (Docker Compose dev stack)    | Infrastructure-only variables        |
-| `.env.prod`                                               | `make prod-*` targets (Docker Compose production stack) | Infrastructure **and** app variables |
-| `.env.example` / `.env.dev.example` / `.env.prod.example` | — (templates to copy)                                   |                                      |
+| `.env.dev`                                                | `just dev-*` targets only (Docker Compose dev stack)    | Infrastructure-only variables        |
+| `.env.prod`                                               | `just prod-*` targets (Docker Compose production stack) | Infrastructure **and** app variables |
+| `.env.staging`                                            | Copy-paste source for the Vercel testing project        | Staging app variables (Neon + B2)    |
+| `.env.example` / `.env.dev.example` / `.env.prod.example` | - (templates for key-less setup)                        |                                      |
+
+The gitignored `.env*` files are materialized from committed sops ciphertext (`secrets/*.enc.*`) via `just secrets-decrypt` - see [Secrets](./secrets.md).
 
 `.env.prod` is combined because in production the Next.js app runs inside a container and receives its runtime environment from that same file.
 
@@ -64,11 +69,11 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 | `AUTH_GOOGLE_ID`                  | Yes      | Google OAuth client ID ([credentials console](https://console.cloud.google.com/apis/credentials))                   |
 | `AUTH_GOOGLE_SECRET`              | Yes      | Google OAuth client secret                                                                                          |
 | `DEVELOPER_EMAILS`                | Yes      | Comma-separated Google accounts allowed to sign in without being pre-registered (bootstrap Dev users)               |
-| `S3_ENDPOINT`                     | Yes      | S3-compatible endpoint (`http://localhost:9000` for local MinIO)                                                    |
+| `S3_ENDPOINT`                     | Yes      | S3-compatible endpoint (`http://localhost:9000` for local SeaweedFS)                                                |
 | `S3_REGION`                       | Yes      | Storage region (e.g. `us-east-1`)                                                                                   |
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes      | Storage credentials (MinIO defaults: `minioadmin` / `minioadmin`)                                                   |
-| `S3_BUCKET`                       | Yes      | Bucket name for document storage (`law-firm-files`; created automatically by `make dev-up`)                         |
-| `S3_FORCE_PATH_STYLE`             | Yes      | Set `true` for MinIO/local endpoints                                                                                |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes      | Storage credentials (local defaults: `s3admin` / `s3secret`)                                                        |
+| `S3_BUCKET`                       | Yes      | Bucket name for document storage (`law-firm-files`; created automatically by `just dev-up`)                         |
+| `S3_FORCE_PATH_STYLE`             | Yes      | Set `true` for SeaweedFS/local endpoints                                                                            |
 | `EMAIL_FROM`                      | Yes      | Sender address for transactional emails                                                                             |
 | `EMAIL_HOST` / `EMAIL_PORT`       | Yes      | SMTP host/port (Mailpit defaults: `localhost:1025`)                                                                 |
 | `EMAIL_USER` / `EMAIL_PASS`       | Yes      | SMTP credentials (Mailpit defaults: `mailpit` / `mailpit`)                                                          |
@@ -82,11 +87,11 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 
 ### Infrastructure Variables (.env.dev)
 
-| Variable                                              | Required | Description                                                                                                            |
-| ----------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Yes      | Postgres container credentials (dev defaults: `testing`)                                                               |
-| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`             | Yes      | MinIO container credentials (dev defaults: `minioadmin`)                                                               |
-| `MINIO_KMS_SECRET_KEY`                                | No       | Base64 key for MinIO SSE encryption at rest; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
+| Variable                                              | Required | Description                                                                                                      |
+| ----------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Yes      | Postgres container credentials (dev defaults: `testing`)                                                         |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY`                     | Yes      | SeaweedFS S3 credentials (dev defaults: `s3admin` / `s3secret`)                                                  |
+| `SEAWEEDFS_SSE_KEK`                                   | Yes      | 64-character hex SeaweedFS SSE-S3 KEK; see [Deployment - Storage Encryption](./deployment.md#storage-encryption) |
 
 ## Available Commands
 
@@ -110,22 +115,42 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 | `pnpm prisma:reset`                                                   | Drop and recreate the database            |
 | `pnpm prepare`                                                        | Husky + Prisma generate (runs on install) |
 
-### Make targets
+### just targets
+
+`just --list` shows all targets grouped by Development, Production, Secrets, and Global.
 
 | Target            | Description                                               |
 | ----------------- | --------------------------------------------------------- |
-| `make dev-up`     | Start dev containers (Postgres + MinIO + Mailpit)         |
-| `make dev-down`   | Stop dev containers                                       |
-| `make dev-clean`  | Stop dev containers and remove volumes                    |
-| `make dev-reset`  | Down + up (hard reset dev environment)                    |
-| `make dev`        | Start infra, wait for Postgres, migrate, start dev server |
-| `make prod-up`    | Build and start production stack                          |
-| `make prod-down`  | Stop production containers                                |
-| `make prod-ps`    | Status of production containers                           |
-| `make prod-reset` | Down + up (hard reset production environment)             |
-| `make down`       | Stop all container environments                           |
-| `make clean`      | Stop all environments and purge volumes                   |
-| `make reset`      | Clean + rebuild + restart everything                      |
+| `just default`    | Show available targets                                    |
+| `just help`       | Show available targets                                    |
+| `just dev`        | Start infra, wait for Postgres, migrate, start dev server |
+| `just dev-up`     | Start dev containers (Postgres + SeaweedFS + Mailpit)     |
+| `just dev-down`   | Stop dev containers                                       |
+| `just dev-clean`  | Stop dev containers and remove volumes                    |
+| `just dev-reset`  | Down + up (hard reset dev environment)                    |
+| `just prod-up`    | Build and start production stack                          |
+| `just prod`       | Build and start production stack                          |
+| `just prod-down`  | Stop production containers                                |
+| `just prod-ps`    | Status of production containers                           |
+| `just prod-reset` | Down + up (hard reset production environment)             |
+| `just down`       | Stop all container environments                           |
+| `just clean`      | Stop all environments and purge volumes                   |
+| `just reset`      | Clean + rebuild + restart everything                      |
+
+### Secrets targets
+
+| Target                      | Description                                              |
+| --------------------------- | -------------------------------------------------------- |
+| `just secrets-decrypt`      | Decrypt `secrets/*.enc.*` → `.env*` + materialized blobs |
+| `just secrets-status`       | Verify the age key works and everything decrypts         |
+| `just secrets-keygen`       | Generate the shared age key (once per machine)           |
+| `just secrets-edit-local`   | Edit local app secrets in place                          |
+| `just secrets-edit-dev`     | Edit dev compose secrets in place                        |
+| `just secrets-edit-prod`    | Edit prod compose and app secrets in place               |
+| `just secrets-edit-staging` | Edit staging secrets in place                            |
+| `just secrets-edit-extra`   | Edit non-dotenv secrets in place                         |
+
+Full secrets guide: [Secrets](./secrets.md).
 
 ## Development Workflow
 
@@ -135,10 +160,7 @@ After making changes, run the full validation pipeline:
 pnpm validate && pnpm build
 ```
 
-This checks formatting, lint, TypeScript types, and ensures the production build compiles.
-
-Pre-commit hooks (Husky + lint-staged) auto-format and lint staged files.
-Pre-push hooks run `pnpm validate && pnpm test`.
+Pre-commit hooks (Husky + lint-staged) auto-format and lint staged files. Pre-push hooks run `pnpm validate && pnpm test`.
 
 ## Using AI Coding Agents
 

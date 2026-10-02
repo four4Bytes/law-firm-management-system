@@ -82,7 +82,7 @@ export const CannotBePreviewed: Story = {
     docs: {
       description: {
         story:
-          "Types that cannot be rendered fall back to a placeholder offering a download — the only download affordance on the page, and only when it is the way forward.",
+          "Types that cannot be rendered fall back to a placeholder offering a download - the only download affordance on the page, and only when it is the way forward.",
       },
     },
   },

@@ -1,4 +1,4 @@
-# Dates & Timezones — Specification
+# Dates & Timezones - Specification
 
 ## 1. The rule
 
@@ -6,11 +6,11 @@
 
 This is enforced by a test, not by convention: `src/lib/primitives/__tests__/date-encapsulation.test.ts` fails the build if any of them appears in `src/`.
 
-**One deliberate exception:** `getAppTimeZone()` stays importable, because a few external APIs demand an explicit zone rather than a `Date` — `node-cron`'s `timezone` option in `src/instrumentation.ts`, and `@internationalized/date`'s `CalendarDate.toDate(zone)`. Those call sites pass the zone through to something that would otherwise guess. What is forbidden is _deriving_ a zone implicitly; naming it is fine.
+**One deliberate exception:** `getAppTimeZone()` stays importable, because a few external APIs demand an explicit zone rather than a `Date` - `node-cron`'s `timezone` option in `src/instrumentation.ts`, and `@internationalized/date`'s `CalendarDate.toDate(zone)`. Those call sites pass the zone through to something that would otherwise guess. What is forbidden is _deriving_ a zone implicitly; naming it is fine.
 
 ## 2. Why
 
-JavaScript's `Date` is an instant, but its field readers (`getFullYear()`, `getMonth()`, `getDate()`, `getHours()`, `getMinutes()`, `getDay()`, `getTimezoneOffset()`) project that instant into **the runtime's** timezone — not the app's. That runtime differs by context:
+JavaScript's `Date` is an instant, but its field readers (`getFullYear()`, `getMonth()`, `getDate()`, `getHours()`, `getMinutes()`, `getDay()`, `getTimezoneOffset()`) project that instant into **the runtime's** timezone - not the app's. That runtime differs by context:
 
 | Context                           | Runtime zone               |
 | --------------------------------- | -------------------------- |
@@ -21,7 +21,7 @@ The app timezone is `APP_TIMEZONE` (default `Asia/Manila`), surfaced to the brow
 
 ## 3. The two failure modes
 
-**Round-trip drift.** Reading a stored instant with a local reader and writing it back with `combineDateTime` (app zone) shifts it by the offset between the two. A `00:00` due date lands on the _previous calendar day_ for any browser outside the app zone, and the record is rewritten on an unedited save — which also fires notifications and re-arms reminders.
+**Round-trip drift.** Reading a stored instant with a local reader and writing it back with `combineDateTime` (app zone) shifts it by the offset between the two. A `00:00` due date lands on the _previous calendar day_ for any browser outside the app zone, and the record is rewritten on an unedited save - which also fires notifications and re-arms reminders.
 
 **Asymmetric ranges.** Pairing a zone-correct lower bound with a server-local upper bound:
 
@@ -49,8 +49,8 @@ widens the window by exactly the offset. On a UTC host against `Asia/Manila` thi
 
 ## 5. Client and server must agree on "changed"
 
-Pickers only capture hour and minute, so any comparison of a stored timestamp against picker output must floor both sides with `toMinuteEpoch`. Comparing exact milliseconds makes a stored value carrying seconds read as edited, which turns a no-op save into a real write plus notifications. Both the modal and the Server Action must use the same precision — a client that floors while the server does not will show "no change" and then write anyway.
+Pickers only capture hour and minute, so any comparison of a stored timestamp against picker output must floor both sides with `toMinuteEpoch`. Comparing exact milliseconds makes a stored value carrying seconds read as edited, which turns a no-op save into a real write plus notifications. Both the modal and the Server Action must use the same precision - a client that floors while the server does not will show "no change" and then write anyway.
 
 ## 6. Testing
 
-`process.env.TZ` is **not** honoured reliably inside the vitest worker, so a test cannot simulate a foreign browser zone. Assert against `Intl` in the app timezone instead (as `src/lib/__tests__/date.test.ts` does) rather than mutating the ambient zone. Vercel crons are specified in **UTC**, so an app-timezone schedule must be converted: the reminders job uses `"0 16 * * *"`, which is 00:00 in Manila. `src/instrumentation.ts` schedules the same job with `node-cron` at `"0 0 * * *"` plus `timezone: getAppTimeZone()`, so the two deployments agree. Changing `APP_TIMEZONE` requires updating `vercel.json` as well — see [deployment.md](./deployment.md).
+`process.env.TZ` is **not** honoured reliably inside the vitest worker, so a test cannot simulate a foreign browser zone. Assert against `Intl` in the app timezone instead (as `src/lib/__tests__/date.test.ts` does) rather than mutating the ambient zone. Vercel crons are specified in **UTC**, so an app-timezone schedule must be converted: the reminders job uses `"0 16 * * *"`, which is 00:00 in Manila. `src/instrumentation.ts` schedules the same job with `node-cron` at `"0 0 * * *"` plus `timezone: getAppTimeZone()`, so the two deployments agree. Changing `APP_TIMEZONE` requires updating `vercel.json` as well - see [deployment.md](./deployment.md).

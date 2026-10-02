@@ -743,7 +743,7 @@ describe("deleteMilestoneAction", () => {
     const result = await updateMilestoneAction({
       milestoneId: uuid,
       title: milestoneRecord.title,
-      description: "Dropped — superseded by the amended petition",
+      description: "Dropped - superseded by the amended petition",
       due_date: milestoneRecord.due_date,
       status: "Cancelled" as const,
     });

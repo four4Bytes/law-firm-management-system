@@ -77,11 +77,11 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending, workflowAc
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Email</span>
-              <span className={styles.value}>{data.client.email ?? "—"}</span>
+              <span className={styles.value}>{data.client.email ?? "-"}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Address</span>
-              <span className={styles.value}>{data.client.address ?? "—"}</span>
+              <span className={styles.value}>{data.client.address ?? "-"}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Case Type</span>
@@ -92,7 +92,7 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending, workflowAc
               <span className={styles.value}>
                 {data.latestMilestone
                   ? `${data.latestMilestone.title} (${data.latestMilestone.status})`
-                  : "—"}
+                  : "-"}
               </span>
             </div>
             <div className={styles.field}>
@@ -101,7 +101,7 @@ export function CaseOverview({ data, onEdit, onDelete, isEditPending, workflowAc
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Parties Involved</span>
-              <span className={styles.value}>{data.parties_involved ?? "—"}</span>
+              <span className={styles.value}>{data.parties_involved ?? "-"}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.label}>Created By</span>

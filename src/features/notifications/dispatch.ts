@@ -1,4 +1,4 @@
-// Mirrors documentation/notifications.md — the dispatch/recipient/email pipeline is the spec.
+// Mirrors documentation/notifications.md - the dispatch/recipient/email pipeline is the spec.
 // Change the doc and this implementation together.
 
 import { createNotifications } from "@/features/notifications/mutations";

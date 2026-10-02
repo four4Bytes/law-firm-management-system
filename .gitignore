@@ -33,10 +33,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files (plaintext — materialized via `make secrets-decrypt`, never committed)
 .env
 .env.dev
 .env.prod
+.env.staging
 
 # vercel
 .vercel
@@ -56,4 +57,10 @@ docs
 
 .direnv/
 
-secrets/
+# sops-encrypted secrets (*.enc.*) are committed; everything else under
+# secrets/ is local-only plaintext (age keys, materialized files).
+secrets/*
+!secrets/*.enc.env
+!secrets/*.enc.yaml
+!secrets/.gitkeep
+keys.txt

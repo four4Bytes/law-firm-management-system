@@ -9,7 +9,7 @@
  * Unwraps a settled promise, yielding `null` when it was rejected.
  *
  * Use with `Promise.allSettled` when parallel fetches feed one render and any
- * one of them may fail independently — the rejected branch degrades to `null`
+ * one of them may fail independently - the rejected branch degrades to `null`
  * instead of rejecting the whole batch and taking the page down with it.
  *
  * @param result - A settled result from `Promise.allSettled`.

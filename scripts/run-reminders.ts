@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   );
 
   if (!process.env.DATABASE_URL) {
-    console.error("[reminders] DATABASE_URL is not set — check .env");
+    console.error("[reminders] DATABASE_URL is not set - check .env");
     process.exit(1);
   }
 

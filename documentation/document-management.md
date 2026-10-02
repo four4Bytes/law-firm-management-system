@@ -10,7 +10,7 @@ the [Data Models](./models.md) reference.
   via the `@aws-sdk/client-s3` client in `src/lib/infra/s3.ts`. Files never stream through or are
   parsed by the Next.js runtime.
 - **Metadata in Postgres**: The `Document` model keeps only
-  pointers and metadata — `file_name`, `file_type`, `file_size`, `file_path` (the object key),
+  pointers and metadata - `file_name`, `file_type`, `file_size`, `file_path` (the object key),
   the parent linkage (`case_id` / `consultation_id` / `task_id`), and `uploaded_by_user_id`.
   `file_type` holds the MIME type derived from the extension; see [Validation](#file-type-validation).
 - **Presigned URLs**: All reads and writes go through short-lived, server-generated presigned
@@ -30,7 +30,7 @@ the [Data Models](./models.md) reference.
    with S3 before persisting the `Document` row and auditing the upload.
 
 No presigned URL is issued for a disallowed type, and no `Document` row is created on confirm
-unless the type still passes validation — see [Validation](#file-type-validation).
+unless the type still passes validation - see [Validation](#file-type-validation).
 
 ## Upload key binding
 
@@ -62,7 +62,7 @@ storage as a best-effort cleanup.
 **Cascade delete flow** (case, consultation, or task): the database is the source of truth.
 The parent delete mutation cascades the `Document` rows first, then invokes
 `deleteDocumentFiles` (in `src/lib/files/storage-cleanup.ts`) to reclaim the S3 blobs. This cleanup
-is best-effort and idempotent — failures are logged but never abort the delete. Any orphaned
+is best-effort and idempotent - failures are logged but never abort the delete. Any orphaned
 S3 objects left behind are harmless and reclaimed by the storage GC sweep
 (`src/app/api/cron/storage-gc/route.ts`).
 
@@ -86,7 +86,7 @@ from a single source of truth:
   extension for the presigned PUT's `Content-Type` and the stored `file_type`, and the client echoes
   that value back so the signed header and the request agree.
 
-To add or remove a supported type, edit the registry only — it propagates to the picker, the
+To add or remove a supported type, edit the registry only - it propagates to the picker, the
 server validation, and the UI presentation automatically.
 
 ### How a file's type is resolved
@@ -108,7 +108,7 @@ stored MIME type only for extensions outside the registry:
 allowlist, which the seed exercises with a `.zip` evidence bundle.
 
 The registry's MIME type is a hint inferred from the extension, not one verified against the file's
-bytes — the same trust boundary the upload allowlist already applies.
+bytes - the same trust boundary the upload allowlist already applies.
 
 The attachments table's **Type** column is not sortable: its label is per-extension (`DOCX`) while
 ordering would use the MIME string, whose collation places `DOCX` after `XLSX`.
@@ -146,7 +146,7 @@ object still exists (`objectExists`), then issues a presigned **GET** URL with `
 and renders `DocumentPreview`. Anything that cannot be rendered (unsupported type, or an unplayable
 video) falls back to a placeholder offering a download.
 
-- **Text/csv inline preview**: `src/lib/files/text-preview.ts` gates the inline text preview —
+- **Text/csv inline preview**: `src/lib/files/text-preview.ts` gates the inline text preview -
   `canPreviewTextInline(bytes)` refuses to fetch files larger than 1 MB, and
   `sliceTextPreview(text)` truncates to 4,000 characters (appending an ellipsis when content is
   dropped so the UI never implies a complete document).

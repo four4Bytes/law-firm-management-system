@@ -10,7 +10,7 @@ interface UserChipsProps {
   className?: string;
 }
 
-export function UserChips({ users, emptyText = "—", className }: UserChipsProps) {
+export function UserChips({ users, emptyText = "-", className }: UserChipsProps) {
   if (users.length === 0) {
     return <span className={styles.empty}>{emptyText}</span>;
   }

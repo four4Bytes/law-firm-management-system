@@ -9,10 +9,10 @@
 
 Each notification is delivered from a single dispatch point through two channels:
 
-1. **In-app** — a `Notification` DB row, shown in the header bell (unread badge + list).
-2. **Email** — an HTML template rendered per `NotificationType` (see [models.md](./models.md#notification-type)), sent to each recipient.
+1. **In-app** - a `Notification` DB row, shown in the header bell (unread badge + list).
+2. **Email** - an HTML template rendered per `NotificationType` (see [models.md](./models.md#notification-type)), sent to each recipient.
 
-Every dispatched type writes a DB row and has an email template. **Email is best-effort, not a durable archive**: a missing recipient address or failed email delivery does not remove the in-app row — it stays available until normal retention pruning. A notification is lost only when its row is pruned by retention. The bell is a transient unread surface — there is no history page.
+Every dispatched type writes a DB row and has an email template. **Email is best-effort, not a durable archive**: a missing recipient address or failed email delivery does not remove the in-app row - it stays available until normal retention pruning. A notification is lost only when its row is pruned by retention. The bell is a transient unread surface - there is no history page.
 
 ---
 
@@ -20,22 +20,22 @@ Every dispatched type writes a DB row and has an email template. **Email is best
 
 All notifications pass through `dispatchNotifications(payload, actorUserId, notifyActor = false)` in `src/features/notifications/dispatch.ts`, in order:
 
-1. **Actor exclusion** — the actor is removed from recipients unless `notifyActor` is `true`.
-2. **Active users only** — deactivated users never receive anything.
-3. **Deduplication** — duplicate IDs are collapsed.
-4. **Preference gate (in-app + email in sync)** — assignment types (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) consult `UserSettings` (`notify_email_*_assigned`, edited at `/settings` under “Assignments”); status-change types (`CaseStatusChanged`, `ConsultationStatusChanged`, `TaskStatusChanged`, `MilestoneStatusChanged`) consult `notify_email_*_status_changed` (under “Status changes”); `ConsultationRescheduled` consults `notify_email_consultation_rescheduled` and `MilestoneDueDateChanged` consults `notify_email_milestone_rescheduled` (both under “Status changes”). Disabled users are removed **before** the DB row is created, so they receive no in-app row and no email. Reminder types (`ConsultationReminder`/`Overdue`, `MilestoneDueSoon`/`Overdue`) are not gated here — they are filtered per-user by the scheduler via `UserSettings` frequency/overdue prefs. Preference lookup is best-effort — a DB failure falls back to notifying all recipients and is logged.
-5. **Database row** — one `is_read = false` row per remaining recipient. For assignments and status changes, rows are only created for opted-in users; for reminders, one per per-user-filtered recipient.
-6. **Email** — per remaining recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
+1. **Actor exclusion** - the actor is removed from recipients unless `notifyActor` is `true`.
+2. **Active users only** - deactivated users never receive anything.
+3. **Deduplication** - duplicate IDs are collapsed.
+4. **Preference gate (in-app + email in sync)** - assignment types (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`) consult `UserSettings` (`notify_email_*_assigned`, edited at `/settings` under “Assignments”); status-change types (`CaseStatusChanged`, `ConsultationStatusChanged`, `TaskStatusChanged`, `MilestoneStatusChanged`) consult `notify_email_*_status_changed` (under “Status changes”); `ConsultationRescheduled` consults `notify_email_consultation_rescheduled` and `MilestoneDueDateChanged` consults `notify_email_milestone_rescheduled` (both under “Status changes”). Disabled users are removed **before** the DB row is created, so they receive no in-app row and no email. Reminder types (`ConsultationReminder`/`Overdue`, `MilestoneDueSoon`/`Overdue`) are not gated here - they are filtered per-user by the scheduler via `UserSettings` frequency/overdue prefs. Preference lookup is best-effort - a DB failure falls back to notifying all recipients and is logged.
+5. **Database row** - one `is_read = false` row per remaining recipient. For assignments and status changes, rows are only created for opted-in users; for reminders, one per per-user-filtered recipient.
+6. **Email** - per remaining recipient with an address, render the type's template and send. Failures are logged and never block or roll back the row.
 
 Payload: `userIds`, `type`, `title`, `message`, optional `actionUrl`, and related `caseId` / `consultationId` / `milestoneId` / `taskId`.
 
-> Notification preferences are edited at `/settings` by any authenticated user via `src/features/settings/` (`UserSettings` row, defaults all `true`). For assignments, status changes, and deadline reminders, preferences gate **both** email and in-app — the two channels are always in sync. Assignment and status-change prefs live under “Notifications” (grouped “Assignments” / “Status changes”); reminder prefs under “Deadline & reminder schedule”.
+> Notification preferences are edited at `/settings` by any authenticated user via `src/features/settings/` (`UserSettings` row, defaults all `true`). For assignments, status changes, and deadline reminders, preferences gate **both** email and in-app - the two channels are always in sync. Assignment and status-change prefs live under “Notifications” (grouped “Assignments” / “Status changes”); reminder prefs under “Deadline & reminder schedule”.
 
 ---
 
 ## 3. Recipient Resolution
 
-Recipients come only from **assignment** — the users assigned to the record:
+Recipients come only from **assignment** - the users assigned to the record:
 
 | Entity       | Assignment source                         |
 | ------------ | ----------------------------------------- |
@@ -53,7 +53,7 @@ Only **active** users are eligible; recipients are per-event, not role-based ([s
 
 Fired by Server Actions in `after()` callbacks after the mutation succeeds (audited, non-blocking).
 
-> Creation and deletion of a record are audited, not announced — **except** the first assignment. When a record is created with assignees, those users are notified exactly as if they had been assigned later; the record's own creation/deletion and content-only edits dispatch nothing. Immediate notifications cover assignment changes (case/task/consultation, including at creation), status changes (case/consultation/milestone), and the Accepted→New Case consultation transition.
+> Creation and deletion of a record are audited, not announced - **except** the first assignment. When a record is created with assignees, those users are notified exactly as if they had been assigned later; the record's own creation/deletion and content-only edits dispatch nothing. Immediate notifications cover assignment changes (case/task/consultation, including at creation), status changes (case/consultation/milestone), and the Accepted→New Case consultation transition.
 
 ### Cases
 
@@ -76,9 +76,9 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 | Task completed (→ `Done`)     | All assignees         | `TaskStatusChanged` | Actor always excluded |
 | Task rejected (→ `Pending`)   | All assignees         | `TaskStatusChanged` | Actor always excluded |
 
-> Task status changes fire only on the review transitions — → `InReview` (all assignees done), → `Done` (all reviewers approved), → `Pending` (any reviewer rejected); deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from InReview to Done`). Actor always excluded.
+> Task status changes fire only on the review transitions - → `InReview` (all assignees done), → `Done` (all reviewers approved), → `Pending` (any reviewer rejected); deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from InReview to Done`). Actor always excluded.
 >
-> A user who is **both** an assignee and a reviewer on the same task receives a single `TaskAssigned` notification — the reviewer-added notice is suppressed when the recipient is already an assignee (and vice-versa). No duplicate delivery.
+> A user who is **both** an assignee and a reviewer on the same task receives a single `TaskAssigned` notification - the reviewer-added notice is suppressed when the recipient is already an assignee (and vice-versa). No duplicate delivery.
 
 ### Milestones (sub-data of Case)
 
@@ -100,7 +100,7 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 
 > Any status transition (incl. → `Accepted`/`Completed`/`Rejected`) notifies; deletion and content-only edits dispatch nothing. Initial assignee assignment at creation dispatches (see table). The message states the change as `from <before> to <after>` (e.g. `from Scheduled to Accepted`). Actor always excluded. A booking-date change on a `Scheduled` consultation dispatches `ConsultationRescheduled` (own preference toggle) and re-arms reminders; booking edits are refused at any other status.
 >
-> **Accepted = New Case:** accepting runs one atomic action — the consultation flips to `Accepted` and the case is created in the same transaction. The status-change notification fires on the transition; the case creation itself dispatches nothing (creation is audited, not announced). Cancelling the case modal changes nothing because the status never flipped.
+> **Accepted = New Case:** accepting runs one atomic action - the consultation flips to `Accepted` and the case is created in the same transaction. The status-change notification fires on the transition; the case creation itself dispatches nothing (creation is audited, not announced). Cancelling the case modal changes nothing because the status never flipped.
 >
 > **Single-notice rule:** each recipient gets at most one assignment notice per event.
 
@@ -115,13 +115,13 @@ Fired by Server Actions in `after()` callbacks after the mutation succeeds (audi
 | Vercel               | Cron `0 16 * * *` (UTC) = 00:00 `Asia/Manila` → `GET /api/cron/reminders`                                                           | `Bearer CRON_SECRET` required; else 401 |
 | Docker / self-hosted | `node-cron` in `src/instrumentation.ts` at midnight app time (`APP_TIMEZONE`, fallback `Asia/Manila`; skipped when `VERCEL` is set) | `noOverlap: true`                       |
 
-The Vercel expression is the UTC instant equal to app-timezone midnight (`0 16 * * *` = 16:00 UTC = 00:00 Manila), so both deployments fire at the same local time. Changing `APP_TIMEZONE` means changing the `vercel.json` schedule too — see [Dates & timezones](./dates-and-timezones.md).
+The Vercel expression is the UTC instant equal to app-timezone midnight (`0 16 * * *` = 16:00 UTC = 00:00 Manila), so both deployments fire at the same local time. Changing `APP_TIMEZONE` means changing the `vercel.json` schedule too - see [Dates & timezones](./dates-and-timezones.md).
 
-Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, running three **isolated** phases in order — a phase failure is logged and does not stop the next:
+Both paths call `runReminderCheck()` in `src/features/reminders/scheduler.ts`, running three **isolated** phases in order - a phase failure is logged and does not stop the next:
 
-1. **Prune** — delete notifications older than `NOTIFICATION_RETENTION_DAYS`.
-2. **Milestones** — process milestone reminders.
-3. **Consultations** — process consultation reminders.
+1. **Prune** - delete notifications older than `NOTIFICATION_RETENTION_DAYS`.
+2. **Milestones** - process milestone reminders.
+3. **Consultations** - process consultation reminders.
 
 ### Candidate & window
 
@@ -151,7 +151,7 @@ A milestone/consultation is a candidate when its status is `Pending`/`Scheduled`
 
 The guard runs **before** dispatch, in one try/catch per candidate:
 
-- it is a conditional update that only wins for records still eligible — a concurrent invocation that already claimed/suppressed wins, and this run **skips** (concurrent cron runs never double-send);
+- it is a conditional update that only wins for records still eligible - a concurrent invocation that already claimed/suppressed wins, and this run **skips** (concurrent cron runs never double-send);
 - dispatch throws → the guard is released (claim reset to `null` / suppression removed), so the record stays eligible next run;
 - release is scoped to the exact value this run wrote, so it never clears another invocation's guard.
 
@@ -159,7 +159,7 @@ The guard runs **before** dispatch, in one try/catch per candidate:
 
 ## 6. Retention & Cleanup
 
-At the start of each `runReminderCheck()`, `pruneNotifications(retentionDays)` deletes `Notification` rows older than `retentionDays` (`NOTIFICATION_RETENTION_DAYS`, default 90) — **all users**, unread included, with no archive: a row that also failed to email is lost permanently. Cutoff is `created_at`; a prune failure is logged and does not stop processing. The bell intentionally has no paginated history ([Overview](#1-overview)).
+At the start of each `runReminderCheck()`, `pruneNotifications(retentionDays)` deletes `Notification` rows older than `retentionDays` (`NOTIFICATION_RETENTION_DAYS`, default 90) - **all users**, unread included, with no archive: a row that also failed to email is lost permanently. Cutoff is `created_at`; a prune failure is logged and does not stop processing. The bell intentionally has no paginated history ([Overview](#1-overview)).
 
 ---
 
@@ -186,8 +186,8 @@ All templates live in `src/lib/messaging/email-templates.ts`. Every dispatched t
 - Relative `actionUrl` values resolve against `APP_ORIGIN` (env, required for emails).
 - `MilestoneStatusChanged`, `TaskStatusChanged`, `CaseStatusChanged`, and `ConsultationStatusChanged` emails state the status transition (`from Pending to Done`) in the body.
 - All interpolated text is HTML-escaped.
-- Recipients without an email are skipped for the email channel (the in-app row is still gated by preferences — see Dispatch Pipeline).
-- Assignment, status-change, reschedule, and reminder notifications (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`, `CaseStatusChanged`, `ConsultationStatusChanged`, `ConsultationRescheduled`, `TaskStatusChanged`, `MilestoneStatusChanged`, `MilestoneDueDateChanged`, `MilestoneDueSoon`/`Overdue`, `ConsultationReminder`/`Overdue`) respect the recipient's `UserSettings` toggles/frequency edited at `/settings` — opted-out users receive neither the in-app row nor the email (channels always in sync).
+- Recipients without an email are skipped for the email channel (the in-app row is still gated by preferences - see Dispatch Pipeline).
+- Assignment, status-change, reschedule, and reminder notifications (`CaseAssigned`, `ConsultationAssigned`, `TaskAssigned`, `CaseStatusChanged`, `ConsultationStatusChanged`, `ConsultationRescheduled`, `TaskStatusChanged`, `MilestoneStatusChanged`, `MilestoneDueDateChanged`, `MilestoneDueSoon`/`Overdue`, `ConsultationReminder`/`Overdue`) respect the recipient's `UserSettings` toggles/frequency edited at `/settings` - opted-out users receive neither the in-app row nor the email (channels always in sync).
 
 ---
 
@@ -197,7 +197,7 @@ All templates live in `src/lib/messaging/email-templates.ts`. Every dispatched t
 - Popover loads unread only (30, newest first).
 - Clicking an item: marks it read, removes it from the popover, decrements the badge, navigates to `actionUrl` when present.
 - "Mark all read" clears all unread and the badge.
-- The badge is informative only — authorization stays server-side via `requireAuth()`.
+- The badge is informative only - authorization stays server-side via `requireAuth()`.
 
 ---
 
@@ -214,8 +214,8 @@ All templates live in `src/lib/messaging/email-templates.ts`. Every dispatched t
 
 ## 10. Failure & Resilience Semantics
 
-1. **Scheduled failure** — the record stays eligible for the next run (no lost reminders; possible retry next day).
-2. **Email failure** — never blocks other recipients or the in-app row (logged only, no retry queue); a failed/absent email plus a pruned row means the notification is gone.
-3. **Phase isolation** — prune, milestones, and consultations each run in their own try/catch.
-4. **Once-per-day claim** — an optimistic, per-record guard run **before** dispatch; concurrent runs at most deliver once, a crashed run delays to the next cycle, never duplicates.
-5. **Developer accounts** — seeded/deactivated accounts are bootstrap-only and get no special notification behavior.
+1. **Scheduled failure** - the record stays eligible for the next run (no lost reminders; possible retry next day).
+2. **Email failure** - never blocks other recipients or the in-app row (logged only, no retry queue); a failed/absent email plus a pruned row means the notification is gone.
+3. **Phase isolation** - prune, milestones, and consultations each run in their own try/catch.
+4. **Once-per-day claim** - an optimistic, per-record guard run **before** dispatch; concurrent runs at most deliver once, a crashed run delays to the next cycle, never duplicates.
+5. **Developer accounts** - seeded/deactivated accounts are bootstrap-only and get no special notification behavior.

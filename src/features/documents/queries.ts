@@ -224,7 +224,7 @@ export async function getDocumentFilePathsByConsultationId(
 // Collects the S3 object keys for every document that a case deletion will
 // cascade-remove: documents attached directly to the case and to its tasks.
 //
-// Consultations are intentionally excluded — deleting a case only unlinks its
+// Consultations are intentionally excluded - deleting a case only unlinks its
 // source consultation, so consultation-owned documents must survive.
 //
 // Returns the `file_path` values of all documents removed by the delete.

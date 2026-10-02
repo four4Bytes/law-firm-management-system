@@ -118,8 +118,8 @@ A work item within a case.
 | Description | Text       | No       | Task details                                                          |
 | Status      | Enum       | Yes      | Current status (see [Task Status](#task-status))                      |
 | Created By  | Link       | Yes      | The user who created the task (auto-reviewer)                         |
-| Assignees   | Join table | No       | Users assigned to this task — see [Task Assignment](#task-assignment) |
-| Reviewers   | Join table | No       | Users reviewing this task — see [Task Reviewer](#task-reviewer)       |
+| Assignees   | Join table | No       | Users assigned to this task - see [Task Assignment](#task-assignment) |
+| Reviewers   | Join table | No       | Users reviewing this task - see [Task Reviewer](#task-reviewer)       |
 | Created     | Timestamp  | Yes      | When the record was created                                           |
 | Updated     | Timestamp  | Yes      | When the record was last modified                                     |
 
@@ -227,7 +227,7 @@ A system notification sent to a user.
 
 ### Audit Log
 
-A system-generated record of an action taken in the system. Audit logs are immutable — they cannot be edited or deleted.
+A system-generated record of an action taken in the system. Audit logs are immutable - they cannot be edited or deleted.
 
 | Field       | Type      | Required | Description                            |
 | ----------- | --------- | -------- | -------------------------------------- |
@@ -332,7 +332,7 @@ Links a reviewer to a task for approval workflows.
 
 ### Case Status
 
-`Open` covers the whole live matter, from intake through active work — there is no separate "ongoing" state. The three endings are siblings distinguished by exit paperwork:
+`Open` covers the whole live matter, from intake through active work - there is no separate "ongoing" state. The three endings are siblings distinguished by exit paperwork:
 
 | Value      | Description                                                      |
 | ---------- | ---------------------------------------------------------------- |
@@ -351,7 +351,7 @@ Links a reviewer to a task for approval workflows.
 | InReview | All assignees done; awaiting reviewer decisions         |
 | Done     | All reviewers approved                                  |
 
-> `Task.status` is derived — no one sets it directly. Unwanted tasks are deleted. See [Task Review Workflow](./task-review-workflow.md).
+> `Task.status` is derived - no one sets it directly. Unwanted tasks are deleted. See [Task Review Workflow](./task-review-workflow.md).
 
 ---
 
@@ -390,7 +390,7 @@ Links a reviewer to a task for approval workflows.
 
 | Value                     | Description                                        |
 | ------------------------- | -------------------------------------------------- |
-| ConsultationReminder      | Upcoming consultation — due within reminder window |
+| ConsultationReminder      | Upcoming consultation - due within reminder window |
 | ConsultationOverdue       | Consultation booking date has passed               |
 | MilestoneDueSoon          | Milestone due within reminder window               |
 | MilestoneStatusChanged    | Any milestone status change                        |

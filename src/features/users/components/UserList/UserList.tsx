@@ -29,7 +29,7 @@ interface UserListProps {
   className?: string;
 }
 
-export function UserList({ users, emptyText = "—", className }: UserListProps) {
+export function UserList({ users, emptyText = "-", className }: UserListProps) {
   if (users.length === 0) return <span className={styles.empty}>{emptyText}</span>;
 
   return (
@@ -40,7 +40,7 @@ export function UserList({ users, emptyText = "—", className }: UserListProps)
           <span className={styles.name}>{name}</span>
           {status && (
             <span className={styles.status} data-status={status}>
-              — {formatUserStatus(status)}
+              - {formatUserStatus(status)}
             </span>
           )}
         </li>

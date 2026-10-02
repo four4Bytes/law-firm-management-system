@@ -60,7 +60,7 @@ const columns: ColumnDef<MilestoneListRow>[] = [
   {
     id: "description",
     name: "Description",
-    render: (value) => (value ? (value as string) : "—"),
+    render: (value) => (value ? (value as string) : "-"),
   },
   {
     id: "due_date",

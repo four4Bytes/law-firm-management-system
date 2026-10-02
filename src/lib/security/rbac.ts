@@ -1,7 +1,7 @@
 /**
  * Centralized RBAC policy for the application.
  *
- * This module mirrors `documentation/RBAC.md` — the permission matrix is the
+ * This module mirrors `documentation/RBAC.md` - the permission matrix is the
  * single source of truth for what each role may do. When the client requests
  * a policy change, edit the affected cell in {@link PERMISSION_MATRIX} here
  * and in the documentation; every layer (server actions, client UI, sidebar
@@ -78,11 +78,11 @@ export type Permission =
 /**
  * Runtime facts about the current user's relation to a specific record.
  *
- * - `assigned` — the user has a `CaseAssignment` / `ConsultationAssignment`
+ * - `assigned` - the user has a `CaseAssignment` / `ConsultationAssignment`
  *   for the record's parent case or consultation.
- * - `own`      — the user created the record (`created_by_user_id`), or
+ * - `own`      - the user created the record (`created_by_user_id`), or
  *   uploaded it in the case of documents.
- * - `taskOnly` — the user is attached to the specific task as an assignee
+ * - `taskOnly` - the user is attached to the specific task as an assignee
  *   (`TaskAssignment`) **or** a reviewer (`TaskReviewer`); parent-case
  *   assignment alone does not count.
  *   Task-only rights also require parent case assignment (see EVALUATORS,
@@ -119,7 +119,7 @@ interface RoleCells {
 
 /**
  * Builds a matrix row for the five standard roles. Dev is not part of the
- * documented tables — it is a bootstrap superuser, so it is always `yes`.
+ * documented tables - it is a bootstrap superuser, so it is always `yes`.
  *
  * @param cells - Qualifier per role for the row.
  * @returns A full `Role` → qualifier row for the matrix.
@@ -408,7 +408,7 @@ export const PERMISSION_MATRIX: Record<Permission, Record<Role, AccessQualifier>
  * context on the specific record.
  *
  * Qualifier cells that require context (`assigned`, `own`, `taskOnly`) return
- * `false` when the corresponding context fact is missing or unset — use this
+ * `false` when the corresponding context fact is missing or unset - use this
  * for directory-level checks where no record context exists yet.
  *
  * Returns `false` for `null`/`undefined` roles, or for role values not present

@@ -95,7 +95,7 @@ export async function createTask(data: TaskCreateData): Promise<{ id: string }> 
 // Whether `data` would actually change the roster, compared against the rows in
 // the database. Field presence is not enough: the edit form always submits the
 // full assignee list, so a title-only edit on a completed task would be refused.
-// This is the authoritative check — `updateTaskAction` compares against a read
+// This is the authoritative check - `updateTaskAction` compares against a read
 // taken before the transaction, which a concurrent writer can invalidate.
 async function rosterWouldChange(
   tx: TransactionClient,
@@ -381,7 +381,7 @@ export async function addTaskReviewer(
 }
 
 // The only way out of `Done`. Deliberately not a side effect of
-// `addTaskReviewer`, which used to double as an unlock token — that forced a
+// `addTaskReviewer`, which used to double as an unlock token - that forced a
 // real reviewer obligation on whoever happened to be added, and was only
 // discoverable from a banner. Assignee marks are intentionally discarded: a
 // reopened task is being re-reviewed, and stale `Done` marks would re-derive it

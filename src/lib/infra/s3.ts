@@ -100,7 +100,7 @@ export function isKeyWithinPrefix(key: string, parentType: string, parentId: str
 
 /**
  * Uploads bytes directly to the given key. Intended for server-side flows
- * (seeding, maintenance) — client uploads must use presigned URLs instead.
+ * (seeding, maintenance) - client uploads must use presigned URLs instead.
  *
  * @param key - The S3 object key to write.
  * @param body - The file bytes to store.

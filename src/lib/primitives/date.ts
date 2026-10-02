@@ -11,9 +11,9 @@ import { CalendarDate, Time, toCalendarDateTime } from "@internationalized/date"
  * goes through a helper here; `date-encapsulation.test.ts` fails the build if a
  * field reader or `getLocalTimeZone()` appears elsewhere in `src/`.
  *
- * The reason is that `Date.prototype` field readers — `getFullYear()`,
+ * The reason is that `Date.prototype` field readers - `getFullYear()`,
  * `getMonth()`, `getDate()`, `getHours()`, `getMinutes()`, `getDay()`,
- * `getTimezoneOffset()` — resolve against the **runtime's** zone, not the app's:
+ * `getTimezoneOffset()` - resolve against the **runtime's** zone, not the app's:
  * the browser's for client components, and the host's (normally UTC on Vercel)
  * for server code and Server Actions. Two failure modes follow, and both have
  * shipped real bugs here:
@@ -24,7 +24,7 @@ import { CalendarDate, Time, toCalendarDateTime } from "@internationalized/date"
  *    calendar day for any browser outside the app zone.
  * 2. **Asymmetric ranges.** Pairing a zone-correct lower bound with a
  *    server-local upper bound (`getStartOfDay` + `new Date(y, m, d + 1)`) widens
- *    "today" by exactly the offset — on a UTC host against Asia/Manila, "today's
+ *    "today" by exactly the offset - on a UTC host against Asia/Manila, "today's
  *    consultations" ran 8 hours long and counted tomorrow's morning bookings.
  *
  * {@link getAppTimeZone} stays exportable: a few external APIs demand an
@@ -124,7 +124,7 @@ export function getToday(): CalendarDate {
 
 /**
  * Determines whether an instant falls on a calendar day before today in the
- * app timezone. Same-day times (even hours already passed) are not "past" —
+ * app timezone. Same-day times (even hours already passed) are not "past" -
  * only strictly earlier days are.
  *
  * @param date - The instant to test.
@@ -136,7 +136,7 @@ export function isBeforeToday(date: Date): boolean {
 
 /**
  * Determines whether an instant falls on a calendar day after today in the
- * app timezone. Same-day times (even hours still ahead) are not "future" —
+ * app timezone. Same-day times (even hours still ahead) are not "future" -
  * only strictly later days are.
  *
  * @param date - The instant to test.
@@ -170,7 +170,7 @@ function toLocalDate(date: Date | string): Date {
  * needing "what does this instant look like to a human" goes through here or a
  * helper built on it, so reading and writing always agree on one zone. Calling
  * `Date.prototype.getFullYear()` and friends directly reads the *runtime's* zone
- * — the browser's for client code, UTC for a deployed server — which silently
+ * - the browser's for client code, UTC for a deployed server - which silently
  * disagrees with the app timezone.
  *
  * @param date - The instant to decompose.

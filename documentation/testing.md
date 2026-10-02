@@ -51,7 +51,7 @@ const mockCase = (overrides: Record<string, unknown> = {}) => ({
 });
 ```
 
-Override defaults in the wrapper only when a test depends on the value (e.g. a test asserting `entity_id: "550e8400-..."` keeps that default explicitly). When shared defaults change, the suite tells you which expectations were coupled to them — update the expectation, not the fixture.
+Override defaults in the wrapper only when a test depends on the value (e.g. a test asserting `entity_id: "550e8400-..."` keeps that default explicitly). When shared defaults change, the suite tells you which expectations were coupled to them - update the expectation, not the fixture.
 
 ## Sessions
 
@@ -74,7 +74,7 @@ it("updates the session user's last seen timestamp", async () => {
 });
 ```
 
-`vi.mock("@/lib/auth-guards", ...)` stays per file — Vitest hoists `vi.mock` above imports, so the declaration cannot be centralized. Only the rows and the setup calls are shared. `setupAuth` tolerates files that mock `requireAuth` alone (it drives `requirePermission` only when the mock provides it).
+`vi.mock("@/lib/auth-guards", ...)` stays per file - Vitest hoists `vi.mock` above imports, so the declaration cannot be centralized. Only the rows and the setup calls are shared. `setupAuth` tolerates files that mock `requireAuth` alone (it drives `requirePermission` only when the mock provides it).
 
 ## Mocking Prisma
 
@@ -88,7 +88,7 @@ Declare only the methods the file exercises. Reset in `beforeEach` (`vi.clearAll
 
 ## Assertions
 
-- Prefer exact `toEqual` shapes for mapped rows — they pin the query contract.
+- Prefer exact `toEqual` shapes for mapped rows - they pin the query contract.
 - `toMatchObject` is acceptable for passthrough reads (e.g. `getNoteById`) where the query selects a subset.
 - Never assert mock call order unless ordering is the contract. Assert outcomes: return values and the enlisted side effects.
 - No `as any`, no `as never`, no `Record<string, unknown>` wrappers around rows. If a mock doesn't typecheck, suspect the query boundary first: a leaking non-plain type (e.g. `Decimal` instead of `number`) is a production bug, not a test problem. Fix the query so the mock can be truthful.
@@ -109,8 +109,8 @@ it("boundary is offline", async () => {
 });
 ```
 
-Never file-global timer state (`afterEach(useRealTimers)` to clean up someone else's fakes is a smell — scope the fakes instead).
+Never file-global timer state (`afterEach(useRealTimers)` to clean up someone else's fakes is a smell - scope the fakes instead).
 
 ## What not to test
 
-Re-exports, framework behavior, and one-line pass-throughs. Every `it` must assert a distinct behavior — a test that can only fail if Vitest itself breaks is coverage theater.
+Re-exports, framework behavior, and one-line pass-throughs. Every `it` must assert a distinct behavior - a test that can only fail if Vitest itself breaks is coverage theater.

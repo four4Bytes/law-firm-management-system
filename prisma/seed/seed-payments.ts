@@ -181,7 +181,7 @@ const payments: PaymentData[] = [
     status: "Partial",
     method: "Cash",
     receipt: "RET-2024-009",
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     createdByEmail: "james.reyes@aninolaw.com",
   },
   {
@@ -208,7 +208,7 @@ const payments: PaymentData[] = [
     status: "Unpaid",
     method: "",
     receipt: "RET-2024-012",
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
@@ -289,7 +289,7 @@ const payments: PaymentData[] = [
     status: "Paid",
     method: "Bank Transfer",
     receipt: "RET-2024-015",
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
@@ -379,7 +379,7 @@ const payments: PaymentData[] = [
     status: "Partial",
     method: "Bank Transfer",
     receipt: "RET-2024-018",
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
@@ -415,7 +415,7 @@ const payments: PaymentData[] = [
     status: "Paid",
     method: "Cash",
     receipt: "RC-2024-017",
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {
@@ -424,7 +424,7 @@ const payments: PaymentData[] = [
     status: "Refunded",
     method: "Cash",
     receipt: "RC-2024-018",
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     createdByEmail: "catherine.diaz@aninolaw.com",
   },
   {

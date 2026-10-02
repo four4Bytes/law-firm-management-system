@@ -1,4 +1,4 @@
-# Law Firm Management System — Documentation
+# Law Firm Management System - Documentation
 
 ## Quick links
 

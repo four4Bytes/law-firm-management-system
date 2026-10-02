@@ -1016,7 +1016,7 @@ describe("changeConsultationStatusAction", () => {
         code: "conflict",
         title: "Invalid status change",
         description:
-          "Cannot change a consultation from Accepted to Completed. From Accepted, you can: nothing — this consultation is closed.",
+          "Cannot change a consultation from Accepted to Completed. From Accepted, you can: nothing - this consultation is closed.",
       },
     });
   });

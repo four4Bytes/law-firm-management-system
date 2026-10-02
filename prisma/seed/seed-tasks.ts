@@ -225,16 +225,16 @@ const tasks: TaskData[] = [
     assigneeEmails: ["maya.fernandez@aninolaw.com"],
   },
   {
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     title: "File Motion to Dismiss",
     description:
-      "Draft motion to quash information for lack of probable cause — construction payment dispute",
+      "Draft motion to quash information for lack of probable cause - construction payment dispute",
     status: "Pending",
     createdByEmail: "ricardo.guevarra@aninolaw.com",
     assigneeEmails: ["ricardo.guevarra@aninolaw.com"],
   },
   {
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     title: "Review Prosecution Evidence",
     description:
       "Examine complaint affidavit, supporting documents, and counter-affidavit of complainant",
@@ -243,7 +243,7 @@ const tasks: TaskData[] = [
     assigneeEmails: ["nina.salvador@aninolaw.com"],
   },
   {
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     title: "Prepare Defense Strategy Memorandum",
     description:
       "Draft comprehensive defense memorandum highlighting payment records and lack of deceit",
@@ -307,7 +307,7 @@ const tasks: TaskData[] = [
     assigneeEmails: ["gina.reyes@aninolaw.com"],
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Draft Series A Investment Agreement",
     description:
       "Prepare investment agreement with anti-dilution, liquidation preference, and board seat provisions",
@@ -316,7 +316,7 @@ const tasks: TaskData[] = [
     assigneeEmails: ["angela.mercado@aninolaw.com"],
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Review Term Sheet from VC Firm",
     description:
       "Review and negotiate 20-page term sheet including valuation, vesting schedule, and drag-along rights",
@@ -325,7 +325,7 @@ const tasks: TaskData[] = [
     assigneeEmails: ["angela.mercado@aninolaw.com"],
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Conduct Legal Due Diligence on Company",
     description:
       "Verify incorporation documents, IP ownership, employment contracts, and cap table",
@@ -401,7 +401,7 @@ const tasks: TaskData[] = [
     caseTitle: "Reyes vs. San Miguel Logistics",
     title: "Prepare Judicial Affidavits for Witnesses",
     description:
-      "Draft judicial affidavits for three witnesses — client, warehouse supervisor, and delivery coordinator",
+      "Draft judicial affidavits for three witnesses - client, warehouse supervisor, and delivery coordinator",
     status: "InReview",
     createdByEmail: "miguel.cruz@aninolaw.com",
     assigneeEmails: ["jessica.lim@aninolaw.com"],
@@ -411,7 +411,7 @@ const tasks: TaskData[] = [
     caseTitle: "Alcantara Annulment Proceedings",
     title: "Revise Petition per Supervising Counsel Comments",
     description:
-      "Revise the petition to strengthen Article 36 psychological incapacity argument — initial draft lacked specific factual basis",
+      "Revise the petition to strengthen Article 36 psychological incapacity argument - initial draft lacked specific factual basis",
     status: "Pending",
     createdByEmail: "sofia.villanueva@aninolaw.com",
     assigneeEmails: ["kevin.garcia@aninolaw.com"],
@@ -467,7 +467,7 @@ const tasks: TaskData[] = [
     reviewerEmail: "maria.anino@aninolaw.com",
   },
   {
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     title: "Draft Complaint for Ejectment",
     description:
       "Draft verified complaint for unlawful detainer against the heirs occupying the Antipolo property",
@@ -477,7 +477,7 @@ const tasks: TaskData[] = [
     reviewerEmail: "maria.anino@aninolaw.com",
   },
   {
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     title: "Serve Demand Letter to Vacate",
     description:
       "Personally serve demand letter to vacate on each heir at the subject property in Antipolo",

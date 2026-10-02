@@ -162,7 +162,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["maya.fernandez@aninolaw.com"],
   },
   {
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     title: "Motion to Dismiss Filed",
     description: "Motion to quash information for lack of probable cause filed with RTC Manila",
     status: "Done",
@@ -171,7 +171,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["ricardo.guevarra@aninolaw.com", "nina.salvador@aninolaw.com"],
   },
   {
-    caseTitle: "Fernandez Criminal Defense — Estafa Case",
+    caseTitle: "Fernandez Criminal Defense - Estafa Case",
     title: "Court Hearing on Motion",
     description: "Oral arguments scheduled on motion to dismiss before RTC Branch 32",
     status: "Pending",
@@ -217,7 +217,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["gina.reyes@aninolaw.com"],
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Term Sheet Signed",
     description: "Signed term sheet with agreed valuation and investment amount",
     status: "Pending",
@@ -226,7 +226,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Investment Agreement Executed",
     description: "Series A investment agreement fully executed and funds disbursed",
     status: "Pending",
@@ -299,7 +299,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["sofia.villanueva@aninolaw.com", "kevin.garcia@aninolaw.com"],
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Due Diligence Completed",
     description:
       "VC firm completed financial, legal, and technical due diligence with no material adverse findings",
@@ -309,7 +309,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["angela.mercado@aninolaw.com", "maya.fernandez@aninolaw.com"],
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Shareholders Agreement Executed",
     description:
       "SHA signed by all existing shareholders and the VC fund, including drag-along and tag-along provisions",
@@ -351,7 +351,7 @@ const milestones: MilestoneData[] = [
     caseTitle: "Lopez Property Boundary Litigation",
     title: "Barangay Mediation Attempt",
     description:
-      "Barangay mediation between Antonio Lopez and Felipe Dimagiba — failed, no settlement reached",
+      "Barangay mediation between Antonio Lopez and Felipe Dimagiba - failed, no settlement reached",
     status: "Cancelled",
     daysFromNow: -7,
     createdByEmail: "marco.lopez@aninolaw.com",
@@ -381,7 +381,7 @@ const milestones: MilestoneData[] = [
     caseTitle: "Dela Cruz Property Title Transfer",
     title: "Tax Declaration Update from BIR",
     description:
-      "Submit updated tax declaration to BIR RDO 39 for issuance of Certificate Authorizing Registration — overdue by 2 days",
+      "Submit updated tax declaration to BIR RDO 39 for issuance of Certificate Authorizing Registration - overdue by 2 days",
     status: "Pending",
     daysFromNow: -2,
     createdByEmail: "david.tan@aninolaw.com",
@@ -389,10 +389,10 @@ const milestones: MilestoneData[] = [
     suppressOverdue: true,
   },
   {
-    caseTitle: "Ramirez Corp — Series A Funding",
+    caseTitle: "Ramirez Corp - Series A Funding",
     title: "Due Diligence Document Submission",
     description:
-      "Submit all outstanding due diligence documents requested by Kairus Capital — overdue by 1 day, risk of delaying investment closing",
+      "Submit all outstanding due diligence documents requested by Kairus Capital - overdue by 1 day, risk of delaying investment closing",
     status: "Pending",
     daysFromNow: -1,
     createdByEmail: "angela.mercado@aninolaw.com",
@@ -403,7 +403,7 @@ const milestones: MilestoneData[] = [
     caseTitle: "Santos Foreclosure Defense",
     title: "Loan Restructuring Negotiation Deadline",
     description:
-      "Deadline to finalize loan restructuring agreement with BPI — only 2 days remaining before TRO expires",
+      "Deadline to finalize loan restructuring agreement with BPI - only 2 days remaining before TRO expires",
     status: "Pending",
     daysFromNow: 2,
     createdByEmail: "marco.lopez@aninolaw.com",
@@ -413,7 +413,7 @@ const milestones: MilestoneData[] = [
     caseTitle: "Dela Cruz Property Title Transfer",
     title: "BIR Tax Clearance Submission",
     description:
-      "Submit capital gains tax return and secure BIR certificate authorizing registration — overdue, blocking the title transfer",
+      "Submit capital gains tax return and secure BIR certificate authorizing registration - overdue, blocking the title transfer",
     status: "Pending",
     daysFromNow: -3,
     createdByEmail: "david.tan@aninolaw.com",
@@ -423,7 +423,7 @@ const milestones: MilestoneData[] = [
     caseTitle: "Gonzales Legal Separation",
     title: "Parenting Plan Mediation",
     description:
-      "Court-referred mediation on interim custody and support — overdue, needs immediate rescheduling",
+      "Court-referred mediation on interim custody and support - overdue, needs immediate rescheduling",
     status: "Pending",
     daysFromNow: -5,
     createdByEmail: "sofia.villanueva@aninolaw.com",
@@ -449,7 +449,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["miguel.cruz@aninolaw.com"],
   },
   {
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     title: "Complaint Filed with MTC",
     description:
       "Verified complaint for unlawful detainer filed with MTC Antipolo before withdrawal",
@@ -459,7 +459,7 @@ const milestones: MilestoneData[] = [
     notifyEmails: ["marco.lopez@aninolaw.com", "paolo.guerrero@aninolaw.com"],
   },
   {
-    caseTitle: "Torres Ejectment Case — Withdrawn",
+    caseTitle: "Torres Ejectment Case - Withdrawn",
     title: "Pre-Trial Conference",
     description: "Pre-trial cancelled after client instructed withdrawal of the case",
     status: "Cancelled",

@@ -1,4 +1,4 @@
-// Mirrors documentation/notifications.md — the reminder scheduling rules are the spec.
+// Mirrors documentation/notifications.md - the reminder scheduling rules are the spec.
 // Change the doc and this implementation together.
 
 import { dispatchNotifications } from "@/features/notifications/dispatch";
@@ -133,7 +133,7 @@ async function processMilestones(now: Date): Promise<void> {
           userIds: allowedUserIds,
           type,
           title: `Milestone ${label}: ${m.title}`,
-          message: `Milestone "${m.title}" is ${label} — due ${formatDate(m.due_date)}`,
+          message: `Milestone "${m.title}" is ${label} - due ${formatDate(m.due_date)}`,
           actionUrl: `/case/${m.caseId}`,
           caseId: m.caseId,
           milestoneId: m.id,
@@ -225,7 +225,7 @@ async function processConsultations(now: Date): Promise<void> {
           userIds: allowedUserIds,
           type,
           title: label === "overdue" ? "Overdue consultation" : "Upcoming consultation reminder",
-          message: `A consultation about "${c.concern}" is ${label} — scheduled for ${formatDateTime(c.booking_datetime)}`,
+          message: `A consultation about "${c.concern}" is ${label} - scheduled for ${formatDateTime(c.booking_datetime)}`,
           actionUrl: `/consultation/${c.id}`,
           consultationId: c.id,
         },

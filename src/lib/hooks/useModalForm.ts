@@ -29,7 +29,7 @@ interface UseModalFormOptions<TArgs, TData> {
   reset?: () => void;
   /**
    * Optional Zod schema used to short-circuit submission with a toast on invalid
-   * input. Should accept a value of `TArgs` — Zod v4's covariant `Input` parameter
+   * input. Should accept a value of `TArgs` - Zod v4's covariant `Input` parameter
    * makes this a documentation-era convention rather than a compile-time constraint.
    */
   schema?: ZodType;
@@ -50,7 +50,7 @@ interface UseModalFormReturn<TArgs> {
  *
  * Callers must provide the `TArgs` generic explicitly (e.g.
  * `useModalForm<z.input<typeof SomeSchema>>`) because `submit` cannot infer it
- * from the payload — omitting it widens `submitForm` arguments to `unknown`.
+ * from the payload - omitting it widens `submitForm` arguments to `unknown`.
  *
  * @typeParam TArgs - The payload type accepted by the Server Action.
  * @typeParam TData - Data returned by the action on success via an

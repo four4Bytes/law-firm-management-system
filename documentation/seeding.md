@@ -21,7 +21,7 @@ Most users keep defaults (all on). Exceptions:
 
 | User           | Setup                                                     |
 | -------------- | --------------------------------------------------------- |
-| Maya Fernandez | All email + overdue toggles **off** — receives nothing    |
+| Maya Fernandez | All email + overdue toggles **off** - receives nothing    |
 | Paolo Guerrero | Task toggles off, Daily milestone frequency, 2-day window |
 | Jessica Lim    | 1-day consultation reminder window                        |
 | Benito Cruz    | Daily frequencies                                         |
@@ -43,18 +43,18 @@ These rows are eligible on the next scheduler run:
 | Status                                | Example                                                                             |
 | ------------------------------------- | ----------------------------------------------------------------------------------- |
 | Case `Settled`                        | Aquino Illegal Dismissal (with `Settlement reason:` note)                           |
-| Case `Terminated`                     | Torres Ejectment — Withdrawn (with `Termination reason:` note, refunded filing fee) |
+| Case `Terminated`                     | Torres Ejectment - Withdrawn (with `Termination reason:` note, refunded filing fee) |
 | Case `Closed`                         | Navarro JV, Villanueva Corp Registration                                            |
 | Consultation `Rejected` / `Cancelled` | Seeded alongside Scheduled/Completed/Accepted                                       |
 | Task `Done` / `InReview`              | Aquino and Torres tasks (fully approved review chains)                              |
 | Milestone `Cancelled`                 | Torres pre-trial (moot after withdrawal)                                            |
 | Payment `Refunded`                    | Torres filing fee                                                                   |
 
-Terminal records stay fully editable at runtime, but the seed writes history directly — the seeded
+Terminal records stay fully editable at runtime, but the seed writes history directly - the seeded
 `Settlement reason:` / `Termination reason:` notes mirror exactly what `DecisionModal` saves.
 
 ## Documents
 
-All 50 `Document` rows have real bytes in MinIO under parent-scoped keys
+All 50 `Document` rows have real bytes in SeaweedFS under parent-scoped keys
 (`cases/{id}/{file}`, `tasks/…`, `consultations/…`), so list, download, and delete flows work on a
-fresh seed. Content is placeholder text — replace with real files to demo further.
+fresh seed. Content is placeholder text - replace with real files to demo further.

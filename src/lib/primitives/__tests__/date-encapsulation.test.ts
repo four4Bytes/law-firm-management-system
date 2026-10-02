@@ -9,7 +9,7 @@ const SRC_ROOT = join(process.cwd(), "src");
 const DATE_MODULE = "src/lib/primitives/date.ts";
 
 /**
- * `Date.prototype` field readers resolve against the *runtime's* zone — the
+ * `Date.prototype` field readers resolve against the *runtime's* zone - the
  * browser's on the client, the host's (usually UTC) on a deployed server. Any
  * use outside the date module silently disagrees with the app timezone, which
  * has produced off-by-one-day bugs that only appear in production.
@@ -29,7 +29,7 @@ const BANNED_DATE_READERS = [
 const BANNED_ZONE_READERS = ["getLocalTimeZone"];
 
 /**
- * `getAppTimeZone()` is deliberately still importable — `node-cron`'s
+ * `getAppTimeZone()` is deliberately still importable - `node-cron`'s
  * `timezone` option and `CalendarDate.toDate(zone)` both demand an explicit
  * zone. The invariant is that a caller *names* the app zone rather than letting
  * a runtime guess one, so this list is not exhaustive and new deliberate
@@ -52,7 +52,7 @@ function walk(dir: string): string[] {
 
 /**
  * Drops comments so a TSDoc line that names a banned function to warn against
- * does not count as a call site. Not a full parser — a best-effort strip is
+ * does not count as a call site. Not a full parser - a best-effort strip is
  * enough because the patterns below only ever appear in code.
  */
 function stripComments(source: string): string {

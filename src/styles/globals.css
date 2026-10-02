@@ -46,6 +46,11 @@ svg {
   height: auto;
 }
 
+/* Prevent icon shrinking */
+button svg {
+  flex-shrink: 0;
+}
+
 input,
 button,
 textarea,

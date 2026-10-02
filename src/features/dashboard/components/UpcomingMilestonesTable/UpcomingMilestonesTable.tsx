@@ -76,7 +76,7 @@ export function UpcomingMilestonesTable({ milestones }: UpcomingMilestonesTableP
       <DataTable
         columns={columns}
         rows={milestones}
-        emptyContent="No upcoming milestones — all clear."
+        emptyContent="No upcoming milestones - all clear."
         selectionMode="single"
         selectionBehavior="replace"
         onRowAction={(id) => {

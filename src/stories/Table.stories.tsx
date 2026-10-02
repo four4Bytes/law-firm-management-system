@@ -494,7 +494,7 @@ const longData: StoryItem[] = [
     id: "1",
     name: "John Michael Doe",
     role: "Senior Corporate Lawyer specializing in mergers and acquisitions",
-    status: "Active — Currently lead counsel on three major cross-border cases",
+    status: "Active - Currently lead counsel on three major cross-border cases",
   },
   {
     id: "2",
@@ -506,7 +506,7 @@ const longData: StoryItem[] = [
     id: "3",
     name: 'Robert "Bob" Johnson III',
     role: "Process Server and field investigator for complex litigation matters",
-    status: "Inactive — On extended leave until further notice",
+    status: "Inactive - On extended leave until further notice",
   },
 ];
 

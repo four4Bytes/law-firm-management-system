@@ -21,7 +21,7 @@ export function isTerminalConsultationStatus(status: ConsultationStatus): boolea
 // ones Scheduled and Completed have named moves and Cancelled rebooks.
 export function describeConsultationNextSteps(from: ConsultationStatus): string {
   if (isTerminalConsultationStatus(from)) {
-    return "nothing — this consultation is closed";
+    return "nothing - this consultation is closed";
   }
   return from === ConsultationStatus.Scheduled
     ? "mark it completed or cancel it"

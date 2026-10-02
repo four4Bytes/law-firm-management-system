@@ -18,7 +18,7 @@ import type { FilterValues } from "@/lib/primitives/types";
  * reloads reproduce the same filtered list, and cross-page back/forward
  * navigation restores prior selections. Filter-owned keys are replaced
  * wholesale; unrelated params (e.g. `tab`) pass through untouched. Use only
- * on top-level list pages — embedded detail tabs keep in-memory filter state
+ * on top-level list pages - embedded detail tabs keep in-memory filter state
  * so sibling tables never fight over the same param keys.
  *
  * @param allowlists - The filters eligible for URL sync with their permitted values.

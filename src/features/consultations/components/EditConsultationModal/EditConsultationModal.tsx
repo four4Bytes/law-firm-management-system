@@ -213,7 +213,7 @@ export function EditConsultationModal({
           <p className={styles.lockedNotice}>
             This consultation has been accepted and linked to a case. Update the{" "}
             {linkedCaseId ? <Link href={`/case/${linkedCaseId}`}>linked case</Link> : "linked case"}{" "}
-            instead — these details are read-only.
+            instead - these details are read-only.
           </p>
         )}
         <div className={styles.columns}>

@@ -196,7 +196,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledTimes(3);
   });
 
-  it("respects preference for CaseAssigned — only opted-in users receive notification (in-app + email in sync)", async () => {
+  it("respects preference for CaseAssigned - only opted-in users receive notification (in-app + email in sync)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -293,7 +293,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
   });
 
-  it("respects preference for TaskAssigned — filters per-task toggle (in-app + email in sync)", async () => {
+  it("respects preference for TaskAssigned - filters per-task toggle (in-app + email in sync)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -365,7 +365,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
-  it("respects preference for CaseStatusChanged — only opted-in users receive notification (in-app + email in sync)", async () => {
+  it("respects preference for CaseStatusChanged - only opted-in users receive notification (in-app + email in sync)", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -414,7 +414,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
   });
 
-  it("respects preference for TaskStatusChanged — filters per-task status toggle", async () => {
+  it("respects preference for TaskStatusChanged - filters per-task status toggle", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -455,7 +455,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
-  it("respects preference for MilestoneDueDateChanged — independent of the status-change toggle", async () => {
+  it("respects preference for MilestoneDueDateChanged - independent of the status-change toggle", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [
@@ -499,7 +499,7 @@ describe("dispatchNotifications", () => {
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
-  it("respects preference for ConsultationRescheduled — independent of the status-change toggle", async () => {
+  it("respects preference for ConsultationRescheduled - independent of the status-change toggle", async () => {
     vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
       new Map([
         [

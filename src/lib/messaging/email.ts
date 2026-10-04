@@ -5,7 +5,7 @@
  * initialised on the first call so env vars are only read when needed.
  */
 
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 
 import { getEnvBoolean, getOptionalInteger, getRequiredEnvVar } from "@/lib/infra/env";
 
@@ -43,14 +43,14 @@ function createTransport(config: ReturnType<typeof getEmailConfig>) {
   });
 }
 
-let transporter: nodemailer.Transporter;
+let transporter: Transporter;
 
 /**
  * Returns the singleton Nodemailer transporter, creating it on first call.
  *
  * @returns A configured Nodemailer transport singleton.
  */
-function getTransporter(): nodemailer.Transporter {
+function getTransporter(): Transporter {
   if (!transporter) {
     const config = getEmailConfig();
     transporter = createTransport(config);

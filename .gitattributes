@@ -7,6 +7,11 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
+# sops-encrypted secrets: decrypt for readable diffs.
+# One-time setup: git config diff.sops.textconv "sops decrypt"
+secrets/*.enc.env diff=sops
+secrets/*.enc.yaml diff=sops
+
 # Binaries - never touch
 *.png binary
 *.jpg binary

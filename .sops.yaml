@@ -1,0 +1,6 @@
+# sops configuration — single shared age key (no per-person recipients).
+# Private key lives at ~/.config/sops/age/keys.txt (SOPS_AGE_KEY_FILE default).
+# Only the age1… public recipient below is committed — never the secret key.
+creation_rules:
+  - path_regex: secrets/.*\.enc\.(env|yaml)$
+    age: age1jguf9gtuutvpnjt98km7n279uf6x40mv046vj0939cma2vzw0eyqvgx7qr

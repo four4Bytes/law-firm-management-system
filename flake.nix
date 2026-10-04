@@ -41,6 +41,8 @@
               gnumake
               git
               jq
+              sops
+              age
             ];
 
             shellHook = ''

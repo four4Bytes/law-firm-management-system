@@ -1,7 +1,7 @@
 # Secrets (sops + age)
 
 All secret values live encrypted in `secrets/*.enc.*`, committed to git. Plaintext
-`.env*` files are materialized locally via Make and never committed. One shared age
+`.env*` files are materialized locally via just and never committed. One shared age
 key encrypts everything — no per-person keys.
 
 ## Layout
@@ -9,8 +9,8 @@ key encrypts everything — no per-person keys.
 | Committed (ciphertext)    | Decrypts to (gitignored)      | Used by                                |
 | ------------------------- | ----------------------------- | -------------------------------------- |
 | `secrets/local.enc.env`   | `.env`                        | Next.js dev server, Prisma CLI, Vitest |
-| `secrets/dev.enc.env`     | `.env.dev`                    | `make dev-*` (dev compose infra)       |
-| `secrets/prod.enc.env`    | `.env.prod`                   | `make prod-*` (prod compose infra+app) |
+| `secrets/dev.enc.env`     | `.env.dev`                    | `just dev-*` (dev compose infra)       |
+| `secrets/prod.enc.env`    | `.env.prod`                   | `just prod-*` (prod compose infra+app) |
 | `secrets/staging.enc.env` | `.env.staging`                | Vercel testing project (copy-paste)    |
 | `secrets/extra.enc.yaml`  | `secrets/release-bot.pem` etc | Release tooling, OAuth client JSON     |
 
@@ -23,8 +23,11 @@ File naming follows the sops convention: `.enc` goes **before** the real extensi
 
 ## Onboarding (new machine)
 
+> **Windows users:** run everything below inside WSL - native Windows is not supported
+> (see [Getting Started](./getting-started.md#prerequisites)).
+
 ```bash
-direnv allow  # or: nix develop -c $SHELL  (provides sops + age via flake.nix)
+direnv allow  # or: nix develop -c $SHELL  (provides just + sops + age via flake.nix)
 
 # 1. Install the shared age private key (sent once via an existing secure channel)
 mkdir -p ~/.config/sops/age
@@ -32,10 +35,10 @@ mkdir -p ~/.config/sops/age
 chmod 600 ~/.config/sops/age/keys.txt
 
 # 2. Materialize plaintext
-make secrets-decrypt
+just secrets-decrypt
 
 # 3. Sanity check
-make secrets-status
+just secrets-status
 ```
 
 Without the key, use the `.env.*.example` templates instead (`cp .env.example .env`
@@ -44,12 +47,12 @@ Without the key, use the `.env.*.example` templates instead (`cp .env.example .e
 ## Daily use
 
 ```bash
-make secrets-decrypt      # refresh all plaintext from ciphertext
-make secrets-edit-prod    # edit prod secrets in place (also -local/-dev/-staging/-extra)
-make secrets-status       # verify key works and everything decrypts
+just secrets-decrypt      # refresh all plaintext from ciphertext
+just secrets-edit-prod    # edit prod secrets in place (also -local/-dev/-staging/-extra)
+just secrets-status       # verify key works and everything decrypts
 ```
 
-`sops <file>` works directly too — the `make secrets-edit-*` targets are just
+`sops <file>` works directly too — the `just secrets-edit-*` targets are just
 shortcuts so nobody memorizes filenames. `git diff` on encrypted files shows
 decrypted values (via `.gitattributes` + `diff.sops.textconv`); enable it once with:
 
@@ -62,8 +65,8 @@ Notes:
 - sops normalizes dotenv files on decrypt (blank lines are dropped). Values and
   comments are preserved — this is cosmetic, not data loss.
 - Never edit `.env*` to share a change — edit the `secrets/*.enc.*` source with
-  `sops`/`make secrets-edit-*` and commit the ciphertext so everyone gets it via
-  `make secrets-decrypt`.
+  `sops`/`just secrets-edit-*` and commit the ciphertext so everyone gets it via
+  `just secrets-decrypt`.
 
 ## Deploying secrets
 
@@ -71,7 +74,7 @@ Notes:
   (`scp .env.prod <host>:…`). The age key never leaves your machine.
 - **Vercel:** `sops decrypt secrets/staging.enc.env`, paste values into the project
   dashboard (Settings → Environment Variables). Nothing to install on Vercel.
-- **One-shot without writing files:** `sops exec-env secrets/prod.enc.env 'make prod-up'`.
+- **One-shot without writing files:** `sops exec-env secrets/prod.enc.env 'just prod-up'`.
 
 ## Key management
 

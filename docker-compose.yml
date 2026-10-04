@@ -22,6 +22,7 @@ services:
       WEED_S3_SSE_KEK: ${SEAWEEDFS_SSE_KEK:?Set SEAWEEDFS_SSE_KEK in .env.dev (generate with openssl rand -hex 32)}
     ports:
       - "9000:9000"
+      - "8888:8888" # SeaweedFS filer file-browser UI (dev only - not exposed in prod)
     volumes:
       - seaweedfs_data:/data
     healthcheck:

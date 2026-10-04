@@ -155,9 +155,9 @@ echo "<token>" | docker login ghcr.io -u <username> --password-stdin
 ### Production Stack
 
 ```bash
-make prod-up       # Build and start production containers
-make prod-down     # Stop production containers
-make prod-reset    # Hard reset
+just prod-up       # Build and start production containers
+just prod-down     # Stop production containers
+just prod-reset    # Hard reset
 ```
 
 Uses `docker-compose.prod.yml` with `.env.prod` environment variables.
@@ -174,7 +174,7 @@ Object storage is encrypted **at rest** using SeaweedFS Server-Side Encryption (
 
 ### Configuration
 
-Set these in `.env.dev` / `.env.prod` **before** running `make dev-up` / `make prod-up`:
+Set these in `.env.dev` / `.env.prod` **before** running `just dev-up` / `just prod-up`:
 
 ```bash
 SEAWEEDFS_SSE_KEK=<64-character-hex-key>          # Stable 256-bit SSE-S3 KEK

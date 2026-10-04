@@ -20,5 +20,6 @@
 | [Open questions](./open-questions.md)               | Unvalidated product decisions to confirm with the client                          |
 | [Testing](./testing.md)                             | Test conventions, fixtures, and helpers (see also `AGENTS.md`)                    |
 | [Seeding](./seeding.md)                             | Seed scenarios: which rows demonstrate what                                       |
+| [Secrets](./secrets.md)                             | sops + age encrypted secrets, onboarding, deploy flow                             |
 
 For a quickstart, see [Getting Started](./getting-started.md).

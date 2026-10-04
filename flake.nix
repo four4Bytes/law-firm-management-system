@@ -38,9 +38,11 @@
               pkg-config
               docker
               docker-compose
-              gnumake
               git
               jq
+              just
+              sops
+              age
             ];
 
             shellHook = ''

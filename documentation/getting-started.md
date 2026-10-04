@@ -28,10 +28,10 @@ cd law-firm-management-system
 # 2. Enter dev shell if using Nix (direnv keeps your shell; bare nix develop spawns bash)
 direnv allow  # or: nix develop -c $SHELL
 
-# 3. Install + env
+# 3. Install + env (inside the dev shell - provides sops + age)
 pnpm install
-cp .env.example .env
-cp .env.dev.example .env.dev
+make secrets-decrypt   # decrypts secrets/*.enc.* → .env* (needs the age key - see ./secrets.md)
+# Without the age key: cp .env.example .env && cp .env.dev.example .env.dev
 
 # 4. Start infra and DB
 make dev-up
@@ -51,7 +51,11 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 | `.env`                                                    | Next.js dev server, Prisma CLI, seed script, Vitest     | Application runtime variables        |
 | `.env.dev`                                                | `make dev-*` targets only (Docker Compose dev stack)    | Infrastructure-only variables        |
 | `.env.prod`                                               | `make prod-*` targets (Docker Compose production stack) | Infrastructure **and** app variables |
-| `.env.example` / `.env.dev.example` / `.env.prod.example` | - (templates to copy)                                   |                                      |
+| `.env.staging`                                            | Copy-paste source for the Vercel testing project        | Staging app variables (Neon + B2)    |
+| `.env.example` / `.env.dev.example` / `.env.prod.example` | - (templates for key-less setup)                        |                                      |
+
+The gitignored `.env*` files are materialized from committed sops ciphertext
+(`secrets/*.enc.*`) via `make secrets-decrypt` - see [Secrets](./secrets.md).
 
 `.env.prod` is combined because in production the Next.js app runs inside a container and receives its runtime environment from that same file.
 
@@ -126,6 +130,17 @@ Open [http://localhost:3000](http://localhost:3000). Mailpit at [http://localhos
 | `make down`       | Stop all container environments                           |
 | `make clean`      | Stop all environments and purge volumes                   |
 | `make reset`      | Clean + rebuild + restart everything                      |
+
+### Secrets targets (`sops` + `age` via `flake.nix`)
+
+| Target                                             | Description                                              |
+| -------------------------------------------------- | -------------------------------------------------------- |
+| `make secrets-decrypt`                             | Decrypt `secrets/*.enc.*` → `.env*` + materialized blobs |
+| `make secrets-status`                              | Verify the age key works and everything decrypts         |
+| `make secrets-keygen`                              | Generate the shared age key (once per machine)           |
+| `make secrets-edit-{local,dev,prod,staging,extra}` | Edit a ciphertext file in place with `sops`              |
+
+Full guide: [Secrets](./secrets.md).
 
 ## Development Workflow
 

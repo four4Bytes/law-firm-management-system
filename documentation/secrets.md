@@ -2,7 +2,7 @@
 
 All secret values live encrypted in `secrets/*.enc.*`, committed to git. Plaintext
 `.env*` files are materialized locally via just and never committed. One shared age
-key encrypts everything — no per-person keys.
+key encrypts everything - no per-person keys.
 
 ## Layout
 
@@ -23,11 +23,10 @@ File naming follows the sops convention: `.enc` goes **before** the real extensi
 
 ## Onboarding (new machine)
 
-> **Windows users:** run everything below inside WSL - native Windows is not supported
-> (see [Getting Started](./getting-started.md#prerequisites)).
+Works anywhere `just` + `sops` + `age` exist - Nix provides them ([Getting Started](./getting-started.md#choose-your-setup)).
 
 ```bash
-direnv allow  # or: nix develop -c $SHELL  (provides just + sops + age via flake.nix)
+direnv allow  # Nix only; skip if you installed just + sops + age manually
 
 # 1. Install the shared age private key (sent once via an existing secure channel)
 mkdir -p ~/.config/sops/age
@@ -52,7 +51,7 @@ just secrets-edit-prod    # edit prod secrets in place (also -local/-dev/-stagin
 just secrets-status       # verify key works and everything decrypts
 ```
 
-`sops <file>` works directly too — the `just secrets-edit-*` targets are just
+`sops <file>` works directly too - the `just secrets-edit-*` targets are just
 shortcuts so nobody memorizes filenames. `git diff` on encrypted files shows
 decrypted values (via `.gitattributes` + `diff.sops.textconv`); enable it once with:
 
@@ -63,8 +62,8 @@ git config diff.sops.textconv "sops decrypt"
 Notes:
 
 - sops normalizes dotenv files on decrypt (blank lines are dropped). Values and
-  comments are preserved — this is cosmetic, not data loss.
-- Never edit `.env*` to share a change — edit the `secrets/*.enc.*` source with
+  comments are preserved - this is cosmetic, not data loss.
+- Never edit `.env*` to share a change - edit the `secrets/*.enc.*` source with
   `sops`/`just secrets-edit-*` and commit the ciphertext so everyone gets it via
   `just secrets-decrypt`.
 

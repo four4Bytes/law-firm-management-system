@@ -1,6 +1,5 @@
 # Task runner for the law-firm-management-system (replaces the removed Makefile).
-# Requires just + sops + age, provided by flake.nix (Linux, macOS, WSL).
-# Windows users: use WSL - native Windows is not supported.
+# Requires just + sops + age, provided by flake.nix or installed manually.
 
 dev_compose := "docker compose -f docker-compose.yml --env-file .env.dev"
 prod_compose := "docker compose -f docker-compose.prod.yml --env-file .env.prod"

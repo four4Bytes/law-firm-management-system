@@ -20,7 +20,12 @@ import { toActionResponse } from "@/lib/security/errors";
 import { can } from "@/lib/security/rbac";
 
 import { completeSubtask, createSubtask, deleteSubtask, updateSubtask } from "./mutations";
-import { getSubtaskDetailRowById, getSubtasksByTaskId, type SubtaskRow } from "./queries";
+import {
+  getSubtaskDetailRowById,
+  getSubtasksByTaskId,
+  type SubtaskDetailRow,
+  type SubtaskRow,
+} from "./queries";
 import {
   SubtaskCompleteSchema,
   SubtaskCreatePayloadSchema,
@@ -102,6 +107,19 @@ export async function getSubtasksByTaskAction(payload: { taskId: string }): Prom
   const access = await getTaskAccessContext(session.id, taskId);
   assertRecordPermission(session, "task.read", access);
   return getSubtasksByTaskId({ taskId });
+}
+
+export async function getSubtaskDetailAction(payload: {
+  subtaskId: string;
+}): Promise<SubtaskDetailRow | null> {
+  const parsed = SubtaskIdSchema.safeParse(payload);
+  if (!parsed.success) throw new Error("Invalid subtask ID");
+  const session = await requireAuth();
+  const row = await getSubtaskDetailRowById(parsed.data.subtaskId);
+  if (!row) return null;
+  const access = await getTaskAccessContext(session.id, row.task_id);
+  assertRecordPermission(session, "task.read", access);
+  return row;
 }
 
 export async function completeSubtaskAction(

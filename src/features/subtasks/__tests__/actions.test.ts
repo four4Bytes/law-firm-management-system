@@ -14,6 +14,7 @@ import {
   completeSubtaskAction,
   createSubtaskAction,
   deleteSubtaskAction,
+  getSubtaskDetailAction,
   getSubtasksByTaskAction,
   updateSubtaskAction,
 } from "../actions";
@@ -379,6 +380,30 @@ describe("getSubtasksByTaskAction", () => {
     ];
     vi.mocked(getSubtasksByTaskId).mockResolvedValue(rows);
     await expect(getSubtasksByTaskAction({ taskId })).resolves.toEqual(rows);
+  });
+});
+
+describe("getSubtaskDetailAction", () => {
+  it("throws on an invalid subtask ID", async () => {
+    setupAuth(sessionAdmin);
+    await expect(getSubtaskDetailAction({ subtaskId: "invalid" })).rejects.toThrow(
+      "Invalid subtask ID",
+    );
+  });
+
+  it("throws Forbidden when task read is denied", async () => {
+    setupAuth(mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }));
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: false,
+      own: false,
+      taskOnly: false,
+    });
+    await expect(getSubtaskDetailAction({ subtaskId })).rejects.toThrow("Forbidden");
+  });
+
+  it("returns the detail row when task read is granted", async () => {
+    setupAuth(sessionAdmin);
+    await expect(getSubtaskDetailAction({ subtaskId })).resolves.toEqual(detailRow);
   });
 });
 

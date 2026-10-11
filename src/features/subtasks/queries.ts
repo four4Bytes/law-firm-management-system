@@ -51,6 +51,19 @@ export const getSubtasksByTaskId = cache(
   },
 );
 
+export const getSubtaskCountsByTaskIds = cache(
+  async (payload: { taskIds: string[] }): Promise<Record<string, number>> => {
+    const { taskIds } = payload;
+    if (taskIds.length === 0) return {};
+    const rows = await prisma.subtask.groupBy({
+      by: ["task_id"],
+      where: { task_id: { in: taskIds } },
+      _count: { _all: true },
+    });
+    return Object.fromEntries(rows.map((r): [string, number] => [r.task_id, r._count._all]));
+  },
+);
+
 export const getSubtaskDetailRowById = cache(
   async (subtaskId: string): Promise<SubtaskDetailRow | null> => {
     const subtask = await prisma.subtask.findUnique({

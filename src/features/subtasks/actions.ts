@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
+import { getCaseAccessContext } from "@/features/cases/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { SubtaskStatus, TaskStatus } from "@/generated/prisma/browser";
 import {
@@ -21,6 +22,7 @@ import { can } from "@/lib/security/rbac";
 
 import { completeSubtask, createSubtask, deleteSubtask, updateSubtask } from "./mutations";
 import {
+  getSubtaskCountsByTaskIds,
   getSubtaskDetailRowById,
   getSubtasksByTaskId,
   type SubtaskDetailRow,
@@ -120,6 +122,17 @@ export async function getSubtaskDetailAction(payload: {
   const access = await getTaskAccessContext(session.id, row.task_id);
   assertRecordPermission(session, "task.read", access);
   return row;
+}
+
+export async function getSubtaskCountsByTaskIdsAction(payload: {
+  caseId: string;
+  taskIds: string[];
+}): Promise<Record<string, number>> {
+  if (payload.taskIds.length > 100) throw new Error("Too many task IDs");
+  const session = await requireAuth();
+  const access = await getCaseAccessContext(session.id, payload.caseId);
+  assertRecordPermission(session, "task.read", access);
+  return getSubtaskCountsByTaskIds({ taskIds: payload.taskIds });
 }
 
 export async function completeSubtaskAction(

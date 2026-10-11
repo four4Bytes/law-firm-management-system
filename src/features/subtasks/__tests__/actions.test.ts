@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { logAudit } from "@/features/audit/mutations";
+import { getCaseAccessContext } from "@/features/cases/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role, SubtaskStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/infra/prisma";
@@ -14,12 +15,18 @@ import {
   completeSubtaskAction,
   createSubtaskAction,
   deleteSubtaskAction,
+  getSubtaskCountsByTaskIdsAction,
   getSubtaskDetailAction,
   getSubtasksByTaskAction,
   updateSubtaskAction,
 } from "../actions";
 import { completeSubtask, createSubtask, deleteSubtask, updateSubtask } from "../mutations";
-import { getSubtaskDetailRowById, getSubtasksByTaskId, type SubtaskRow } from "../queries";
+import {
+  getSubtaskCountsByTaskIds,
+  getSubtaskDetailRowById,
+  getSubtasksByTaskId,
+  type SubtaskRow,
+} from "../queries";
 
 async function flushAfterCallbacks(): Promise<void> {
   const server = (await import("next/server")) as unknown as {
@@ -48,9 +55,14 @@ vi.mock("@/features/tasks/queries", () => ({
   getTaskAccessContext: vi.fn(),
 }));
 
+vi.mock("@/features/cases/queries", () => ({
+  getCaseAccessContext: vi.fn(),
+}));
+
 vi.mock("../queries", () => ({
   getSubtasksByTaskId: vi.fn(),
   getSubtaskDetailRowById: vi.fn(),
+  getSubtaskCountsByTaskIds: vi.fn(),
 }));
 
 vi.mock("../mutations", () => ({
@@ -137,6 +149,7 @@ const forbiddenEnvelope = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getTaskAccessContext).mockResolvedValue({ assigned: true, own: true, taskOnly: true });
+  vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
   vi.mocked(getTaskById).mockResolvedValue(parentTask);
   vi.mocked(getSubtaskDetailRowById).mockResolvedValue(detailRow);
   vi.mocked(getSubtasksByTaskId).mockResolvedValue([]);
@@ -465,5 +478,57 @@ describe("deleteSubtaskAction", () => {
       }),
     );
     expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith(`/case/${caseId}`);
+  });
+});
+
+describe("getSubtaskCountsByTaskIdsAction", () => {
+  it("returns counts keyed by task id, omitting unknown ids", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getSubtaskCountsByTaskIds).mockResolvedValue({ t1: 2 });
+    await expect(
+      getSubtaskCountsByTaskIdsAction({ caseId, taskIds: ["t1", "t2"] }),
+    ).resolves.toEqual({ t1: 2 });
+    expect(getCaseAccessContext).toHaveBeenCalledWith("u2", caseId);
+    expect(getSubtaskCountsByTaskIds).toHaveBeenCalledWith({ taskIds: ["t1", "t2"] });
+  });
+
+  it("returns an empty record when given no ids", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getSubtaskCountsByTaskIds).mockResolvedValue({});
+    await expect(getSubtaskCountsByTaskIdsAction({ caseId, taskIds: [] })).resolves.toEqual({});
+  });
+
+  it("throws when given more than 100 task ids", async () => {
+    setupAuth(sessionAdmin);
+    const taskIds = Array.from({ length: 101 }, (_, i) => `t${i}`);
+    await expect(getSubtaskCountsByTaskIdsAction({ caseId, taskIds })).rejects.toThrow(
+      "Too many task IDs",
+    );
+    expect(getSubtaskCountsByTaskIds).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { role: Role.Admin, access: { assigned: false, own: false }, allowed: true },
+    { role: Role.Lawyer, access: { assigned: true, own: false }, allowed: true },
+    { role: Role.Lawyer, access: { assigned: false, own: true }, allowed: true },
+    { role: Role.Lawyer, access: { assigned: false, own: false }, allowed: false },
+    { role: Role.Paralegal, access: { assigned: true, own: false }, allowed: true },
+    { role: Role.Paralegal, access: { assigned: false, own: false }, allowed: false },
+    { role: Role.ProcessServer, access: { assigned: true, own: false }, allowed: true },
+    { role: Role.ProcessServer, access: { assigned: false, own: false }, allowed: false },
+  ])("maps $role with $access to allowed=$allowed", async ({ role, access, allowed }) => {
+    setupAuth(mockSessionUser({ id: "u2", email: "e2", role, name: "n2" }));
+    vi.mocked(getCaseAccessContext).mockResolvedValue(access);
+    vi.mocked(getSubtaskCountsByTaskIds).mockResolvedValue({ t1: 1 });
+    if (allowed) {
+      await expect(getSubtaskCountsByTaskIdsAction({ caseId, taskIds: ["t1"] })).resolves.toEqual({
+        t1: 1,
+      });
+    } else {
+      await expect(getSubtaskCountsByTaskIdsAction({ caseId, taskIds: ["t1"] })).rejects.toThrow(
+        "Forbidden",
+      );
+      expect(getSubtaskCountsByTaskIds).not.toHaveBeenCalled();
+    }
   });
 });

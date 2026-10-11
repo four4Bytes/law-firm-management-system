@@ -118,7 +118,11 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
       if (taskIds.length > 0) {
         try {
           const pageCounts = await getSubtaskCountsByTaskIdsAction({ caseId, taskIds });
-          setCounts((prev) => ({ ...prev, ...pageCounts }));
+          setCounts((prev) => ({
+            ...prev,
+            ...Object.fromEntries(taskIds.map((id) => [id, 0])),
+            ...pageCounts,
+          }));
         } catch {
           toastError(
             "Failed to load subtask counts",

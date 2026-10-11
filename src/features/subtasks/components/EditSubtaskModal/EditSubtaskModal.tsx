@@ -10,11 +10,13 @@ import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
-import { updateSubtaskAction } from "@/features/subtasks/actions";
+import { completeSubtaskAction, updateSubtaskAction } from "@/features/subtasks/actions";
 import type { SubtaskDetailRow } from "@/features/subtasks/queries";
 import { SubtaskUpdatePayloadSchema } from "@/features/subtasks/schemas";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
+import { SubtaskStatus } from "@/generated/prisma/browser";
+import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
 import { useModalForm } from "@/lib/hooks/useModalForm";
 import {
   combineDateTime,
@@ -51,6 +53,7 @@ export function EditSubtaskModal({
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(subtask.assignee_ids));
   const [dueDate, setDueDate] = useState<CalendarDate>(toCalendarDate(subtask.due_date));
   const [dueTime, setDueTime] = useState<Time>(toTimeValue(subtask.due_date));
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const newDueDate = combineDateTime(dueDate, dueTime);
   const isDirty =
@@ -90,6 +93,23 @@ export function EditSubtaskModal({
       due_date: newDueDate,
       assignee_ids: Array.from(assigneeIds),
     });
+  }
+
+  async function handleComplete() {
+    if (isPending || isCompleting) return;
+    setIsCompleting(true);
+    try {
+      const result = await completeSubtaskAction({ subtaskId: subtask.id });
+      if (result.success) {
+        toastSuccess("Subtask completed", "The subtask has been marked as done.");
+        onOpenChange(false);
+        onSuccess();
+      } else {
+        toastActionError(result, "complete subtask");
+      }
+    } finally {
+      setIsCompleting(false);
+    }
   }
 
   const disabled = isPending || readOnly;
@@ -149,6 +169,17 @@ export function EditSubtaskModal({
             {!readOnly && (
               <Button type="submit" isDisabled={isPending || !isDirty} isPending={isPending}>
                 Save
+              </Button>
+            )}
+            {!readOnly && subtask.status !== SubtaskStatus.Done && (
+              <Button
+                variant="secondary"
+                type="button"
+                onPress={handleComplete}
+                isDisabled={isPending || isCompleting}
+                isPending={isCompleting}
+              >
+                Mark complete
               </Button>
             )}
           </div>

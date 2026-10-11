@@ -3,9 +3,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  deleteSubtaskAction,
   getSubtaskCountsByTaskIdsAction,
   getSubtasksByTaskAction,
 } from "@/features/subtasks/actions";
+import subtaskStyles from "@/features/subtasks/components/TaskSubtaskRows/TaskSubtaskRows.module.css";
 import type { SubtaskRow } from "@/features/subtasks/queries";
 import { getTasksPaginatedAction } from "@/features/tasks/actions";
 import type { TaskRow } from "@/features/tasks/queries";
@@ -106,5 +108,23 @@ describe("TasksTab subtask expansion", () => {
     expect(getSubtasksByTaskAction).toHaveBeenCalledWith({ taskId: "t1" });
     expect(vi.mocked(getSubtasksByTaskAction).mock.calls.length).toBe(1);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("resets the count pill to the empty state after deleting the last subtask", async () => {
+    vi.mocked(getSubtaskCountsByTaskIdsAction)
+      .mockResolvedValueOnce({ t1: 2 })
+      .mockResolvedValue({});
+    vi.mocked(getSubtasksByTaskAction).mockResolvedValueOnce([subtask]).mockResolvedValue([]);
+    vi.mocked(deleteSubtaskAction).mockResolvedValue({ success: true });
+    renderTab();
+    expect(await screen.findByText("2 subtasks")).not.toBeNull();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    expect(await screen.findByText("File motion")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Delete subtask" }));
+    await screen.findByText("Delete Subtask");
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.queryByText("2 subtasks")).toBeNull());
+    const empties = await screen.findAllByText("No subtasks yet");
+    expect(empties.some((el) => el.className.includes(subtaskStyles.emptyPill))).toBe(true);
   });
 });

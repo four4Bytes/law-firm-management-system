@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { useCallback, useRef, useState } from "react";
 import { Collection, type Selection, type SortDescriptor } from "react-aria-components";
+import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 
 import {
   Cell,
@@ -14,6 +15,7 @@ import {
   TableHeader,
   TableLoadMoreItem,
 } from "@/components/ui/Table/Table";
+import tableStyles from "@/components/ui/Table/Table.module.css";
 
 import { ProgressCircle } from "../ProgressCircle/ProgressCircle";
 import styles from "./DataTable.module.css";
@@ -44,6 +46,10 @@ export interface DataTableProps<T extends { id: string }> {
   collectionDependencies?: unknown[];
   className?: string;
   variant?: "card" | "plain";
+  expandedKeys?: Set<string>;
+  onExpandedChange?: (keys: Set<string>) => void;
+  renderExpandedContent?: (row: T) => React.ReactNode;
+  getExpandAriaLabel?: (row: T) => string;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -63,11 +69,24 @@ export function DataTable<T extends { id: string }>({
   collectionDependencies,
   className,
   variant = "card",
+  expandedKeys,
+  onExpandedChange,
+  renderExpandedContent,
+  getExpandAriaLabel,
 }: DataTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor | undefined>();
+  const [internalExpandedKeys, setInternalExpandedKeys] = useState<Set<string>>(new Set());
   const variantClassName = variant === "plain" ? undefined : styles.card;
+
+  const expandable = renderExpandedContent !== undefined;
+  const expanded = expandedKeys ?? internalExpandedKeys;
+  const expandAriaLabel = getExpandAriaLabel ?? (() => "Expand row");
+  const expandColumnIndex = Math.max(
+    0,
+    columns.findIndex((col) => col.isRowHeader),
+  );
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
@@ -75,6 +94,19 @@ export function DataTable<T extends { id: string }>({
       setIsScrolled(el.scrollTop > 0);
     }
   }, []);
+
+  function toggleExpanded(id: string) {
+    const next = new Set(expanded);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    if (expandedKeys === undefined) {
+      setInternalExpandedKeys(next);
+    }
+    onExpandedChange?.(next);
+  }
 
   if (rows.length === 0) {
     if (isLoading) {
@@ -92,6 +124,17 @@ export function DataTable<T extends { id: string }>({
       </div>
     );
   }
+
+  const displayRows: { row: T; detail: boolean }[] = expandable
+    ? rows.flatMap((row) =>
+        expanded.has(row.id)
+          ? [
+              { row, detail: false },
+              { row, detail: true },
+            ]
+          : [{ row, detail: false }],
+      )
+    : rows.map((row) => ({ row, detail: false }));
 
   return (
     <ResizableTableContainer
@@ -122,23 +165,58 @@ export function DataTable<T extends { id: string }>({
           ))}
         </TableHeader>
         <TableBody renderEmptyState={emptyContent ? () => <>{emptyContent}</> : undefined}>
-          <Collection items={rows} dependencies={collectionDependencies}>
-            {(item: T) => (
-              <Row
-                key={item.id}
-                id={item.id}
-                columns={columns}
-                onAction={onRowAction ? () => onRowAction(item.id) : undefined}
-              >
-                {(column: ColumnDef<T>) => (
-                  <Cell>
-                    {column.render
-                      ? column.render(item[column.id], item)
-                      : String(item[column.id] ?? "")}
-                  </Cell>
-                )}
-              </Row>
-            )}
+          <Collection items={displayRows} dependencies={collectionDependencies}>
+            {(entry) =>
+              entry.detail ? (
+                <Row
+                  key={`${entry.row.id}-details`}
+                  id={`${entry.row.id}-details`}
+                  columns={[{ id: "details" }]}
+                >
+                  {() => (
+                    <Cell colSpan={columns.length}>
+                      {renderExpandedContent ? renderExpandedContent(entry.row) : null}
+                    </Cell>
+                  )}
+                </Row>
+              ) : (
+                <Row
+                  key={entry.row.id}
+                  id={entry.row.id}
+                  columns={columns}
+                  onAction={onRowAction ? () => onRowAction(entry.row.id) : undefined}
+                >
+                  {(column: ColumnDef<T>) => {
+                    const content = column.render
+                      ? column.render(entry.row[column.id], entry.row)
+                      : String(entry.row[column.id] ?? "");
+                    if (!expandable || columns.indexOf(column) !== expandColumnIndex) {
+                      return <Cell>{content}</Cell>;
+                    }
+                    const isExpanded = expanded.has(entry.row.id);
+                    return (
+                      <Cell>
+                        <span className={styles.expandCell}>
+                          <button
+                            type="button"
+                            aria-expanded={isExpanded}
+                            aria-label={expandAriaLabel(entry.row)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpanded(entry.row.id);
+                            }}
+                            className={tableStyles.chevronButton}
+                          >
+                            {isExpanded ? <FaChevronDown /> : <FaChevronRight />}
+                          </button>
+                          {content}
+                        </span>
+                      </Cell>
+                    );
+                  }}
+                </Row>
+              )
+            }
           </Collection>
           {hasMore && (
             <TableLoadMoreItem onLoadMore={onLoadMore} isLoading={isLoading}>

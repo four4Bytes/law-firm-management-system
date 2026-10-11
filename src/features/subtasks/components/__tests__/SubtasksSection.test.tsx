@@ -1,12 +1,10 @@
-import { readFileSync } from "node:fs";
-
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { SubtaskStatus } from "@/generated/prisma/browser";
 
 import type { SubtaskRow } from "../../queries";
-import { SubtasksSection } from "../SubtasksSection/SubtasksSection";
+import { runExclusiveAction, SubtasksSection } from "../SubtasksSection/SubtasksSection";
 
 vi.mock("@/features/subtasks/actions", () => ({
   completeSubtaskAction: vi.fn(),
@@ -70,12 +68,44 @@ describe("SubtasksSection", () => {
     );
     expect(html).toContain("Alice");
   });
+});
 
-  it("guards subtask delete against duplicate submits while busy", () => {
-    const source = readFileSync(
-      new URL("../SubtasksSection/SubtasksSection.tsx", import.meta.url),
-      "utf8",
-    );
-    expect(source).toContain("if (!deleteTarget || busyId) return");
+describe("runExclusiveAction", () => {
+  it("executes run exactly once on concurrent double-invoke", async () => {
+    const setBusyId = vi.fn();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const run = vi.fn(() => gate);
+    const first = runExclusiveAction(null, "st1", setBusyId, run);
+    const second = runExclusiveAction("st1", "st1", setBusyId, run);
+    release();
+    await Promise.all([first, second]);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets busy id then clears it", async () => {
+    const setBusyId = vi.fn();
+    await runExclusiveAction(null, "st1", setBusyId, async () => {});
+    expect(setBusyId.mock.calls).toEqual([["st1"], [null]]);
+  });
+
+  it("returns without running when occupied", async () => {
+    const setBusyId = vi.fn();
+    const run = vi.fn();
+    await runExclusiveAction("other", "st1", setBusyId, run);
+    expect(run).not.toHaveBeenCalled();
+    expect(setBusyId).not.toHaveBeenCalled();
+  });
+
+  it("clears busy and propagates when run throws", async () => {
+    const setBusyId = vi.fn();
+    await expect(
+      runExclusiveAction(null, "st1", setBusyId, async () => {
+        throw new Error("boom");
+      }),
+    ).rejects.toThrow("boom");
+    expect(setBusyId.mock.calls).toEqual([["st1"], [null]]);
   });
 });

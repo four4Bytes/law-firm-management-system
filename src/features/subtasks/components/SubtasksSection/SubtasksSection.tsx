@@ -29,6 +29,21 @@ import { formatDateTime } from "@/lib/primitives/date";
 
 import styles from "./SubtasksSection.module.css";
 
+export async function runExclusiveAction(
+  currentBusyId: string | null,
+  id: string,
+  setBusyId: (value: string | null) => void,
+  run: () => Promise<void>,
+): Promise<void> {
+  if (currentBusyId) return;
+  setBusyId(id);
+  try {
+    await run();
+  } finally {
+    setBusyId(null);
+  }
+}
+
 export interface SubtasksSectionProps {
   taskId: string;
   canEdit: boolean;
@@ -136,48 +151,45 @@ export function SubtasksSection({
   }
 
   async function handleComplete(row: SubtaskRow) {
-    if (busyId) return;
-    setBusyId(row.id);
-    try {
-      const result = await completeSubtaskAction({ subtaskId: row.id });
-      if (result.success) {
-        toastSuccess("Subtask completed", "The subtask has been marked as done.");
-        reload();
-        onSuccess?.();
-      } else {
-        toastActionError(result, "complete subtask");
+    await runExclusiveAction(busyId, row.id, setBusyId, async () => {
+      try {
+        const result = await completeSubtaskAction({ subtaskId: row.id });
+        if (result.success) {
+          toastSuccess("Subtask completed", "The subtask has been marked as done.");
+          reload();
+          onSuccess?.();
+        } else {
+          toastActionError(result, "complete subtask");
+        }
+      } catch {
+        toastError(
+          "Unexpected error",
+          "Something went wrong while completing the subtask. Please try again.",
+        );
       }
-    } catch {
-      toastError(
-        "Unexpected error",
-        "Something went wrong while completing the subtask. Please try again.",
-      );
-    } finally {
-      setBusyId(null);
-    }
+    });
   }
 
   async function handleDelete() {
-    if (!deleteTarget || busyId) return;
-    setBusyId(deleteTarget.id);
-    try {
-      const result = await deleteSubtaskAction({ subtaskId: deleteTarget.id });
-      if (result.success) {
-        setDeleteTarget(null);
-        reload();
-        onSuccess?.();
-        toastSuccess("Subtask deleted", "The subtask has been permanently removed.");
-      } else {
-        toastActionError(result, "delete subtask");
+    if (!deleteTarget) return;
+    await runExclusiveAction(busyId, deleteTarget.id, setBusyId, async () => {
+      try {
+        const result = await deleteSubtaskAction({ subtaskId: deleteTarget.id });
+        if (result.success) {
+          setDeleteTarget(null);
+          reload();
+          onSuccess?.();
+          toastSuccess("Subtask deleted", "The subtask has been permanently removed.");
+        } else {
+          toastActionError(result, "delete subtask");
+        }
+      } catch {
+        toastError(
+          "Unexpected error",
+          "Something went wrong while deleting the subtask. Please try again.",
+        );
       }
-    } catch {
-      toastError(
-        "Unexpected error",
-        "Something went wrong while deleting the subtask. Please try again.",
-      );
-    } finally {
-      setBusyId(null);
-    }
+    });
   }
 
   return (

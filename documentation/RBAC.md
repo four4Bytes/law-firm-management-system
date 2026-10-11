@@ -123,6 +123,8 @@ Combined codes in table cells follow these rules:
 > **Attachment access delegation:** A Note or Document resolves its access context from its parent. When `task_id` is set, the **Task** matrix governs (with the task-attachment auto-grant above); otherwise the owning Case or Consultation matrix applies. Record state never narrows this - see [Lifecycle](./lifecycle.md).
 >
 > **Review workflow:** The task creator is always auto-added as the first reviewer; their task READ/UPDATE/DELETE comes from `OWN`, their review actions (accept/reject) are expressed through task `UPDATE`. Added reviewers are task-attached users; their READ comes from `ASSIGNED` (auto-granted case membership) and their UPDATE is further scoped by `TASK_ONLY`. Review decisions and comments are normal task updates.
+>
+> **Subtasks:** subtask operations reuse the parent task's `task.*` permissions against the parent-task access context — create/update/complete → `task.update`, delete → `task.delete`, read → `task.read`. There is no separate subtask matrix.
 
 #### [Payment](./models.md#payment)
 

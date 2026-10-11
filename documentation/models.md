@@ -118,10 +118,31 @@ A work item within a case.
 | Description | Text       | No       | Task details                                                          |
 | Status      | Enum       | Yes      | Current status (see [Task Status](#task-status))                      |
 | Created By  | Link       | Yes      | The user who created the task (auto-reviewer)                         |
+| Due Date    | Date       | No       | Optional deadline for the task                                        |
 | Assignees   | Join table | No       | Users assigned to this task - see [Task Assignment](#task-assignment) |
 | Reviewers   | Join table | No       | Users reviewing this task - see [Task Reviewer](#task-reviewer)       |
 | Created     | Timestamp  | Yes      | When the record was created                                           |
 | Updated     | Timestamp  | Yes      | When the record was last modified                                     |
+
+---
+
+### Subtask
+
+A smaller work item within a task.
+
+| Field        | Type       | Required | Description                                                    |
+| ------------ | ---------- | -------- | -------------------------------------------------------------- |
+| Task         | Link       | Yes      | The parent task                                                |
+| Title        | Text       | Yes      | Subtask title                                                  |
+| Description  | Text       | No       | Subtask details                                                |
+| Status       | Enum       | Yes      | Current status (see [Subtask Status](#subtask-status))         |
+| Due Date     | Date       | Yes      | When the subtask is due                                        |
+| Created By   | Link       | Yes      | The user who created the subtask                               |
+| Completed At | Timestamp  | No       | When the subtask was completed                                 |
+| Completed By | Link       | No       | The user who completed the subtask                             |
+| Assignees    | Join table | No       | Users assigned - see [Subtask Assignment](#subtask-assignment) |
+| Created      | Timestamp  | Yes      | When the record was created                                    |
+| Updated      | Timestamp  | Yes      | When the record was last modified                              |
 
 ---
 
@@ -303,6 +324,21 @@ Links a reviewer to a task for approval workflows.
 
 ---
 
+### Subtask Assignment
+
+Links a user to a subtask (plain roster - no per-assignee state).
+
+| Field   | Type      | Required | Description        |
+| ------- | --------- | -------- | ------------------ |
+| Subtask | Link      | Yes      | The subtask        |
+| User    | Link      | Yes      | The assigned user  |
+| Created | Timestamp | Yes      | When assigned      |
+| Updated | Timestamp | Yes      | When last modified |
+
+> One row per assignee. Re-saving the roster replaces all rows. At least one assignee is required.
+
+---
+
 ## Enums
 
 ### Roles
@@ -371,6 +407,18 @@ Links a reviewer to a task for approval workflows.
 | ----- | ----------------------------- |
 | Todo  | Assignee still working        |
 | Done  | Assignee marked own work done |
+
+---
+
+### Subtask Status
+
+| Value      | Description             |
+| ---------- | ----------------------- |
+| Pending    | Subtask not yet started |
+| InProgress | Subtask being worked on |
+| Done       | Subtask completed       |
+
+> `Subtask.status` is set directly (no transition table, no derivation). `Done` is terminal; reopening sets it back to `Pending`/`InProgress` via update. See [Lifecycle](./lifecycle.md).
 
 ---
 

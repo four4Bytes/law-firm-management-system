@@ -7,6 +7,7 @@ import {
   Prisma,
   ReviewDecision,
   Role,
+  SubtaskStatus,
   TaskAssignmentStatus,
   TaskStatus,
   type AuditLog,
@@ -20,6 +21,8 @@ import {
   type Note,
   type Notification,
   type Payment,
+  type Subtask,
+  type SubtaskAssignment,
   type Task,
   type TaskAssignment,
   type TaskReviewer,
@@ -156,6 +159,36 @@ export function mockTaskReviewer(overrides: Partial<TaskReviewer> = {}): TaskRev
     reviewer_user_id: "u2",
     decision: ReviewDecision.Pending,
     reviewed_at: null,
+    created_at: new Date("2024-06-01"),
+    updated_at: new Date("2024-06-01"),
+    ...overrides,
+  };
+}
+
+export function mockSubtask(overrides: Partial<Subtask> = {}): Subtask {
+  return {
+    id: "st1",
+    task_id: "t1",
+    title: "Subtask",
+    description: null,
+    status: SubtaskStatus.Pending,
+    due_date: new Date("2026-12-01T09:00:00+08:00"),
+    created_by_user_id: "u1",
+    completed_at: null,
+    completed_by_user_id: null,
+    created_at: new Date("2026-10-01T09:00:00+08:00"),
+    updated_at: new Date("2026-10-01T09:00:00+08:00"),
+    ...overrides,
+  };
+}
+
+export function mockSubtaskAssignment(
+  overrides: Partial<SubtaskAssignment> = {},
+): SubtaskAssignment {
+  return {
+    id: "sa1",
+    subtask_id: "st1",
+    user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),
     ...overrides,

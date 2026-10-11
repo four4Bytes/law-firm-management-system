@@ -96,6 +96,7 @@ const parentTask = {
   title: "Parent task",
   description: null,
   status: "Pending" as const,
+  due_date: null,
   case_id: caseId,
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),

@@ -4,13 +4,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logAudit } from "@/features/audit/mutations";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role, SubtaskStatus } from "@/generated/prisma/browser";
+import { prisma } from "@/lib/infra/prisma";
 import type { AuthenticatedUser } from "@/lib/security/auth-guards";
 import type { AccessContext, Permission } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
-import { createSubtaskAction, getSubtasksByTaskAction, updateSubtaskAction } from "../actions";
-import { createSubtask, updateSubtask } from "../mutations";
+import {
+  completeSubtaskAction,
+  createSubtaskAction,
+  deleteSubtaskAction,
+  getSubtasksByTaskAction,
+  updateSubtaskAction,
+} from "../actions";
+import { completeSubtask, createSubtask, deleteSubtask, updateSubtask } from "../mutations";
 import { getSubtaskDetailRowById, getSubtasksByTaskId, type SubtaskRow } from "../queries";
 
 async function flushAfterCallbacks(): Promise<void> {
@@ -48,10 +55,16 @@ vi.mock("../queries", () => ({
 vi.mock("../mutations", () => ({
   createSubtask: vi.fn(),
   updateSubtask: vi.fn(),
+  completeSubtask: vi.fn(),
+  deleteSubtask: vi.fn(),
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
   logAudit: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/infra/prisma", () => ({
+  prisma: { task: { update: vi.fn() } },
 }));
 
 vi.mock("next/cache", () => ({
@@ -127,6 +140,8 @@ beforeEach(() => {
   vi.mocked(getSubtasksByTaskId).mockResolvedValue([]);
   vi.mocked(createSubtask).mockResolvedValue({ id: "st1" });
   vi.mocked(updateSubtask).mockResolvedValue(undefined);
+  vi.mocked(completeSubtask).mockResolvedValue(undefined);
+  vi.mocked(deleteSubtask).mockResolvedValue(undefined);
 });
 
 afterEach(async () => {
@@ -364,5 +379,65 @@ describe("getSubtasksByTaskAction", () => {
     ];
     vi.mocked(getSubtasksByTaskId).mockResolvedValue(rows);
     await expect(getSubtasksByTaskAction({ taskId })).resolves.toEqual(rows);
+  });
+});
+
+describe("completeSubtaskAction", () => {
+  it("completes without touching parent status (TC-083)", async () => {
+    setupAuth(sessionAdmin);
+    const res = await completeSubtaskAction({ subtaskId });
+    expect(res).toEqual({ success: true });
+    expect(completeSubtask).toHaveBeenCalledWith({ subtaskId: "st1", userId: "u2" });
+    expect(vi.mocked(prisma.task.update)).not.toHaveBeenCalled();
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "subtask.completed",
+        entityType: "Case",
+        entityId: caseId,
+      }),
+    );
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith(`/case/${caseId}`);
+  });
+
+  it("second complete is a harmless no-op success", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue({
+      ...detailRow,
+      status: SubtaskStatus.Done,
+    });
+    const res = await completeSubtaskAction({ subtaskId });
+    expect(res).toEqual({ success: true });
+    expect(completeSubtask).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteSubtaskAction", () => {
+  it("requires task.delete on parent context (TC-084)", async () => {
+    setupAuth(mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" }));
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+    const res = await deleteSubtaskAction({ subtaskId });
+    expect(res).toEqual(forbiddenEnvelope);
+    expect(deleteSubtask).not.toHaveBeenCalled();
+  });
+
+  it("deletes, audits, and revalidates on success", async () => {
+    setupAuth(sessionAdmin);
+    const res = await deleteSubtaskAction({ subtaskId });
+    expect(res).toEqual({ success: true });
+    expect(deleteSubtask).toHaveBeenCalledWith({ subtaskId: "st1" });
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "subtask.deleted",
+        entityType: "Case",
+        entityId: caseId,
+      }),
+    );
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith(`/case/${caseId}`);
   });
 });

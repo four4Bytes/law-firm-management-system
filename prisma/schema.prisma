@@ -130,7 +130,10 @@ model User {
   caseMilestones          CaseMilestone[]
   auditLogs               AuditLog[]
   taskReviewsAssigned     TaskReviewer[]           @relation("ReviewerUser")
+  createdSubtasks         Subtask[]                @relation("SubtaskCreator")
+  completedSubtasks       Subtask[]                @relation("SubtaskCompleter")
   settings                UserSettings?
+  subtaskAssignments      SubtaskAssignment[]
 
   @@index([is_active])
   @@index([created_at])
@@ -272,6 +275,7 @@ model Task {
   title              String
   description        String?
   status             TaskStatus @default(Pending)
+  due_date           DateTime?
   created_by_user_id String     @db.Uuid
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt
@@ -283,6 +287,7 @@ model Task {
   documents       Document[]
   notes           Note[]
   notifications   Notification[]
+  subtasks        Subtask[]
 
   @@index([case_id, updated_at])
 }
@@ -301,6 +306,46 @@ model TaskReviewer {
 
   @@unique([task_id, reviewer_user_id])
   @@index([reviewer_user_id, decision])
+}
+
+enum SubtaskStatus {
+  Pending
+  InProgress
+  Done
+}
+
+model Subtask {
+  id                   String        @id @default(uuid()) @db.Uuid
+  task_id              String        @db.Uuid
+  title                String
+  description          String?
+  status               SubtaskStatus @default(Pending)
+  due_date             DateTime
+  created_by_user_id   String        @db.Uuid
+  completed_at         DateTime?
+  completed_by_user_id String?       @db.Uuid
+  created_at           DateTime      @default(now())
+  updated_at           DateTime      @updatedAt
+
+  task        Task                @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  createdBy   User                @relation("SubtaskCreator", fields: [created_by_user_id], references: [id])
+  completedBy User?               @relation("SubtaskCompleter", fields: [completed_by_user_id], references: [id])
+  assignments SubtaskAssignment[]
+
+  @@index([task_id, due_date])
+}
+
+model SubtaskAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  subtask_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  subtask Subtask @relation(fields: [subtask_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([subtask_id, user_id])
 }
 
 model CaseMilestone {

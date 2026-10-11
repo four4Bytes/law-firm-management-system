@@ -24,6 +24,7 @@ const mockTaskData = (overrides: Record<string, unknown> = {}) => ({
   title: "Task title",
   description: "Task description",
   status: "Pending" as const,
+  due_date: null,
   case_id: "c1",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),

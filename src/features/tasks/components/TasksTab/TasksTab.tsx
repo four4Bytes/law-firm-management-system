@@ -11,6 +11,29 @@ import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
 import type { FilterDefinition } from "@/components/ui/TableFilter/TableFilter";
 import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import {
+  deleteSubtaskAction,
+  getSubtaskCountsByTaskIdsAction,
+  getSubtaskDetailAction,
+  getSubtasksByTaskAction,
+} from "@/features/subtasks/actions";
+import {
+  childRowsForTask,
+  SubtaskCountPill,
+  SubtaskExpandedContent,
+  SubtaskRowActions,
+  SubtaskTitleCell,
+  TaskSubtaskRows,
+  type SubtaskChildRow,
+  type SubtaskDeleteTarget,
+} from "@/features/subtasks/components/TaskSubtaskRows/TaskSubtaskRows";
+import subtaskStyles from "@/features/subtasks/components/TaskSubtaskRows/TaskSubtaskRows.module.css";
+import {
+  getSubtaskStatusLabel,
+  getSubtaskStatusVariant,
+  isSubtaskOverdue,
+} from "@/features/subtasks/display";
+import type { SubtaskDetailRow, SubtaskRow } from "@/features/subtasks/queries";
+import {
   deleteTaskAction,
   getTaskDetailRowByIdAction,
   getTasksPaginatedAction,
@@ -33,6 +56,7 @@ import {
 } from "@/lib/hooks/toast-utils";
 import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
 import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
+import type { FilterValues, SortQuery } from "@/lib/primitives/types";
 import { isForbiddenError } from "@/lib/security/errors";
 import { can, type AccessContext } from "@/lib/security/rbac";
 
@@ -56,41 +80,7 @@ const taskFilters: FilterDefinition[] = [
   },
 ];
 
-const columns: ColumnDef<TaskRow>[] = [
-  { id: "title", name: "Title", isRowHeader: true, allowsSorting: true },
-  {
-    id: "status",
-    name: "Status",
-    allowsSorting: true,
-    render: (value) => {
-      const status = value as TaskStatus;
-      return (
-        <StatusBadge variant={getTaskStatusVariant(status)}>
-          {getTaskStatusLabel(status)}
-        </StatusBadge>
-      );
-    },
-  },
-  {
-    id: "due_date",
-    name: "Due Date",
-    allowsSorting: true,
-    render: (value, row) => {
-      const date = value as Date | null;
-      if (!date) return "—";
-      const task = row as TaskRow;
-      const isOverdue = task.status !== TaskStatus.Done && isBeforeToday(date);
-      return (
-        <span className={styles.dateCell}>
-          {formatDateTime(date)}
-          {isOverdue && <span className={styles.overdue}>Overdue</span>}
-        </span>
-      );
-    },
-  },
-  { id: "assignTo", name: "Assigned To" },
-  { id: "reviewers", name: "Reviewers" },
-];
+export type TaskTableRow = ({ kind: "task" } & TaskRow) | ({ kind: "subtask" } & SubtaskChildRow);
 
 export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -102,12 +92,144 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [subtaskCache, setSubtaskCache] = useState<Record<string, SubtaskRow[] | undefined>>({});
+  const [addSubtaskTaskId, setAddSubtaskTaskId] = useState<string | null>(null);
+  const [editSubtask, setEditSubtask] = useState<SubtaskDetailRow | null>(null);
+  const [subtaskDeleteTarget, setSubtaskDeleteTarget] = useState<SubtaskDeleteTarget | null>(null);
   const { pendingId: pendingEditId, run: runEditFetch, clear: clearEditFetch } = usePendingFetch();
   const { pendingId: pendingViewId, run: runViewFetch, clear: clearViewFetch } = usePendingFetch();
 
   const canCreate = can(userRole, "task.create", access);
 
   const handleRefresh = useCallback(() => setRefreshTrigger((n) => n + 1), []);
+
+  const fetchTasksWithCounts = useCallback(
+    async (params: {
+      search?: string;
+      cursor?: string;
+      pageSize?: number;
+      sort?: SortQuery;
+      filters?: FilterValues;
+    }) => {
+      const result = await getTasksPaginatedAction({ caseId, ...params });
+      const taskIds = result.rows.map((row) => row.id);
+      if (taskIds.length > 0) {
+        try {
+          const pageCounts = await getSubtaskCountsByTaskIdsAction({ caseId, taskIds });
+          setCounts((prev) => ({ ...prev, ...pageCounts }));
+        } catch {
+          toastError(
+            "Failed to load subtask counts",
+            "Subtask counts could not be loaded. Expand a task to see its subtasks.",
+          );
+        }
+      }
+      return {
+        rows: result.rows.map((row): TaskTableRow => ({ kind: "task", ...row })),
+        nextCursor: result.nextCursor,
+      };
+    },
+    [caseId],
+  );
+
+  async function refreshSubtasks(taskId: string) {
+    try {
+      const rows = await getSubtasksByTaskAction({ taskId });
+      setSubtaskCache((prev) => ({ ...prev, [taskId]: rows }));
+    } catch {
+      toastError(
+        "Failed to load subtasks",
+        "We couldn't reload the subtasks for this task. Please try again.",
+      );
+    }
+    handleRefresh();
+  }
+
+  async function handleExpandedChange(keys: Set<string>) {
+    setExpanded(keys);
+    for (const taskId of keys) {
+      if (subtaskCache[taskId] !== undefined) continue;
+      try {
+        const rows = await getSubtasksByTaskAction({ taskId });
+        setSubtaskCache((prev) =>
+          prev[taskId] === undefined ? { ...prev, [taskId]: rows } : prev,
+        );
+      } catch {
+        toastError(
+          "Failed to load subtasks",
+          "We couldn't load the subtasks for this task. Please try again.",
+        );
+      }
+    }
+  }
+
+  const getChildRows = useCallback(
+    (row: TaskTableRow): TaskTableRow[] | null => {
+      if (row.kind !== "task") return null;
+      return childRowsForTask({ taskId: row.id, subtasks: subtaskCache[row.id] });
+    },
+    [subtaskCache],
+  );
+
+  const renderExpandedContent = useCallback(
+    (row: TaskTableRow) => {
+      if (row.kind !== "task") return null;
+      return (
+        <SubtaskExpandedContent
+          taskId={row.id}
+          subtasks={subtaskCache[row.id]}
+          canAdd={canCreate}
+          onAdd={(taskId) => setAddSubtaskTaskId(taskId)}
+        />
+      );
+    },
+    [subtaskCache, canCreate],
+  );
+
+  async function handleSubtaskEdit(subtaskId: string) {
+    try {
+      const detail = await getSubtaskDetailAction({ subtaskId });
+      if (!detail) {
+        toastNotFound("Subtask");
+        return;
+      }
+      setEditSubtask(detail);
+    } catch (error) {
+      if (isForbiddenError(error)) {
+        toastDenied();
+      } else {
+        toastError(
+          "Failed to load subtask",
+          "Something went wrong while loading this subtask. Please try again.",
+        );
+      }
+    }
+  }
+
+  function handleSubtaskDeleteAsk(subtaskId: string) {
+    for (const taskId of Object.keys(subtaskCache)) {
+      const row = subtaskCache[taskId]?.find((candidate) => candidate.id === subtaskId);
+      if (row) {
+        setSubtaskDeleteTarget({ taskId, row });
+        return;
+      }
+    }
+  }
+
+  async function handleSubtaskDelete() {
+    if (!subtaskDeleteTarget) return;
+    const result = await deleteSubtaskAction({ subtaskId: subtaskDeleteTarget.row.id });
+    if (result.success) {
+      const taskId = subtaskDeleteTarget.taskId;
+      setSubtaskDeleteTarget(null);
+      await refreshSubtasks(taskId);
+      toastSuccess("Subtask deleted", "The subtask has been permanently removed.");
+    } else {
+      toastActionError(result, "delete subtask");
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -194,11 +316,84 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
     }
   }
 
-  const actionColumn: ColumnDef<TaskRow> = {
+  const columns: ColumnDef<TaskTableRow>[] = [
+    {
+      id: "title",
+      name: "Title",
+      isRowHeader: true,
+      allowsSorting: true,
+      render: (_value, row) => {
+        if (row.kind === "subtask") return <SubtaskTitleCell title={row.title} />;
+        return (
+          <span className={subtaskStyles.titleCell}>
+            {row.title}
+            <SubtaskCountPill count={counts[row.id] ?? 0} />
+          </span>
+        );
+      },
+    },
+    {
+      id: "status",
+      name: "Status",
+      allowsSorting: true,
+      render: (_value, row) => {
+        if (row.kind === "subtask") {
+          return (
+            <StatusBadge variant={getSubtaskStatusVariant(row.status)}>
+              {getSubtaskStatusLabel(row.status)}
+            </StatusBadge>
+          );
+        }
+        return (
+          <StatusBadge variant={getTaskStatusVariant(row.status)}>
+            {getTaskStatusLabel(row.status)}
+          </StatusBadge>
+        );
+      },
+    },
+    {
+      id: "due_date",
+      name: "Due Date",
+      allowsSorting: true,
+      render: (_value, row) => {
+        if (row.kind === "subtask") {
+          const overdue = isSubtaskOverdue({ due_date: row.due_date, status: row.status });
+          return (
+            <span className={styles.dateCell}>
+              {formatDateTime(row.due_date)}
+              {overdue && <span className={styles.overdue}>Overdue</span>}
+            </span>
+          );
+        }
+        if (!row.due_date) return "—";
+        const isOverdue = row.status !== TaskStatus.Done && isBeforeToday(row.due_date);
+        return (
+          <span className={styles.dateCell}>
+            {formatDateTime(row.due_date)}
+            {isOverdue && <span className={styles.overdue}>Overdue</span>}
+          </span>
+        );
+      },
+    },
+    { id: "assignTo", name: "Assigned To" },
+    { id: "reviewers", name: "Reviewers" },
+  ];
+
+  const actionColumn: ColumnDef<TaskTableRow> = {
     id: "id" as const,
     name: "Action" as const,
     render: (_value: unknown, row: unknown) => {
-      const task = row as TaskRow;
+      const tableRow = row as TaskTableRow;
+      if (tableRow.kind === "subtask") {
+        return (
+          <SubtaskRowActions
+            subtaskId={tableRow.subtaskId}
+            onEdit={handleSubtaskEdit}
+            onDelete={handleSubtaskDeleteAsk}
+          />
+        );
+      }
+      const task = tableRow;
       return (
         <div className={styles.actions}>
           <TooltipTrigger>
@@ -245,7 +440,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
   return (
     <>
       <ServerDataTable
-        fetchAction={(p) => getTasksPaginatedAction({ caseId, ...p })}
+        fetchAction={fetchTasksWithCounts}
         columns={[...columns, actionColumn]}
         searchPlaceholder="Search tasks..."
         emptyContent="No tasks yet"
@@ -253,11 +448,40 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
         searchLabel="Search tasks"
         filters={taskFilters}
         selectionMode="none"
-        collectionDependencies={[pendingEditId, pendingViewId]}
+        collectionDependencies={[pendingEditId, pendingViewId, expanded, subtaskCache, counts]}
         renderAddButton={canCreate}
         addButtonLabel="Add Task"
         onAddButtonPress={() => setIsAddOpen(true)}
         refreshTrigger={refreshTrigger}
+        expandedKeys={expanded}
+        onExpandedChange={handleExpandedChange}
+        getChildRows={getChildRows}
+        renderExpandedContent={renderExpandedContent}
+        expandAriaLabel={(row) => `Expand subtasks for ${row.title}`}
+      />
+
+      <TaskSubtaskRows
+        addTaskId={addSubtaskTaskId}
+        onAddOpenChange={(open) => {
+          if (!open) setAddSubtaskTaskId(null);
+        }}
+        onAddSuccess={() => {
+          if (addSubtaskTaskId !== null) void refreshSubtasks(addSubtaskTaskId);
+        }}
+        editSubtask={editSubtask}
+        onEditOpenChange={(open) => {
+          if (!open) setEditSubtask(null);
+        }}
+        onEditSuccess={() => {
+          if (editSubtask !== null) void refreshSubtasks(editSubtask.task_id);
+        }}
+        deleteTarget={subtaskDeleteTarget}
+        onDeleteOpenChange={(open) => {
+          if (!open) setSubtaskDeleteTarget(null);
+        }}
+        onDeleteConfirm={handleSubtaskDelete}
+        users={users}
+        isLoadingUsers={isLoadingUsers}
       />
 
       <AddTaskModal

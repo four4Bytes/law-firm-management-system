@@ -1,0 +1,215 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
+import { SubtaskStatus } from "@/generated/prisma/browser";
+
+import type { SubtaskDetailRow, SubtaskRow } from "../../../queries";
+import {
+  childRowsForTask,
+  SubtaskCountPill,
+  SubtaskExpandedContent,
+  SubtaskRowActions,
+  SubtaskTitleCell,
+  TaskSubtaskRows,
+  toSubtaskChildRow,
+} from "../TaskSubtaskRows";
+import styles from "../TaskSubtaskRows.module.css";
+
+afterEach(cleanup);
+
+vi.mock("@/features/tasks/actions", () => ({
+  getTaskDetailRowByIdAction: vi.fn().mockResolvedValue({ row: null }),
+}));
+
+vi.mock("@/features/subtasks/actions", () => ({
+  createSubtaskAction: vi.fn(),
+  updateSubtaskAction: vi.fn(),
+}));
+
+const subtask: SubtaskRow = {
+  id: "st1",
+  title: "File motion",
+  status: SubtaskStatus.Pending,
+  due_date: new Date("2026-12-01T09:00:00+08:00"),
+  created_at: new Date("2026-10-01T09:00:00+08:00"),
+  assignTo: "Alice",
+};
+
+describe("toSubtaskChildRow", () => {
+  it("keys the child id by parent and carries every column field", () => {
+    const child = toSubtaskChildRow({ taskId: "t1", subtask });
+    expect(child.id).toBe("t1:st1");
+    expect(child.kind).toBe("subtask");
+    expect(child.taskId).toBe("t1");
+    expect(child.subtaskId).toBe("st1");
+    expect(child.title).toBe("File motion");
+    expect(child.status).toBe(SubtaskStatus.Pending);
+    expect(child.due_date).toEqual(subtask.due_date);
+    expect(child.assignTo).toBe("Alice");
+    expect(child.reviewers).toBe("–");
+  });
+});
+
+describe("childRowsForTask", () => {
+  it("returns null before subtasks load", () => {
+    expect(childRowsForTask({ taskId: "t1", subtasks: undefined })).toBeNull();
+  });
+
+  it("maps loaded subtasks to child rows", () => {
+    expect(childRowsForTask({ taskId: "t1", subtasks: [subtask] })).toEqual([
+      toSubtaskChildRow({ taskId: "t1", subtask }),
+    ]);
+  });
+});
+
+describe("SubtaskCountPill", () => {
+  it("shows the count when subtasks exist", () => {
+    render(<SubtaskCountPill count={2} />);
+    const pill = screen.getByText("2 subtasks");
+    expect(pill.className).toContain(styles.countPill);
+  });
+
+  it("singularizes a single subtask", () => {
+    render(<SubtaskCountPill count={1} />);
+    expect(screen.getByText("1 subtask")).not.toBeNull();
+  });
+
+  it("shows the empty state when there are none", () => {
+    render(<SubtaskCountPill count={0} />);
+    const pill = screen.getByText("No subtasks yet");
+    expect(pill.className).toContain(styles.emptyPill);
+  });
+});
+
+describe("SubtaskTitleCell", () => {
+  it("renders the title for the child row", () => {
+    render(<SubtaskTitleCell title="File motion" />);
+    expect(screen.getByText("File motion")).not.toBeNull();
+  });
+});
+
+describe("SubtaskRowActions", () => {
+  it("always renders edit and delete, and fires both handlers", () => {
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    render(<SubtaskRowActions subtaskId="st1" onEdit={onEdit} onDelete={onDelete} />);
+    fireEvent.click(screen.getByLabelText("Edit subtask"));
+    fireEvent.click(screen.getByLabelText("Delete subtask"));
+    expect(onEdit).toHaveBeenCalledWith("st1");
+    expect(onDelete).toHaveBeenCalledWith("st1");
+  });
+});
+
+describe("SubtaskExpandedContent", () => {
+  it("shows loading before subtasks arrive", () => {
+    render(<SubtaskExpandedContent taskId="t1" subtasks={undefined} canAdd onAdd={() => {}} />);
+    expect(screen.getByText("Loading subtasks...")).not.toBeNull();
+  });
+
+  it("shows the empty state plus Add when there are no subtasks", () => {
+    const onAdd = vi.fn();
+    render(<SubtaskExpandedContent taskId="t1" subtasks={[]} canAdd onAdd={onAdd} />);
+    expect(screen.getByText("No subtasks yet")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add subtask" }));
+    expect(onAdd).toHaveBeenCalledWith("t1");
+  });
+
+  it("shows only the trailing Add button when subtasks exist", () => {
+    const onAdd = vi.fn();
+    render(<SubtaskExpandedContent taskId="t1" subtasks={[subtask]} canAdd onAdd={onAdd} />);
+    expect(screen.queryByText("No subtasks yet")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add subtask" }));
+    expect(onAdd).toHaveBeenCalledWith("t1");
+  });
+
+  it("hides Add when creation is not allowed", () => {
+    render(<SubtaskExpandedContent taskId="t1" subtasks={[]} canAdd={false} onAdd={() => {}} />);
+    expect(screen.queryByRole("button", { name: "Add subtask" })).toBeNull();
+  });
+});
+
+type TaskTableTestRow =
+  { id: string; kind: "task"; title: string } | { id: string; kind: "subtask"; title: string };
+
+describe("child rows through the shared column pipeline", () => {
+  it("passes each child row to the same column render as parents", () => {
+    const renderTitle = vi.fn((value: TaskTableTestRow[keyof TaskTableTestRow]) => (
+      <span>{String(value)}</span>
+    ));
+    const columns: ColumnDef<TaskTableTestRow>[] = [
+      { id: "title", name: "Title", isRowHeader: true, render: renderTitle },
+    ];
+    const parent: TaskTableTestRow = { id: "t1", kind: "task", title: "Parent" };
+    const child: TaskTableTestRow = { id: "t1:st1", kind: "subtask", title: "File motion" };
+    render(
+      <DataTable
+        columns={columns}
+        rows={[parent]}
+        expandedKeys={new Set(["t1"])}
+        getChildRows={() => [child]}
+        renderExpandedContent={() => <span>details</span>}
+        expandAriaLabel={(row) => `Expand subtasks for ${row.title}`}
+      />,
+    );
+    expect(screen.getByText("File motion")).not.toBeNull();
+    expect(renderTitle).toHaveBeenCalledWith("File motion", child);
+  });
+});
+
+const detailRow: SubtaskDetailRow = {
+  id: "st1",
+  task_id: "t1",
+  title: "File motion",
+  description: null,
+  status: SubtaskStatus.Pending,
+  due_date: new Date("2026-12-01T09:00:00+08:00"),
+  created_by_user_id: "u1",
+  created_at: new Date("2026-10-01T09:00:00+08:00"),
+  updated_at: new Date("2026-10-01T09:00:00+08:00"),
+  assignTo: [],
+  assignee_ids: [],
+  case_id: "c1",
+};
+
+function modalProps() {
+  return {
+    addTaskId: null as string | null,
+    onAddOpenChange: () => {},
+    onAddSuccess: () => {},
+    editSubtask: null as SubtaskDetailRow | null,
+    onEditOpenChange: () => {},
+    onEditSuccess: () => {},
+    deleteTarget: null as { taskId: string; row: SubtaskRow } | null,
+    onDeleteOpenChange: () => {},
+    onDeleteConfirm: () => {},
+    users: [],
+  };
+}
+
+describe("TaskSubtaskRows", () => {
+  it("mounts the Add modal for the chosen task", () => {
+    render(<TaskSubtaskRows {...modalProps()} addTaskId="t1" />);
+    expect(screen.getByText("Add Subtask")).not.toBeNull();
+  });
+
+  it("mounts the Edit modal for the chosen subtask", () => {
+    render(<TaskSubtaskRows {...modalProps()} editSubtask={detailRow} />);
+    expect(screen.getByText("Edit Subtask")).not.toBeNull();
+  });
+
+  it("confirms delete without affecting the parent task", () => {
+    const onDeleteConfirm = vi.fn();
+    render(
+      <TaskSubtaskRows
+        {...modalProps()}
+        deleteTarget={{ taskId: "t1", row: subtask }}
+        onDeleteConfirm={onDeleteConfirm}
+      />,
+    );
+    expect(screen.getByText(/parent task is unaffected/)).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(onDeleteConfirm).toHaveBeenCalled();
+  });
+});

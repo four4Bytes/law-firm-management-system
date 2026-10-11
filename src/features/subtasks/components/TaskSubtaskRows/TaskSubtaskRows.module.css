@@ -1,0 +1,60 @@
+.countPill {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semi-bold);
+  padding: var(--space-sm);
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+}
+
+.emptyPill {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semi-bold);
+  padding: var(--space-sm);
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+  background: var(--color-neutral);
+  color: var(--color-text-inverse);
+}
+
+.titleCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.subtaskTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-left: var(--space-xl);
+
+  .marker {
+    width: var(--icon-size-xs);
+    height: auto;
+    flex-shrink: 0;
+  }
+}
+
+.expandedContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-xl);
+}
+
+.emptyMessage {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-xs);
+
+  .icon {
+    width: var(--icon-size-sm);
+    height: auto;
+  }
+}

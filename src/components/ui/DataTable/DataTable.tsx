@@ -48,7 +48,9 @@ export interface DataTableProps<T extends { id: string }> {
   variant?: "card" | "plain";
   expandedKeys?: Set<string>;
   onExpandedChange?: (keys: Set<string>) => void;
+  getChildRows?: (row: T) => T[] | null;
   renderExpandedContent?: (row: T) => React.ReactNode;
+  expandAriaLabel?: (row: T) => string;
   getExpandAriaLabel?: (row: T) => string;
 }
 
@@ -71,7 +73,9 @@ export function DataTable<T extends { id: string }>({
   variant = "card",
   expandedKeys,
   onExpandedChange,
+  getChildRows,
   renderExpandedContent,
+  expandAriaLabel,
   getExpandAriaLabel,
 }: DataTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,9 +84,9 @@ export function DataTable<T extends { id: string }>({
   const [internalExpandedKeys, setInternalExpandedKeys] = useState<Set<string>>(new Set());
   const variantClassName = variant === "plain" ? undefined : styles.card;
 
-  const expandable = renderExpandedContent !== undefined;
+  const expandable = renderExpandedContent !== undefined || getChildRows !== undefined;
   const expanded = expandedKeys ?? internalExpandedKeys;
-  const expandAriaLabel = getExpandAriaLabel ?? (() => "Expand row");
+  const expandLabel = expandAriaLabel ?? getExpandAriaLabel ?? (() => "Expand row");
   const expandColumnIndex = Math.max(
     0,
     columns.findIndex((col) => col.isRowHeader),
@@ -125,16 +129,20 @@ export function DataTable<T extends { id: string }>({
     );
   }
 
-  const displayRows: { row: T; detail: boolean }[] = expandable
-    ? rows.flatMap((row) =>
-        expanded.has(row.id)
-          ? [
-              { row, detail: false },
-              { row, detail: true },
-            ]
-          : [{ row, detail: false }],
-      )
-    : rows.map((row) => ({ row, detail: false }));
+  const displayRows: { row: T; detail: boolean; child: boolean }[] = expandable
+    ? rows.flatMap((row) => {
+        const entries: { row: T; detail: boolean; child: boolean }[] = [
+          { row, detail: false, child: false },
+        ];
+        if (expanded.has(row.id)) {
+          for (const child of getChildRows?.(row) ?? []) {
+            entries.push({ row: child, detail: false, child: true });
+          }
+          if (renderExpandedContent) entries.push({ row, detail: true, child: false });
+        }
+        return entries;
+      })
+    : rows.map((row) => ({ row, detail: false, child: false }));
 
   return (
     <ResizableTableContainer
@@ -190,7 +198,11 @@ export function DataTable<T extends { id: string }>({
                     const content = column.render
                       ? column.render(entry.row[column.id], entry.row)
                       : String(entry.row[column.id] ?? "");
-                    if (!expandable || columns.indexOf(column) !== expandColumnIndex) {
+                    if (
+                      !expandable ||
+                      entry.child ||
+                      columns.indexOf(column) !== expandColumnIndex
+                    ) {
                       return <Cell>{content}</Cell>;
                     }
                     const isExpanded = expanded.has(entry.row.id);
@@ -200,7 +212,7 @@ export function DataTable<T extends { id: string }>({
                           <button
                             type="button"
                             aria-expanded={isExpanded}
-                            aria-label={expandAriaLabel(entry.row)}
+                            aria-label={expandLabel(entry.row)}
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleExpanded(entry.row.id);

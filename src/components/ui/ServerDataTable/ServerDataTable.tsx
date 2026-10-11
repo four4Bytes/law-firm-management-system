@@ -43,6 +43,11 @@ interface ServerDataTableProps<T extends { id: string }> {
   filtersValue?: FilterValues;
   onFiltersChange?: (values: FilterValues) => void;
   collectionDependencies?: unknown[];
+  expandedKeys?: Set<string>;
+  onExpandedChange?: (keys: Set<string>) => void;
+  getChildRows?: (row: T) => T[] | null;
+  renderExpandedContent?: (row: T) => React.ReactNode;
+  expandAriaLabel?: (row: T) => string;
 }
 
 export function ServerDataTable<T extends { id: string }>({
@@ -65,6 +70,11 @@ export function ServerDataTable<T extends { id: string }>({
   filtersValue,
   onFiltersChange,
   collectionDependencies,
+  expandedKeys,
+  onExpandedChange,
+  getChildRows,
+  renderExpandedContent,
+  expandAriaLabel,
 }: ServerDataTableProps<T>) {
   const [items, setItems] = useState<T[]>(initialRows ?? []);
   const [cursor, setCursor] = useState<string | null>(initialCursor ?? null);
@@ -228,6 +238,11 @@ export function ServerDataTable<T extends { id: string }>({
           emptyContent={computedEmptyContent}
           onRowAction={onRowAction}
           collectionDependencies={collectionDependencies}
+          expandedKeys={expandedKeys}
+          onExpandedChange={onExpandedChange}
+          getChildRows={getChildRows}
+          renderExpandedContent={renderExpandedContent}
+          expandAriaLabel={expandAriaLabel}
         />
       )}
     </div>

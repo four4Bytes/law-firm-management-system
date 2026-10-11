@@ -60,3 +60,37 @@ describe("DataTable expansion", () => {
     expect(onExpandedChange).toHaveBeenCalledWith(new Set());
   });
 });
+
+describe("DataTable child rows", () => {
+  it("renders one row per child through the same columns, then the detail row", () => {
+    const renderTitle = vi.fn((value: TitleRow[keyof TitleRow]) => <span>{String(value)}</span>);
+    const childCols: ColumnDef<TitleRow>[] = [
+      { id: "title", name: "Title", isRowHeader: true, render: renderTitle },
+    ];
+    render(
+      <DataTable
+        columns={childCols}
+        rows={rows}
+        expandedKeys={new Set(["a"])}
+        getChildRows={(row) => (row.id === "a" ? [{ id: "a:1", title: "Child" }] : null)}
+        {...expansionProps()}
+      />,
+    );
+    expect(screen.getByText("Child")).not.toBeNull();
+    expect(screen.getByText("Details for Task A")).not.toBeNull();
+    expect(renderTitle).toHaveBeenCalledWith("Child", expect.objectContaining({ id: "a:1" }));
+  });
+
+  it("renders no child rows when collapsed", () => {
+    render(
+      <DataTable
+        columns={cols}
+        rows={rows}
+        getChildRows={() => [{ id: "a:1", title: "Child" }]}
+        {...expansionProps()}
+      />,
+    );
+    expect(screen.queryByText("Child")).toBeNull();
+    expect(screen.queryByText("Details for Task A")).toBeNull();
+  });
+});

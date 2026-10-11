@@ -158,15 +158,25 @@ export function SubtasksSection({
   }
 
   async function handleDelete() {
-    if (!deleteTarget) return;
-    const result = await deleteSubtaskAction({ subtaskId: deleteTarget.id });
-    if (result.success) {
-      setDeleteTarget(null);
-      reload();
-      onSuccess?.();
-      toastSuccess("Subtask deleted", "The subtask has been permanently removed.");
-    } else {
-      toastActionError(result, "delete subtask");
+    if (!deleteTarget || busyId) return;
+    setBusyId(deleteTarget.id);
+    try {
+      const result = await deleteSubtaskAction({ subtaskId: deleteTarget.id });
+      if (result.success) {
+        setDeleteTarget(null);
+        reload();
+        onSuccess?.();
+        toastSuccess("Subtask deleted", "The subtask has been permanently removed.");
+      } else {
+        toastActionError(result, "delete subtask");
+      }
+    } catch {
+      toastError(
+        "Unexpected error",
+        "Something went wrong while deleting the subtask. Please try again.",
+      );
+    } finally {
+      setBusyId(null);
     }
   }
 

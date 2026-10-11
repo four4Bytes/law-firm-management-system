@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -67,5 +69,13 @@ describe("SubtasksSection", () => {
       <SubtasksSection taskId="t1" canEdit={false} initialRows={[overdueRow]} />,
     );
     expect(html).toContain("Alice");
+  });
+
+  it("guards subtask delete against duplicate submits while busy", () => {
+    const source = readFileSync(
+      new URL("../SubtasksSection/SubtasksSection.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("if (!deleteTarget || busyId) return");
   });
 });

@@ -7,6 +7,35 @@
     gap: var(--space-lg);
     text-align: left;
 
+    .parentHeader {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      border-bottom: 1px solid var(--color-border-subtle);
+      padding-bottom: var(--space-md);
+    }
+
+    .parentTitle {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semi-bold);
+      color: var(--color-text-primary);
+    }
+
+    .parentMeta {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+
+    .parentWarning {
+      margin: 0;
+      border: 1px solid var(--color-warning);
+      background: var(--color-surface-bg-alt);
+      color: var(--color-text-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+      font-size: var(--font-size-sm);
+    }
+
     .actions {
       display: flex;
       gap: var(--space-lg);

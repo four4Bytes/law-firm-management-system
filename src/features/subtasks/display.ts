@@ -2,6 +2,7 @@ import { SubtaskStatus } from "@/generated/prisma/browser";
 import { isBeforeToday } from "@/lib/primitives/date";
 
 export function getSubtaskStatusLabel(status: SubtaskStatus): string {
+  if (status === SubtaskStatus.Pending) return "To Do";
   return status === SubtaskStatus.InProgress ? "In Progress" : status;
 }
 

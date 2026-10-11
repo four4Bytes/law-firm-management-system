@@ -43,7 +43,11 @@ export function AddSubtaskModal({
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
   const [dueDate, setDueDate] = useState<CalendarDate>(getToday());
   const [dueTime, setDueTime] = useState<Time>(new Time(9, 0));
-  const [parentDue, setParentDue] = useState<Date | null>(null);
+  const [parent, setParent] = useState<{
+    title: string;
+    due_date: Date | null;
+    assignees: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,10 +56,20 @@ export function AddSubtaskModal({
     async function loadParent() {
       try {
         const data = await getTaskDetailRowByIdAction(taskId);
-        const due = (data.row as unknown as { due_date?: Date | string | null } | null)?.due_date;
-        if (!cancelled) setParentDue(due ? new Date(due) : null);
+        const row = data.row;
+        if (!cancelled) {
+          setParent(
+            row
+              ? {
+                  title: row.title,
+                  due_date: row.due_date ? new Date(row.due_date) : null,
+                  assignees: row.assignTo.map((assignee) => assignee.name),
+                }
+              : null,
+          );
+        }
       } catch {
-        if (!cancelled) setParentDue(null);
+        if (!cancelled) setParent(null);
       }
     }
 
@@ -74,10 +88,8 @@ export function AddSubtaskModal({
   }
 
   const chosenDue = combineDateTime(dueDate, dueTime);
+  const parentDue = parent?.due_date ?? null;
   const exceedsParent = parentDue !== null && chosenDue.getTime() > parentDue.getTime();
-  const parentHint = exceedsParent
-    ? `Exceeds parent deadline (${formatDateTime(parentDue)}).`
-    : undefined;
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof SubtaskCreatePayloadSchema>
@@ -115,6 +127,17 @@ export function AddSubtaskModal({
     <Modal title="Add Subtask" isOpen={isOpen} onOpenChange={handleCancel} className={styles.modal}>
       <Form validationBehavior="native" onSubmit={handleSubmit}>
         <div className={styles.content}>
+          {parent && (
+            <div className={styles.parentHeader}>
+              <span className={styles.parentTitle}>{parent.title}</span>
+              <span className={styles.parentMeta}>
+                {parent.due_date ? formatDateTime(parent.due_date) : "No deadline"}
+              </span>
+              {parent.assignees.length > 0 && (
+                <span className={styles.parentMeta}>{parent.assignees.join(", ")}</span>
+              )}
+            </div>
+          )}
           <TextField
             label="Title"
             value={title}
@@ -146,9 +169,13 @@ export function AddSubtaskModal({
             value={dueDate}
             onChange={(v) => v && setDueDate(v)}
             isDisabled={isPending}
-            description={parentHint}
             validate={validateDueDate}
           />
+          {exceedsParent && parentDue && (
+            <p className={styles.parentWarning}>
+              {`Exceeds parent deadline (${formatDateTime(parentDue)}).`}
+            </p>
+          )}
           <TimeField
             label="Due Time"
             value={dueTime}

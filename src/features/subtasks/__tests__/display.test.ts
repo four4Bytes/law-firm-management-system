@@ -6,7 +6,7 @@ import { getSubtaskStatusLabel, getSubtaskStatusVariant, isSubtaskOverdue } from
 
 describe("getSubtaskStatusLabel", () => {
   it.each([
-    [SubtaskStatus.Pending, "Pending"],
+    [SubtaskStatus.Pending, "To Do"],
     [SubtaskStatus.InProgress, "In Progress"],
     [SubtaskStatus.Done, "Done"],
   ])("maps %s to %s", (status, label) => {

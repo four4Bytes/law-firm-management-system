@@ -4,7 +4,6 @@ import clsx from "clsx";
 
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Separator } from "@/components/ui/Separator/Separator";
-import { SubtasksSection } from "@/features/subtasks/components/SubtasksSection/SubtasksSection";
 import { TaskFilesSection } from "@/features/tasks/components/TaskFilesSection/TaskFilesSection";
 import { TaskNotesSection } from "@/features/tasks/components/TaskNotesSection/TaskNotesSection";
 import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/TaskStatusBadge";
@@ -81,9 +80,6 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
             <span className={styles.value}>
               {task.due_date ? formatDateTime(task.due_date) : "—"}
             </span>
-          </div>
-          <div className={styles.field}>
-            <SubtasksSection taskId={task.id} canEdit={false} />
           </div>
         </div>
 

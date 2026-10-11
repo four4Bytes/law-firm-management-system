@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Separator } from "@/components/ui/Separator/Separator";
-import { SubtasksSection } from "@/features/subtasks/components/SubtasksSection/SubtasksSection";
 import {
   reopenTaskAction,
   updateTaskAction,
@@ -213,11 +212,6 @@ export function EditTaskModal({
               currentUserId={currentUserId}
               showWorkAction={task.assignee_ids.includes(currentUserId)}
               showReviewActions={capabilities.isReviewer}
-            />
-            <SubtasksSection
-              taskId={task.id}
-              canEdit={capabilities.canEdit}
-              onSuccess={onSuccess}
             />
           </div>
 

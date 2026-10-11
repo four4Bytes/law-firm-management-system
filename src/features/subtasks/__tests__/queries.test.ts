@@ -126,13 +126,15 @@ describe("getSubtaskCountsByTaskIds", () => {
       { ...mockSubtask(), task_id: "t2", _count: { _all: 0 }, _max: undefined, _min: undefined },
     ]);
 
-    await expect(getSubtaskCountsByTaskIds({ taskIds: ["t1", "t2", "t3"] })).resolves.toEqual({
+    await expect(
+      getSubtaskCountsByTaskIds({ caseId: "c1", taskIds: ["t1", "t2", "t3"] }),
+    ).resolves.toEqual({
       t1: 2,
       t2: 0,
     });
     expect(prisma.subtask.groupBy).toHaveBeenCalledWith({
       by: ["task_id"],
-      where: { task_id: { in: ["t1", "t2", "t3"] } },
+      where: { task_id: { in: ["t1", "t2", "t3"] }, task: { case_id: "c1" } },
       _count: { _all: true },
     });
   });
@@ -140,7 +142,7 @@ describe("getSubtaskCountsByTaskIds", () => {
   it("returns an empty record without querying when given no ids", async () => {
     vi.mocked(prisma.subtask.groupBy).mockClear();
 
-    await expect(getSubtaskCountsByTaskIds({ taskIds: [] })).resolves.toEqual({});
+    await expect(getSubtaskCountsByTaskIds({ caseId: "c1", taskIds: [] })).resolves.toEqual({});
     expect(prisma.subtask.groupBy).not.toHaveBeenCalled();
   });
 });

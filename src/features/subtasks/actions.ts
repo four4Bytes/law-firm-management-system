@@ -132,7 +132,7 @@ export async function getSubtaskCountsByTaskIdsAction(payload: {
   const session = await requireAuth();
   const access = await getCaseAccessContext(session.id, payload.caseId);
   assertRecordPermission(session, "task.read", access);
-  return getSubtaskCountsByTaskIds({ taskIds: payload.taskIds });
+  return getSubtaskCountsByTaskIds({ caseId: payload.caseId, taskIds: payload.taskIds });
 }
 
 export async function completeSubtaskAction(

@@ -489,7 +489,16 @@ describe("getSubtaskCountsByTaskIdsAction", () => {
       getSubtaskCountsByTaskIdsAction({ caseId, taskIds: ["t1", "t2"] }),
     ).resolves.toEqual({ t1: 2 });
     expect(getCaseAccessContext).toHaveBeenCalledWith("u2", caseId);
-    expect(getSubtaskCountsByTaskIds).toHaveBeenCalledWith({ taskIds: ["t1", "t2"] });
+    expect(getSubtaskCountsByTaskIds).toHaveBeenCalledWith({ caseId, taskIds: ["t1", "t2"] });
+  });
+
+  it("omits task ids from another case", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getSubtaskCountsByTaskIds).mockResolvedValue({ t1: 2 });
+    await expect(
+      getSubtaskCountsByTaskIdsAction({ caseId, taskIds: ["t1", "tForeign"] }),
+    ).resolves.toEqual({ t1: 2 });
+    expect(getSubtaskCountsByTaskIds).toHaveBeenCalledWith({ caseId, taskIds: ["t1", "tForeign"] });
   });
 
   it("returns an empty record when given no ids", async () => {

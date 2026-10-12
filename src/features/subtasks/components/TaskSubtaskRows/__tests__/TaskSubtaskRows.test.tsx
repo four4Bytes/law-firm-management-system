@@ -76,10 +76,9 @@ describe("SubtaskCountPill", () => {
     expect(screen.getByText("1 subtask")).not.toBeNull();
   });
 
-  it("shows the empty state when there are none", () => {
-    render(<SubtaskCountPill count={0} />);
-    const pill = screen.getByText("No subtasks yet");
-    expect(pill.className).toContain(styles.emptyPill);
+  it("renders no pill element when there are no subtasks", () => {
+    const { container } = render(<SubtaskCountPill count={0} />);
+    expect(container.firstChild).toBeNull();
   });
 });
 

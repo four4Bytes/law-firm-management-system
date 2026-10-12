@@ -330,7 +330,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
         if (row.kind === "subtask") return <SubtaskTitleCell title={row.title} />;
         return (
           <span className={subtaskStyles.titleCell}>
-            {row.title}
+            <span className={subtaskStyles.titleText}>{row.title}</span>
             <SubtaskCountPill count={counts[row.id] ?? 0} />
           </span>
         );

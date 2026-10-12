@@ -110,7 +110,7 @@ describe("TasksTab subtask expansion", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("resets the count pill to the empty state after deleting the last subtask", async () => {
+  it("removes the count pill after deleting the last subtask but keeps the chevron and empty state", async () => {
     vi.mocked(getSubtaskCountsByTaskIdsAction)
       .mockResolvedValueOnce({ t1: 2 })
       .mockResolvedValue({});
@@ -124,7 +124,13 @@ describe("TasksTab subtask expansion", () => {
     await screen.findByText("Delete Subtask");
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(screen.queryByText("2 subtasks")).toBeNull());
-    const empties = await screen.findAllByText("No subtasks yet");
-    expect(empties.some((el) => el.className.includes(subtaskStyles.emptyPill))).toBe(true);
+    expect(screen.queryByText("1 subtask")).toBeNull();
+    expect(document.querySelector(`.${subtaskStyles.countPill}`)).toBeNull();
+    const toggle = screen.getByLabelText("Expand subtasks for Task 1");
+    expect(toggle.getAttribute("aria-expanded")).not.toBeNull();
+    const empties = screen.getAllByText("No subtasks yet");
+    expect(empties).toHaveLength(1);
+    expect(empties[0].className).toContain(subtaskStyles.emptyMessage);
+    expect(screen.getByRole("button", { name: "Add subtask" })).not.toBeNull();
   });
 });

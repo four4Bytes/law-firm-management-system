@@ -67,14 +67,12 @@ export interface SubtaskCountPillProps {
 }
 
 export function SubtaskCountPill({ count, className }: SubtaskCountPillProps) {
-  if (count > 0) {
-    return (
-      <span className={clsx(styles.countPill, className)}>
-        {`${count} subtask${count === 1 ? "" : "s"}`}
-      </span>
-    );
-  }
-  return <span className={clsx(styles.emptyPill, className)}>No subtasks yet</span>;
+  if (count <= 0) return null;
+  return (
+    <span className={clsx(styles.countPill, className)}>
+      {`${count} subtask${count === 1 ? "" : "s"}`}
+    </span>
+  );
 }
 
 export interface SubtaskTitleCellProps {

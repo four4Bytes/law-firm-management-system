@@ -6,22 +6,20 @@
   text-transform: uppercase;
   background: var(--color-warning);
   color: var(--color-text-inverse);
-}
-
-.emptyPill {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semi-bold);
-  padding: var(--space-sm);
-  border-radius: var(--radius-pill);
-  text-transform: uppercase;
-  background: var(--color-neutral);
-  color: var(--color-text-inverse);
+  white-space: nowrap;
+  flex: none;
 }
 
 .titleCell {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
+  min-width: 0;
+}
+
+.titleText {
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .subtaskTitle {

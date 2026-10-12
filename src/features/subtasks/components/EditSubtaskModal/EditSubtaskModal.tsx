@@ -17,7 +17,7 @@ import { getSubtaskStatusLabel, getSubtaskStatusVariant } from "@/features/subta
 import type { SubtaskDetailRow } from "@/features/subtasks/queries";
 import { SubtaskUpdatePayloadSchema } from "@/features/subtasks/schemas";
 import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
-import { UserChips } from "@/features/users/components/UserChips/UserChips";
+import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { SubtaskStatus } from "@/generated/prisma/browser";
@@ -105,18 +105,10 @@ export function EditSubtaskModal({
     () => [...users].sort((a, b) => Number(assigneeIds.has(b.id)) - Number(assigneeIds.has(a.id))),
     [users, assigneeIds],
   );
-  const selectedUsers = useMemo(
+  const assigneeRows = useMemo(
     () => sortedUsers.filter((user) => assigneeIds.has(user.id)),
     [sortedUsers, assigneeIds],
   );
-
-  function handleRemoveAssignee(id: string): void {
-    setAssigneeIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  }
 
   const isDirty =
     title !== subtask.title ||
@@ -218,22 +210,17 @@ export function EditSubtaskModal({
             validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.description)}
             isDisabled={disabled}
           />
-          <UserSelect
-            users={sortedUsers}
-            selectedIds={assigneeIds}
-            onChange={setAssigneeIds}
-            isDisabled={disabled}
-            isLoading={isLoadingUsers}
-            placeholder={assigneeIds.size > 0 ? "" : undefined}
-            validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.assignee_ids)}
-          />
-          {assigneeIds.size > 0 && (
-            <UserChips
-              users={selectedUsers}
-              onRemove={handleRemoveAssignee}
+          <div className={styles.assigneeField}>
+            <UserSelect
+              users={sortedUsers}
+              selectedIds={assigneeIds}
+              onChange={setAssigneeIds}
               isDisabled={disabled}
+              isLoading={isLoadingUsers}
+              validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.assignee_ids)}
             />
-          )}
+            <UserList users={assigneeRows} emptyText="No assignees" />
+          </div>
           <div className={styles.dateRow}>
             <DatePicker
               label="Due Date"

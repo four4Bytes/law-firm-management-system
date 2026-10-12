@@ -36,6 +36,10 @@
       color: var(--color-text-muted);
     }
 
+    .assigneeField button {
+      min-height: 44px;
+    }
+
     .dateRow {
       display: flex;
       gap: var(--space-md);

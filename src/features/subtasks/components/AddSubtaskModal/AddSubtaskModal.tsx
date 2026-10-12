@@ -13,7 +13,7 @@ import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createSubtaskAction } from "@/features/subtasks/actions";
 import { SubtaskCreatePayloadSchema } from "@/features/subtasks/schemas";
 import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
-import { UserChips } from "@/features/users/components/UserChips/UserChips";
+import { UserList } from "@/features/users/components/UserList/UserList";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { useModalForm } from "@/lib/hooks/useModalForm";
@@ -107,18 +107,10 @@ export function AddSubtaskModal({
     () => [...users].sort((a, b) => Number(assigneeIds.has(b.id)) - Number(assigneeIds.has(a.id))),
     [users, assigneeIds],
   );
-  const selectedUsers = useMemo(
+  const assigneeRows = useMemo(
     () => sortedUsers.filter((user) => assigneeIds.has(user.id)),
     [sortedUsers, assigneeIds],
   );
-
-  function handleRemoveAssignee(id: string): void {
-    setAssigneeIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  }
 
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof SubtaskCreatePayloadSchema>
@@ -191,22 +183,17 @@ export function AddSubtaskModal({
             validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.description)}
             isDisabled={isPending}
           />
-          <UserSelect
-            users={sortedUsers}
-            selectedIds={assigneeIds}
-            onChange={setAssigneeIds}
-            isDisabled={isPending}
-            isLoading={isLoadingUsers}
-            placeholder={assigneeIds.size > 0 ? "" : undefined}
-            validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.assignee_ids)}
-          />
-          {assigneeIds.size > 0 && (
-            <UserChips
-              users={selectedUsers}
-              onRemove={handleRemoveAssignee}
+          <div className={styles.assigneeField}>
+            <UserSelect
+              users={sortedUsers}
+              selectedIds={assigneeIds}
+              onChange={setAssigneeIds}
               isDisabled={isPending}
+              isLoading={isLoadingUsers}
+              validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.assignee_ids)}
             />
-          )}
+            <UserList users={assigneeRows} emptyText="No assignees" />
+          </div>
           <div className={styles.dateRow}>
             <DatePicker
               label="Due Date"

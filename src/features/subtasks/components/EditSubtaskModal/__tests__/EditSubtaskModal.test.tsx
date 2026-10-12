@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { completeSubtaskAction, updateSubtaskAction } from "@/features/subtasks/actions";
@@ -94,7 +94,7 @@ describe("EditSubtaskModal mark complete", () => {
   });
 });
 
-describe("EditSubtaskModal assignee chips", () => {
+describe("EditSubtaskModal assignee list", () => {
   const ALICE_ID = "11111111-1111-4111-8111-111111111111";
   const BOB_ID = "22222222-2222-4222-8222-222222222222";
   const SUBTASK_ID = "44444444-4444-4111-8111-444444444444";
@@ -113,12 +113,14 @@ describe("EditSubtaskModal assignee chips", () => {
     };
   }
 
-  it("opens with existing assignees as chips and no placeholder", () => {
+  it("opens with existing assignees listed and the placeholder still shown", () => {
     renderModal(chipsDetail(), false, assigneeUsers);
 
-    expect(screen.getByRole("button", { name: "Remove Alice" })).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Remove Bob" })).not.toBeNull();
-    expect(screen.queryByText("Select assignees...")).toBeNull();
+    const list = screen.getByRole("list");
+    expect(within(list).getByText("Alice")).not.toBeNull();
+    expect(within(list).getByText("Bob")).not.toBeNull();
+    expect(screen.getByText("Select assignees...")).not.toBeNull();
+    expect(screen.queryByText("No assignees")).toBeNull();
   });
 
   it("saves the same assignee ids when only the title changes", async () => {
@@ -137,12 +139,18 @@ describe("EditSubtaskModal assignee chips", () => {
     });
   });
 
-  it("submits the remaining ids after removing a chip", async () => {
+  it("submits the remaining ids after deselecting in the dropdown", async () => {
     vi.mocked(updateSubtaskAction).mockResolvedValue({ success: true });
     renderModal(chipsDetail(), false, assigneeUsers);
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Bob" }));
-    expect(screen.queryByRole("button", { name: "Remove Bob" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Assignees/ }));
+    await screen.findByRole("option", { name: "Bob" });
+    fireEvent.click(screen.getByRole("option", { name: "Bob" }));
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+
+    const list = screen.getByRole("list");
+    expect(within(list).queryByText("Bob")).toBeNull();
+    expect(within(list).getByText("Alice")).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 

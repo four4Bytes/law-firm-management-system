@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createSubtaskAction } from "@/features/subtasks/actions";
@@ -187,7 +187,7 @@ describe("AddSubtaskModal title validation", () => {
   });
 });
 
-describe("AddSubtaskModal assignee chips", () => {
+describe("AddSubtaskModal assignee list", () => {
   const ALICE_ID = "11111111-1111-4111-8111-111111111111";
   const BOB_ID = "22222222-2222-4222-8222-222222222222";
   const TASK_ID = "33333333-3333-4333-8333-333333333333";
@@ -196,7 +196,7 @@ describe("AddSubtaskModal assignee chips", () => {
     { id: BOB_ID, name: "Bob", is_online: false },
   ];
 
-  function renderChipsModal() {
+  function renderListModal() {
     vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(
       detailResult(
         parentRow({
@@ -226,30 +226,46 @@ describe("AddSubtaskModal assignee chips", () => {
     fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
   }
 
-  it("shows a chip and hides the placeholder after selecting an assignee", async () => {
-    renderChipsModal();
+  it("lists the chosen person under the field and keeps the placeholder", async () => {
+    renderListModal();
     expect(screen.getByText("Select assignees...")).not.toBeNull();
+    expect(screen.getByText("No assignees")).not.toBeNull();
 
     await openAssigneeOptions();
     fireEvent.click(screen.getByRole("option", { name: "Alice" }));
     closeAssigneeOptions();
 
-    expect(await screen.findByRole("button", { name: "Remove Alice" })).not.toBeNull();
-    expect(screen.queryByText("Select assignees...")).toBeNull();
+    expect(screen.queryByText("No assignees")).toBeNull();
+    expect(screen.getByText("Select assignees...")).not.toBeNull();
   });
 
-  it("removes the chip and submits the remaining ids", async () => {
-    vi.mocked(createSubtaskAction).mockResolvedValue({ success: true });
-    renderChipsModal();
-
+  it("keeps the chosen people listed after the dropdown closes", async () => {
+    renderListModal();
     await openAssigneeOptions();
     fireEvent.click(screen.getByRole("option", { name: "Alice" }));
     fireEvent.click(screen.getByRole("option", { name: "Bob" }));
     closeAssigneeOptions();
-    fireEvent.click(await screen.findByRole("button", { name: "Remove Alice" }));
 
-    expect(screen.queryByRole("button", { name: "Remove Alice" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Remove Bob" })).not.toBeNull();
+    const list = screen.getByRole("list");
+    expect(within(list).getByText("Alice")).not.toBeNull();
+    expect(within(list).getByText("Bob")).not.toBeNull();
+  });
+
+  it("deselecting in the dropdown removes the row and submits the remaining ids", async () => {
+    vi.mocked(createSubtaskAction).mockResolvedValue({ success: true });
+    renderListModal();
+    await openAssigneeOptions();
+    fireEvent.click(screen.getByRole("option", { name: "Alice" }));
+    fireEvent.click(screen.getByRole("option", { name: "Bob" }));
+    closeAssigneeOptions();
+    expect(within(screen.getByRole("list")).getByText("Alice")).not.toBeNull();
+    await openAssigneeOptions();
+    fireEvent.click(screen.getByRole("option", { name: "Alice" }));
+    closeAssigneeOptions();
+
+    const list = screen.getByRole("list");
+    expect(within(list).queryByText("Alice")).toBeNull();
+    expect(within(list).getByText("Bob")).not.toBeNull();
 
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
       target: { value: "Draft motion" },

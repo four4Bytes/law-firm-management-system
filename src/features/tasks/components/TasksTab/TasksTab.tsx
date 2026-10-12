@@ -173,7 +173,11 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
   const getChildRows = useCallback(
     (row: TaskTableRow): TaskTableRow[] | null => {
       if (row.kind !== "task") return null;
-      return childRowsForTask({ taskId: row.id, subtasks: subtaskCache[row.id] });
+      return childRowsForTask({
+        taskId: row.id,
+        subtasks: subtaskCache[row.id],
+        parentReviewers: row.reviewers,
+      });
     },
     [subtaskCache],
   );
@@ -389,8 +393,10 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
           const overdue = isSubtaskOverdue({ due_date: row.due_date, status: row.status });
           return (
             <span className={styles.dateCell}>
-              {formatDateTime(row.due_date)}
-              {overdue && <span className={styles.overdue}>Overdue</span>}
+              <span className={overdue ? styles.overdue : undefined}>
+                {formatDateTime(row.due_date)}
+                {overdue ? " · Overdue" : ""}
+              </span>
             </span>
           );
         }
@@ -398,8 +404,10 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
         const isOverdue = row.status !== TaskStatus.Done && isBeforeToday(row.due_date);
         return (
           <span className={styles.dateCell}>
-            {formatDateTime(row.due_date)}
-            {isOverdue && <span className={styles.overdue}>Overdue</span>}
+            <span className={isOverdue ? styles.overdue : undefined}>
+              {formatDateTime(row.due_date)}
+              {isOverdue ? " · Overdue" : ""}
+            </span>
           </span>
         );
       },
@@ -410,7 +418,11 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
       name: "Reviewers",
       render: (_value, row) => {
         if (row.kind === "subtask") {
-          return <span className={subtaskStyles.muted}>–</span>;
+          return (
+            <span className={subtaskStyles.muted} title="Reviewers of the parent task">
+              {row.reviewers}
+            </span>
+          );
         }
         return String(row.reviewers ?? "");
       },

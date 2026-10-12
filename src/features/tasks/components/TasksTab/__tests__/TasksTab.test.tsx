@@ -194,7 +194,36 @@ describe("TasksTab subtask expansion", () => {
     expect(parentRow?.className).toContain(subtaskStyles.expandedParent);
     const badge = screen.getByText("To Do");
     expect(badge.className).toContain(subtaskStyles.smallBadge);
-    const dash = screen.getByText("–");
-    expect(dash.className).toContain(subtaskStyles.muted);
+    const reviewers = screen.getByTitle("Reviewers of the parent task");
+    expect(reviewers.className).toContain(subtaskStyles.muted);
+  });
+
+  it("shows the parent reviewers on subtask rows with an explanatory title", async () => {
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    const cell = await screen.findByTitle("Reviewers of the parent task");
+    expect(cell.textContent).toBe("Bob");
+  });
+
+  it("shows a muted dash when the parent has no reviewers", async () => {
+    vi.mocked(getTasksPaginatedAction).mockResolvedValue({
+      rows: [{ ...taskRow, reviewers: "" }],
+      nextCursor: null,
+    });
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    const cell = await screen.findByTitle("Reviewers of the parent task");
+    expect(cell.textContent).toBe("–");
+    expect(cell.className).toContain(subtaskStyles.muted);
+  });
+
+  it("renders overdue subtask dates in error color with a middle-dot suffix", async () => {
+    vi.mocked(getSubtasksByTaskAction).mockResolvedValue([
+      { ...subtask, id: "st-past", due_date: new Date("2020-01-09T09:00:00+08:00") },
+    ]);
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    const marker = await screen.findByText(/· Overdue/);
+    expect(marker.textContent).toMatch(/Overdue/);
   });
 });

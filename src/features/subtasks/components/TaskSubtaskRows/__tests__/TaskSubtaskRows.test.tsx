@@ -39,7 +39,7 @@ const subtask: SubtaskRow = {
 
 describe("toSubtaskChildRow", () => {
   it("keys the child id by parent and carries every column field", () => {
-    const child = toSubtaskChildRow({ taskId: "t1", subtask });
+    const child = toSubtaskChildRow({ taskId: "t1", subtask, parentReviewers: "Bob" });
     expect(child.id).toBe("t1:st1");
     expect(child.kind).toBe("subtask");
     expect(child.taskId).toBe("t1");
@@ -48,19 +48,26 @@ describe("toSubtaskChildRow", () => {
     expect(child.status).toBe(SubtaskStatus.Pending);
     expect(child.due_date).toEqual(subtask.due_date);
     expect(child.assignTo).toBe("Alice");
+    expect(child.reviewers).toBe("Bob");
+  });
+
+  it("falls back to a dash when the parent has no reviewers", () => {
+    const child = toSubtaskChildRow({ taskId: "t1", subtask, parentReviewers: "" });
     expect(child.reviewers).toBe("–");
   });
 });
 
 describe("childRowsForTask", () => {
   it("returns null before subtasks load", () => {
-    expect(childRowsForTask({ taskId: "t1", subtasks: undefined })).toBeNull();
+    expect(
+      childRowsForTask({ taskId: "t1", subtasks: undefined, parentReviewers: "Bob" }),
+    ).toBeNull();
   });
 
   it("maps loaded subtasks to child rows", () => {
-    expect(childRowsForTask({ taskId: "t1", subtasks: [subtask] })).toEqual([
-      toSubtaskChildRow({ taskId: "t1", subtask }),
-    ]);
+    expect(childRowsForTask({ taskId: "t1", subtasks: [subtask], parentReviewers: "Bob" })).toEqual(
+      [toSubtaskChildRow({ taskId: "t1", subtask, parentReviewers: "Bob" })],
+    );
   });
 });
 

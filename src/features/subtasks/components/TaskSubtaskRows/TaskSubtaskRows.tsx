@@ -31,10 +31,11 @@ export interface SubtaskChildRow {
 export interface SubtaskChildRowPayload {
   taskId: string;
   subtask: SubtaskRow;
+  parentReviewers: string;
 }
 
 export function toSubtaskChildRow(payload: SubtaskChildRowPayload): SubtaskChildRow {
-  const { taskId, subtask } = payload;
+  const { taskId, subtask, parentReviewers } = payload;
   return {
     id: `${taskId}:${subtask.id}`,
     kind: "subtask",
@@ -44,7 +45,7 @@ export function toSubtaskChildRow(payload: SubtaskChildRowPayload): SubtaskChild
     status: subtask.status,
     due_date: subtask.due_date,
     assignTo: subtask.assignTo,
-    reviewers: "–",
+    reviewers: parentReviewers.trim() === "" ? "–" : parentReviewers,
     updated_at: subtask.created_at,
     created_at: subtask.created_at,
   };
@@ -53,12 +54,13 @@ export function toSubtaskChildRow(payload: SubtaskChildRowPayload): SubtaskChild
 export interface ChildRowsPayload {
   taskId: string;
   subtasks: SubtaskRow[] | undefined;
+  parentReviewers: string;
 }
 
 export function childRowsForTask(payload: ChildRowsPayload): SubtaskChildRow[] | null {
-  const { taskId, subtasks } = payload;
+  const { taskId, subtasks, parentReviewers } = payload;
   if (subtasks === undefined) return null;
-  return subtasks.map((subtask) => toSubtaskChildRow({ taskId, subtask }));
+  return subtasks.map((subtask) => toSubtaskChildRow({ taskId, subtask, parentReviewers }));
 }
 
 export interface SubtaskCountPillProps {
@@ -150,7 +152,7 @@ export function SubtaskExpandedContent({
           {subtasks.length === 0 && <span className={styles.emptyMessage}>No subtasks yet</span>}
           {canAdd && (
             <Button
-              variant="ghost"
+              variant="secondary"
               aria-label="Add subtask"
               onPress={() => onAdd(taskId)}
               className={styles.addButton}

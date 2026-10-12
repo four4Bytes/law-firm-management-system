@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createSubtaskAction } from "@/features/subtasks/actions";
 import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
 import type { TaskDetailRow } from "@/features/tasks/queries";
+import type { UserSummary } from "@/features/users/types";
 import { TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 import { formatDateTime } from "@/lib/primitives/date";
 
@@ -116,5 +118,82 @@ describe("AddSubtaskModal parent warning", () => {
       expect(screen.queryByText("Parent task")).not.toBeNull();
     });
     expect(screen.queryByText(/Exceeds parent deadline/)).toBeNull();
+  });
+});
+
+describe("AddSubtaskModal assignee chips", () => {
+  const ALICE_ID = "11111111-1111-4111-8111-111111111111";
+  const BOB_ID = "22222222-2222-4222-8222-222222222222";
+  const TASK_ID = "33333333-3333-4333-8333-333333333333";
+  const assigneeUsers: UserSummary[] = [
+    { id: ALICE_ID, name: "Alice", is_online: true },
+    { id: BOB_ID, name: "Bob", is_online: false },
+  ];
+
+  function renderChipsModal() {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(
+      detailResult(
+        parentRow({
+          assignTo: [],
+          assignee_ids: [],
+          due_date: new Date("2099-06-01T09:00:00+08:00"),
+        }),
+      ),
+    );
+    render(
+      <AddSubtaskModal
+        isOpen
+        onOpenChange={() => {}}
+        onSuccess={() => {}}
+        taskId={TASK_ID}
+        users={assigneeUsers}
+      />,
+    );
+  }
+
+  async function openAssigneeOptions() {
+    fireEvent.click(screen.getByRole("button", { name: /Assignees/ }));
+    await screen.findByRole("option", { name: "Alice" });
+  }
+
+  function closeAssigneeOptions() {
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+  }
+
+  it("shows a chip and hides the placeholder after selecting an assignee", async () => {
+    renderChipsModal();
+    expect(screen.getByText("Select assignees...")).not.toBeNull();
+
+    await openAssigneeOptions();
+    fireEvent.click(screen.getByRole("option", { name: "Alice" }));
+    closeAssigneeOptions();
+
+    expect(await screen.findByRole("button", { name: "Remove Alice" })).not.toBeNull();
+    expect(screen.queryByText("Select assignees...")).toBeNull();
+  });
+
+  it("removes the chip and submits the remaining ids", async () => {
+    vi.mocked(createSubtaskAction).mockResolvedValue({ success: true });
+    renderChipsModal();
+
+    await openAssigneeOptions();
+    fireEvent.click(screen.getByRole("option", { name: "Alice" }));
+    fireEvent.click(screen.getByRole("option", { name: "Bob" }));
+    closeAssigneeOptions();
+    fireEvent.click(await screen.findByRole("button", { name: "Remove Alice" }));
+
+    expect(screen.queryByRole("button", { name: "Remove Alice" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Remove Bob" })).not.toBeNull();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
+      target: { value: "Draft motion" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Subtask" }));
+
+    await waitFor(() => {
+      expect(createSubtaskAction).toHaveBeenCalledWith(
+        expect.objectContaining({ taskId: TASK_ID, assignee_ids: [BOB_ID] }),
+      );
+    });
   });
 });

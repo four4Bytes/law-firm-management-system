@@ -2,8 +2,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { completeSubtaskAction } from "@/features/subtasks/actions";
+import { completeSubtaskAction, updateSubtaskAction } from "@/features/subtasks/actions";
 import type { SubtaskDetailRow } from "@/features/subtasks/queries";
+import type { UserSummary } from "@/features/users/types";
 import { SubtaskStatus } from "@/generated/prisma/browser";
 import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
 
@@ -38,7 +39,11 @@ const detail: SubtaskDetailRow = {
   case_id: "c1",
 };
 
-function renderModal(subtask: SubtaskDetailRow = detail, readOnly = false) {
+function renderModal(
+  subtask: SubtaskDetailRow = detail,
+  readOnly = false,
+  assigneeUsers: UserSummary[] = [],
+) {
   const onOpenChange = vi.fn();
   const onSuccess = vi.fn();
   render(
@@ -48,7 +53,7 @@ function renderModal(subtask: SubtaskDetailRow = detail, readOnly = false) {
       onSuccess={onSuccess}
       subtask={subtask}
       readOnly={readOnly}
-      users={[]}
+      users={assigneeUsers}
     />,
   );
   return { onOpenChange, onSuccess };
@@ -79,5 +84,76 @@ describe("EditSubtaskModal mark complete", () => {
   ])("hides Mark complete for $name", ({ subtask, readOnly }) => {
     renderModal(subtask, readOnly);
     expect(screen.queryByRole("button", { name: "Mark complete" })).toBeNull();
+  });
+});
+
+describe("EditSubtaskModal assignee chips", () => {
+  const ALICE_ID = "11111111-1111-4111-8111-111111111111";
+  const BOB_ID = "22222222-2222-4222-8222-222222222222";
+  const SUBTASK_ID = "44444444-4444-4111-8111-444444444444";
+  const assigneeUsers: UserSummary[] = [
+    { id: ALICE_ID, name: "Alice", is_online: true },
+    { id: BOB_ID, name: "Bob", is_online: false },
+  ];
+
+  function chipsDetail(overrides: Partial<SubtaskDetailRow> = {}): SubtaskDetailRow {
+    return {
+      ...detail,
+      id: SUBTASK_ID,
+      due_date: new Date("2099-06-01T09:00:00+08:00"),
+      assignee_ids: [ALICE_ID, BOB_ID],
+      ...overrides,
+    };
+  }
+
+  it("opens with existing assignees as chips and no placeholder", () => {
+    renderModal(chipsDetail(), false, assigneeUsers);
+
+    expect(screen.getByRole("button", { name: "Remove Alice" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Remove Bob" })).not.toBeNull();
+    expect(screen.queryByText("Select assignees...")).toBeNull();
+  });
+
+  it("saves the same assignee ids when only the title changes", async () => {
+    vi.mocked(updateSubtaskAction).mockResolvedValue({ success: true });
+    renderModal(chipsDetail(), false, assigneeUsers);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
+      target: { value: "File amended motion" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(updateSubtaskAction).toHaveBeenCalledWith(
+        expect.objectContaining({ subtaskId: SUBTASK_ID, assignee_ids: [ALICE_ID, BOB_ID] }),
+      );
+    });
+  });
+
+  it("submits the remaining ids after removing a chip", async () => {
+    vi.mocked(updateSubtaskAction).mockResolvedValue({ success: true });
+    renderModal(chipsDetail(), false, assigneeUsers);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Bob" }));
+    expect(screen.queryByRole("button", { name: "Remove Bob" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(updateSubtaskAction).toHaveBeenCalledWith(
+        expect.objectContaining({ subtaskId: SUBTASK_ID, assignee_ids: [ALICE_ID] }),
+      );
+    });
+  });
+
+  it("lists selected assignees first in the dropdown", async () => {
+    renderModal(chipsDetail({ assignee_ids: [BOB_ID] }), false, assigneeUsers);
+
+    fireEvent.click(screen.getByRole("button", { name: /Assignees/ }));
+    const options = await screen.findAllByRole("option");
+
+    expect(options).toHaveLength(2);
+    expect(options[0]?.textContent).toContain("Bob");
+    expect(options[1]?.textContent).toContain("Alice");
   });
 });

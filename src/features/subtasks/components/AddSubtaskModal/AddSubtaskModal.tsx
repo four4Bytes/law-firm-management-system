@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDate, Time } from "@internationalized/date";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
 
@@ -13,6 +13,7 @@ import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { createSubtaskAction } from "@/features/subtasks/actions";
 import { SubtaskCreatePayloadSchema } from "@/features/subtasks/schemas";
 import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
+import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { useModalForm } from "@/lib/hooks/useModalForm";
@@ -91,6 +92,23 @@ export function AddSubtaskModal({
   const parentDue = parent?.due_date ?? null;
   const exceedsParent = parentDue !== null && chosenDue.getTime() > parentDue.getTime();
 
+  const sortedUsers = useMemo(
+    () => [...users].sort((a, b) => Number(assigneeIds.has(b.id)) - Number(assigneeIds.has(a.id))),
+    [users, assigneeIds],
+  );
+  const selectedUsers = useMemo(
+    () => sortedUsers.filter((user) => assigneeIds.has(user.id)),
+    [sortedUsers, assigneeIds],
+  );
+
+  function handleRemoveAssignee(id: string): void {
+    setAssigneeIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
   const { isPending, submitForm, handleCancel } = useModalForm<
     z.input<typeof SubtaskCreatePayloadSchema>
   >({
@@ -157,13 +175,21 @@ export function AddSubtaskModal({
             isDisabled={isPending}
           />
           <UserSelect
-            users={users}
+            users={sortedUsers}
             selectedIds={assigneeIds}
             onChange={setAssigneeIds}
             isDisabled={isPending}
             isLoading={isLoadingUsers}
+            placeholder={assigneeIds.size > 0 ? "" : undefined}
             validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.assignee_ids)}
           />
+          {assigneeIds.size > 0 && (
+            <UserChips
+              users={selectedUsers}
+              onRemove={handleRemoveAssignee}
+              isDisabled={isPending}
+            />
+          )}
           <DatePicker
             label="Due Date"
             value={dueDate}

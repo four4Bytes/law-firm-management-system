@@ -5,6 +5,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  min-width: 0;
   max-height: 7rem;
   overflow-y: auto;
 
@@ -17,6 +18,55 @@
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
+    min-width: 0;
+    max-width: 100%;
+
+    .name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-xs);
+      margin: 0;
+      background: transparent;
+      border: 0;
+      border-radius: var(--radius-sm);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+      line-height: 1;
+      cursor: pointer;
+      outline: none;
+
+      &:hover {
+        color: var(--color-text-primary);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--color-brand-accent--focus);
+        outline-offset: 1px;
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+}
+
+@media (max-width: 48rem) {
+  .chips {
+    .chip {
+      .remove {
+        padding: var(--space-lg);
+      }
+    }
   }
 }
 

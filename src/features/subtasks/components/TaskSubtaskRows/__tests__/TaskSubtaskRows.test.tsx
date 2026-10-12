@@ -84,8 +84,25 @@ describe("SubtaskCountPill", () => {
 
 describe("SubtaskTitleCell", () => {
   it("renders the title for the child row", () => {
-    render(<SubtaskTitleCell title="File motion" />);
+    render(<SubtaskTitleCell title="File motion" status={SubtaskStatus.Pending} />);
     expect(screen.getByText("File motion")).not.toBeNull();
+  });
+
+  it("shows an empty-circle marker for To Do and a check marker for Done", () => {
+    const { container: pending } = render(
+      <SubtaskTitleCell title="Same title" status={SubtaskStatus.Pending} />,
+    );
+    const { container: done } = render(
+      <SubtaskTitleCell title="Same title" status={SubtaskStatus.Done} />,
+    );
+    expect(pending.querySelector("svg")).not.toBeNull();
+    expect(done.querySelector("svg")).not.toBeNull();
+    expect(pending.innerHTML).not.toBe(done.innerHTML);
+  });
+
+  it("mutes a Done subtask title", () => {
+    const { container } = render(<SubtaskTitleCell title="B" status={SubtaskStatus.Done} />);
+    expect(container.innerHTML).toContain(styles.doneTitle);
   });
 });
 

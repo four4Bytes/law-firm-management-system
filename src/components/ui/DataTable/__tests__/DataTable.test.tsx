@@ -159,3 +159,31 @@ describe("DataTable child rows", () => {
     expect(screen.queryByText("Details for Task A")).toBeNull();
   });
 });
+
+describe("DataTable row class names", () => {
+  it("applies getRowClassName to parent, child and detail rows", () => {
+    const { container } = render(
+      <DataTable
+        columns={cols}
+        rows={rows}
+        expandedKeys={new Set(["a"])}
+        getChildRows={(row) => (row.id === "a" ? [{ id: "a:1", title: "Child" }] : null)}
+        getRowClassName={(entry) =>
+          entry.child ? "child-row" : entry.detail ? "detail-row" : "parent-row"
+        }
+        {...expansionProps()}
+      />,
+    );
+    const trs = container.querySelectorAll("tbody tr");
+    expect(trs[0].className).toContain("parent-row");
+    expect(trs[1].className).toContain("child-row");
+    expect(trs[2].className).toContain("detail-row");
+  });
+
+  it("adds no custom row classes by default", () => {
+    const { container } = render(<DataTable columns={cols} rows={rows} {...expansionProps()} />);
+    expect(container.innerHTML).not.toContain("parent-row");
+    expect(container.innerHTML).not.toContain("child-row");
+    expect(container.innerHTML).not.toContain("detail-row");
+  });
+});

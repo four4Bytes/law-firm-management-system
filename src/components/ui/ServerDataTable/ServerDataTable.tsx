@@ -49,6 +49,7 @@ interface ServerDataTableProps<T extends { id: string }> {
   renderExpandedContent?: (row: T) => React.ReactNode;
   expandAriaLabel?: (row: T) => string;
   expandOnRowClick?: boolean;
+  getRowClassName?: (entry: { row: T; detail: boolean; child: boolean }) => string | undefined;
 }
 
 export function ServerDataTable<T extends { id: string }>({
@@ -77,6 +78,7 @@ export function ServerDataTable<T extends { id: string }>({
   renderExpandedContent,
   expandAriaLabel,
   expandOnRowClick = false,
+  getRowClassName,
 }: ServerDataTableProps<T>) {
   const [items, setItems] = useState<T[]>(initialRows ?? []);
   const [cursor, setCursor] = useState<string | null>(initialCursor ?? null);
@@ -246,6 +248,7 @@ export function ServerDataTable<T extends { id: string }>({
           renderExpandedContent={renderExpandedContent}
           expandAriaLabel={expandAriaLabel}
           expandOnRowClick={expandOnRowClick}
+          getRowClassName={getRowClassName}
         />
       )}
     </div>

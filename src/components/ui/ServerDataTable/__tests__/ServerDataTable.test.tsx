@@ -53,6 +53,25 @@ describe("ServerDataTable expansion passthrough", () => {
     fireEvent.click(screen.getByLabelText("Expand subtasks for Task A"));
     expect(onExpandedChange).toHaveBeenCalledWith(new Set(["a"]));
   });
+
+  it("forwards getRowClassName to child and detail rows", () => {
+    render(
+      <ServerDataTable
+        fetchAction={vi.fn()}
+        columns={cols}
+        initialRows={rows}
+        initialCursor={null}
+        expandedKeys={new Set(["a"])}
+        getChildRows={(row) => (row.id === "a" ? [{ id: "a:1", title: "Child" }] : null)}
+        renderExpandedContent={(row) => <span>Details for {row.title}</span>}
+        getRowClassName={(entry) => (entry.child ? "child-row" : undefined)}
+      />,
+    );
+    const childRow = screen.getByText("Child").closest("tr");
+    expect(childRow?.className).toContain("child-row");
+    const parentRow = screen.getByText("Task A").closest("tr");
+    expect(parentRow?.className).not.toContain("child-row");
+  });
 });
 
 describe("ServerDataTable row-click toggle", () => {

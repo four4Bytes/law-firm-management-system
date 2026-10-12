@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useCallback, useEffect, useState } from "react";
 import { FaEye, FaPenToSquare, FaTrashCan } from "react-icons/fa6";
 
@@ -192,6 +193,18 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
     [subtaskCache, canCreate],
   );
 
+  const getRowClassName = useCallback(
+    (entry: { row: TaskTableRow; detail: boolean; child: boolean }): string | undefined => {
+      if (entry.detail) return undefined;
+      if (entry.child) return subtaskStyles.subtaskRow;
+      if (entry.row.kind === "task" && expanded.has(entry.row.id)) {
+        return subtaskStyles.expandedParent;
+      }
+      return undefined;
+    },
+    [expanded],
+  );
+
   async function handleSubtaskEdit(subtaskId: string) {
     try {
       const detail = await getSubtaskDetailAction({ subtaskId });
@@ -327,10 +340,19 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
       isRowHeader: true,
       allowsSorting: true,
       render: (_value, row) => {
-        if (row.kind === "subtask") return <SubtaskTitleCell title={row.title} />;
+        if (row.kind === "subtask") {
+          return <SubtaskTitleCell title={row.title} status={row.status} />;
+        }
         return (
           <span className={subtaskStyles.titleCell}>
-            <span className={subtaskStyles.titleText}>{row.title}</span>
+            <span
+              className={clsx(
+                subtaskStyles.titleText,
+                expanded.has(row.id) && subtaskStyles.expandedTitle,
+              )}
+            >
+              {row.title}
+            </span>
             <SubtaskCountPill count={counts[row.id] ?? 0} />
           </span>
         );
@@ -343,7 +365,10 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
       render: (_value, row) => {
         if (row.kind === "subtask") {
           return (
-            <StatusBadge variant={getSubtaskStatusVariant(row.status)}>
+            <StatusBadge
+              variant={getSubtaskStatusVariant(row.status)}
+              className={subtaskStyles.smallBadge}
+            >
               {getSubtaskStatusLabel(row.status)}
             </StatusBadge>
           );
@@ -380,7 +405,16 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
       },
     },
     { id: "assignTo", name: "Assigned To" },
-    { id: "reviewers", name: "Reviewers" },
+    {
+      id: "reviewers",
+      name: "Reviewers",
+      render: (_value, row) => {
+        if (row.kind === "subtask") {
+          return <span className={subtaskStyles.muted}>–</span>;
+        }
+        return String(row.reviewers ?? "");
+      },
+    },
   ];
 
   const actionColumn: ColumnDef<TaskTableRow> = {
@@ -463,6 +497,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
         renderExpandedContent={renderExpandedContent}
         expandAriaLabel={(row) => `Expand subtasks for ${row.title}`}
         expandOnRowClick
+        getRowClassName={getRowClassName}
       />
 
       <TaskSubtaskRows

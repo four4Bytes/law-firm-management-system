@@ -185,4 +185,16 @@ describe("TasksTab subtask expansion", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add subtask" }));
     expect(await screen.findByText("Add Subtask")).not.toBeNull();
   });
+
+  it("marks the expanded parent row and styles subtask cells distinctly", async () => {
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    expect(await screen.findByText("File motion")).not.toBeNull();
+    const parentRow = screen.getByText("Task 1").closest("tr");
+    expect(parentRow?.className).toContain(subtaskStyles.expandedParent);
+    const badge = screen.getByText("To Do");
+    expect(badge.className).toContain(subtaskStyles.smallBadge);
+    const dash = screen.getByText("–");
+    expect(dash.className).toContain(subtaskStyles.muted);
+  });
 });

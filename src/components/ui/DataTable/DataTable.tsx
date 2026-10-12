@@ -53,6 +53,7 @@ export interface DataTableProps<T extends { id: string }> {
   expandAriaLabel?: (row: T) => string;
   getExpandAriaLabel?: (row: T) => string;
   expandOnRowClick?: boolean;
+  getRowClassName?: (entry: { row: T; detail: boolean; child: boolean }) => string | undefined;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -79,6 +80,7 @@ export function DataTable<T extends { id: string }>({
   expandAriaLabel,
   getExpandAriaLabel,
   expandOnRowClick = false,
+  getRowClassName,
 }: DataTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -200,6 +202,7 @@ export function DataTable<T extends { id: string }>({
                   key={`${entry.row.id}-details`}
                   id={`${entry.row.id}-details`}
                   columns={[{ id: "details" }]}
+                  className={getRowClassName?.({ row: entry.row, detail: true, child: false })}
                 >
                   {() => (
                     <Cell colSpan={columns.length}>
@@ -213,11 +216,12 @@ export function DataTable<T extends { id: string }>({
                   id={entry.row.id}
                   columns={columns}
                   onAction={onRowAction ? () => onRowAction(entry.row.id) : undefined}
-                  className={
+                  className={clsx(
                     expandOnRowClick && expandable && !entry.child
                       ? styles.expandableRow
-                      : undefined
-                  }
+                      : undefined,
+                    getRowClassName?.({ row: entry.row, detail: false, child: entry.child }),
+                  )}
                 >
                   {(column: ColumnDef<T>) => {
                     const content = column.render

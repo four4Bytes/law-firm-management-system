@@ -4,10 +4,34 @@
   padding: var(--space-sm);
   border-radius: var(--radius-pill);
   text-transform: uppercase;
-  background: var(--color-warning);
+  background: var(--color-neutral);
   color: var(--color-text-inverse);
   white-space: nowrap;
   flex: none;
+}
+
+.subtaskRow {
+  background: var(--color-surface-bg-alt);
+}
+
+.expandedParent {
+  background: var(--color-surface-hover);
+}
+
+.expandedTitle {
+  font-weight: var(--font-weight-semi-bold);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.smallBadge {
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.doneTitle {
+  color: var(--color-text-secondary);
 }
 
 .titleCell {
@@ -26,7 +50,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  padding-left: var(--space-xl);
+  padding-left: var(--space-2xl);
+  min-width: 0;
 
   .marker {
     width: var(--icon-size-xs);
@@ -35,13 +60,16 @@
   }
 }
 
+.addButton {
+  min-height: 44px;
+}
+
 .expandedContent {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-md);
-  min-height: 44px;
-  padding: var(--space-sm) var(--space-xl);
+  padding: var(--space-xs) var(--space-xl);
   flex-wrap: wrap;
 }
 

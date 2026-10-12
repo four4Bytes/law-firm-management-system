@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { FaPenToSquare, FaPlus, FaRegCircle, FaTrashCan } from "react-icons/fa6";
+import { FaCircleCheck, FaPenToSquare, FaPlus, FaRegCircle, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog/ConfirmDialog";
@@ -10,7 +10,7 @@ import { AddSubtaskModal } from "@/features/subtasks/components/AddSubtaskModal/
 import { EditSubtaskModal } from "@/features/subtasks/components/EditSubtaskModal/EditSubtaskModal";
 import type { SubtaskDetailRow, SubtaskRow } from "@/features/subtasks/queries";
 import type { UserSummary } from "@/features/users/types";
-import type { SubtaskStatus } from "@/generated/prisma/browser";
+import { SubtaskStatus } from "@/generated/prisma/browser";
 
 import styles from "./TaskSubtaskRows.module.css";
 
@@ -77,14 +77,20 @@ export function SubtaskCountPill({ count, className }: SubtaskCountPillProps) {
 
 export interface SubtaskTitleCellProps {
   title: string;
+  status: SubtaskStatus;
   className?: string;
 }
 
-export function SubtaskTitleCell({ title, className }: SubtaskTitleCellProps) {
+export function SubtaskTitleCell({ title, status, className }: SubtaskTitleCellProps) {
+  const isDone = status === SubtaskStatus.Done;
   return (
     <span className={clsx(styles.subtaskTitle, className)}>
-      <FaRegCircle aria-hidden className={styles.marker} />
-      {title}
+      {isDone ? (
+        <FaCircleCheck aria-hidden className={styles.marker} />
+      ) : (
+        <FaRegCircle aria-hidden className={styles.marker} />
+      )}
+      <span className={clsx(styles.titleText, isDone && styles.doneTitle)}>{title}</span>
     </span>
   );
 }
@@ -143,7 +149,12 @@ export function SubtaskExpandedContent({
         <>
           {subtasks.length === 0 && <span className={styles.emptyMessage}>No subtasks yet</span>}
           {canAdd && (
-            <Button variant="secondary" aria-label="Add subtask" onPress={() => onAdd(taskId)}>
+            <Button
+              variant="ghost"
+              aria-label="Add subtask"
+              onPress={() => onAdd(taskId)}
+              className={styles.addButton}
+            >
               <FaPlus /> Add subtask
             </Button>
           )}

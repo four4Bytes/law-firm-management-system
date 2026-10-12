@@ -56,7 +56,7 @@ import {
   toastSuccess,
 } from "@/lib/hooks/toast-utils";
 import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
-import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
+import { formatDate, formatDateTime, isBeforeToday } from "@/lib/primitives/date";
 import type { FilterValues, SortQuery } from "@/lib/primitives/types";
 import { isForbiddenError } from "@/lib/security/errors";
 import { can, type AccessContext } from "@/lib/security/rbac";
@@ -199,10 +199,10 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
 
   const getRowClassName = useCallback(
     (entry: { row: TaskTableRow; detail: boolean; child: boolean }): string | undefined => {
-      if (entry.detail) return undefined;
+      if (entry.detail) return subtaskStyles.detailRow;
       if (entry.child) return subtaskStyles.subtaskRow;
-      if (entry.row.kind === "task" && expanded.has(entry.row.id)) {
-        return subtaskStyles.expandedParent;
+      if (entry.row.kind === "task") {
+        return expanded.has(entry.row.id) ? subtaskStyles.expandedParent : subtaskStyles.taskRow;
       }
       return undefined;
     },
@@ -394,7 +394,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
           return (
             <span className={styles.dateCell}>
               <span className={overdue ? styles.overdue : undefined}>
-                {formatDateTime(row.due_date)}
+                {formatDate(row.due_date)}
                 {overdue ? " · Overdue" : ""}
               </span>
             </span>

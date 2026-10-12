@@ -157,10 +157,10 @@ export function DataTable<T extends { id: string }>({
           { row, detail: false, child: false },
         ];
         if (expanded.has(row.id)) {
+          if (renderExpandedContent) entries.push({ row, detail: true, child: false });
           for (const child of getChildRows?.(row) ?? []) {
             entries.push({ row: child, detail: false, child: true });
           }
-          if (renderExpandedContent) entries.push({ row, detail: true, child: false });
         }
         return entries;
       })

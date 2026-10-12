@@ -127,12 +127,12 @@ describe("DataTable row-click toggle (opt-in)", () => {
 });
 
 describe("DataTable child rows", () => {
-  it("renders one row per child through the same columns, then the detail row", () => {
+  it("renders the detail row first, then one row per child through the same columns", () => {
     const renderTitle = vi.fn((value: TitleRow[keyof TitleRow]) => <span>{String(value)}</span>);
     const childCols: ColumnDef<TitleRow>[] = [
       { id: "title", name: "Title", isRowHeader: true, render: renderTitle },
     ];
-    render(
+    const { container } = render(
       <DataTable
         columns={childCols}
         rows={rows}
@@ -144,6 +144,11 @@ describe("DataTable child rows", () => {
     expect(screen.getByText("Child")).not.toBeNull();
     expect(screen.getByText("Details for Task A")).not.toBeNull();
     expect(renderTitle).toHaveBeenCalledWith("Child", expect.objectContaining({ id: "a:1" }));
+    const order = Array.from(container.querySelectorAll("tbody tr")).map((tr) => tr.textContent);
+    expect(order).toHaveLength(3);
+    expect(order[0]).toContain("Task A");
+    expect(order[1]).toContain("Details for Task A");
+    expect(order[2]).toContain("Child");
   });
 
   it("renders no child rows when collapsed", () => {
@@ -176,8 +181,8 @@ describe("DataTable row class names", () => {
     );
     const trs = container.querySelectorAll("tbody tr");
     expect(trs[0].className).toContain("parent-row");
-    expect(trs[1].className).toContain("child-row");
-    expect(trs[2].className).toContain("detail-row");
+    expect(trs[1].className).toContain("detail-row");
+    expect(trs[2].className).toContain("child-row");
   });
 
   it("adds no custom row classes by default", () => {

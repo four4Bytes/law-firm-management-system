@@ -226,4 +226,11 @@ describe("TasksTab subtask expansion", () => {
     const marker = await screen.findByText(/· Overdue/);
     expect(marker.textContent).toMatch(/Overdue/);
   });
+
+  it("renders subtask due dates without the time", async () => {
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    expect(await screen.findByText("Dec 1, 2026")).not.toBeNull();
+    expect(screen.queryByText(/Dec 1, 2026 at/)).toBeNull();
+  });
 });

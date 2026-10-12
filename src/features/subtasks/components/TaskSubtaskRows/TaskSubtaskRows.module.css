@@ -10,8 +10,18 @@
   flex: none;
 }
 
+.taskRow > td {
+  border-bottom: 0.5px solid var(--color-border-default);
+}
+
 .subtaskRow {
   background: var(--color-surface-bg-alt);
+}
+
+.subtaskRow > td,
+.detailRow > td,
+.expandedParent > td {
+  border-bottom: 0.5px solid var(--color-border-subtle);
 }
 
 .expandedParent {

@@ -17,7 +17,13 @@ import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { useModalForm } from "@/lib/hooks/useModalForm";
-import { combineDateTime, formatDateTime, getToday, isBeforeToday } from "@/lib/primitives/date";
+import {
+  combineDateTime,
+  formatDateTime,
+  formatMonthDay,
+  getToday,
+  isBeforeToday,
+} from "@/lib/primitives/date";
 import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
 
 import styles from "./AddSubtaskModal.module.css";
@@ -161,7 +167,14 @@ export function AddSubtaskModal({
             </div>
           )}
           <TextField
-            label="Title"
+            label={
+              <>
+                Title{" "}
+                <span aria-hidden="true" className={styles.asterisk}>
+                  *
+                </span>
+              </>
+            }
             value={title}
             onChange={setTitle}
             placeholder="Subtask title"
@@ -216,7 +229,7 @@ export function AddSubtaskModal({
           )}
           {exceedsParent && parentDue && (
             <p className={styles.parentWarning}>
-              {`This due date is after the parent task's deadline (${formatDateTime(parentDue)}). You can still save it.`}
+              {`This due date is after the parent task's deadline (${formatMonthDay(parentDue)}). You can still save it.`}
             </p>
           )}
           <div className={styles.actions}>

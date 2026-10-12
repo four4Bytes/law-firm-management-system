@@ -273,6 +273,21 @@ export function formatDate(date: Date | string): string {
 }
 
 /**
+ * Formats a `Date` or ISO string as e.g. "Jul 14" (month and day only).
+ *
+ * @param date - A Date object or ISO 8601 string.
+ * @returns A formatted short date string (e.g. "Jul 14").
+ */
+export function formatMonthDay(date: Date | string): string {
+  const d = toLocalDate(date);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: getAppTimeZone(),
+    month: "short",
+    day: "numeric",
+  }).format(d);
+}
+
+/**
  * Formats a `Date` or ISO string as e.g. "Jul 14, 2026 at 3:30 PM".
  *
  * @param date - A Date object or ISO 8601 string.

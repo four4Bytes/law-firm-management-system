@@ -21,6 +21,10 @@
       color: var(--color-text-muted);
     }
 
+    .asterisk {
+      color: var(--color-danger);
+    }
+
     .parentTitle {
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-semi-bold);

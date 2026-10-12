@@ -17,7 +17,7 @@ import { Text } from "@/components/ui/Content/Content";
 import styles from "./TextField.module.css";
 
 export interface TextFieldProps extends AriaTextFieldProps {
-  label?: string;
+  label?: React.ReactNode;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   placeholder?: string;

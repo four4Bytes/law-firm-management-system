@@ -39,6 +39,7 @@
 
     &[data-invalid] {
       border-color: var(--color-danger);
+      border-width: 2px;
     }
 
     &[data-focused][data-invalid] {

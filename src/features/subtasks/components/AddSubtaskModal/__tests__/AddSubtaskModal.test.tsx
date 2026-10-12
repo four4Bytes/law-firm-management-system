@@ -109,10 +109,11 @@ describe("AddSubtaskModal parent warning", () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByText(/This due date is after the parent task's deadline/),
+        screen.queryByText(
+          "This due date is after the parent task's deadline (Jan 1). You can still save it.",
+        ),
       ).not.toBeNull();
     });
-    expect(screen.queryByText(/You can still save it/)).not.toBeNull();
   });
 
   it("shows no warning when within the parent deadline", async () => {
@@ -148,6 +149,19 @@ describe("AddSubtaskModal parent warning", () => {
       expect(screen.queryByText("Parent task")).not.toBeNull();
     });
     expect(screen.queryByText(/Parent task deadline:/)).toBeNull();
+  });
+});
+
+describe("AddSubtaskModal required title marker", () => {
+  it("marks the title label with a hidden-from-assistive-tech asterisk", async () => {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(detailResult(parentRow()));
+    renderModal();
+
+    await waitFor(() => {
+      expect(screen.queryByText("Parent task")).not.toBeNull();
+    });
+    const asterisk = screen.getByText("*", { selector: "span" });
+    expect(asterisk.getAttribute("aria-hidden")).toBe("true");
   });
 });
 

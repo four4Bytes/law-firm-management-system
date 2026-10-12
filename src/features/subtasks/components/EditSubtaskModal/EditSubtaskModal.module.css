@@ -59,11 +59,23 @@
       font-size: var(--font-size-sm);
     }
 
-    .statusRow {
+    .statusBox {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: var(--space-md);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+    }
+
+    .statusLabel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-primary);
     }
 
     .actions {

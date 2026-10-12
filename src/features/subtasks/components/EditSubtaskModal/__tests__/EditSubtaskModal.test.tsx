@@ -251,9 +251,10 @@ describe("EditSubtaskModal parent context", () => {
 });
 
 describe("EditSubtaskModal status row", () => {
-  it("shows the To Do badge with an outlined Mark complete button", () => {
+  it("shows the To Do badge with a success-outlined Mark complete button", () => {
     renderModal();
     expect(screen.getByText("To Do")).not.toBeNull();
+    expect(screen.getByText("Status")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Mark complete" })).not.toBeNull();
   });
 

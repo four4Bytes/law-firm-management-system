@@ -11,7 +11,8 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 
 import styles from "./Button.module.css";
 
-export type ButtonVariant = "primary" | "secondary" | "navigation" | "ghost" | "outline" | "danger";
+export type ButtonVariant =
+  "primary" | "secondary" | "navigation" | "ghost" | "outline" | "outlineSuccess" | "danger";
 
 interface ButtonProps extends AriaButtonProps {
   variant?: ButtonVariant;

@@ -26,6 +26,7 @@ import { useModalForm } from "@/lib/hooks/useModalForm";
 import {
   combineDateTime,
   formatDateTime,
+  formatMonthDay,
   isBeforeToday,
   toCalendarDate,
   toMinuteEpoch,
@@ -255,19 +256,22 @@ export function EditSubtaskModal({
           )}
           {exceedsParent && parentDue && (
             <p className={styles.parentWarning}>
-              {`This due date is after the parent task's deadline (${formatDateTime(parentDue)}). You can still save it.`}
+              {`This due date is after the parent task's deadline (${formatMonthDay(parentDue)}). You can still save it.`}
             </p>
           )}
-          <div className={styles.statusRow}>
-            <StatusBadge
-              variant={getSubtaskStatusVariant(subtask.status)}
-              className={subtaskStyles.smallBadge}
-            >
-              {getSubtaskStatusLabel(subtask.status)}
-            </StatusBadge>
+          <div className={styles.statusBox}>
+            <div className={styles.statusLabel}>
+              <span>Status</span>
+              <StatusBadge
+                variant={getSubtaskStatusVariant(subtask.status)}
+                className={subtaskStyles.smallBadge}
+              >
+                {getSubtaskStatusLabel(subtask.status)}
+              </StatusBadge>
+            </div>
             {!readOnly && subtask.status !== SubtaskStatus.Done && (
               <Button
-                variant="outline"
+                variant="outlineSuccess"
                 type="button"
                 onPress={handleComplete}
                 isDisabled={isPending || isCompleting}

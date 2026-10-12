@@ -462,6 +462,7 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
         getChildRows={getChildRows}
         renderExpandedContent={renderExpandedContent}
         expandAriaLabel={(row) => `Expand subtasks for ${row.title}`}
+        expandOnRowClick
       />
 
       <TaskSubtaskRows

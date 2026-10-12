@@ -38,8 +38,11 @@
 .expandedContent {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-md);
+  min-height: 44px;
   padding: var(--space-sm) var(--space-xl);
+  flex-wrap: wrap;
 }
 
 .emptyMessage {

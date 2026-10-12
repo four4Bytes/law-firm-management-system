@@ -133,4 +133,56 @@ describe("TasksTab subtask expansion", () => {
     expect(empties[0].className).toContain(subtaskStyles.emptyMessage);
     expect(screen.getByRole("button", { name: "Add subtask" })).not.toBeNull();
   });
+
+  it("toggles expansion on task row click", async () => {
+    renderTab();
+    await screen.findByLabelText("Expand subtasks for Task 1");
+    fireEvent.click(screen.getByText("Task 1"));
+    expect(await screen.findByText("File motion")).not.toBeNull();
+    fireEvent.click(screen.getByText("Task 1"));
+    await waitFor(() => expect(screen.queryByText("File motion")).toBeNull());
+  });
+
+  it.each(["View task", "Edit task", "Delete task"])(
+    "does not toggle on %s click",
+    async (label) => {
+      renderTab();
+      await screen.findByLabelText("Expand subtasks for Task 1");
+      fireEvent.click(screen.getByLabelText(label));
+      expect(screen.queryByText("File motion")).toBeNull();
+      expect(
+        screen.getByLabelText("Expand subtasks for Task 1").getAttribute("aria-expanded"),
+      ).toBe("false");
+    },
+  );
+
+  it("does not collapse when clicking a subtask row", async () => {
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    expect(await screen.findByText("File motion")).not.toBeNull();
+    fireEvent.click(screen.getByText("File motion"));
+    expect(screen.getByText("File motion")).not.toBeNull();
+    expect(screen.getByLabelText("Expand subtasks for Task 1").getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+  });
+
+  it("shows exactly one Add button opening the modal when subtasks exist", async () => {
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    expect(await screen.findByText("File motion")).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "Add subtask" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Add subtask" }));
+    expect(await screen.findByText("Add Subtask")).not.toBeNull();
+  });
+
+  it("shows exactly one Add button opening the modal when empty", async () => {
+    vi.mocked(getSubtasksByTaskAction).mockResolvedValue([]);
+    renderTab();
+    fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
+    expect(await screen.findByText("No subtasks yet")).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "Add subtask" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Add subtask" }));
+    expect(await screen.findByText("Add Subtask")).not.toBeNull();
+  });
 });

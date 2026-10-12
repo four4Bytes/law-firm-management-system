@@ -127,6 +127,14 @@ describe("SubtaskExpandedContent", () => {
     render(<SubtaskExpandedContent taskId="t1" subtasks={[]} canAdd={false} onAdd={() => {}} />);
     expect(screen.queryByRole("button", { name: "Add subtask" })).toBeNull();
   });
+
+  it.each([[{ subtasks: [] as SubtaskRow[] }], [{ subtasks: [subtask] }]])(
+    "renders exactly one Add button (%#)",
+    ({ subtasks }) => {
+      render(<SubtaskExpandedContent taskId="t1" subtasks={subtasks} canAdd onAdd={() => {}} />);
+      expect(screen.getAllByRole("button", { name: "Add subtask" })).toHaveLength(1);
+    },
+  );
 });
 
 type TaskTableTestRow =

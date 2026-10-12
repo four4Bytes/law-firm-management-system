@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Collection, type Selection, type SortDescriptor } from "react-aria-components";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 
@@ -52,6 +52,7 @@ export interface DataTableProps<T extends { id: string }> {
   renderExpandedContent?: (row: T) => React.ReactNode;
   expandAriaLabel?: (row: T) => string;
   getExpandAriaLabel?: (row: T) => string;
+  expandOnRowClick?: boolean;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -77,6 +78,7 @@ export function DataTable<T extends { id: string }>({
   renderExpandedContent,
   expandAriaLabel,
   getExpandAriaLabel,
+  expandOnRowClick = false,
 }: DataTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -111,6 +113,24 @@ export function DataTable<T extends { id: string }>({
     }
     onExpandedChange?.(next);
   }
+
+  useEffect(() => {
+    if (!expandOnRowClick || !expandable) return;
+    const container = containerRef.current;
+    if (!container) return;
+    function handleRowClick(e: MouseEvent) {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest("button, a, input, select, textarea")) return;
+      const row = target.closest("tr");
+      if (!row || !row.classList.contains(styles.expandableRow)) return;
+      const key = row.getAttribute("data-key");
+      if (!key) return;
+      toggleExpanded(key);
+    }
+    container.addEventListener("click", handleRowClick);
+    return () => container.removeEventListener("click", handleRowClick);
+  });
 
   if (rows.length === 0) {
     if (isLoading) {
@@ -193,6 +213,11 @@ export function DataTable<T extends { id: string }>({
                   id={entry.row.id}
                   columns={columns}
                   onAction={onRowAction ? () => onRowAction(entry.row.id) : undefined}
+                  className={
+                    expandOnRowClick && expandable && !entry.child
+                      ? styles.expandableRow
+                      : undefined
+                  }
                 >
                   {(column: ColumnDef<T>) => {
                     const content = column.render

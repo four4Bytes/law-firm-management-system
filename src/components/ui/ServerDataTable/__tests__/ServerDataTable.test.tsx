@@ -54,3 +54,39 @@ describe("ServerDataTable expansion passthrough", () => {
     expect(onExpandedChange).toHaveBeenCalledWith(new Set(["a"]));
   });
 });
+
+describe("ServerDataTable row-click toggle", () => {
+  it("does nothing on row click by default", () => {
+    render(
+      <ServerDataTable
+        fetchAction={vi.fn()}
+        columns={cols}
+        initialRows={rows}
+        initialCursor={null}
+        renderExpandedContent={(row) => <span>Details for {row.title}</span>}
+        expandAriaLabel={(row) => `Expand subtasks for ${row.title}`}
+      />,
+    );
+    fireEvent.click(screen.getByText("Task A"));
+    expect(screen.queryByText("Details for Task A")).toBeNull();
+  });
+
+  it("forwards row-click expansion via onExpandedChange when opt-in", () => {
+    const onExpandedChange = vi.fn();
+    render(
+      <ServerDataTable
+        fetchAction={vi.fn()}
+        columns={cols}
+        initialRows={rows}
+        initialCursor={null}
+        expandedKeys={new Set()}
+        onExpandedChange={onExpandedChange}
+        renderExpandedContent={(row) => <span>Details for {row.title}</span>}
+        expandAriaLabel={(row) => `Expand subtasks for ${row.title}`}
+        expandOnRowClick
+      />,
+    );
+    fireEvent.click(screen.getByText("Task A"));
+    expect(onExpandedChange).toHaveBeenCalledWith(new Set(["a"]));
+  });
+});

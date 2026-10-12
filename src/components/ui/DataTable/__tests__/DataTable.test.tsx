@@ -61,6 +61,71 @@ describe("DataTable expansion", () => {
   });
 });
 
+describe("DataTable row-click toggle (opt-in)", () => {
+  it("does nothing on row click by default", () => {
+    render(<DataTable columns={cols} rows={rows} {...expansionProps()} />);
+    fireEvent.click(screen.getByText("Task A"));
+    expect(screen.queryByText("Details for Task A")).toBeNull();
+  });
+
+  it("expands and collapses on task row click when opt-in", () => {
+    render(<DataTable columns={cols} rows={rows} {...expansionProps()} expandOnRowClick />);
+    fireEvent.click(screen.getByText("Task A"));
+    expect(screen.getByText("Details for Task A")).not.toBeNull();
+    expect(screen.getByLabelText("Expand subtasks for Task A").getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    fireEvent.click(screen.getByText("Task A"));
+    expect(screen.queryByText("Details for Task A")).toBeNull();
+  });
+
+  it("ignores clicks from interactive elements inside the row", () => {
+    const actionCols: ColumnDef<TitleRow>[] = [
+      { id: "title", name: "Title", isRowHeader: true },
+      {
+        id: "id",
+        name: "Action",
+        render: () => (
+          <button type="button" aria-label="Row action">
+            Act
+          </button>
+        ),
+      },
+    ];
+    render(<DataTable columns={actionCols} rows={rows} {...expansionProps()} expandOnRowClick />);
+    fireEvent.click(screen.getByLabelText("Row action"));
+    expect(screen.queryByText("Details for Task A")).toBeNull();
+  });
+
+  it("never toggles from a child row click", () => {
+    render(
+      <DataTable
+        columns={cols}
+        rows={rows}
+        expandedKeys={new Set(["a"])}
+        getChildRows={() => [{ id: "a:1", title: "Child" }]}
+        {...expansionProps()}
+        expandOnRowClick
+      />,
+    );
+    expect(screen.getByText("Child")).not.toBeNull();
+    fireEvent.click(screen.getByText("Child"));
+    expect(screen.getByText("Child")).not.toBeNull();
+    expect(screen.getByText("Details for Task A")).not.toBeNull();
+  });
+
+  it("keeps the chevron as the only keyboard control", () => {
+    render(<DataTable columns={cols} rows={rows} {...expansionProps()} expandOnRowClick />);
+    const toggle = screen.getByLabelText("Expand subtasks for Task A");
+    expect(toggle.tagName).toBe("BUTTON");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    const row = toggle.closest('[role="row"]');
+    expect(row?.getAttribute("tabindex")).toBe("-1");
+    if (row) fireEvent.keyDown(row, { key: "Enter" });
+    expect(screen.queryByText("Details for Task A")).toBeNull();
+  });
+});
+
 describe("DataTable child rows", () => {
   it("renders one row per child through the same columns, then the detail row", () => {
     const renderTitle = vi.fn((value: TitleRow[keyof TitleRow]) => <span>{String(value)}</span>);

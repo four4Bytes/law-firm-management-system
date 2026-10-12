@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/Button/Button";
+import { Button, type ButtonVariant } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
 
 import styles from "./ConfirmDialog.module.css";
@@ -13,6 +13,8 @@ interface ConfirmDialogProps {
   title: string;
   children: React.ReactNode;
   confirmLabel?: string;
+  cancelVariant?: ButtonVariant;
+  confirmVariant?: ButtonVariant;
   onConfirm: () => void | Promise<void>;
 }
 
@@ -22,6 +24,8 @@ export function ConfirmDialog({
   title,
   children,
   confirmLabel = "Confirm",
+  cancelVariant = "secondary",
+  confirmVariant = "primary",
   onConfirm,
 }: ConfirmDialogProps) {
   const [isPending, setIsPending] = useState(false);
@@ -61,7 +65,7 @@ export function ConfirmDialog({
         <Button
           className={styles.button}
           type="button"
-          variant="secondary"
+          variant={cancelVariant}
           isDisabled={isPending}
           onPress={() => onOpenChange(false)}
         >
@@ -70,7 +74,7 @@ export function ConfirmDialog({
         <Button
           className={styles.button}
           type="button"
-          variant="primary"
+          variant={confirmVariant}
           isPending={isPending}
           onPress={handleConfirm}
         >

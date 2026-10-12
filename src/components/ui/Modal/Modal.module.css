@@ -52,11 +52,15 @@
 
       .closeButton {
         display: flex;
+        align-items: center;
+        justify-content: center;
         position: absolute;
         top: var(--space-sm);
         right: var(--space-sm);
         font-size: var(--font-size-lg);
         padding: var(--space-xs);
+        min-width: 44px;
+        min-height: 44px;
         outline: none;
 
         &[data-focus-visible] {

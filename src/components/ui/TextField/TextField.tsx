@@ -43,28 +43,38 @@ export const TextField = React.forwardRef<HTMLInputElement | HTMLTextAreaElement
   ) => {
     return (
       <AriaTextField {...props} className={clsx(styles.field, className)}>
-        {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
-        {isTextArea ? (
-          <TextArea
-            ref={ref as React.Ref<HTMLTextAreaElement>}
-            placeholder={placeholder}
-            rows={rows}
-            className={clsx(styles.input, styles.textarea)}
-          />
-        ) : (
-          <AriaInput
-            ref={ref as React.Ref<HTMLInputElement>}
-            type={type}
-            placeholder={placeholder}
-            className={styles.input}
-          />
+        {({ isInvalid }) => (
+          <>
+            {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
+            {isTextArea ? (
+              <TextArea
+                ref={ref as React.Ref<HTMLTextAreaElement>}
+                placeholder={placeholder}
+                rows={rows}
+                className={clsx(styles.input, styles.textarea)}
+              />
+            ) : (
+              <AriaInput
+                ref={ref as React.Ref<HTMLInputElement>}
+                type={type}
+                placeholder={placeholder}
+                className={styles.input}
+              />
+            )}
+            {description && (
+              <Text slot="description" className={styles.description}>
+                {description}
+              </Text>
+            )}
+            {isInvalid ? (
+              <span role="alert">
+                <AriaFieldError className={styles.error}>{errorMessage}</AriaFieldError>
+              </span>
+            ) : (
+              <AriaFieldError className={styles.error}>{errorMessage}</AriaFieldError>
+            )}
+          </>
         )}
-        {description && (
-          <Text slot="description" className={styles.description}>
-            {description}
-          </Text>
-        )}
-        <AriaFieldError className={styles.error}>{errorMessage}</AriaFieldError>
       </AriaTextField>
     );
   },

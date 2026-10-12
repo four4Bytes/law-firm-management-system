@@ -11,8 +11,10 @@ import { ProgressCircle } from "@/components/ui/ProgressCircle/ProgressCircle";
 
 import styles from "./Button.module.css";
 
+export type ButtonVariant = "primary" | "secondary" | "navigation" | "ghost" | "outline" | "danger";
+
 interface ButtonProps extends AriaButtonProps {
-  variant?: "primary" | "secondary" | "navigation" | "ghost";
+  variant?: ButtonVariant;
   title?: string;
   children: React.ReactNode;
 }

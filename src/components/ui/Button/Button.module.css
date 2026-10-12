@@ -80,6 +80,28 @@
     padding: var(--space-sm);
   }
 
+  /* Outline variant */
+  &.outline {
+    background-color: var(--color-surface-bg);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-default);
+
+    &[data-hovered] {
+      background-color: var(--color-surface-hover);
+    }
+
+    &[data-pressed] {
+      background-color: var(--color-surface-hover);
+    }
+  }
+
+  /* Danger variant */
+  &.danger {
+    background-color: var(--color-danger);
+    color: var(--color-text-inverse);
+    border-color: transparent;
+  }
+
   /* Navigation variant */
   &.navigation {
     background-color: var(--color-brand-primary);
@@ -99,5 +121,27 @@
     &[data-pressed] {
       background-color: var(--color-brand-primary--active);
     }
+  }
+
+  /* Outline variant */
+  &.outline {
+    background-color: var(--color-surface-bg);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-default);
+
+    &[data-hovered] {
+      background-color: var(--color-surface-hover);
+    }
+
+    &[data-pressed] {
+      background-color: var(--color-surface-hover);
+    }
+  }
+
+  /* Danger variant */
+  &.danger {
+    background-color: var(--color-danger);
+    color: var(--color-text-inverse);
+    border-color: transparent;
   }
 }

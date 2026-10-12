@@ -31,7 +31,7 @@ afterEach(cleanup);
 function parentRow(overrides: Partial<TaskDetailRow> = {}): TaskDetailRow {
   return {
     id: "t1",
-    title: "Parent task",
+    title: "Wala",
     description: null,
     status: TaskStatus.Pending,
     due_date: new Date("2099-06-01T09:00:00+08:00"),
@@ -79,8 +79,10 @@ describe("AddSubtaskModal parent header", () => {
     await waitFor(() => {
       expect(screen.queryByText("Parent task")).not.toBeNull();
     });
-    expect(screen.getByText(formatDateTime(row.due_date as Date))).not.toBeNull();
-    expect(screen.getByText("Alice")).not.toBeNull();
+    expect(screen.getByText("Wala")).not.toBeNull();
+    expect(
+      screen.queryByText(`Due ${formatDateTime(row.due_date as Date)} · Assigned to Alice`),
+    ).not.toBeNull();
   });
 
   it("shows No deadline when the parent has no due date", async () => {
@@ -91,8 +93,9 @@ describe("AddSubtaskModal parent header", () => {
     renderModal();
 
     await waitFor(() => {
-      expect(screen.queryByText("No deadline")).not.toBeNull();
+      expect(screen.queryByText("Parent task")).not.toBeNull();
     });
+    expect(screen.queryByText(/No deadline/)).not.toBeNull();
   });
 });
 
@@ -105,8 +108,11 @@ describe("AddSubtaskModal parent warning", () => {
     renderModal();
 
     await waitFor(() => {
-      expect(screen.queryByText(/Exceeds parent deadline/)).not.toBeNull();
+      expect(
+        screen.queryByText(/This due date is after the parent task's deadline/),
+      ).not.toBeNull();
     });
+    expect(screen.queryByText(/You can still save it/)).not.toBeNull();
   });
 
   it("shows no warning when within the parent deadline", async () => {
@@ -117,7 +123,53 @@ describe("AddSubtaskModal parent warning", () => {
     await waitFor(() => {
       expect(screen.queryByText("Parent task")).not.toBeNull();
     });
-    expect(screen.queryByText(/Exceeds parent deadline/)).toBeNull();
+    expect(screen.queryByText(/This due date is after the parent task's deadline/)).toBeNull();
+  });
+
+  it("always shows the parent deadline hint when the parent has one", async () => {
+    const row = parentRow();
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(detailResult(row));
+
+    renderModal();
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Parent task deadline:/)).not.toBeNull();
+    });
+  });
+
+  it("shows no deadline hint when the parent has none", async () => {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(
+      detailResult(parentRow({ due_date: null })),
+    );
+
+    renderModal();
+
+    await waitFor(() => {
+      expect(screen.queryByText("Parent task")).not.toBeNull();
+    });
+    expect(screen.queryByText(/Parent task deadline:/)).toBeNull();
+  });
+});
+
+describe("AddSubtaskModal title validation", () => {
+  it("shows an inline required message with no toast on empty submit", async () => {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(detailResult(parentRow()));
+    const { toastError } = await import("@/lib/hooks/toast-utils");
+
+    renderModal();
+
+    await waitFor(() => {
+      expect(screen.queryByText("Parent task")).not.toBeNull();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Subtask" }));
+    const error = await screen.findByText("Title is required.");
+    expect(error.closest('[role="alert"]')).not.toBeNull();
+    const input = screen.getByRole("textbox", { name: "Title" });
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    const describedBy = input.getAttribute("aria-describedby") ?? "";
+    expect(describedBy).toContain(error.id);
+    expect(vi.mocked(toastError)).not.toHaveBeenCalled();
+    expect(vi.mocked(createSubtaskAction)).not.toHaveBeenCalled();
   });
 });
 

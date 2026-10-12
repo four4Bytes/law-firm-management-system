@@ -7,12 +7,72 @@
     gap: var(--space-lg);
     text-align: left;
 
+    .parentHeader {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      background: var(--color-surface-bg-alt);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+    }
+
+    .parentLabel {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .parentTitle {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semi-bold);
+      color: var(--color-text-primary);
+    }
+
+    .parentMeta {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+
+    .dateRow {
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+
+      > * {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    .deadlineHint {
+      margin: 0;
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .parentWarning {
+      margin: 0;
+      border: 1px solid var(--color-warning);
+      background: var(--color-surface-bg-alt);
+      color: var(--color-text-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+      font-size: var(--font-size-sm);
+    }
+
+    .statusRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+    }
+
     .actions {
       display: flex;
       gap: var(--space-lg);
 
       > * {
         flex: 1;
+        min-height: 48px;
       }
     }
   }

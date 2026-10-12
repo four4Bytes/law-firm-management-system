@@ -4,15 +4,22 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { completeSubtaskAction, updateSubtaskAction } from "@/features/subtasks/actions";
 import type { SubtaskDetailRow } from "@/features/subtasks/queries";
+import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
+import type { TaskDetailRow } from "@/features/tasks/queries";
 import type { UserSummary } from "@/features/users/types";
-import { SubtaskStatus } from "@/generated/prisma/browser";
-import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { SubtaskStatus, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
+import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { formatDateTime } from "@/lib/primitives/date";
 
 import { EditSubtaskModal } from "../EditSubtaskModal";
 
 vi.mock("@/features/subtasks/actions", () => ({
   completeSubtaskAction: vi.fn(),
   updateSubtaskAction: vi.fn(),
+}));
+
+vi.mock("@/features/tasks/actions", () => ({
+  getTaskDetailRowByIdAction: vi.fn(),
 }));
 
 vi.mock("@/lib/hooks/toast-utils", () => ({
@@ -121,7 +128,7 @@ describe("EditSubtaskModal assignee chips", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
       target: { value: "File amended motion" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(updateSubtaskAction).toHaveBeenCalledWith(
@@ -137,7 +144,7 @@ describe("EditSubtaskModal assignee chips", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove Bob" }));
     expect(screen.queryByRole("button", { name: "Remove Bob" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(updateSubtaskAction).toHaveBeenCalledWith(
@@ -155,5 +162,124 @@ describe("EditSubtaskModal assignee chips", () => {
     expect(options).toHaveLength(2);
     expect(options[0]?.textContent).toContain("Bob");
     expect(options[1]?.textContent).toContain("Alice");
+  });
+});
+
+describe("EditSubtaskModal parent context", () => {
+  function parentRow(overrides: Partial<TaskDetailRow> = {}): TaskDetailRow {
+    return {
+      id: "t1",
+      title: "Wala",
+      description: null,
+      status: TaskStatus.Pending,
+      due_date: new Date("2099-06-01T09:00:00+08:00"),
+      assignTo: [{ id: "u1", name: "Alice", status: TaskAssignmentStatus.Todo }],
+      assignee_ids: ["u1"],
+      reviewers: [],
+      updated_at: new Date("2026-10-01T09:00:00+08:00"),
+      created_at: new Date("2026-10-01T09:00:00+08:00"),
+      created_by_user_id: "u9",
+      ...overrides,
+    };
+  }
+
+  function parentDetail(row: TaskDetailRow) {
+    return {
+      row,
+      canUpdate: false,
+      capabilities: {
+        isCreator: false,
+        isReviewer: false,
+        canSubmit: false,
+        canReview: false,
+        canManageReviewers: false,
+        canEdit: false,
+        canEditRoster: false,
+        canReopen: false,
+      },
+      currentUserId: "u9",
+    };
+  }
+
+  it("shows the parent card with title, deadline, and assignees", async () => {
+    const row = parentRow();
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(parentDetail(row));
+    renderModal();
+
+    await waitFor(() => {
+      expect(screen.queryByText("Parent task")).not.toBeNull();
+    });
+    expect(screen.getByText("Wala")).not.toBeNull();
+    expect(
+      screen.queryByText(`Due ${formatDateTime(row.due_date as Date)} · Assigned to Alice`),
+    ).not.toBeNull();
+  });
+
+  it("warns on a past-parent deadline but still saves", async () => {
+    const aliceId = "11111111-1111-4111-8111-111111111111";
+    const subtaskId = "55555555-5555-4555-8555-555555555555";
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(
+      parentDetail(parentRow({ due_date: new Date("2020-01-01T09:00:00+08:00") })),
+    );
+    vi.mocked(updateSubtaskAction).mockResolvedValue({ success: true });
+    renderModal({ ...detail, id: subtaskId, assignee_ids: [aliceId] }, false, [
+      { id: aliceId, name: "Alice", is_online: true },
+    ]);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/This due date is after the parent task's deadline/),
+      ).not.toBeNull();
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
+      target: { value: "File amended motion" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() => {
+      expect(updateSubtaskAction).toHaveBeenCalled();
+    });
+  });
+
+  it("shows the deadline hint whenever the parent has one", async () => {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(parentDetail(parentRow()));
+    renderModal();
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Parent task deadline:/)).not.toBeNull();
+    });
+  });
+});
+
+describe("EditSubtaskModal status row", () => {
+  it("shows the To Do badge with an outlined Mark complete button", () => {
+    renderModal();
+    expect(screen.getByText("To Do")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Mark complete" })).not.toBeNull();
+  });
+
+  it("shows only the Done badge without Mark complete for a done subtask", () => {
+    renderModal({ ...detail, status: SubtaskStatus.Done });
+    expect(screen.getByText("Done")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark complete" })).toBeNull();
+  });
+});
+
+describe("EditSubtaskModal title validation", () => {
+  it("shows an inline required message with alert wiring and no toast on empty save", async () => {
+    renderModal();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    const error = await screen.findByText("Title is required.");
+    expect(error.closest('[role="alert"]')).not.toBeNull();
+    const input = screen.getByRole("textbox", { name: "Title" });
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    const describedBy = input.getAttribute("aria-describedby") ?? "";
+    expect(describedBy).toContain(error.id);
+    expect(vi.mocked(toastError)).not.toHaveBeenCalled();
+    expect(vi.mocked(updateSubtaskAction)).not.toHaveBeenCalled();
   });
 });

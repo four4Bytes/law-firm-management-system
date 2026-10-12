@@ -3,7 +3,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DataTable, type ColumnDef } from "@/components/ui/DataTable/DataTable";
-import { SubtaskStatus } from "@/generated/prisma/browser";
+import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
+import type { TaskDetailRow } from "@/features/tasks/queries";
+import { SubtaskStatus, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 
 import type { SubtaskDetailRow, SubtaskRow } from "../../../queries";
 import {
@@ -36,6 +38,40 @@ const subtask: SubtaskRow = {
   created_at: new Date("2026-10-01T09:00:00+08:00"),
   assignTo: "Alice",
 };
+
+function parentDetailResult(title: string | null) {
+  const row: TaskDetailRow | null =
+    title === null
+      ? null
+      : {
+          id: "t1",
+          title,
+          description: null,
+          status: TaskStatus.Pending,
+          due_date: null,
+          updated_at: new Date("2026-10-01T09:00:00+08:00"),
+          created_at: new Date("2026-10-01T09:00:00+08:00"),
+          created_by_user_id: "u9",
+          assignTo: [{ id: "u1", name: "Alice", status: TaskAssignmentStatus.Todo }],
+          assignee_ids: ["u1"],
+          reviewers: [],
+        };
+  return {
+    row,
+    canUpdate: false,
+    capabilities: {
+      isCreator: false,
+      isReviewer: false,
+      canSubmit: false,
+      canReview: false,
+      canManageReviewers: false,
+      canEdit: false,
+      canEditRoster: false,
+      canReopen: false,
+    },
+    currentUserId: "u9",
+  };
+}
 
 describe("toSubtaskChildRow", () => {
   it("keys the child id by parent and carries every column field", () => {
@@ -230,7 +266,8 @@ describe("TaskSubtaskRows", () => {
     expect(screen.getByText("Edit Subtask")).not.toBeNull();
   });
 
-  it("confirms delete without affecting the parent task", () => {
+  it("confirms delete naming both subtask and parent task", async () => {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(parentDetailResult("Wala"));
     const onDeleteConfirm = vi.fn();
     render(
       <TaskSubtaskRows
@@ -239,8 +276,22 @@ describe("TaskSubtaskRows", () => {
         onDeleteConfirm={onDeleteConfirm}
       />,
     );
-    expect(screen.getByText(/parent task is unaffected/)).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(
+      await screen.findByText(
+        '"File motion" will be permanently deleted. The parent task Wala is not changed.',
+      ),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Delete subtask" }));
     expect(onDeleteConfirm).toHaveBeenCalled();
+  });
+
+  it("falls back to generic copy when the parent title is unavailable", async () => {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(parentDetailResult(null));
+    render(<TaskSubtaskRows {...modalProps()} deleteTarget={{ taskId: "t1", row: subtask }} />);
+    expect(
+      await screen.findByText(
+        '"File motion" will be permanently deleted. The parent task is not changed.',
+      ),
+    ).not.toBeNull();
   });
 });

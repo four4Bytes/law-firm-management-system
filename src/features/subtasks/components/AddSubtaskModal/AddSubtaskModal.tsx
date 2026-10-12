@@ -88,6 +88,11 @@ export function AddSubtaskModal({
     return null;
   }
 
+  function validateTitle(value: unknown): string | null {
+    const message = createFieldValidator(SubtaskCreatePayloadSchema.shape.title)(value);
+    return message === null || /[.!?]$/.test(message) ? message : `${message}.`;
+  }
+
   const chosenDue = combineDateTime(dueDate, dueTime);
   const parentDue = parent?.due_date ?? null;
   const exceedsParent = parentDue !== null && chosenDue.getTime() > parentDue.getTime();
@@ -147,13 +152,12 @@ export function AddSubtaskModal({
         <div className={styles.content}>
           {parent && (
             <div className={styles.parentHeader}>
+              <span className={styles.parentLabel}>Parent task</span>
               <span className={styles.parentTitle}>{parent.title}</span>
               <span className={styles.parentMeta}>
-                {parent.due_date ? formatDateTime(parent.due_date) : "No deadline"}
+                {parent.due_date ? `Due ${formatDateTime(parent.due_date)}` : "No deadline"}
+                {parent.assignees.length > 0 && ` · Assigned to ${parent.assignees.join(", ")}`}
               </span>
-              {parent.assignees.length > 0 && (
-                <span className={styles.parentMeta}>{parent.assignees.join(", ")}</span>
-              )}
             </div>
           )}
           <TextField
@@ -161,7 +165,7 @@ export function AddSubtaskModal({
             value={title}
             onChange={setTitle}
             placeholder="Subtask title"
-            validate={createFieldValidator(SubtaskCreatePayloadSchema.shape.title)}
+            validate={validateTitle}
             isDisabled={isPending}
           />
           <TextField
@@ -190,29 +194,36 @@ export function AddSubtaskModal({
               isDisabled={isPending}
             />
           )}
-          <DatePicker
-            label="Due Date"
-            value={dueDate}
-            onChange={(v) => v && setDueDate(v)}
-            isDisabled={isPending}
-            validate={validateDueDate}
-          />
-          {exceedsParent && parentDue && (
-            <p className={styles.parentWarning}>
-              {`Exceeds parent deadline (${formatDateTime(parentDue)}).`}
+          <div className={styles.dateRow}>
+            <DatePicker
+              label="Due Date"
+              value={dueDate}
+              onChange={(v) => v && setDueDate(v)}
+              isDisabled={isPending}
+              validate={validateDueDate}
+            />
+            <TimeField
+              label="Due Time"
+              value={dueTime}
+              onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
+              isDisabled={isPending}
+            />
+          </div>
+          {parentDue && (
+            <p className={styles.deadlineHint}>
+              {`Parent task deadline: ${formatDateTime(parentDue)}`}
             </p>
           )}
-          <TimeField
-            label="Due Time"
-            value={dueTime}
-            onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
-            isDisabled={isPending}
-          />
+          {exceedsParent && parentDue && (
+            <p className={styles.parentWarning}>
+              {`This due date is after the parent task's deadline (${formatDateTime(parentDue)}). You can still save it.`}
+            </p>
+          )}
           <div className={styles.actions}>
-            <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
+            <Button variant="outline" type="button" onPress={handleCancel} isDisabled={isPending}>
               Cancel
             </Button>
-            <Button type="submit" isDisabled={isPending} isPending={isPending}>
+            <Button variant="secondary" type="submit" isDisabled={isPending} isPending={isPending}>
               Save Subtask
             </Button>
           </div>

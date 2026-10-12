@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { useEffect, useState } from "react";
 import { FaCircleCheck, FaPenToSquare, FaPlus, FaRegCircle, FaTrashCan } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/Button/Button";
@@ -9,6 +10,7 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/Tooltip/Tooltip";
 import { AddSubtaskModal } from "@/features/subtasks/components/AddSubtaskModal/AddSubtaskModal";
 import { EditSubtaskModal } from "@/features/subtasks/components/EditSubtaskModal/EditSubtaskModal";
 import type { SubtaskDetailRow, SubtaskRow } from "@/features/subtasks/queries";
+import { getTaskDetailRowByIdAction } from "@/features/tasks/actions";
 import type { UserSummary } from "@/features/users/types";
 import { SubtaskStatus } from "@/generated/prisma/browser";
 
@@ -198,6 +200,29 @@ export function TaskSubtaskRows({
   users,
   isLoadingUsers = false,
 }: TaskSubtaskRowsProps) {
+  const [parentTitle, setParentTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!deleteTarget) return;
+    const { taskId } = deleteTarget;
+    let cancelled = false;
+
+    async function loadParentTitle() {
+      try {
+        const data = await getTaskDetailRowByIdAction(taskId);
+        if (!cancelled) setParentTitle(data.row ? data.row.title : null);
+      } catch {
+        if (!cancelled) setParentTitle(null);
+      }
+    }
+
+    void loadParentTitle();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deleteTarget]);
+
   return (
     <>
       {addTaskId !== null && (
@@ -224,12 +249,18 @@ export function TaskSubtaskRows({
       <ConfirmDialog
         isOpen={deleteTarget !== null}
         onOpenChange={onDeleteOpenChange}
-        title="Delete Subtask"
-        confirmLabel="Delete"
+        title="Delete subtask?"
+        confirmLabel="Delete subtask"
+        cancelVariant="outline"
+        confirmVariant="danger"
         onConfirm={onDeleteConfirm}
       >
-        Are you sure you want to delete this subtask? This removes only this subtask. The parent
-        task is unaffected.
+        {deleteTarget &&
+          `"${deleteTarget.row.title}" will be permanently deleted. ${
+            parentTitle
+              ? `The parent task ${parentTitle} is not changed.`
+              : "The parent task is not changed."
+          }`}
       </ConfirmDialog>
     </>
   );

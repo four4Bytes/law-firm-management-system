@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -121,8 +121,8 @@ describe("TasksTab subtask expansion", () => {
     fireEvent.click(await screen.findByLabelText("Expand subtasks for Task 1"));
     expect(await screen.findByText("File motion")).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Delete subtask" }));
-    await screen.findByText("Delete Subtask");
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete subtask" }));
     await waitFor(() => expect(screen.queryByText("2 subtasks")).toBeNull());
     expect(screen.queryByText("1 subtask")).toBeNull();
     expect(document.querySelector(`.${subtaskStyles.countPill}`)).toBeNull();

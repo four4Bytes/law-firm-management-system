@@ -11,8 +11,14 @@
       display: flex;
       flex-direction: column;
       gap: var(--space-xs);
-      border-bottom: 1px solid var(--color-border-subtle);
-      padding-bottom: var(--space-md);
+      background: var(--color-surface-bg-alt);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+    }
+
+    .parentLabel {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
     }
 
     .parentTitle {
@@ -23,6 +29,23 @@
 
     .parentMeta {
       font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+
+    .dateRow {
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+
+      > * {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    .deadlineHint {
+      margin: 0;
+      font-size: var(--font-size-xs);
       color: var(--color-text-muted);
     }
 
@@ -42,6 +65,7 @@
 
       > * {
         flex: 1;
+        min-height: 48px;
       }
     }
   }

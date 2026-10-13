@@ -7,6 +7,7 @@ import { z } from "zod";
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
+import { getSubtaskDetailRowById, type SubtaskDetailRow } from "@/features/subtasks/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { getParentPath } from "@/lib/domain/path";
 import {
@@ -22,10 +23,13 @@ import { can } from "@/lib/security/rbac";
 
 import {
   createNote,
+  createNoteForSubtask,
   createNoteForTask,
   deleteNote,
+  deleteNoteForSubtask,
   deleteNoteForTask,
   updateNote,
+  updateNoteForSubtask,
   updateNoteForTask,
 } from "./mutations";
 import {
@@ -35,6 +39,7 @@ import {
   getNoteAccessContext,
   getNoteById,
   getNoteRowById,
+  getSubtaskNotesPaginated,
   getTaskNotesPaginated,
   type NoteRow,
 } from "./queries";
@@ -44,6 +49,7 @@ import {
   NoteCreatePayloadSchema,
   NoteIdSchema,
   NoteUpdatePayloadSchema,
+  SubtaskNotesListQuerySchema,
   TaskNotesListQuerySchema,
 } from "./schemas";
 
@@ -69,6 +75,13 @@ export async function getNoteRowByIdAction(
   if (taskAccess && !can(session.role, "task.read", taskAccess)) {
     throw new ForbiddenError();
   }
+  const subtask = existing?.subtask_id ? await getSubtaskDetailRowById(existing.subtask_id) : null;
+  const subtaskTaskAccess = subtask
+    ? await getTaskAccessContext(session.id, subtask.task_id)
+    : null;
+  if (subtaskTaskAccess && !can(session.role, "task.read", subtaskTaskAccess)) {
+    throw new ForbiddenError();
+  }
 
   const row = await getNoteRowById(parsed.data.noteId);
 
@@ -77,7 +90,8 @@ export async function getNoteRowByIdAction(
     canUpdate:
       row !== null &&
       can(session.role, "note.update", access) &&
-      (taskAccess === null || can(session.role, "task.update", taskAccess)),
+      (taskAccess === null || can(session.role, "task.update", taskAccess)) &&
+      (subtaskTaskAccess === null || can(session.role, "task.update", subtaskTaskAccess)),
   };
 }
 
@@ -100,6 +114,31 @@ export async function getTaskNotesPaginatedAction(
   }
 
   return getTaskNotesPaginated(parsed.data);
+}
+
+export async function getSubtaskNotesPaginatedAction(
+  params: z.input<typeof SubtaskNotesListQuerySchema>,
+): Promise<{
+  rows: NoteRow[];
+  nextCursor: string | null;
+}> {
+  const session = await requireAuth();
+
+  const parsed = SubtaskNotesListQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error("Invalid query parameters");
+  }
+
+  const subtask = await getSubtaskDetailRowById(parsed.data.subtaskId);
+  if (!subtask) {
+    throw new ForbiddenError();
+  }
+  const access = await getTaskAccessContext(session.id, subtask.task_id);
+  if (!can(session.role, "task.read", access)) {
+    throw new ForbiddenError();
+  }
+
+  return getSubtaskNotesPaginated(parsed.data);
 }
 
 export async function getCaseNotesPaginatedAction(
@@ -173,11 +212,22 @@ export async function createNoteAction(
   const parsed = NoteCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("note");
 
-  const { content, case_id, consultation_id, task_id } = parsed.data;
+  const { content, case_id, consultation_id, task_id, subtask_id } = parsed.data;
 
   let note: { id: string };
+  let subtask: SubtaskDetailRow | null = null;
   try {
-    if (task_id) {
+    if (subtask_id) {
+      subtask = await getSubtaskDetailRowById(subtask_id);
+      if (!subtask) return actionNotFound("Subtask");
+      const taskAccess = await getTaskAccessContext(session.id, subtask.task_id);
+      if (
+        !can(session.role, "task.update", taskAccess) ||
+        !can(session.role, "note.create", taskAccess)
+      ) {
+        return actionForbidden();
+      }
+    } else if (task_id) {
       const taskAccess = await getTaskAccessContext(session.id, task_id);
       if (
         !can(session.role, "task.update", taskAccess) ||
@@ -197,7 +247,12 @@ export async function createNoteAction(
       }
     }
 
-    if (task_id) {
+    if (subtask_id && subtask) {
+      note = await createNoteForSubtask(subtask_id, {
+        content,
+        created_by_user_id: session.id,
+      });
+    } else if (task_id) {
       note = await createNoteForTask(task_id, {
         content,
         case_id,
@@ -218,8 +273,8 @@ export async function createNoteAction(
       logAudit({
         actorUserId: session.id,
         action: "note.created",
-        entityType: task_id ? "Task" : case_id ? "Case" : "Consultation",
-        entityId: (task_id ?? case_id ?? consultation_id)!,
+        entityType: subtask ? "Case" : task_id ? "Task" : case_id ? "Case" : "Consultation",
+        entityId: subtask?.case_id ?? task_id ?? case_id ?? consultation_id!,
         details: `Created note with ID: ${note.id}`,
       }),
     );
@@ -228,7 +283,9 @@ export async function createNoteAction(
   }
 
   let parentPath = "/case";
-  if (task_id) {
+  if (subtask) {
+    parentPath = `/case/${subtask.case_id}`;
+  } else if (task_id) {
     const task = await getTaskById(task_id);
     if (task) parentPath = `/case/${task.case_id}`;
   } else if (case_id) {
@@ -261,7 +318,15 @@ export async function updateNoteAction(
       return actionForbidden();
     }
 
-    if (existing.task_id) {
+    let subtask: SubtaskDetailRow | null = null;
+    if (existing.subtask_id) {
+      subtask = await getSubtaskDetailRowById(existing.subtask_id);
+      if (!subtask) return actionNotFound("Subtask");
+      const taskAccess = await getTaskAccessContext(session.id, subtask.task_id);
+      if (!can(session.role, "task.update", taskAccess)) {
+        return actionForbidden();
+      }
+    } else if (existing.task_id) {
       const taskAccess = await getTaskAccessContext(session.id, existing.task_id);
       if (!can(session.role, "task.update", taskAccess)) {
         return actionForbidden();
@@ -274,6 +339,8 @@ export async function updateNoteAction(
 
     if (existing.task_id) {
       await updateNoteForTask(existing.task_id, noteId, content);
+    } else if (existing.subtask_id) {
+      await updateNoteForSubtask(existing.subtask_id, noteId, content);
     } else {
       await updateNote(noteId, content);
     }
@@ -282,13 +349,28 @@ export async function updateNoteAction(
       logAudit({
         actorUserId: session.id,
         action: "note.updated",
-        entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
-        entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
+        entityType: subtask
+          ? "Case"
+          : existing.task_id
+            ? "Task"
+            : existing.case_id
+              ? "Case"
+              : "Consultation",
+        entityId: (subtask?.case_id ??
+          existing.task_id ??
+          existing.case_id ??
+          existing.consultation_id)!,
         details: `Updated note with ID: ${noteId}`,
       }),
     );
 
-    revalidatePath(existing.task_id ? `/case/${existing.task?.case_id}` : getParentPath(existing));
+    revalidatePath(
+      subtask
+        ? `/case/${subtask.case_id}`
+        : existing.task_id
+          ? `/case/${existing.task?.case_id}`
+          : getParentPath(existing),
+    );
 
     return { success: true };
   } catch (error) {
@@ -315,7 +397,15 @@ export async function deleteNoteAction(
       return actionForbidden();
     }
 
-    if (existing.task_id) {
+    let subtask: SubtaskDetailRow | null = null;
+    if (existing.subtask_id) {
+      subtask = await getSubtaskDetailRowById(existing.subtask_id);
+      if (!subtask) return actionNotFound("Subtask");
+      const taskAccess = await getTaskAccessContext(session.id, subtask.task_id);
+      if (!can(session.role, "task.update", taskAccess)) {
+        return actionForbidden();
+      }
+    } else if (existing.task_id) {
       const taskAccess = await getTaskAccessContext(session.id, existing.task_id);
       if (!can(session.role, "task.update", taskAccess)) {
         return actionForbidden();
@@ -324,6 +414,8 @@ export async function deleteNoteAction(
 
     if (existing.task_id) {
       await deleteNoteForTask(existing.task_id, noteId);
+    } else if (existing.subtask_id) {
+      await deleteNoteForSubtask(existing.subtask_id, noteId);
     } else {
       await deleteNote(noteId);
     }
@@ -332,13 +424,28 @@ export async function deleteNoteAction(
       logAudit({
         actorUserId: session.id,
         action: "note.deleted",
-        entityType: existing.task_id ? "Task" : existing.case_id ? "Case" : "Consultation",
-        entityId: (existing.task_id ?? existing.case_id ?? existing.consultation_id)!,
+        entityType: subtask
+          ? "Case"
+          : existing.task_id
+            ? "Task"
+            : existing.case_id
+              ? "Case"
+              : "Consultation",
+        entityId: (subtask?.case_id ??
+          existing.task_id ??
+          existing.case_id ??
+          existing.consultation_id)!,
         details: `Deleted note with ID: ${noteId}`,
       }),
     );
 
-    revalidatePath(existing.task_id ? `/case/${existing.task?.case_id}` : getParentPath(existing));
+    revalidatePath(
+      subtask
+        ? `/case/${subtask.case_id}`
+        : existing.task_id
+          ? `/case/${existing.task?.case_id}`
+          : getParentPath(existing),
+    );
 
     return { success: true };
   } catch (error) {

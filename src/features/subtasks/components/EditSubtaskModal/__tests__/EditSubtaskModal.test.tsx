@@ -22,6 +22,24 @@ vi.mock("@/features/tasks/actions", () => ({
   getTaskDetailRowByIdAction: vi.fn(),
 }));
 
+vi.mock("@/features/notes/actions", () => ({
+  getSubtaskNotesPaginatedAction: vi.fn(),
+  createNoteAction: vi.fn(),
+  updateNoteAction: vi.fn(),
+  deleteNoteAction: vi.fn(),
+}));
+
+vi.mock("@/features/subtasks/hooks/useSubtaskNotes", () => ({
+  useSubtaskNotes: vi.fn().mockReturnValue({
+    notes: [],
+    isLoading: false,
+    isLoadingMore: false,
+    nextCursor: null,
+    reload: vi.fn(),
+    loadMore: vi.fn(),
+  }),
+}));
+
 vi.mock("@/lib/hooks/toast-utils", () => ({
   toastActionError: vi.fn(),
   toastError: vi.fn(),

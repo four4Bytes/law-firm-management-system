@@ -30,6 +30,13 @@ vi.mock("@/features/subtasks/actions", () => ({
   updateSubtaskAction: vi.fn(),
 }));
 
+vi.mock("@/features/notes/actions", () => ({
+  getSubtaskNotesPaginatedAction: vi.fn(),
+  createNoteAction: vi.fn(),
+  updateNoteAction: vi.fn(),
+  deleteNoteAction: vi.fn(),
+}));
+
 const subtask: SubtaskRow = {
   id: "st1",
   title: "File motion",

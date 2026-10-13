@@ -9,6 +9,7 @@ import {
   getConsultationNotesPaginated,
   getNoteById,
   getNoteRowById,
+  getSubtaskNotesPaginated,
   getTaskNotesPaginated,
   type NoteRow,
 } from "../queries";
@@ -46,6 +47,7 @@ describe("getNoteById", () => {
         case_id: true,
         consultation_id: true,
         task_id: true,
+        subtask_id: true,
         task: { select: { case_id: true } },
         createdBy: { select: { name: true } },
       },
@@ -123,7 +125,7 @@ describe("getTaskNotesPaginated", () => {
     });
     expect(prisma.note.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { task_id: "t1" },
+        where: { task_id: "t1", subtask_id: null },
         orderBy: [{ created_at: "desc" }, { id: "asc" }],
       }),
     );
@@ -161,7 +163,23 @@ describe("getTaskNotesPaginated", () => {
 
     expect(prisma.note.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { task_id: "t1", content: { contains: "evidence", mode: "insensitive" } },
+        where: {
+          task_id: "t1",
+          subtask_id: null,
+          content: { contains: "evidence", mode: "insensitive" },
+        },
+      }),
+    );
+  });
+
+  it("excludes subtask notes from the task list", async () => {
+    vi.mocked(prisma.note.findMany).mockResolvedValue([]);
+
+    await getTaskNotesPaginated({ taskId: "t1" });
+
+    expect(vi.mocked(prisma.note.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ task_id: "t1", subtask_id: null }),
       }),
     );
   });
@@ -200,7 +218,11 @@ describe("getCaseNotesPaginated", () => {
 
     expect(prisma.note.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { case_id: "1", content: { contains: "evidence", mode: "insensitive" } },
+        where: {
+          case_id: "1",
+          subtask_id: null,
+          content: { contains: "evidence", mode: "insensitive" },
+        },
       }),
     );
   });
@@ -258,6 +280,7 @@ describe("getCaseNotesWithTaskNotesPaginated", () => {
       expect.objectContaining({
         where: {
           OR: [{ case_id: "1" }, { task: { case_id: "1" } }],
+          subtask_id: null,
         },
         orderBy: [{ created_at: "desc" }, { id: "asc" }],
       }),
@@ -273,6 +296,7 @@ describe("getCaseNotesWithTaskNotesPaginated", () => {
       expect.objectContaining({
         where: {
           OR: [{ case_id: "1" }, { task: { case_id: "1" } }],
+          subtask_id: null,
           content: { contains: "evidence", mode: "insensitive" },
         },
       }),
@@ -286,6 +310,61 @@ describe("getCaseNotesWithTaskNotesPaginated", () => {
 
     expect(result.rows).toEqual([]);
     expect(result.nextCursor).toBeNull();
+  });
+
+  it("excludes subtask notes from the case tab list", async () => {
+    vi.mocked(prisma.note.findMany).mockResolvedValue([]);
+
+    await getCaseNotesWithTaskNotesPaginated({ caseId: "1" });
+
+    expect(vi.mocked(prisma.note.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ subtask_id: null }),
+      }),
+    );
+  });
+});
+
+describe("getSubtaskNotesPaginated", () => {
+  const mockNote = (overrides: Record<string, unknown> = {}) => ({
+    ...mockBaseNote(),
+    content: "Subtask note content",
+    subtask_id: "st1",
+    createdBy: { name: "Bob Lawyer" },
+    ...overrides,
+  });
+
+  it("returns mapped note rows scoped to the subtask", async () => {
+    const notes = [mockNote(), mockNote({ id: "n2", content: "Follow up" })];
+    vi.mocked(prisma.note.findMany).mockResolvedValue(notes as unknown as never[]);
+
+    const result = await getSubtaskNotesPaginated({ subtaskId: "st1", pageSize: 10 });
+
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]).toEqual({
+      id: "n1",
+      content: "Subtask note content",
+      author: "Bob Lawyer",
+      created_at: notes[0].created_at,
+    });
+    expect(prisma.note.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { subtask_id: "st1" },
+        orderBy: [{ created_at: "desc" }, { id: "asc" }],
+      }),
+    );
+  });
+
+  it("filters by search term", async () => {
+    vi.mocked(prisma.note.findMany).mockResolvedValue([mockNote()] as unknown as never[]);
+
+    await getSubtaskNotesPaginated({ subtaskId: "st1", search: "evidence" });
+
+    expect(prisma.note.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { subtask_id: "st1", content: { contains: "evidence", mode: "insensitive" } },
+      }),
+    );
   });
 });
 

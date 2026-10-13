@@ -5,6 +5,7 @@ export interface NoteCreateData {
   case_id?: string | null;
   consultation_id?: string | null;
   task_id?: string | null;
+  subtask_id?: string | null;
   created_by_user_id: string;
 }
 
@@ -48,5 +49,42 @@ export async function updateNoteForTask(
 
 export async function deleteNoteForTask(taskId: string, noteId: string): Promise<{ id: string }> {
   await assertNoteBelongsToTask(taskId, noteId);
+  return deleteNote(noteId);
+}
+
+// Guards the action layer's ownership check: a mismatched subtask id must not reach
+// the write. No transaction alongside it - no action moves a note between subtasks,
+// so `subtask_id` cannot change between the read and the write.
+async function assertNoteBelongsToSubtask(subtaskId: string, noteId: string): Promise<void> {
+  const note = await prisma.note.findUnique({
+    where: { id: noteId },
+    select: { subtask_id: true },
+  });
+  if (note?.subtask_id !== subtaskId) {
+    throw new Error("Note does not belong to the specified subtask");
+  }
+}
+
+export async function createNoteForSubtask(
+  subtaskId: string,
+  data: Omit<NoteCreateData, "subtask_id">,
+): Promise<{ id: string }> {
+  return prisma.note.create({ data: { ...data, subtask_id: subtaskId }, select: { id: true } });
+}
+
+export async function updateNoteForSubtask(
+  subtaskId: string,
+  noteId: string,
+  content: string,
+): Promise<{ id: string }> {
+  await assertNoteBelongsToSubtask(subtaskId, noteId);
+  return updateNote(noteId, content);
+}
+
+export async function deleteNoteForSubtask(
+  subtaskId: string,
+  noteId: string,
+): Promise<{ id: string }> {
+  await assertNoteBelongsToSubtask(subtaskId, noteId);
   return deleteNote(noteId);
 }

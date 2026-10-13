@@ -238,6 +238,7 @@ export function mockNote(overrides: Partial<Note> = {}): Note {
     case_id: "1",
     consultation_id: null,
     task_id: null,
+    subtask_id: null,
     created_by_user_id: "u1",
     created_at: new Date("2024-06-05"),
     updated_at: new Date("2024-06-05"),

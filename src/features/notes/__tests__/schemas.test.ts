@@ -6,6 +6,7 @@ import {
   NoteCreatePayloadSchema,
   NoteIdSchema,
   NoteUpdatePayloadSchema,
+  SubtaskNotesListQuerySchema,
   TaskNotesListQuerySchema,
 } from "../schemas";
 
@@ -43,6 +44,16 @@ describe("ConsultationNotesListQuerySchema", () => {
   });
 });
 
+describe("SubtaskNotesListQuerySchema", () => {
+  it("accepts a valid query", () => {
+    expect(SubtaskNotesListQuerySchema.safeParse({ subtaskId: uuid }).success).toBe(true);
+  });
+
+  it("rejects a non-uuid subtaskId", () => {
+    expect(SubtaskNotesListQuerySchema.safeParse({ subtaskId: "abc" }).success).toBe(false);
+  });
+});
+
 describe("NoteCreatePayloadSchema", () => {
   it("accepts a payload with case_id", () => {
     const result = NoteCreatePayloadSchema.safeParse({
@@ -60,8 +71,25 @@ describe("NoteCreatePayloadSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts a payload with subtask_id", () => {
+    const result = NoteCreatePayloadSchema.safeParse({
+      content: "Note content",
+      subtask_id: uuid,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects when both parents are missing", () => {
     const result = NoteCreatePayloadSchema.safeParse({ content: "Note content" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects when task_id and subtask_id are both provided", () => {
+    const result = NoteCreatePayloadSchema.safeParse({
+      content: "Note content",
+      task_id: uuid,
+      subtask_id: uuid,
+    });
     expect(result.success).toBe(false);
   });
 

@@ -21,6 +21,10 @@ export interface CaseNotesListQuery extends Omit<PageQuery, "filters"> {
   caseId: string;
 }
 
+export interface SubtaskNotesListQuery extends Omit<PageQuery, "filters"> {
+  subtaskId: string;
+}
+
 export interface ConsultationNotesListQuery extends Omit<PageQuery, "filters"> {
   consultationId: string;
 }
@@ -34,6 +38,7 @@ export const getNoteById = cache(async (id: string) => {
       case_id: true,
       consultation_id: true,
       task_id: true,
+      subtask_id: true,
       task: { select: { case_id: true } },
       createdBy: { select: { name: true } },
     },
@@ -76,6 +81,7 @@ export const getNoteAccessContext = cache(
         case_id: true,
         consultation_id: true,
         task: { select: { case_id: true } },
+        subtask: { select: { task: { select: { case_id: true } } } },
       },
     });
 
@@ -83,7 +89,7 @@ export const getNoteAccessContext = cache(
       return { assigned: false, own: false };
     }
 
-    const parentCaseId = note.case_id ?? note.task?.case_id ?? null;
+    const parentCaseId = note.case_id ?? note.task?.case_id ?? note.subtask?.task?.case_id ?? null;
     const parentAccess = parentCaseId
       ? await getCaseAccessContext(userId, parentCaseId)
       : note.consultation_id
@@ -109,6 +115,49 @@ export const getTaskNotesPaginated = cache(
   }> => {
     const where = {
       task_id: taskId,
+      subtask_id: null,
+      ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
+    };
+
+    const orderBy = [{ created_at: "desc" as const }, { id: "asc" as const }];
+
+    const notes = await prisma.note.findMany({
+      take: pageSize + 1,
+      skip: cursor ? 1 : 0,
+      ...(cursor ? { cursor: { id: cursor } } : {}),
+      where,
+      orderBy,
+      include: {
+        createdBy: { select: { name: true } },
+      },
+    });
+
+    const hasMore = notes.length > pageSize;
+    if (hasMore) notes.pop();
+
+    const rows: NoteRow[] = notes.map((n) => ({
+      id: n.id,
+      content: n.content,
+      author: n.createdBy.name,
+      created_at: n.created_at,
+    }));
+
+    return { rows, nextCursor: hasMore ? notes[notes.length - 1].id : null };
+  },
+);
+
+export const getSubtaskNotesPaginated = cache(
+  async ({
+    subtaskId,
+    search = "",
+    cursor,
+    pageSize = 20,
+  }: SubtaskNotesListQuery): Promise<{
+    rows: NoteRow[];
+    nextCursor: string | null;
+  }> => {
+    const where = {
+      subtask_id: subtaskId,
       ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
     };
 
@@ -151,6 +200,7 @@ export const getCaseNotesPaginated = cache(
   }> => {
     const where = {
       case_id: caseId,
+      subtask_id: null,
       ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
     };
 
@@ -193,6 +243,7 @@ export const getCaseNotesWithTaskNotesPaginated = cache(
   }> => {
     const where = {
       OR: [{ case_id: caseId }, { task: { case_id: caseId } }],
+      subtask_id: null,
       ...(search ? { content: { contains: search, mode: "insensitive" as const } } : {}),
     };
 

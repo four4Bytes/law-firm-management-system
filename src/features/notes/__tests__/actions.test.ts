@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
+import { getSubtaskDetailRowById } from "@/features/subtasks/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role } from "@/generated/prisma/browser";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
@@ -17,10 +18,13 @@ import {
 } from "../actions";
 import {
   createNote,
+  createNoteForSubtask,
   createNoteForTask,
   deleteNote,
+  deleteNoteForSubtask,
   deleteNoteForTask,
   updateNote,
+  updateNoteForSubtask,
   updateNoteForTask,
 } from "../mutations";
 import { getNoteAccessContext, getNoteById, getNoteRowById } from "../queries";
@@ -35,6 +39,10 @@ vi.mock("@/features/cases/queries", () => ({
 
 vi.mock("@/features/consultations/queries", () => ({
   getConsultationAccessContext: vi.fn().mockResolvedValue({ assigned: false, own: false }),
+}));
+
+vi.mock("@/features/subtasks/queries", () => ({
+  getSubtaskDetailRowById: vi.fn(),
 }));
 
 vi.mock("@/features/tasks/queries", () => ({
@@ -71,6 +79,9 @@ vi.mock("../mutations", () => ({
   createNoteForTask: vi.fn(),
   updateNoteForTask: vi.fn(),
   deleteNoteForTask: vi.fn(),
+  createNoteForSubtask: vi.fn(),
+  updateNoteForSubtask: vi.fn(),
+  deleteNoteForSubtask: vi.fn(),
 }));
 
 async function flushAfterCallbacks(): Promise<void> {
@@ -95,6 +106,7 @@ const noteRecord = {
   case_id: uuid,
   consultation_id: null,
   task_id: null,
+  subtask_id: null,
   task: null,
   createdBy: { name: "Alice" },
 };
@@ -435,5 +447,152 @@ describe("task-scoped note authorization (TASK_ONLY enforcement)", () => {
       },
     });
     expect(deleteNoteForTask).not.toHaveBeenCalled();
+  });
+});
+
+describe("subtask-scoped notes", () => {
+  const subtaskPayload = {
+    content: "New subtask note",
+    case_id: null,
+    consultation_id: null,
+    task_id: null,
+    subtask_id: uuid,
+  };
+
+  const subtaskNoteRecord = {
+    ...noteRecord,
+    case_id: null,
+    task_id: null,
+    task: null,
+    subtask_id: uuid,
+    subtask: { id: uuid, task_id: uuid },
+  };
+
+  const subtaskDetail = {
+    id: uuid,
+    task_id: uuid,
+    case_id: uuid,
+  } as Awaited<ReturnType<typeof getSubtaskDetailRowById>>;
+
+  it("creates a subtask note for a user with task update on the parent", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue(subtaskDetail);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(createNoteForSubtask).mockResolvedValue({ id: "n1" });
+
+    const result = await createNoteAction(subtaskPayload);
+
+    expect(result).toEqual({ success: true, data: { id: "n1" } });
+    expect(createNoteForSubtask).toHaveBeenCalledWith(uuid, expect.any(Object));
+  });
+
+  it("denies creating a subtask note without task update on the parent", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue(subtaskDetail);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await createNoteAction(subtaskPayload);
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
+    expect(createNoteForSubtask).not.toHaveBeenCalled();
+  });
+
+  it("updates a subtask note for its owner", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getNoteById).mockResolvedValue(subtaskNoteRecord);
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue(subtaskDetail);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(updateNoteForSubtask).mockResolvedValue({ id: "n1" });
+
+    const result = await updateNoteAction({ noteId: uuid, content: "Updated subtask note" });
+
+    expect(result).toEqual({ success: true });
+    expect(updateNoteForSubtask).toHaveBeenCalledWith(uuid, uuid, "Updated subtask note");
+  });
+
+  it("denies a non-owner from updating a subtask note", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getNoteById).mockResolvedValue(subtaskNoteRecord);
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue(subtaskDetail);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+
+    const result = await updateNoteAction({ noteId: uuid, content: "Updated subtask note" });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
+    expect(updateNoteForSubtask).not.toHaveBeenCalled();
+  });
+
+  it("deletes a subtask note for its owner", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getNoteById).mockResolvedValue(subtaskNoteRecord);
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue(subtaskDetail);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(deleteNoteForSubtask).mockResolvedValue({ id: "n1" });
+
+    const result = await deleteNoteAction({ noteId: uuid });
+
+    expect(result).toEqual({ success: true });
+    expect(deleteNoteForSubtask).toHaveBeenCalledWith(uuid, uuid);
+  });
+
+  it("denies a non-owner from deleting a subtask note", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getNoteById).mockResolvedValue(subtaskNoteRecord);
+    vi.mocked(getNoteAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue(subtaskDetail);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+
+    const result = await deleteNoteAction({ noteId: uuid });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
+    expect(deleteNoteForSubtask).not.toHaveBeenCalled();
   });
 });

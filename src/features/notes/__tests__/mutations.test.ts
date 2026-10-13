@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { prisma } from "@/lib/infra/prisma";
 
-import { createNote, deleteNote, updateNote } from "../mutations";
+import { createNote, createNoteForSubtask, deleteNote, updateNote } from "../mutations";
 
 vi.mock("@/lib/infra/prisma", () => ({
   prisma: { note: { create: vi.fn(), update: vi.fn(), delete: vi.fn() } },
@@ -19,6 +19,7 @@ it("creates a note linked to a case", async () => {
     case_id: "c1",
     consultation_id: null,
     task_id: null,
+    subtask_id: null,
     created_by_user_id: "u1",
     created_at: new Date(),
     updated_at: new Date(),
@@ -48,6 +49,7 @@ it("creates a note linked to a consultation", async () => {
     case_id: null,
     consultation_id: "con1",
     task_id: null,
+    subtask_id: null,
     created_by_user_id: "u1",
     created_at: new Date(),
     updated_at: new Date(),
@@ -74,6 +76,7 @@ it("updates a note", async () => {
     case_id: null,
     consultation_id: null,
     task_id: null,
+    subtask_id: null,
     created_by_user_id: "u1",
     created_at: new Date(),
     updated_at: new Date(),
@@ -96,6 +99,7 @@ it("deletes a note", async () => {
     case_id: null,
     consultation_id: null,
     task_id: null,
+    subtask_id: null,
     created_by_user_id: "u1",
     created_at: new Date(),
     updated_at: new Date(),
@@ -112,4 +116,33 @@ it("propagates error when deleting nonexistent note", async () => {
   vi.mocked(prisma.note.delete).mockRejectedValue(error);
 
   await expect(deleteNote("999")).rejects.toThrow(error);
+});
+
+it("creates a note linked to a subtask", async () => {
+  vi.mocked(prisma.note.create).mockResolvedValue({
+    id: "n1",
+    content: "Subtask note",
+    case_id: null,
+    consultation_id: null,
+    task_id: null,
+    subtask_id: "st1",
+    created_by_user_id: "u1",
+    created_at: new Date(),
+    updated_at: new Date(),
+  });
+
+  const result = await createNoteForSubtask("st1", {
+    content: "Subtask note",
+    created_by_user_id: "u1",
+  });
+
+  expect(result.id).toBe("n1");
+  expect(prisma.note.create).toHaveBeenCalledWith({
+    data: {
+      content: "Subtask note",
+      created_by_user_id: "u1",
+      subtask_id: "st1",
+    },
+    select: { id: true },
+  });
 });

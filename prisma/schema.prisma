@@ -335,6 +335,7 @@ model Subtask {
   createdBy   User                @relation("SubtaskCreator", fields: [created_by_user_id], references: [id])
   completedBy User?               @relation("SubtaskCompleter", fields: [completed_by_user_id], references: [id])
   assignments SubtaskAssignment[]
+  notes       Note[]
 
   @@index([task_id, due_date])
 }
@@ -447,6 +448,7 @@ model Note {
   case_id            String?  @db.Uuid
   consultation_id    String?  @db.Uuid
   task_id            String?  @db.Uuid
+  subtask_id         String?  @db.Uuid
   created_by_user_id String   @db.Uuid
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
@@ -455,9 +457,11 @@ model Note {
   consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
   case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
   task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  subtask      Subtask?      @relation(fields: [subtask_id], references: [id], onDelete: Cascade)
 
   @@index([case_id, created_at])
   @@index([consultation_id, created_at])
+  @@index([subtask_id, created_at])
 }
 
 model AuditLog {

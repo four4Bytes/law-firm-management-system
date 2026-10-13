@@ -5,9 +5,13 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { logAudit } from "@/features/audit/mutations";
-import { getCaseAccessContext } from "@/features/cases/queries";
+import { getCaseAccessContext, getCaseTitleById } from "@/features/cases/queries";
+import { notifyRecipients } from "@/features/notifications/notify";
+import type { NotificationDispatchPayload } from "@/features/notifications/schemas";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
-import { SubtaskStatus, TaskStatus } from "@/generated/prisma/browser";
+import { NotificationType, SubtaskStatus, TaskStatus } from "@/generated/prisma/browser";
+import { logError } from "@/lib/infra/logger";
+import { formatDateTime } from "@/lib/primitives/date";
 import {
   actionConflict,
   actionForbidden,
@@ -34,6 +38,58 @@ import {
   SubtaskIdSchema,
   SubtaskUpdatePayloadSchema,
 } from "./schemas";
+
+interface SubtaskNotificationDetails {
+  subtaskTitle: string;
+  parentTitle: string;
+  caseId: string;
+  dueDate: Date;
+}
+
+async function safeNotifyRecipients(
+  actorId: string,
+  payload: NotificationDispatchPayload,
+): Promise<void> {
+  try {
+    await notifyRecipients(actorId, payload);
+  } catch (error) {
+    logError("subtask.notify.dispatch", error);
+  }
+}
+
+async function subtaskNotificationCopy(
+  kind: "assigned" | "completed",
+  details: SubtaskNotificationDetails,
+) {
+  let caseName: string | undefined;
+  try {
+    caseName = (await getCaseTitleById(details.caseId)) ?? undefined;
+  } catch (error) {
+    logError("subtask.notify.case-title", error);
+  }
+  const dueDateLabel = formatDateTime(details.dueDate);
+  const scope = [details.subtaskTitle, details.parentTitle, ...(caseName ? [caseName] : [])].join(
+    " · ",
+  );
+  if (kind === "assigned") {
+    return {
+      title: `Subtask assigned: ${scope} · Due ${dueDateLabel}`,
+      message: `You have been assigned subtask "${details.subtaskTitle}" under parent task "${details.parentTitle}"${caseName ? ` in case "${caseName}"` : ""}, due ${dueDateLabel}.`,
+      subtaskTitle: details.subtaskTitle,
+      parentTitle: details.parentTitle,
+      caseName,
+      dueDateLabel,
+    };
+  }
+  return {
+    title: `Subtask completed: ${scope} · Due ${dueDateLabel}`,
+    message: `Subtask "${details.subtaskTitle}" under parent task "${details.parentTitle}"${caseName ? ` in case "${caseName}"` : ""} was marked as complete.`,
+    subtaskTitle: details.subtaskTitle,
+    parentTitle: details.parentTitle,
+    caseName,
+    dueDateLabel,
+  };
+}
 
 export async function createSubtaskAction(
   payload: z.input<typeof SubtaskCreatePayloadSchema>,
@@ -62,6 +118,30 @@ export async function createSubtaskAction(
         details: `Created subtask: "${parsed.data.title}"`,
       }),
     );
+    const newAssigneeIds = [...new Set(parsed.data.assignee_ids)].filter((id) => id !== session.id);
+    if (newAssigneeIds.length > 0) {
+      after(async () => {
+        const copy = await subtaskNotificationCopy("assigned", {
+          subtaskTitle: parsed.data.title,
+          parentTitle: parent.title,
+          caseId: parent.case_id,
+          dueDate: parsed.data.due_date,
+        });
+        await safeNotifyRecipients(session.id, {
+          userIds: newAssigneeIds,
+          type: NotificationType.SubtaskAssigned,
+          title: copy.title,
+          message: copy.message,
+          actionUrl: `/case/${parent.case_id}?tab=tasks`,
+          caseId: parent.case_id,
+          taskId: parent.id,
+          subtaskTitle: copy.subtaskTitle,
+          parentTitle: copy.parentTitle,
+          caseName: copy.caseName,
+          dueDateLabel: copy.dueDateLabel,
+        });
+      });
+    }
     revalidatePath(`/case/${parent.case_id}`);
     return { success: true, data: { id } };
   } catch (error) {
@@ -87,6 +167,41 @@ export async function updateSubtaskAction(
       due_date: parsed.data.due_date,
       assignee_ids: parsed.data.assignee_ids,
     });
+    const addedAssigneeIds = parsed.data.assignee_ids
+      ? [
+          ...new Set(parsed.data.assignee_ids.filter((id) => !row.assignee_ids.includes(id))),
+        ].filter((id) => id !== session.id)
+      : [];
+    if (addedAssigneeIds.length > 0) {
+      after(async () => {
+        let parentTitle: string | null = null;
+        try {
+          parentTitle = (await getTaskById(row.task_id))?.title ?? null;
+        } catch (error) {
+          logError("subtask.notify.parent", error);
+        }
+        if (!parentTitle) return;
+        const copy = await subtaskNotificationCopy("assigned", {
+          subtaskTitle: parsed.data.title,
+          parentTitle,
+          caseId: row.case_id,
+          dueDate: parsed.data.due_date,
+        });
+        await safeNotifyRecipients(session.id, {
+          userIds: addedAssigneeIds,
+          type: NotificationType.SubtaskAssigned,
+          title: copy.title,
+          message: copy.message,
+          actionUrl: `/case/${row.case_id}?tab=tasks`,
+          caseId: row.case_id,
+          taskId: row.task_id,
+          subtaskTitle: copy.subtaskTitle,
+          parentTitle: copy.parentTitle,
+          caseName: copy.caseName,
+          dueDateLabel: copy.dueDateLabel,
+        });
+      });
+    }
     after(() =>
       logAudit({
         actorUserId: session.id,
@@ -157,6 +272,38 @@ export async function completeSubtaskAction(
         details: `Completed subtask: "${row.title}"`,
       }),
     );
+    after(async () => {
+      let parent: Awaited<ReturnType<typeof getTaskById>> = null;
+      try {
+        parent = await getTaskById(row.task_id);
+      } catch (error) {
+        logError("subtask.notify.parent", error);
+      }
+      if (!parent) return;
+      const reviewerIds = [
+        ...new Set(parent.taskReviewers.map((reviewer) => reviewer.reviewer_user_id)),
+      ].filter((id) => id !== session.id);
+      if (reviewerIds.length === 0) return;
+      const copy = await subtaskNotificationCopy("completed", {
+        subtaskTitle: row.title,
+        parentTitle: parent.title,
+        caseId: row.case_id,
+        dueDate: row.due_date,
+      });
+      await safeNotifyRecipients(session.id, {
+        userIds: reviewerIds,
+        type: NotificationType.SubtaskCompleted,
+        title: copy.title,
+        message: copy.message,
+        actionUrl: `/case/${row.case_id}?tab=tasks`,
+        caseId: row.case_id,
+        taskId: row.task_id,
+        subtaskTitle: copy.subtaskTitle,
+        parentTitle: copy.parentTitle,
+        caseName: copy.caseName,
+        dueDateLabel: copy.dueDateLabel,
+      });
+    });
     revalidatePath(`/case/${row.case_id}`);
     return { success: true };
   } catch (error) {

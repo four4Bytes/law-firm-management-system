@@ -13,6 +13,8 @@ interface NotificationPreferencesFormProps {
     notify_email_case_assigned: boolean;
     notify_email_consultation_assigned: boolean;
     notify_email_task_assigned: boolean;
+    notify_email_subtask_assigned: boolean;
+    notify_email_subtask_completed: boolean;
     notify_email_case_status_changed: boolean;
     notify_email_consultation_status_changed: boolean;
     notify_email_consultation_rescheduled: boolean;
@@ -80,6 +82,24 @@ export function NotificationPreferencesForm({
           description="Receive a notification when you are assigned to a task"
         >
           Notify me when assigned to a task
+        </Checkbox>
+
+        <Checkbox
+          isSelected={preferences.notify_email_subtask_assigned}
+          onChange={(v) => handleToggle("notify_email_subtask_assigned", v)}
+          isDisabled={isPending}
+          description="Receive a notification when you are assigned to a subtask"
+        >
+          Notify me when assigned to a subtask
+        </Checkbox>
+
+        <Checkbox
+          isSelected={preferences.notify_email_subtask_completed}
+          onChange={(v) => handleToggle("notify_email_subtask_completed", v)}
+          isDisabled={isPending}
+          description="Receive a notification when a subtask you are reviewing is completed"
+        >
+          Notify me when a subtask is completed
         </Checkbox>
 
         <p className={styles.groupTitle}>Status changes</p>

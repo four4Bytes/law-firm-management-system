@@ -8,6 +8,8 @@ export type NotificationPreferences = Pick<
   | "notify_email_case_assigned"
   | "notify_email_consultation_assigned"
   | "notify_email_task_assigned"
+  | "notify_email_subtask_assigned"
+  | "notify_email_subtask_completed"
   | "notify_email_case_status_changed"
   | "notify_email_consultation_status_changed"
   | "notify_email_consultation_rescheduled"
@@ -30,6 +32,8 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   notify_email_case_assigned: true,
   notify_email_consultation_assigned: true,
   notify_email_task_assigned: true,
+  notify_email_subtask_assigned: true,
+  notify_email_subtask_completed: true,
   notify_email_case_status_changed: true,
   notify_email_consultation_status_changed: true,
   notify_email_consultation_rescheduled: true,
@@ -55,6 +59,8 @@ export const getNotificationPreferences = cache(
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_subtask_assigned: true,
+        notify_email_subtask_completed: true,
         notify_email_case_status_changed: true,
         notify_email_consultation_status_changed: true,
         notify_email_consultation_rescheduled: true,
@@ -80,6 +86,8 @@ export async function getNotificationPreferencesByUserIds(
       notify_email_case_assigned: true,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_subtask_assigned: true,
+      notify_email_subtask_completed: true,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: true,
       notify_email_consultation_rescheduled: true,
@@ -98,6 +106,8 @@ export async function getNotificationPreferencesByUserIds(
       notify_email_case_assigned: row.notify_email_case_assigned,
       notify_email_consultation_assigned: row.notify_email_consultation_assigned,
       notify_email_task_assigned: row.notify_email_task_assigned,
+      notify_email_subtask_assigned: row.notify_email_subtask_assigned,
+      notify_email_subtask_completed: row.notify_email_subtask_completed,
       notify_email_case_status_changed: row.notify_email_case_status_changed,
       notify_email_consultation_status_changed: row.notify_email_consultation_status_changed,
       notify_email_consultation_rescheduled: row.notify_email_consultation_rescheduled,

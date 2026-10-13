@@ -63,6 +63,8 @@ enum NotificationType {
   MilestoneOverdue
   TaskAssigned
   TaskStatusChanged
+  SubtaskAssigned
+  SubtaskCompleted
   CaseAssigned
   CaseStatusChanged
   ConsultationAssigned
@@ -144,6 +146,8 @@ model UserSettings {
   notify_email_case_assigned               Boolean           @default(true)
   notify_email_consultation_assigned       Boolean           @default(true)
   notify_email_task_assigned               Boolean           @default(true)
+  notify_email_subtask_assigned            Boolean           @default(true)
+  notify_email_subtask_completed           Boolean           @default(true)
   notify_email_case_status_changed         Boolean           @default(true)
   notify_email_consultation_status_changed Boolean           @default(true)
   notify_email_consultation_rescheduled    Boolean           @default(true)

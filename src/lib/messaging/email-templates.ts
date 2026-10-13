@@ -26,6 +26,14 @@ export interface TemplateContext {
   message: string;
   /** Optional link to the relevant entity detail page. */
   actionUrl?: string;
+  /** Optional subtask title for subtask notifications. */
+  subtaskTitle?: string;
+  /** Optional parent task title for subtask notifications. */
+  parentTitle?: string;
+  /** Optional case name for subtask notifications. */
+  caseName?: string;
+  /** Optional pre-formatted due date label for subtask notifications. */
+  dueDateLabel?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -300,6 +308,68 @@ export function caseAssignedTemplate(ctx: TemplateContext): string {
       text(ctx.message, true) +
       (ctx.actionUrl ? button(ctx.actionUrl, "View Case") : ""),
   );
+}
+
+/**
+ * Renders the email body for a subtask-assigned notification.
+ *
+ * Falls back to {@link TemplateContext.title} and
+ * {@link TemplateContext.message} when the optional subtask fields are
+ * absent, so callers that only set the basics still get a complete email.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
+export function subtaskAssignedTemplate(ctx: TemplateContext): string {
+  const subject = ctx.subtaskTitle ?? ctx.title;
+  return emailLayout(
+    "Subtask Assigned",
+    greeting(ctx.toName) +
+      rawText(`${escapeHtml(ctx.actorName)} has assigned you a subtask: ${strongLabel(subject)}.`) +
+      subtaskDetails(ctx) +
+      text(ctx.message, true) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
+  );
+}
+
+/**
+ * Renders the email body for a subtask-completed notification.
+ *
+ * Falls back to {@link TemplateContext.title} and
+ * {@link TemplateContext.message} when the optional subtask fields are
+ * absent, so callers that only set the basics still get a complete email.
+ *
+ * @param ctx - Standard template context with recipient, actor, and message data.
+ * @returns A complete HTML string (via {@link emailLayout}).
+ */
+export function subtaskCompletedTemplate(ctx: TemplateContext): string {
+  const subject = ctx.subtaskTitle ?? ctx.title;
+  return emailLayout(
+    "Subtask Completed",
+    greeting(ctx.toName) +
+      rawText(`${escapeHtml(ctx.actorName)} marked subtask ${strongLabel(subject)} as complete.`) +
+      subtaskDetails(ctx) +
+      text(ctx.message, true) +
+      (ctx.actionUrl ? button(ctx.actionUrl, "View Task") : ""),
+  );
+}
+
+/**
+ * Renders the parent task, case, and due date lines for subtask emails.
+ *
+ * Emits nothing when none of the optional subtask fields are present.
+ *
+ * @param ctx - Template context carrying the optional subtask fields.
+ * @returns A muted `<p>` element, or an empty string.
+ */
+function subtaskDetails(ctx: TemplateContext): string {
+  const parts = [
+    ctx.parentTitle ? `Parent task: ${ctx.parentTitle}` : null,
+    ctx.caseName ? `Case: ${ctx.caseName}` : null,
+    ctx.dueDateLabel ? `Due: ${ctx.dueDateLabel}` : null,
+  ].filter((part): part is string => part !== null);
+  if (parts.length === 0) return "";
+  return text(parts.join(" · "), true);
 }
 
 /**

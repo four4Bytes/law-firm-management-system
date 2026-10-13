@@ -199,6 +199,11 @@ export const getCaseAssigneeIds = cache(async (caseId: string): Promise<string[]
   return assignments.map((a) => a.user_id);
 });
 
+export const getCaseTitleById = cache(async (id: string): Promise<string | null> => {
+  const row = await prisma.case.findUnique({ where: { id }, select: { case_title: true } });
+  return row?.case_title ?? null;
+});
+
 export type CaseEditData = Pick<
   Case,
   | "id"

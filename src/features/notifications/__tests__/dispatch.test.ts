@@ -7,6 +7,8 @@ import { sendEmail } from "@/lib/messaging/email";
 import {
   consultationAssignedTemplate,
   statusChangeTemplate,
+  subtaskAssignedTemplate,
+  subtaskCompletedTemplate,
 } from "@/lib/messaging/email-templates";
 
 import { dispatchNotifications } from "../dispatch";
@@ -39,6 +41,8 @@ vi.mock("@/lib/messaging/email-templates", () => ({
   statusChangeTemplate: vi.fn(() => "<html/>"),
   taskAssignedTemplate: vi.fn(() => "<html/>"),
   caseAssignedTemplate: vi.fn(() => "<html/>"),
+  subtaskAssignedTemplate: vi.fn(() => "<html/>"),
+  subtaskCompletedTemplate: vi.fn(() => "<html/>"),
 }));
 
 const payload = {
@@ -69,6 +73,8 @@ beforeEach(() => {
           notify_email_case_assigned: true,
           notify_email_consultation_assigned: true,
           notify_email_task_assigned: true,
+          notify_email_subtask_assigned: true,
+          notify_email_subtask_completed: true,
           notify_email_case_status_changed: true,
           notify_email_consultation_status_changed: true,
           notify_email_consultation_rescheduled: true,
@@ -83,6 +89,8 @@ beforeEach(() => {
           notify_email_case_assigned: true,
           notify_email_consultation_assigned: true,
           notify_email_task_assigned: true,
+          notify_email_subtask_assigned: true,
+          notify_email_subtask_completed: true,
           notify_email_case_status_changed: true,
           notify_email_consultation_status_changed: true,
           notify_email_consultation_rescheduled: true,
@@ -97,6 +105,8 @@ beforeEach(() => {
           notify_email_case_assigned: true,
           notify_email_consultation_assigned: true,
           notify_email_task_assigned: true,
+          notify_email_subtask_assigned: true,
+          notify_email_subtask_completed: true,
           notify_email_case_status_changed: true,
           notify_email_consultation_status_changed: true,
           notify_email_consultation_rescheduled: true,
@@ -211,6 +221,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -225,6 +237,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -239,6 +253,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -266,6 +282,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -280,6 +298,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -308,6 +328,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -322,6 +344,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -329,6 +353,112 @@ describe("dispatchNotifications", () => {
     vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
 
     await dispatchNotifications({ ...payload, type: NotificationType.TaskAssigned }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
+  });
+
+  it("resolves the subtask assigned template for SubtaskAssigned dispatches", async () => {
+    await dispatchNotifications({ ...payload, type: NotificationType.SubtaskAssigned }, "u9");
+
+    expect(vi.mocked(subtaskAssignedTemplate)).toHaveBeenCalledTimes(3);
+    expect(sendEmail).toHaveBeenCalledTimes(3);
+  });
+
+  it("resolves the subtask completed template for SubtaskCompleted dispatches", async () => {
+    await dispatchNotifications({ ...payload, type: NotificationType.SubtaskCompleted }, "u9");
+
+    expect(vi.mocked(subtaskCompletedTemplate)).toHaveBeenCalledTimes(3);
+    expect(sendEmail).toHaveBeenCalledTimes(3);
+  });
+
+  it("respects preference for SubtaskAssigned - only opted-in users receive notification (in-app + email in sync)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_subtask_assigned: false,
+            notify_email_subtask_completed: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications({ ...payload, type: NotificationType.SubtaskAssigned }, "u9");
+
+    expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "bob@aninolaw.com" }));
+  });
+
+  it("respects preference for SubtaskCompleted - only opted-in users receive notification (in-app + email in sync)", async () => {
+    vi.mocked(getNotificationPreferencesByUserIds).mockResolvedValue(
+      new Map([
+        [
+          "u1",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: false,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+        [
+          "u2",
+          {
+            notify_email_case_assigned: true,
+            notify_email_consultation_assigned: true,
+            notify_email_task_assigned: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
+            notify_email_case_status_changed: true,
+            notify_email_consultation_status_changed: true,
+            notify_email_consultation_rescheduled: true,
+            notify_email_task_status_changed: true,
+            notify_email_milestone_status_changed: true,
+            notify_email_milestone_rescheduled: true,
+          },
+        ],
+      ]),
+    );
+    vi.mocked(getActiveUserIds).mockResolvedValue(["u1", "u2"]);
+
+    await dispatchNotifications({ ...payload, type: NotificationType.SubtaskCompleted }, "u9");
 
     expect(createNotifications).toHaveBeenCalledWith(expect.objectContaining({ userIds: ["u2"] }));
     expect(sendEmail).toHaveBeenCalledTimes(1);
@@ -350,6 +480,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: false,
             notify_email_milestone_status_changed: false,
             notify_email_milestone_rescheduled: false,
+            notify_email_subtask_assigned: false,
+            notify_email_subtask_completed: false,
           },
         ],
       ]),
@@ -380,6 +512,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -394,6 +528,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -429,6 +565,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: false,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -443,6 +581,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -470,6 +610,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: false,
+            notify_email_subtask_assigned: false,
+            notify_email_subtask_completed: false,
           },
         ],
         [
@@ -484,6 +626,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -514,6 +658,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -528,6 +674,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -558,6 +706,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: false,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -572,6 +722,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: false,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),
@@ -604,6 +756,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
         [
@@ -618,6 +772,8 @@ describe("dispatchNotifications", () => {
             notify_email_task_status_changed: true,
             notify_email_milestone_status_changed: true,
             notify_email_milestone_rescheduled: true,
+            notify_email_subtask_assigned: true,
+            notify_email_subtask_completed: true,
           },
         ],
       ]),

@@ -14,6 +14,8 @@ describe("upsertNotificationPreferences", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_subtask_assigned: true,
+      notify_email_subtask_completed: true,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: true,
       notify_email_consultation_rescheduled: true,
@@ -28,6 +30,8 @@ describe("upsertNotificationPreferences", () => {
       notify_email_case_assigned: false,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_subtask_assigned: true,
+      notify_email_subtask_completed: true,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: true,
       notify_email_consultation_rescheduled: true,
@@ -43,6 +47,8 @@ describe("upsertNotificationPreferences", () => {
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_subtask_assigned: true,
+        notify_email_subtask_completed: true,
         notify_email_case_status_changed: true,
         notify_email_consultation_status_changed: true,
         notify_email_consultation_rescheduled: true,
@@ -97,6 +103,8 @@ describe("upsertNotificationPreferences", () => {
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: true,
         notify_email_task_assigned: true,
+        notify_email_subtask_assigned: true,
+        notify_email_subtask_completed: true,
         notify_email_case_status_changed: true,
         notify_email_consultation_status_changed: true,
         notify_email_consultation_rescheduled: true,
@@ -104,6 +112,43 @@ describe("upsertNotificationPreferences", () => {
         notify_email_milestone_status_changed: true,
         notify_email_milestone_rescheduled: true,
       },
+    });
+  });
+
+  it("upserts the subtask fields", async () => {
+    vi.mocked(prisma.userSettings.upsert).mockResolvedValue({
+      notify_email_case_assigned: true,
+      notify_email_consultation_assigned: true,
+      notify_email_task_assigned: true,
+      notify_email_subtask_assigned: false,
+      notify_email_subtask_completed: false,
+      notify_email_case_status_changed: true,
+      notify_email_consultation_status_changed: true,
+      notify_email_consultation_rescheduled: true,
+      notify_email_task_status_changed: true,
+      notify_email_milestone_status_changed: true,
+      notify_email_milestone_rescheduled: true,
+    } as unknown as never);
+
+    const result = await upsertNotificationPreferences("u1", {
+      notify_email_subtask_assigned: false,
+      notify_email_subtask_completed: false,
+    });
+
+    expect(result.notify_email_subtask_assigned).toBe(false);
+    expect(result.notify_email_subtask_completed).toBe(false);
+    expect(prisma.userSettings.upsert).toHaveBeenCalledWith({
+      where: { user_id: "u1" },
+      update: { notify_email_subtask_assigned: false, notify_email_subtask_completed: false },
+      create: {
+        user_id: "u1",
+        notify_email_subtask_assigned: false,
+        notify_email_subtask_completed: false,
+      },
+      select: expect.objectContaining({
+        notify_email_subtask_assigned: true,
+        notify_email_subtask_completed: true,
+      }),
     });
   });
 

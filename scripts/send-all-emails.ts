@@ -28,6 +28,8 @@ import {
   consultationReminderTemplate,
   milestoneTemplate,
   statusChangeTemplate,
+  subtaskAssignedTemplate,
+  subtaskCompletedTemplate,
   taskAssignedTemplate,
   type TemplateContext,
 } from "@/lib/messaging/email-templates";
@@ -60,6 +62,10 @@ function pickTemplate(type: NotificationType) {
       return milestoneTemplate;
     case NotificationType.TaskAssigned:
       return taskAssignedTemplate;
+    case NotificationType.SubtaskAssigned:
+      return subtaskAssignedTemplate;
+    case NotificationType.SubtaskCompleted:
+      return subtaskCompletedTemplate;
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
     case NotificationType.MilestoneStatusChanged:
@@ -203,6 +209,40 @@ function fakeContext(type: NotificationType): { subject: string; ctx: TemplateCo
           message:
             'Case "Navarro Estate Development Joint Venture (Real Estate) - Miguel B. Navarro / Kingsbridge Capital HK Ltd." status changed from Open to Closed',
           actionUrl: "/case/debug-case-id",
+        },
+      };
+    case NotificationType.SubtaskAssigned:
+      return {
+        subject: "Subtask Assigned - Review company documents",
+        ctx: {
+          toName: "Atty. Paolo Guerrero",
+          actorName: "Atty. Marco Lopez",
+          title:
+            "Subtask assigned: Review company documents · Conduct Legal Due Diligence · Ramirez Corp Series A · Due Dec 1, 2026 at 09:00 AM",
+          message:
+            'You have been assigned subtask "Review company documents" under parent task "Conduct Legal Due Diligence" in case "Ramirez Corp Series A", due Dec 1, 2026 at 09:00 AM.',
+          actionUrl: "/case/debug-case-id?tab=tasks",
+          subtaskTitle: "Review company documents",
+          parentTitle: "Conduct Legal Due Diligence",
+          caseName: "Ramirez Corp Series A",
+          dueDateLabel: "Dec 1, 2026 at 09:00 AM",
+        },
+      };
+    case NotificationType.SubtaskCompleted:
+      return {
+        subject: "Subtask Completed - Verify financial records",
+        ctx: {
+          toName: "Atty. Angela Mercado",
+          actorName: "Atty. Miguel Cruz",
+          title:
+            "Subtask completed: Verify financial records · Conduct Legal Due Diligence · Ramirez Corp Series A · Due Dec 1, 2026 at 09:00 AM",
+          message:
+            'Subtask "Verify financial records" under parent task "Conduct Legal Due Diligence" in case "Ramirez Corp Series A" was marked as complete.',
+          actionUrl: "/case/debug-case-id?tab=tasks",
+          subtaskTitle: "Verify financial records",
+          parentTitle: "Conduct Legal Due Diligence",
+          caseName: "Ramirez Corp Series A",
+          dueDateLabel: "Dec 1, 2026 at 09:00 AM",
         },
       };
     case NotificationType.TaskStatusChanged:

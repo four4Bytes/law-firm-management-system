@@ -14,6 +14,8 @@ describe("NotificationPreferencesSchema", () => {
         notify_email_case_assigned: true,
         notify_email_consultation_assigned: false,
         notify_email_task_assigned: true,
+        notify_email_subtask_assigned: true,
+        notify_email_subtask_completed: false,
         notify_email_case_status_changed: true,
         notify_email_consultation_status_changed: false,
         notify_email_consultation_rescheduled: true,
@@ -22,6 +24,18 @@ describe("NotificationPreferencesSchema", () => {
         notify_email_milestone_rescheduled: true,
       }).success,
     ).toBe(true);
+  });
+
+  it("accepts a subtask preferences patch", () => {
+    const result = UpdateNotificationPreferencesSchema.safeParse({
+      notify_email_subtask_assigned: false,
+      notify_email_subtask_completed: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.notify_email_subtask_assigned).toBe(false);
+      expect(result.data.notify_email_subtask_completed).toBe(true);
+    }
   });
 
   it("accepts a milestone rescheduled-only patch", () => {

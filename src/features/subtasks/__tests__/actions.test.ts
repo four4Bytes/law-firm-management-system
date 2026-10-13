@@ -2,10 +2,12 @@ import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { logAudit } from "@/features/audit/mutations";
-import { getCaseAccessContext } from "@/features/cases/queries";
+import { getCaseAccessContext, getCaseTitleById } from "@/features/cases/queries";
+import { notifyRecipients } from "@/features/notifications/notify";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
-import { Role, SubtaskStatus } from "@/generated/prisma/browser";
+import { NotificationType, Role, SubtaskStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/infra/prisma";
+import { formatDateTime } from "@/lib/primitives/date";
 import type { AuthenticatedUser } from "@/lib/security/auth-guards";
 import type { AccessContext, Permission } from "@/lib/security/rbac";
 import { mockSessionUser } from "@/test-utils/fixtures";
@@ -57,6 +59,11 @@ vi.mock("@/features/tasks/queries", () => ({
 
 vi.mock("@/features/cases/queries", () => ({
   getCaseAccessContext: vi.fn(),
+  getCaseTitleById: vi.fn(),
+}));
+
+vi.mock("@/features/notifications/notify", () => ({
+  notifyRecipients: vi.fn(),
 }));
 
 vi.mock("../queries", () => ({
@@ -99,6 +106,8 @@ const taskId = "550e8400-e29b-41d4-a716-446655440000";
 const assigneeId = "550e8400-e29b-41d4-a716-446655440001";
 const caseId = "550e8400-e29b-41d4-a716-446655440002";
 const subtaskId = "550e8400-e29b-41d4-a716-446655440003";
+const newAssigneeId = "550e8400-e29b-41d4-a716-446655440004";
+const reviewerId = "550e8400-e29b-41d4-a716-446655440005";
 const dueDate = new Date("2026-12-01T09:00:00+08:00");
 
 const sessionAdmin = mockSessionUser({ id: "u2", email: "e2", role: Role.Admin, name: "n2" });
@@ -157,6 +166,7 @@ beforeEach(() => {
   vi.mocked(updateSubtask).mockResolvedValue(undefined);
   vi.mocked(completeSubtask).mockResolvedValue(undefined);
   vi.mocked(deleteSubtask).mockResolvedValue(undefined);
+  vi.mocked(getCaseTitleById).mockResolvedValue("Rivera Case");
 });
 
 afterEach(async () => {
@@ -448,6 +458,192 @@ describe("completeSubtaskAction", () => {
     const res = await completeSubtaskAction({ subtaskId });
     expect(res).toEqual({ success: true });
     expect(completeSubtask).not.toHaveBeenCalled();
+  });
+});
+
+describe("subtask assignment and completion notifications", () => {
+  it("notifies each assignee once on create with type, link, and case name", async () => {
+    setupAuth(sessionAdmin);
+    const res = await createSubtaskAction({
+      taskId,
+      title: "File motion",
+      due_date: dueDate,
+      assignee_ids: [assigneeId, newAssigneeId],
+    });
+
+    expect(res).toEqual({ success: true, data: { id: "st1" } });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).toHaveBeenCalledTimes(1);
+    expect(notifyRecipients).toHaveBeenCalledWith(
+      "u2",
+      expect.objectContaining({
+        type: NotificationType.SubtaskAssigned,
+        userIds: [assigneeId, newAssigneeId],
+        actionUrl: `/case/${caseId}?tab=tasks`,
+      }),
+    );
+    const [, payload] = vi.mocked(notifyRecipients).mock.calls[0];
+    expect(payload.title).toContain("File motion");
+    expect(payload.message).toContain("File motion");
+    expect(payload.message).toContain("Parent task");
+    expect(payload.message).toContain("Rivera Case");
+    expect(payload.message).toContain(formatDateTime(dueDate));
+  });
+
+  it("skips the actor on create, and notifies nobody when the actor is the only assignee", async () => {
+    const actorId = "550e8400-e29b-41d4-a716-446655440006";
+    setupAuth(
+      mockSessionUser({ id: actorId, email: "actor@test.com", role: Role.Admin, name: "Actor" }),
+    );
+    await createSubtaskAction({
+      taskId,
+      title: "File motion",
+      due_date: dueDate,
+      assignee_ids: [actorId, assigneeId],
+    });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).toHaveBeenCalledWith(
+      actorId,
+      expect.objectContaining({ userIds: [assigneeId] }),
+    );
+
+    vi.clearAllMocks();
+    await createSubtaskAction({
+      taskId,
+      title: "Solo",
+      due_date: dueDate,
+      assignee_ids: [actorId],
+    });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).not.toHaveBeenCalled();
+  });
+
+  it("still saves when the notify call fails on create", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(notifyRecipients).mockRejectedValueOnce(new Error("mail down"));
+    const res = await createSubtaskAction({
+      taskId,
+      title: "File motion",
+      due_date: dueDate,
+      assignee_ids: [assigneeId],
+    });
+
+    expect(res).toEqual({ success: true, data: { id: "st1" } });
+    expect(createSubtask).toHaveBeenCalled();
+  });
+
+  it("omits the case name when the case title lookup fails", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getCaseTitleById).mockRejectedValueOnce(new Error("db down"));
+    await createSubtaskAction({
+      taskId,
+      title: "File motion",
+      due_date: dueDate,
+      assignee_ids: [assigneeId],
+    });
+
+    await flushAfterCallbacks();
+    const [, payload] = vi.mocked(notifyRecipients).mock.calls[0];
+    expect(payload.message).toContain("File motion");
+    expect(payload.message).not.toContain("Rivera Case");
+  });
+
+  it("notifies only newly added assignees on update", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue({
+      ...detailRow,
+      assignee_ids: [assigneeId],
+    });
+    const res = await updateSubtaskAction({
+      subtaskId,
+      title: "Subtask",
+      due_date: dueDate,
+      assignee_ids: [assigneeId, newAssigneeId],
+    });
+
+    expect(res).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).toHaveBeenCalledTimes(1);
+    expect(notifyRecipients).toHaveBeenCalledWith(
+      "u2",
+      expect.objectContaining({
+        type: NotificationType.SubtaskAssigned,
+        userIds: [newAssigneeId],
+      }),
+    );
+  });
+
+  it("notifies nobody on update when assignees are removed or unchanged", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue({
+      ...detailRow,
+      assignee_ids: [assigneeId, newAssigneeId],
+    });
+    await updateSubtaskAction({
+      subtaskId,
+      title: "Subtask",
+      due_date: dueDate,
+      assignee_ids: [assigneeId],
+    });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).not.toHaveBeenCalled();
+
+    await updateSubtaskAction({ subtaskId, title: "Subtask", due_date: dueDate });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).not.toHaveBeenCalled();
+  });
+
+  it("notifies only the parent task reviewers on complete", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...parentTask,
+      taskReviewers: [
+        { id: "r1", reviewer_user_id: reviewerId, decision: "Pending", reviewed_at: null },
+      ],
+    });
+    const res = await completeSubtaskAction({ subtaskId });
+
+    expect(res).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).toHaveBeenCalledTimes(1);
+    expect(notifyRecipients).toHaveBeenCalledWith(
+      "u2",
+      expect.objectContaining({
+        type: NotificationType.SubtaskCompleted,
+        userIds: [reviewerId],
+        actionUrl: `/case/${caseId}?tab=tasks`,
+      }),
+    );
+    const [, payload] = vi.mocked(notifyRecipients).mock.calls[0];
+    expect(payload.title).toContain("Subtask");
+    expect(payload.message).toContain("Rivera Case");
+  });
+
+  it("notifies nobody on complete when the parent has no reviewers", async () => {
+    setupAuth(sessionAdmin);
+    const res = await completeSubtaskAction({ subtaskId });
+
+    expect(res).toEqual({ success: true });
+    await flushAfterCallbacks();
+    expect(notifyRecipients).not.toHaveBeenCalled();
+  });
+
+  it("skips a reviewer who completed the subtask themselves", async () => {
+    setupAuth(sessionAdmin);
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...parentTask,
+      taskReviewers: [
+        { id: "r1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+        { id: "r2", reviewer_user_id: reviewerId, decision: "Pending", reviewed_at: null },
+      ],
+    });
+    await completeSubtaskAction({ subtaskId });
+
+    await flushAfterCallbacks();
+    expect(notifyRecipients).toHaveBeenCalledWith(
+      "u2",
+      expect.objectContaining({ userIds: [reviewerId] }),
+    );
   });
 });
 

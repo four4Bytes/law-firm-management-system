@@ -15,6 +15,8 @@ import {
   consultationReminderTemplate,
   milestoneTemplate,
   statusChangeTemplate,
+  subtaskAssignedTemplate,
+  subtaskCompletedTemplate,
   taskAssignedTemplate,
 } from "@/lib/messaging/email-templates";
 
@@ -34,6 +36,10 @@ function pickTemplate(type: NotificationType) {
       return milestoneTemplate;
     case NotificationType.TaskAssigned:
       return taskAssignedTemplate;
+    case NotificationType.SubtaskAssigned:
+      return subtaskAssignedTemplate;
+    case NotificationType.SubtaskCompleted:
+      return subtaskCompletedTemplate;
     case NotificationType.CaseAssigned:
       return caseAssignedTemplate;
     case NotificationType.MilestoneStatusChanged:
@@ -68,13 +74,15 @@ export async function dispatchNotifications(
   const isAssignmentType =
     payload.type === NotificationType.CaseAssigned ||
     payload.type === NotificationType.ConsultationAssigned ||
-    payload.type === NotificationType.TaskAssigned;
+    payload.type === NotificationType.TaskAssigned ||
+    payload.type === NotificationType.SubtaskAssigned;
 
   const isStatusChangeType =
     payload.type === NotificationType.CaseStatusChanged ||
     payload.type === NotificationType.ConsultationStatusChanged ||
     payload.type === NotificationType.ConsultationRescheduled ||
     payload.type === NotificationType.TaskStatusChanged ||
+    payload.type === NotificationType.SubtaskCompleted ||
     payload.type === NotificationType.MilestoneStatusChanged ||
     payload.type === NotificationType.MilestoneDueDateChanged;
 
@@ -90,6 +98,10 @@ export async function dispatchNotifications(
               return prefs.notify_email_consultation_assigned;
             if (payload.type === NotificationType.TaskAssigned)
               return prefs.notify_email_task_assigned;
+            if (payload.type === NotificationType.SubtaskAssigned)
+              return prefs.notify_email_subtask_assigned;
+            if (payload.type === NotificationType.SubtaskCompleted)
+              return prefs.notify_email_subtask_completed;
             if (payload.type === NotificationType.CaseStatusChanged)
               return prefs.notify_email_case_status_changed;
             if (payload.type === NotificationType.ConsultationStatusChanged)
@@ -143,6 +155,10 @@ export async function dispatchNotifications(
         title: payload.title,
         message: payload.message,
         actionUrl: payload.actionUrl,
+        subtaskTitle: payload.subtaskTitle,
+        parentTitle: payload.parentTitle,
+        caseName: payload.caseName,
+        dueDateLabel: payload.dueDateLabel,
       });
 
       await sendEmail({ to: user.email, subject: payload.title, html });

@@ -17,6 +17,8 @@ export async function upsertNotificationPreferences(
       notify_email_case_assigned: true,
       notify_email_consultation_assigned: true,
       notify_email_task_assigned: true,
+      notify_email_subtask_assigned: true,
+      notify_email_subtask_completed: true,
       notify_email_case_status_changed: true,
       notify_email_consultation_status_changed: true,
       notify_email_consultation_rescheduled: true,

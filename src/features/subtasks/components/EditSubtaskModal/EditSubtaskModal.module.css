@@ -1,95 +1,117 @@
 .modal {
-  width: 500px;
+  width: var(--modal-wide-width);
+  max-width: 95vw;
+  --list-max-height: none;
 
-  .content {
+  .form {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .columns {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    gap: var(--space-2xl);
+    text-align: left;
+  }
+
+  .column {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
-    text-align: left;
+  }
 
-    .parentHeader {
-      display: flex;
+  .columnScroll {
+    overflow-y: auto;
+    padding-bottom: var(--space-sm);
+  }
+
+  .assigneeField button {
+    min-height: 44px;
+  }
+
+  .reviewersField {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .reviewersLabel {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+  }
+
+  .reviewersHint {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-normal);
+    color: var(--color-text-muted);
+  }
+
+  .deadlineHint {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+  }
+
+  .parentWarning {
+    margin: 0;
+    border: 1px solid var(--color-warning);
+    background: var(--color-surface-bg-alt);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .statusRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .statusLabel {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+  }
+
+  .actions {
+    display: flex;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+
+    > * {
+      flex: 1;
+      min-height: 48px;
+    }
+  }
+}
+
+/* Mobile overrides */
+@media (max-width: 48rem) {
+  .modal {
+    .columns {
       flex-direction: column;
-      gap: var(--space-xs);
-      background: var(--color-surface-bg-alt);
-      border-radius: var(--radius-md);
-      padding: var(--space-md);
+      overflow-y: auto;
     }
 
-    .parentLabel {
-      font-size: var(--font-size-xs);
-      color: var(--color-text-muted);
-    }
-
-    .parentTitle {
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-semi-bold);
-      color: var(--color-text-primary);
-    }
-
-    .parentMeta {
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
-    }
-
-    .assigneeField button {
-      min-height: 44px;
-    }
-
-    .dateRow {
-      display: flex;
-      gap: var(--space-md);
-      flex-wrap: wrap;
-
-      > * {
-        flex: 1;
-        min-width: 0;
-      }
-    }
-
-    .deadlineHint {
-      margin: 0;
-      font-size: var(--font-size-xs);
-      color: var(--color-text-muted);
-    }
-
-    .parentWarning {
-      margin: 0;
-      border: 1px solid var(--color-warning);
-      background: var(--color-surface-bg-alt);
-      color: var(--color-text-secondary);
-      border-radius: var(--radius-md);
-      padding: var(--space-sm) var(--space-md);
-      font-size: var(--font-size-sm);
-    }
-
-    .statusBox {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-md);
-      border: 1px solid var(--color-border-default);
-      border-radius: var(--radius-md);
-      padding: var(--space-md);
-    }
-
-    .statusLabel {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-xs);
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-medium);
-      color: var(--color-text-primary);
-    }
-
-    .actions {
-      display: flex;
-      gap: var(--space-lg);
-
-      > * {
-        flex: 1;
-        min-height: 48px;
-      }
+    .divider {
+      display: none;
     }
   }
 }

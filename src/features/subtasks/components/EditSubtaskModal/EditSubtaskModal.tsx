@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarDate, Time } from "@internationalized/date";
+import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { Form } from "react-aria-components";
 import { z } from "zod";
@@ -8,6 +9,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/Button/Button";
 import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Separator } from "@/components/ui/Separator/Separator";
 import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
@@ -66,6 +68,7 @@ export function EditSubtaskModal({
     title: string;
     due_date: Date | null;
     assignees: string[];
+    reviewers: { id: string; name: string }[];
   } | null>(null);
 
   useEffect(() => {
@@ -83,6 +86,10 @@ export function EditSubtaskModal({
                   title: row.title,
                   due_date: row.due_date ? new Date(row.due_date) : null,
                   assignees: row.assignTo.map((assignee) => assignee.name),
+                  reviewers: row.reviewers.map((reviewer) => ({
+                    id: reviewer.reviewer_user_id,
+                    name: reviewer.name,
+                  })),
                 }
               : null,
           );
@@ -110,6 +117,14 @@ export function EditSubtaskModal({
     () => sortedUsers.filter((user) => assigneeIds.has(user.id)),
     [sortedUsers, assigneeIds],
   );
+  const reviewerRows = useMemo(() => {
+    const onlineById = new Map(users.map((user) => [user.id, user.is_online]));
+    return (parent?.reviewers ?? []).map((reviewer) => ({
+      id: reviewer.id,
+      name: reviewer.name,
+      is_online: onlineById.get(reviewer.id) ?? false,
+    }));
+  }, [parent, users]);
 
   const isDirty =
     title !== subtask.title ||
@@ -181,48 +196,27 @@ export function EditSubtaskModal({
       onOpenChange={handleCancel}
       className={styles.modal}
     >
-      <Form validationBehavior="native" onSubmit={handleSave}>
-        <div className={styles.content}>
-          {parent && (
-            <div className={styles.parentHeader}>
-              <span className={styles.parentLabel}>Parent task</span>
-              <span className={styles.parentTitle}>{parent.title}</span>
-              <span className={styles.parentMeta}>
-                {parent.due_date ? `Due ${formatDateTime(parent.due_date)}` : "No deadline"}
-                {parent.assignees.length > 0 && ` · Assigned to ${parent.assignees.join(", ")}`}
-              </span>
-            </div>
-          )}
-          <TextField
-            label="Title"
-            value={title}
-            onChange={setTitle}
-            placeholder="Subtask title"
-            validate={validateTitle}
-            isDisabled={disabled}
-          />
-          <TextField
-            label="Description"
-            value={description}
-            onChange={setDescription}
-            placeholder="Optional description"
-            isTextArea
-            rows={3}
-            validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.description)}
-            isDisabled={disabled}
-          />
-          <div className={styles.assigneeField}>
-            <UserSelect
-              users={sortedUsers}
-              selectedIds={assigneeIds}
-              onChange={setAssigneeIds}
+      <Form validationBehavior="native" onSubmit={handleSave} className={styles.form}>
+        <div className={styles.columns}>
+          <div className={clsx(styles.column, styles.columnScroll)}>
+            <TextField
+              label="Title"
+              value={title}
+              onChange={setTitle}
+              placeholder="Subtask title"
+              validate={validateTitle}
               isDisabled={disabled}
-              isLoading={isLoadingUsers}
-              validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.assignee_ids)}
             />
-            <UserList users={assigneeRows} emptyText="No assignees" />
-          </div>
-          <div className={styles.dateRow}>
+            <TextField
+              label="Description"
+              value={description}
+              onChange={setDescription}
+              placeholder="Optional description"
+              isTextArea
+              rows={3}
+              validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.description)}
+              isDisabled={disabled}
+            />
             <DatePicker
               label="Due Date"
               value={dueDate}
@@ -236,60 +230,78 @@ export function EditSubtaskModal({
               onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
               isDisabled={disabled}
             />
-          </div>
-          {parentDue && (
-            <p className={styles.deadlineHint}>
-              {`Parent task deadline: ${formatDateTime(parentDue)}`}
-            </p>
-          )}
-          {exceedsParent && parentDue && (
-            <p className={styles.parentWarning}>
-              {`This due date is after the parent task's deadline (${formatMonthDay(parentDue)}). You can still save it.`}
-            </p>
-          )}
-          <div className={styles.statusBox}>
-            <div className={styles.statusLabel}>
-              <span>Status</span>
-              <StatusBadge
-                variant={getSubtaskStatusVariant(subtask.status)}
-                className={subtaskStyles.smallBadge}
-              >
-                {getSubtaskStatusLabel(subtask.status)}
-              </StatusBadge>
+            <div className={styles.assigneeField}>
+              <UserSelect
+                users={sortedUsers}
+                selectedIds={assigneeIds}
+                onChange={setAssigneeIds}
+                isDisabled={disabled}
+                isLoading={isLoadingUsers}
+                validate={createFieldValidator(SubtaskUpdatePayloadSchema.shape.assignee_ids)}
+              />
+              <UserList users={assigneeRows} emptyText="No assignees" />
             </div>
-            {!readOnly && subtask.status !== SubtaskStatus.Done && (
-              <Button
-                variant="outlineSuccess"
-                type="button"
-                onPress={handleComplete}
-                isDisabled={isPending || isCompleting}
-                isPending={isCompleting}
-              >
-                Mark complete
-              </Button>
+            <div className={styles.reviewersField}>
+              <span className={styles.reviewersLabel}>
+                Reviewers <span className={styles.reviewersHint}>(from parent task)</span>
+              </span>
+              <UserList users={reviewerRows} emptyText="No reviewers" />
+            </div>
+            {parentDue && (
+              <p className={styles.deadlineHint}>
+                {`Parent task deadline: ${formatDateTime(parentDue)}`}
+              </p>
             )}
-          </div>
-          <SubtaskNotesSection
-            subtaskId={subtask.id}
-            canEdit={!readOnly}
-            onSuccess={onSuccess}
-            readOnly={readOnly}
-          />
-          <div className={styles.actions}>
-            <Button variant="outline" type="button" onPress={handleCancel} isDisabled={isPending}>
-              Cancel
-            </Button>{" "}
-            {!readOnly && (
-              <Button
-                variant="secondary"
-                type="submit"
-                isDisabled={isPending || !isDirty}
-                isPending={isPending}
-              >
-                Save Changes
-              </Button>
+            {exceedsParent && parentDue && (
+              <p className={styles.parentWarning}>
+                {`This due date is after the parent task's deadline (${formatMonthDay(parentDue)}). You can still save it.`}
+              </p>
             )}
+            <div className={styles.statusRow}>
+              <div className={styles.statusLabel}>
+                <span>Status</span>
+                <StatusBadge
+                  variant={getSubtaskStatusVariant(subtask.status)}
+                  className={subtaskStyles.smallBadge}
+                >
+                  {getSubtaskStatusLabel(subtask.status)}
+                </StatusBadge>
+              </div>
+              {!readOnly && subtask.status !== SubtaskStatus.Done && (
+                <Button
+                  variant="outlineSuccess"
+                  type="button"
+                  onPress={handleComplete}
+                  isDisabled={isPending || isCompleting}
+                  isPending={isCompleting}
+                >
+                  Mark complete
+                </Button>
+              )}
+            </div>
           </div>
+
+          <Separator orientation="vertical" className={styles.divider} />
+
+          <div className={styles.column}>
+            <SubtaskNotesSection
+              subtaskId={subtask.id}
+              canEdit={!readOnly}
+              onSuccess={onSuccess}
+              readOnly={readOnly}
+            />
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
+            Cancel
+          </Button>
+          {!readOnly && (
+            <Button type="submit" isDisabled={isPending || !isDirty} isPending={isPending}>
+              Save
+            </Button>
+          )}
         </div>
       </Form>
     </Modal>

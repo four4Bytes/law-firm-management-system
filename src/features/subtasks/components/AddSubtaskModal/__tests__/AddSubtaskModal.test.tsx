@@ -175,7 +175,7 @@ describe("AddSubtaskModal title validation", () => {
     await waitFor(() => {
       expect(screen.queryByText("Parent task")).not.toBeNull();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save Subtask" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     const error = await screen.findByText("Title is required.");
     expect(error.closest('[role="alert"]')).not.toBeNull();
     const input = screen.getByRole("textbox", { name: "Title" });
@@ -270,12 +270,20 @@ describe("AddSubtaskModal assignee list", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
       target: { value: "Draft motion" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save Subtask" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
       expect(createSubtaskAction).toHaveBeenCalledWith(
         expect.objectContaining({ taskId: TASK_ID, assignee_ids: [BOB_ID] }),
       );
     });
+  });
+
+  it("renders single-column with no Notes or Files sections", () => {
+    renderModal();
+
+    expect(screen.getByRole("textbox", { name: "Title" })).not.toBeNull();
+    expect(screen.queryByText("Notes")).toBeNull();
+    expect(screen.queryByText("Files")).toBeNull();
   });
 });

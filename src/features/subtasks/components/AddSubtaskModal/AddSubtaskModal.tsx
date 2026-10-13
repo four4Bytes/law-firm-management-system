@@ -220,11 +220,11 @@ export function AddSubtaskModal({
             </p>
           )}
           <div className={styles.actions}>
-            <Button variant="outline" type="button" onPress={handleCancel} isDisabled={isPending}>
+            <Button variant="secondary" type="button" onPress={handleCancel} isDisabled={isPending}>
               Cancel
             </Button>
-            <Button variant="secondary" type="submit" isDisabled={isPending} isPending={isPending}>
-              Save Subtask
+            <Button type="submit" isDisabled={isPending} isPending={isPending}>
+              Save
             </Button>
           </div>
         </div>

@@ -9,7 +9,6 @@ import type { TaskDetailRow } from "@/features/tasks/queries";
 import type { UserSummary } from "@/features/users/types";
 import { SubtaskStatus, TaskAssignmentStatus, TaskStatus } from "@/generated/prisma/browser";
 import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
-import { formatDateTime } from "@/lib/primitives/date";
 
 import { EditSubtaskModal } from "../EditSubtaskModal";
 
@@ -148,7 +147,7 @@ describe("EditSubtaskModal assignee list", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
       target: { value: "File amended motion" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
       expect(updateSubtaskAction).toHaveBeenCalledWith(
@@ -170,7 +169,7 @@ describe("EditSubtaskModal assignee list", () => {
     expect(within(list).queryByText("Bob")).toBeNull();
     expect(within(list).getByText("Alice")).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
       expect(updateSubtaskAction).toHaveBeenCalledWith(
@@ -227,18 +226,39 @@ describe("EditSubtaskModal parent context", () => {
     };
   }
 
-  it("shows the parent card with title, deadline, and assignees", async () => {
-    const row = parentRow();
-    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(parentDetail(row));
+  it("shows the parent reviewers read-only with no reviewer input", async () => {
+    vi.mocked(getTaskDetailRowByIdAction).mockResolvedValue(
+      parentDetail(
+        parentRow({
+          reviewers: [
+            {
+              id: "r1",
+              reviewer_user_id: "u3",
+              name: "Atty. Angela Mercado",
+              decision: "Pending",
+              reviewed_at: null,
+            },
+          ],
+        }),
+      ),
+    );
     renderModal();
 
     await waitFor(() => {
-      expect(screen.queryByText("Parent task")).not.toBeNull();
+      expect(screen.queryByText("Reviewers")).not.toBeNull();
     });
-    expect(screen.getByText("Wala")).not.toBeNull();
-    expect(
-      screen.queryByText(`Due ${formatDateTime(row.due_date as Date)} · Assigned to Alice`),
-    ).not.toBeNull();
+    expect(screen.getByText("(from parent task)")).not.toBeNull();
+    expect(screen.getByText("Atty. Angela Mercado")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Reviewers/ })).toBeNull();
+    expect(screen.queryByText("Parent task")).toBeNull();
+  });
+
+  it("renders the form and notes columns with no files section", () => {
+    renderModal();
+
+    expect(screen.getByRole("textbox", { name: "Title" })).not.toBeNull();
+    expect(screen.getByText("Notes")).not.toBeNull();
+    expect(screen.queryByText("Files")).toBeNull();
   });
 
   it("warns on a past-parent deadline but still saves", async () => {
@@ -260,7 +280,7 @@ describe("EditSubtaskModal parent context", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
       target: { value: "File amended motion" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => {
       expect(updateSubtaskAction).toHaveBeenCalled();
     });
@@ -298,7 +318,7 @@ describe("EditSubtaskModal title validation", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
       target: { value: "" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const error = await screen.findByText("Title is required.");
     expect(error.closest('[role="alert"]')).not.toBeNull();

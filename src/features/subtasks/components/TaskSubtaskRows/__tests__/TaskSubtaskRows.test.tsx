@@ -30,6 +30,14 @@ vi.mock("@/features/subtasks/actions", () => ({
   updateSubtaskAction: vi.fn(),
 }));
 
+vi.mock("@/features/documents/actions", () => ({
+  getDocumentsPaginatedAction: vi.fn(),
+  getDocumentUploadUrlAction: vi.fn(),
+  confirmDocumentUploadAction: vi.fn(),
+  getDocumentDownloadUrlAction: vi.fn(),
+  deleteDocumentAction: vi.fn(),
+}));
+
 vi.mock("@/features/notes/actions", () => ({
   getSubtaskNotesPaginatedAction: vi.fn(),
   createNoteAction: vi.fn(),

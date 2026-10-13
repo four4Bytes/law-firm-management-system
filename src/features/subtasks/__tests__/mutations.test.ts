@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
+import { getDocumentFilePathsBySubtaskId } from "@/features/documents/queries";
 import { SubtaskStatus } from "@/generated/prisma/browser";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { prisma } from "@/lib/infra/prisma";
 import { mockSubtask } from "@/test-utils/fixtures";
 
@@ -12,6 +14,14 @@ vi.mock("@/lib/infra/prisma", () => ({
     subtask: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     subtaskAssignment: { deleteMany: vi.fn(), createMany: vi.fn() },
   },
+}));
+
+vi.mock("@/features/documents/queries", () => ({
+  getDocumentFilePathsBySubtaskId: vi.fn(),
+}));
+
+vi.mock("@/lib/files/storage-cleanup", () => ({
+  deleteDocumentFiles: vi.fn(),
 }));
 
 type Tx = {
@@ -31,6 +41,8 @@ const transactionMock = vi.mocked(prisma.$transaction) as unknown as Mock<
 beforeEach(() => {
   vi.clearAllMocks();
   transactionMock.mockImplementation((fn) => fn(tx as never));
+  vi.mocked(getDocumentFilePathsBySubtaskId).mockResolvedValue([]);
+  vi.mocked(deleteDocumentFiles).mockResolvedValue(undefined);
 });
 
 describe("createSubtask", () => {
@@ -116,5 +128,15 @@ describe("deleteSubtask", () => {
     await deleteSubtask({ subtaskId: "st1" });
 
     expect(prisma.subtask.delete).toHaveBeenCalledWith({ where: { id: "st1" } });
+  });
+
+  it("purges the subtask files from storage on delete", async () => {
+    vi.mocked(prisma.subtask.delete).mockResolvedValue(mockSubtask());
+    vi.mocked(getDocumentFilePathsBySubtaskId).mockResolvedValue(["subtasks/st1/a.pdf"]);
+
+    await deleteSubtask({ subtaskId: "st1" });
+
+    expect(getDocumentFilePathsBySubtaskId).toHaveBeenCalledWith("st1", expect.anything());
+    expect(deleteDocumentFiles).toHaveBeenCalledWith(["subtasks/st1/a.pdf"]);
   });
 });

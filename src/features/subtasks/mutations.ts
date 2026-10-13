@@ -1,4 +1,6 @@
+import { getDocumentFilePathsBySubtaskId } from "@/features/documents/queries";
 import { SubtaskStatus } from "@/generated/prisma/browser";
+import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { prisma } from "@/lib/infra/prisma";
 
 export interface SubtaskCreatePayload {
@@ -59,5 +61,10 @@ export async function completeSubtask(payload: {
 
 export async function deleteSubtask(payload: { subtaskId: string }): Promise<void> {
   const { subtaskId } = payload;
-  await prisma.subtask.delete({ where: { id: subtaskId } });
+  const filePaths = await prisma.$transaction(async (tx) => {
+    const paths = await getDocumentFilePathsBySubtaskId(subtaskId, tx);
+    await tx.subtask.delete({ where: { id: subtaskId } });
+    return paths;
+  });
+  await deleteDocumentFiles(filePaths);
 }

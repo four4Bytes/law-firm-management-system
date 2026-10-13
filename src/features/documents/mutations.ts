@@ -9,6 +9,7 @@ export interface DocumentCreatePayload {
   case_id?: string | null;
   consultation_id?: string | null;
   task_id?: string | null;
+  subtask_id?: string | null;
   uploaded_by_user_id: string;
 }
 
@@ -42,6 +43,34 @@ export async function deleteDocumentForTask(
   });
   if (doc?.task_id !== taskId) {
     throw new Error("Document does not belong to the specified task");
+  }
+  return deleteDocument(documentId);
+}
+
+export interface SubtaskDocumentPayload extends Omit<DocumentCreatePayload, "subtask_id"> {
+  subtaskId: string;
+}
+
+export async function createDocumentForSubtask(
+  payload: SubtaskDocumentPayload,
+): Promise<{ id: string }> {
+  const { subtaskId, ...data } = payload;
+  return prisma.document.create({ data: { ...data, subtask_id: subtaskId }, select: { id: true } });
+}
+
+// Guards the action layer's ownership check: a mismatched subtask id must not
+// reach the delete. No transaction alongside it - no action moves a document
+// between subtasks, so `subtask_id` cannot change between the read and the write.
+export async function deleteDocumentForSubtask(
+  subtaskId: string,
+  documentId: string,
+): Promise<{ id: string }> {
+  const doc = await prisma.document.findUnique({
+    where: { id: documentId },
+    select: { subtask_id: true },
+  });
+  if (doc?.subtask_id !== subtaskId) {
+    throw new Error("Document does not belong to the specified subtask");
   }
   return deleteDocument(documentId);
 }

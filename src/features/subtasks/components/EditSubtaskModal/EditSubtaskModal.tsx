@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge/StatusBadge";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { completeSubtaskAction, updateSubtaskAction } from "@/features/subtasks/actions";
+import { SubtaskFilesSection } from "@/features/subtasks/components/SubtaskFilesSection/SubtaskFilesSection";
 import { SubtaskNotesSection } from "@/features/subtasks/components/SubtaskNotesSection/SubtaskNotesSection";
 import subtaskStyles from "@/features/subtasks/components/TaskSubtaskRows/TaskSubtaskRows.module.css";
 import { getSubtaskStatusLabel, getSubtaskStatusVariant } from "@/features/subtasks/display";
@@ -279,6 +280,17 @@ export function EditSubtaskModal({
                 </Button>
               )}
             </div>
+          </div>
+
+          <Separator orientation="vertical" className={styles.divider} />
+
+          <div className={styles.column}>
+            <SubtaskFilesSection
+              subtaskId={subtask.id}
+              canEdit={!readOnly}
+              onSuccess={onSuccess}
+              readOnly={readOnly}
+            />
           </div>
 
           <Separator orientation="vertical" className={styles.divider} />

@@ -336,6 +336,7 @@ model Subtask {
   completedBy User?               @relation("SubtaskCompleter", fields: [completed_by_user_id], references: [id])
   assignments SubtaskAssignment[]
   notes       Note[]
+  documents   Document[]
 
   @@index([task_id, due_date])
 }
@@ -429,6 +430,7 @@ model Document {
   case_id             String?  @db.Uuid
   consultation_id     String?  @db.Uuid
   task_id             String?  @db.Uuid
+  subtask_id          String?  @db.Uuid
   uploaded_by_user_id String   @db.Uuid
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
@@ -436,10 +438,12 @@ model Document {
   case         Case?         @relation(fields: [case_id], references: [id], onDelete: Cascade)
   consultation Consultation? @relation(fields: [consultation_id], references: [id], onDelete: Cascade)
   task         Task?         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  subtask      Subtask?      @relation(fields: [subtask_id], references: [id], onDelete: Cascade)
   uploadedBy   User          @relation(fields: [uploaded_by_user_id], references: [id])
 
   @@index([case_id, created_at])
   @@index([consultation_id, created_at])
+  @@index([subtask_id, created_at])
 }
 
 model Note {

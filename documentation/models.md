@@ -196,17 +196,18 @@ An internal note attached to a case, consultation, or task.
 | Case         | Link      | No       | The case this note belongs to         |
 | Consultation | Link      | No       | The consultation this note belongs to |
 | Task         | Link      | No       | The task this note belongs to         |
+| Subtask      | Link      | No       | The subtask this note belongs to      |
 | Created By   | Link      | Yes      | The user who wrote the note           |
 | Created      | Timestamp | Yes      | When the note was created             |
 | Updated      | Timestamp | Yes      | When the note was last modified       |
 
-> Note is optionally linked to a Case, Consultation, or Task. All three foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
+> Note is optionally linked to a Case, Consultation, Task, or Subtask. All four foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
 
 ---
 
 ### Document
 
-A file attachment linked to a case, consultation, or task.
+A file attachment linked to a case, consultation, task, or subtask.
 
 | Field        | Type      | Required | Description                                                                           |
 | ------------ | --------- | -------- | ------------------------------------------------------------------------------------- |
@@ -217,11 +218,12 @@ A file attachment linked to a case, consultation, or task.
 | Case         | Link      | No       | The case this document belongs to                                                     |
 | Consultation | Link      | No       | The consultation this document belongs to                                             |
 | Task         | Link      | No       | The task this document belongs to                                                     |
+| Subtask      | Link      | No       | The subtask this document belongs to                                                  |
 | Uploaded By  | Link      | Yes      | The user who uploaded the file                                                        |
 | Created      | Timestamp | Yes      | When the file was uploaded                                                            |
 | Updated      | Timestamp | Yes      | When the record was last modified                                                     |
 
-> Document is optionally linked to a Case, Consultation, or Task. All three foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
+> Document is optionally linked to a Case, Consultation, Task, or Subtask. All four foreign keys are nullable; the application expects exactly one parent but this is not enforced at the schema level.
 
 ---
 

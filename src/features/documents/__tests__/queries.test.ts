@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/infra/prisma";
 import { mockDocument as mockBaseDocument } from "@/test-utils/fixtures";
 
-import { getDocumentById, getDocumentsPaginated } from "../queries";
+import {
+  getDocumentById,
+  getDocumentFilePathsByTaskId,
+  getDocumentFilePathsForCaseDeletion,
+  getDocumentsPaginated,
+} from "../queries";
 
 vi.mock("@/lib/infra/prisma", () => ({
   prisma: { document: { findMany: vi.fn(), findUnique: vi.fn() } },
@@ -71,7 +76,7 @@ describe("getDocumentsPaginated", () => {
     });
   });
 
-  it("filters by case_id", async () => {
+  it("filters by case_id and excludes subtask documents", async () => {
     vi.mocked(prisma.document.findMany).mockResolvedValue([mockDocument()]);
 
     await getDocumentsPaginated({ caseId: "c1" });
@@ -80,6 +85,7 @@ describe("getDocumentsPaginated", () => {
       expect.objectContaining({
         where: {
           OR: [{ case_id: "c1" }, { task: { case_id: "c1" } }],
+          subtask_id: null,
         },
       }),
     );
@@ -97,7 +103,7 @@ describe("getDocumentsPaginated", () => {
     );
   });
 
-  it("filters by task_id", async () => {
+  it("filters by task_id and excludes subtask documents", async () => {
     vi.mocked(prisma.document.findMany).mockResolvedValue([
       mockDocument({
         task_id: "t1",
@@ -109,7 +115,7 @@ describe("getDocumentsPaginated", () => {
 
     expect(prisma.document.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { task_id: "t1" },
+        where: { task_id: "t1", subtask_id: null },
       }),
     );
     expect(result.rows[0].task).toEqual({
@@ -117,6 +123,19 @@ describe("getDocumentsPaginated", () => {
       title: "Review evidence",
       case_id: "c1",
     });
+  });
+
+  it("filters by subtask_id", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([mockDocument({ subtask_id: "st1" })]);
+
+    const result = await getDocumentsPaginated({ subtaskId: "st1" });
+
+    expect(result.rows).toHaveLength(1);
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { subtask_id: "st1" },
+      }),
+    );
   });
 
   it("filters by file_name search", async () => {
@@ -214,7 +233,9 @@ describe("getDocumentById", () => {
         case_id: true,
         consultation_id: true,
         task_id: true,
+        subtask_id: true,
         task: { select: { case_id: true, status: true } },
+        subtask: { select: { task: { select: { id: true, case_id: true, status: true } } } },
       },
     });
   });
@@ -232,5 +253,46 @@ describe("getDocumentById", () => {
     vi.mocked(prisma.document.findUnique).mockRejectedValue(error);
 
     await expect(getDocumentById("d1")).rejects.toThrow(error);
+  });
+});
+
+describe("getDocumentFilePathsByTaskId", () => {
+  it("collects task files and subtask files of that task for purge", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([
+      { file_path: "tasks/t1/a.pdf" },
+      { file_path: "subtasks/st1/b.pdf" },
+    ] as never);
+
+    const result = await getDocumentFilePathsByTaskId("t1");
+
+    expect(result).toEqual(["tasks/t1/a.pdf", "subtasks/st1/b.pdf"]);
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { OR: [{ task_id: "t1" }, { subtask: { task_id: "t1" } }] },
+      }),
+    );
+  });
+});
+
+describe("getDocumentFilePathsForCaseDeletion", () => {
+  it("collects case, task, and subtask files of that case for purge", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([
+      { file_path: "subtasks/st1/b.pdf" },
+    ] as never);
+
+    const result = await getDocumentFilePathsForCaseDeletion("c1");
+
+    expect(result).toEqual(["subtasks/st1/b.pdf"]);
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { case_id: "c1" },
+            { task: { case_id: "c1" } },
+            { subtask: { task: { case_id: "c1" } } },
+          ],
+        },
+      }),
+    );
   });
 });

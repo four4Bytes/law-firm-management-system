@@ -1,0 +1,128 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { DropZone } from "@/components/ui/DropZone/DropZone";
+import { deleteDocumentAction } from "@/features/documents/actions";
+import { DocumentDetailsModal } from "@/features/documents/components/DocumentDetailsModal/DocumentDetailsModal";
+import { DocumentList } from "@/features/documents/components/DocumentList/DocumentList";
+import { UploadQueue } from "@/features/documents/components/UploadQueue/UploadQueue";
+import type { DocumentRow } from "@/features/documents/queries";
+import { useSubtaskDocuments } from "@/features/subtasks/hooks/useSubtaskDocuments";
+import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/files/file-types";
+import { toastActionError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { useFileUpload } from "@/lib/hooks/useFileUpload";
+
+import styles from "./SubtaskFilesSection.module.css";
+
+export interface SubtaskFilesSectionProps {
+  subtaskId: string;
+  canEdit: boolean;
+  readOnly?: boolean;
+  onSuccess: () => void;
+}
+
+export function SubtaskFilesSection({
+  subtaskId,
+  canEdit,
+  onSuccess,
+  readOnly,
+}: SubtaskFilesSectionProps) {
+  const editable = canEdit && !readOnly;
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const {
+    documents: serverDocuments,
+    isLoading,
+    isLoadingMore,
+    nextCursor,
+    detailsDocument,
+    setDetailsDocument,
+    handleDownload,
+    reload,
+    loadMore,
+  } = useSubtaskDocuments(subtaskId);
+  const { fileEntries, isUploading, addFiles, removeFile, resetFiles, uploadFiles } = useFileUpload(
+    {
+      subtaskId,
+    },
+  );
+
+  const documents: DocumentRow[] = serverDocuments.filter((d) => !hiddenIds.has(d.id));
+
+  useEffect(() => {
+    const hasPending = fileEntries.some((e) => e.status === "pending");
+    if (!hasPending || isUploading) return;
+    void (async () => {
+      const { uploaded, failed } = await uploadFiles();
+      if (uploaded > 0) {
+        toastSuccess(
+          `Uploaded ${uploaded} file${uploaded > 1 ? "s" : ""}`,
+          "The attachments were saved.",
+        );
+        reload();
+        onSuccess();
+      }
+      if (uploaded > 0 && failed === 0) resetFiles();
+    })();
+  }, [fileEntries, isUploading, uploadFiles, reload, onSuccess, resetFiles]);
+
+  async function handleRemoveDocument(documentId: string): Promise<void> {
+    if (deletingId) return;
+    setDeletingId(documentId);
+    setHiddenIds((prev) => new Set(prev).add(documentId));
+    const result = await deleteDocumentAction({ documentId });
+    if (!result.success) {
+      setHiddenIds((prev) => {
+        const next = new Set(prev);
+        next.delete(documentId);
+        return next;
+      });
+      toastActionError(result, "delete document");
+    } else {
+      toastSuccess("Document deleted", "The attachment was removed.");
+      reload();
+      onSuccess();
+    }
+    setDeletingId(null);
+  }
+
+  return (
+    <div className={styles.section}>
+      {!readOnly && (
+        <DropZone
+          allowsMultiple
+          onFileSelect={(files) => addFiles(files)}
+          acceptedFileTypes={ACCEPTED_FILE_EXTENSIONS}
+          isDisabled={isUploading || !editable}
+          label="Drop files or click to upload"
+          description="Supported: PDF, DOC, XLS, images, TXT, CSV"
+        />
+      )}
+      <DocumentList
+        documents={documents}
+        isBusy={isUploading || deletingId !== null}
+        onView={setDetailsDocument}
+        onDownload={handleDownload}
+        onDelete={editable ? handleRemoveDocument : undefined}
+        isLoading={isLoading}
+        showSize={false}
+        hasMore={nextCursor !== null}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMore}
+      />
+      <UploadQueue
+        entries={readOnly ? [] : fileEntries}
+        isBusy={isUploading || deletingId !== null}
+        onRemove={removeFile}
+      />
+      {detailsDocument && (
+        <DocumentDetailsModal
+          isOpen={!!detailsDocument}
+          onOpenChange={() => setDetailsDocument(null)}
+          document={detailsDocument}
+        />
+      )}
+    </div>
+  );
+}

@@ -256,6 +256,7 @@ export function mockDocument(overrides: Partial<Document> = {}): Document {
     case_id: "1",
     consultation_id: null,
     task_id: null,
+    subtask_id: null,
     uploaded_by_user_id: "u1",
     created_at: new Date("2024-06-05"),
     updated_at: new Date("2024-06-05"),

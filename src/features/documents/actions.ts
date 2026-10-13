@@ -7,6 +7,7 @@ import { z } from "zod";
 import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
 import { getConsultationAccessContext } from "@/features/consultations/queries";
+import { getSubtaskDetailRowById, type SubtaskDetailRow } from "@/features/subtasks/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { getParentPath } from "@/lib/domain/path";
 import { getFileDescriptor, getFileExtension } from "@/lib/files/file-types";
@@ -33,8 +34,10 @@ import { can, type AccessContext } from "@/lib/security/rbac";
 
 import {
   createDocument,
+  createDocumentForSubtask,
   createDocumentForTask,
   deleteDocument,
+  deleteDocumentForSubtask,
   deleteDocumentForTask,
 } from "./mutations";
 import {
@@ -56,6 +59,7 @@ interface DocumentParentPayload {
   caseId?: string | null;
   consultationId?: string | null;
   taskId?: string | null;
+  subtaskId?: string | null;
 }
 
 /** The storage namespace a document's parent owns, as used in S3 object keys. */
@@ -69,6 +73,7 @@ interface DocumentParentLinkage {
   case_id?: string | null;
   consultation_id?: string | null;
   task_id?: string | null;
+  subtask_id?: string | null;
 }
 
 async function getDocumentParentAccessContext({
@@ -76,12 +81,20 @@ async function getDocumentParentAccessContext({
   caseId,
   consultationId,
   taskId,
+  subtaskId,
 }: DocumentParentPayload): Promise<AccessContext> {
   if (caseId) {
     return getCaseAccessContext(userId, caseId);
   }
   if (taskId) {
     return getTaskAccessContext(userId, taskId);
+  }
+  if (subtaskId) {
+    const subtask = await getSubtaskDetailRowById(subtaskId);
+    if (!subtask) {
+      throw new Error("Invalid query parameters");
+    }
+    return getTaskAccessContext(userId, subtask.task_id);
   }
   if (consultationId) {
     return getConsultationAccessContext(userId, consultationId);
@@ -94,10 +107,11 @@ async function getDocumentParentAccessContext({
  * and confirm steps. The upload schemas enforce exactly one parent reference.
  */
 function resolveDocumentParentRef(parent: DocumentParentLinkage): DocumentParentRef {
-  const { case_id, consultation_id, task_id } = parent;
+  const { case_id, consultation_id, task_id, subtask_id } = parent;
 
   if (case_id) return { parentType: "cases", parentId: case_id };
   if (task_id) return { parentType: "tasks", parentId: task_id };
+  if (subtask_id) return { parentType: "subtasks", parentId: subtask_id };
   if (consultation_id) return { parentType: "consultations", parentId: consultation_id };
   throw new Error("Invalid upload payload");
 }
@@ -134,15 +148,16 @@ export async function getDocumentsPaginatedAction(
     throw new Error("Invalid query parameters");
   }
 
-  const { caseId, consultationId, taskId } = parsed.data;
+  const { caseId, consultationId, taskId, subtaskId } = parsed.data;
 
   const parentAccess = await getDocumentParentAccessContext({
     userId: session.id,
     caseId,
     consultationId,
     taskId,
+    subtaskId,
   });
-  if (!can(session.role, taskId ? "task.read" : "attachment.read", parentAccess)) {
+  if (!can(session.role, taskId || subtaskId ? "task.read" : "attachment.read", parentAccess)) {
     throw new ForbiddenError();
   }
 
@@ -163,19 +178,22 @@ export async function getDocumentUploadUrlAction(
     throw new Error("Invalid upload payload");
   }
 
-  const { file_name, case_id, consultation_id, task_id } = parsed.data;
+  const { file_name, case_id, consultation_id, task_id, subtask_id } = parsed.data;
 
   const parentAccess = await getDocumentParentAccessContext({
     userId: session.id,
     caseId: case_id,
     consultationId: consultation_id,
     taskId: task_id,
+    subtaskId: subtask_id,
   });
-  if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
+  if (
+    !can(session.role, task_id || subtask_id ? "task.update" : "attachment.create", parentAccess)
+  ) {
     throw new ForbiddenError();
   }
 
-  const parentRef = resolveDocumentParentRef({ case_id, consultation_id, task_id });
+  const parentRef = resolveDocumentParentRef({ case_id, consultation_id, task_id, subtask_id });
   const key = generateKey(parentRef.parentType, parentRef.parentId, file_name);
   const { mime } = getFileDescriptor({ fileName: file_name });
   const uploadUrl = await getPresignedUploadUrl(key, mime);
@@ -191,18 +209,21 @@ export async function confirmDocumentUploadAction(
   const parsed = DocumentConfirmPayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("upload confirmation");
 
-  const { file_name, file_path, case_id, consultation_id, task_id } = parsed.data;
+  const { file_name, file_path, case_id, consultation_id, task_id, subtask_id } = parsed.data;
   const { mime: file_type } = getFileDescriptor({ fileName: file_name });
 
   try {
-    const parentRef = resolveDocumentParentRef({ case_id, consultation_id, task_id });
+    const parentRef = resolveDocumentParentRef({ case_id, consultation_id, task_id, subtask_id });
     const parentAccess = await getDocumentParentAccessContext({
       userId: session.id,
       caseId: case_id,
       consultationId: consultation_id,
       taskId: task_id,
+      subtaskId: subtask_id,
     });
-    if (!can(session.role, task_id ? "task.update" : "attachment.create", parentAccess)) {
+    if (
+      !can(session.role, task_id || subtask_id ? "task.update" : "attachment.create", parentAccess)
+    ) {
       return actionForbidden();
     }
 
@@ -221,8 +242,20 @@ export async function confirmDocumentUploadAction(
     }
 
     let doc: { id: string };
+    let subtask: SubtaskDetailRow | null = null;
 
-    if (task_id) {
+    if (subtask_id) {
+      subtask = await getSubtaskDetailRowById(subtask_id);
+      if (!subtask) return actionNotFound("Subtask");
+      doc = await createDocumentForSubtask({
+        subtaskId: subtask_id,
+        file_name,
+        file_path,
+        file_type,
+        file_size,
+        uploaded_by_user_id: session.id,
+      });
+    } else if (task_id) {
       doc = await createDocumentForTask({
         taskId: task_id,
         file_name,
@@ -247,23 +280,25 @@ export async function confirmDocumentUploadAction(
     }
 
     const taskCaseId = task_id ? ((await getTaskById(task_id))?.case_id ?? null) : null;
-    const resultCaseId = case_id ?? taskCaseId;
+    const resultCaseId = subtask?.case_id ?? case_id ?? taskCaseId;
 
     after(() =>
       logAudit({
         actorUserId: session.id,
         action: "document.uploaded",
         entityType: resultCaseId ? "Case" : "Consultation",
-        entityId: (case_id ?? taskCaseId ?? consultation_id)!,
+        entityId: (subtask?.case_id ?? case_id ?? taskCaseId ?? consultation_id)!,
         details: `Uploaded document: "${file_name}"`,
       }),
     );
 
     revalidatePath(
-      getParentPath({
-        case_id: case_id ?? taskCaseId,
-        consultation_id: consultation_id ?? null,
-      }),
+      subtask
+        ? `/case/${subtask.case_id}`
+        : getParentPath({
+            case_id: case_id ?? taskCaseId,
+            consultation_id: consultation_id ?? null,
+          }),
     );
 
     return { success: true, data: { id: doc.id } };
@@ -315,7 +350,8 @@ export async function deleteDocumentAction(
     const doc = await getDocumentById(documentId);
     if (!doc) return actionNotFound("Document");
 
-    const parentCaseId = doc.case_id ?? doc.task?.case_id ?? null;
+    const subtaskTask = doc.subtask?.task ?? null;
+    const parentCaseId = doc.case_id ?? doc.task?.case_id ?? subtaskTask?.case_id ?? null;
     const access = await getDocumentAccessContext(session.id, doc.id);
     const permission = parentCaseId ? "attachment.delete" : "consultation.attachment.delete";
     if (!can(session.role, permission, access)) {
@@ -329,6 +365,14 @@ export async function deleteDocumentAction(
       }
 
       await deleteDocumentForTask(doc.task_id, documentId);
+    } else if (doc.subtask_id) {
+      if (!subtaskTask) return actionForbidden();
+      const taskAccess = await getTaskAccessContext(session.id, subtaskTask.id);
+      if (!can(session.role, "task.update", taskAccess)) {
+        return actionForbidden();
+      }
+
+      await deleteDocumentForSubtask(doc.subtask_id, documentId);
     } else {
       await deleteDocument(documentId);
     }

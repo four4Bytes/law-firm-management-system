@@ -21,6 +21,7 @@ export interface UseFileUploadParams {
   caseId?: string;
   consultationId?: string;
   taskId?: string;
+  subtaskId?: string;
 }
 
 /** State and handlers returned by {@link useFileUpload}. */
@@ -89,12 +90,13 @@ export function useFileUpload(initial: UseFileUploadParams): UseFileUploadResult
 
   /** Presigns, uploads to S3, and confirms a single file. Throws on failure. */
   async function uploadSingleFile(entry: FileEntry): Promise<boolean> {
-    const { caseId, consultationId, taskId } = parentRef.current;
+    const { caseId, consultationId, taskId, subtaskId } = parentRef.current;
     const payload = {
       file_name: entry.file.name,
       case_id: caseId,
       consultation_id: consultationId,
       task_id: taskId,
+      subtask_id: subtaskId,
     };
 
     const { key, uploadUrl, contentType } = await getDocumentUploadUrlAction(payload);

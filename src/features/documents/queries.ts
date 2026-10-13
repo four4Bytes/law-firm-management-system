@@ -29,6 +29,7 @@ export interface DocumentListQuery extends PageQuery {
   caseId?: string;
   consultationId?: string;
   taskId?: string;
+  subtaskId?: string;
 }
 
 export interface DocumentAccessPayload {
@@ -41,6 +42,7 @@ export const getDocumentsPaginated = cache(
     caseId,
     consultationId,
     taskId,
+    subtaskId,
     search = "",
     cursor,
     pageSize = 20,
@@ -52,9 +54,14 @@ export const getDocumentsPaginated = cache(
     const where: Record<string, unknown> = {};
     if (caseId) {
       where.OR = [{ case_id: caseId }, { task: { case_id: caseId } }];
+      where.subtask_id = null;
     } else {
       if (consultationId) where.consultation_id = consultationId;
-      if (taskId) where.task_id = taskId;
+      if (taskId) {
+        where.task_id = taskId;
+        where.subtask_id = null;
+      }
+      if (subtaskId) where.subtask_id = subtaskId;
     }
     if (search) {
       where.file_name = { contains: search, mode: "insensitive" as const };
@@ -119,7 +126,11 @@ export const getDocumentById = cache(
     case_id: string | null;
     consultation_id: string | null;
     task_id: string | null;
+    subtask_id: string | null;
     task: { case_id: string | null; status: TaskStatus } | null;
+    subtask: {
+      task: { id: string; case_id: string | null; status: TaskStatus } | null;
+    } | null;
   } | null> => {
     return prisma.document.findUnique({
       where: { id },
@@ -130,7 +141,9 @@ export const getDocumentById = cache(
         case_id: true,
         consultation_id: true,
         task_id: true,
+        subtask_id: true,
         task: { select: { case_id: true, status: true } },
+        subtask: { select: { task: { select: { id: true, case_id: true, status: true } } } },
       },
     });
   },
@@ -160,13 +173,20 @@ export async function getAuthorizedDocument(
       task: { select: { id: true, title: true, case_id: true } },
       case: { select: { id: true, case_title: true } },
       consultation: { select: { id: true, concern: true } },
+      subtask: { select: { task: { select: { id: true } } } },
     },
   });
 
   if (!document) return null;
 
+  const subtaskTaskId = document.subtask?.task?.id ?? null;
   if (document.task) {
     const taskAccess = await getTaskAccessContext(user.id, document.task.id);
+    if (!can(user.role, "task.read", taskAccess)) {
+      throw new ForbiddenError();
+    }
+  } else if (subtaskTaskId) {
+    const taskAccess = await getTaskAccessContext(user.id, subtaskTaskId);
     if (!can(user.role, "task.read", taskAccess)) {
       throw new ForbiddenError();
     }
@@ -191,9 +211,10 @@ export async function getAuthorizedDocument(
   };
 }
 
-// Collects the S3 object keys for every document attached to a task, so they
-// can be purged before the DB cascade removes the `Document` rows. Never purge
-// first: that would leave `Document` rows pointing at missing blobs.
+// Collects the S3 object keys for every document attached to a task or to one
+// of its subtasks, so they can be purged before the DB cascade removes the
+// `Document` rows. Never purge first: that would leave `Document` rows
+// pointing at missing blobs.
 //
 // `tx` is optional; the shared Prisma singleton is used when it is omitted.
 // Returns the `file_path` values of the task's documents.
@@ -202,7 +223,20 @@ export async function getDocumentFilePathsByTaskId(
   tx?: TransactionClient,
 ): Promise<string[]> {
   const documents = await (tx ?? prisma).document.findMany({
-    where: { task_id: taskId },
+    where: { OR: [{ task_id: taskId }, { subtask: { task_id: taskId } }] },
+    select: { file_path: true },
+  });
+  return documents.map((d) => d.file_path);
+}
+
+// Collects the S3 object keys for a single subtask's documents, for the same
+// pre-delete purge. Returns the `file_path` values.
+export async function getDocumentFilePathsBySubtaskId(
+  subtaskId: string,
+  tx?: TransactionClient,
+): Promise<string[]> {
+  const documents = await (tx ?? prisma).document.findMany({
+    where: { subtask_id: subtaskId },
     select: { file_path: true },
   });
   return documents.map((d) => d.file_path);
@@ -222,7 +256,8 @@ export async function getDocumentFilePathsByConsultationId(
 }
 
 // Collects the S3 object keys for every document that a case deletion will
-// cascade-remove: documents attached directly to the case and to its tasks.
+// cascade-remove: documents attached directly to the case, to its tasks, and
+// to its tasks' subtasks.
 //
 // Consultations are intentionally excluded - deleting a case only unlinks its
 // source consultation, so consultation-owned documents must survive.
@@ -231,7 +266,11 @@ export async function getDocumentFilePathsByConsultationId(
 export async function getDocumentFilePathsForCaseDeletion(caseId: string): Promise<string[]> {
   const documents = await prisma.document.findMany({
     where: {
-      OR: [{ case_id: caseId }, { task: { case_id: caseId } }],
+      OR: [
+        { case_id: caseId },
+        { task: { case_id: caseId } },
+        { subtask: { task: { case_id: caseId } } },
+      ],
     },
     select: { file_path: true },
   });
@@ -253,6 +292,7 @@ export const getDocumentAccessContext = cache(
         case_id: true,
         consultation_id: true,
         task: { select: { case_id: true } },
+        subtask: { select: { task: { select: { case_id: true } } } },
       },
     });
 
@@ -260,7 +300,8 @@ export const getDocumentAccessContext = cache(
       return { assigned: false, own: false };
     }
 
-    const parentCaseId = document.case_id ?? document.task?.case_id ?? null;
+    const parentCaseId =
+      document.case_id ?? document.task?.case_id ?? document.subtask?.task?.case_id ?? null;
     const parentAccess = parentCaseId
       ? await getCaseAccessContext(userId, parentCaseId)
       : document.consultation_id

@@ -1,7 +1,7 @@
 # Document & Binary File Management
 
 This document describes how the system stores, uploads, downloads, validates, and deletes
-binary attachments (documents) attached to cases, consultations, and tasks. It complements
+binary attachments (documents) attached to cases, consultations, tasks, and subtasks. It complements
 the [Data Models](./models.md) reference.
 
 ## Storage architecture
@@ -11,7 +11,7 @@ the [Data Models](./models.md) reference.
   parsed by the Next.js runtime.
 - **Metadata in Postgres**: The `Document` model keeps only
   pointers and metadata - `file_name`, `file_type`, `file_size`, `file_path` (the object key),
-  the parent linkage (`case_id` / `consultation_id` / `task_id`), and `uploaded_by_user_id`.
+  the parent linkage (`case_id` / `consultation_id` / `task_id` / `subtask_id`), and `uploaded_by_user_id`.
   `file_type` holds the MIME type derived from the extension; see [Validation](#file-type-validation).
 - **Presigned URLs**: All reads and writes go through short-lived, server-generated presigned
   URLs. The browser PUTs/GETs the object directly against the bucket.
@@ -59,7 +59,7 @@ original file name. The browser then downloads directly from the bucket.
 consultation-scoped docs), removes the `Document` row, then deletes the underlying object from
 storage as a best-effort cleanup.
 
-**Cascade delete flow** (case, consultation, or task): the database is the source of truth.
+**Cascade delete flow** (case, consultation, task, or subtask): the database is the source of truth.
 The parent delete mutation cascades the `Document` rows first, then invokes
 `deleteDocumentFiles` (in `src/lib/files/storage-cleanup.ts`) to reclaim the S3 blobs. This cleanup
 is best-effort and idempotent - failures are logged but never abort the delete. Any orphaned

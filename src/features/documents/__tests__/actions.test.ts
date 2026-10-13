@@ -1,11 +1,20 @@
+import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { logAudit } from "@/features/audit/mutations";
 import { getCaseAccessContext } from "@/features/cases/queries";
+import { getSubtaskDetailRowById } from "@/features/subtasks/queries";
 import { getTaskAccessContext, getTaskById } from "@/features/tasks/queries";
 import { Role, TaskStatus } from "@/generated/prisma/browser";
 import { deleteDocumentFiles } from "@/lib/files/storage-cleanup";
 import { DEFAULT_MAX_UPLOAD_BYTES } from "@/lib/files/upload-policy";
-import { getObjectSize, getPresignedUploadUrl } from "@/lib/infra/s3";
+import {
+  getObjectSize,
+  getPresignedFileUrl,
+  getPresignedUploadUrl,
+  objectExists,
+} from "@/lib/infra/s3";
 import { actionForbidden, actionInvalid } from "@/lib/security/action-response";
 import { ForbiddenError } from "@/lib/security/errors";
 import { FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
@@ -21,8 +30,10 @@ import {
 } from "../actions";
 import {
   createDocument,
+  createDocumentForSubtask,
   createDocumentForTask,
   deleteDocument,
+  deleteDocumentForSubtask,
   deleteDocumentForTask,
 } from "../mutations";
 import { getAuthorizedDocument, getDocumentAccessContext, getDocumentById } from "../queries";
@@ -42,6 +53,10 @@ vi.mock("@/features/consultations/queries", () => ({
 vi.mock("@/features/tasks/queries", () => ({
   getTaskAccessContext: vi.fn(),
   getTaskById: vi.fn(),
+}));
+
+vi.mock("@/features/subtasks/queries", () => ({
+  getSubtaskDetailRowById: vi.fn(),
 }));
 
 vi.mock("@/features/audit/mutations", () => ({
@@ -85,9 +100,17 @@ vi.mock("../mutations", () => ({
   deleteDocument: vi.fn(),
   createDocumentForTask: vi.fn(),
   deleteDocumentForTask: vi.fn(),
+  createDocumentForSubtask: vi.fn(),
+  deleteDocumentForSubtask: vi.fn(),
 }));
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
+
+async function flushAfterCallbacks(): Promise<void> {
+  for (const [callback] of vi.mocked(after).mock.calls) {
+    if (typeof callback === "function") await callback();
+  }
+}
 
 const sessionLawyer = mockSessionUser({ id: "u2", email: "e2", role: Role.Lawyer, name: "n2" });
 const sessionParalegal = mockSessionUser({
@@ -104,7 +127,9 @@ const documentRecord = {
   case_id: uuid,
   consultation_id: null,
   task_id: null,
+  subtask_id: null,
   task: null,
+  subtask: null,
 };
 
 beforeEach(() => {
@@ -520,5 +545,231 @@ describe("task-scoped document authorization (TASK_ONLY enforcement)", () => {
 
     expect(result).toEqual({ success: true });
     expect(deleteDocumentForTask).toHaveBeenCalledWith(uuid, uuid);
+  });
+});
+
+describe("subtask-scoped documents", () => {
+  const subtaskDetail = {
+    id: uuid,
+    task_id: uuid,
+    case_id: uuid,
+  } as Awaited<ReturnType<typeof getSubtaskDetailRowById>>;
+
+  const subtaskUploadArgs = {
+    file_name: "annex.pdf",
+    case_id: null,
+    consultation_id: null,
+    task_id: null,
+    subtask_id: uuid,
+  };
+
+  const subtaskDocRecord = {
+    ...documentRecord,
+    case_id: null,
+    task_id: null,
+    task: null,
+    subtask_id: uuid,
+    subtask: { task: { id: uuid, case_id: uuid, status: "Pending" as const } },
+  };
+
+  beforeEach(() => {
+    vi.mocked(getSubtaskDetailRowById).mockResolvedValue(subtaskDetail);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+  });
+
+  it("issues a key inside the subtask namespace for an authorized uploader", async () => {
+    setupAuth(sessionLawyer);
+
+    const result = await getDocumentUploadUrlAction(subtaskUploadArgs);
+
+    expect(result.key.startsWith(`subtasks/${uuid}/`)).toBe(true);
+    expect(result.key.endsWith(".pdf")).toBe(true);
+    expect(result.contentType).toBe("application/pdf");
+  });
+
+  it("denies an upload URL without task update on the parent", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    await expect(getDocumentUploadUrlAction(subtaskUploadArgs)).rejects.toThrow("Forbidden");
+  });
+
+  it("denies an upload URL to another case's user", async () => {
+    setupAuth(sessionLawyer);
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: false,
+      own: false,
+      taskOnly: false,
+    });
+
+    await expect(getDocumentUploadUrlAction(subtaskUploadArgs)).rejects.toThrow("Forbidden");
+  });
+
+  it("rejects a subtask file name outside the upload allowlist", async () => {
+    setupAuth(sessionLawyer);
+
+    await expect(
+      getDocumentUploadUrlAction({ ...subtaskUploadArgs, file_name: "payload.exe" }),
+    ).rejects.toThrow("Invalid upload payload");
+    expect(getPresignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it("confirms a subtask upload, audits against the parent case, and revalidates", async () => {
+    setupAuth(sessionLawyer);
+    vi.mocked(createDocumentForSubtask).mockResolvedValue({ id: "d1" });
+
+    const result = await confirmDocumentUploadAction({
+      ...subtaskUploadArgs,
+      file_size: 10,
+      file_path: `subtasks/${uuid}/annex.pdf`,
+    });
+
+    expect(result).toEqual({ success: true, data: { id: "d1" } });
+    expect(createDocumentForSubtask).toHaveBeenCalledWith(
+      expect.objectContaining({ subtaskId: uuid, file_name: "annex.pdf" }),
+    );
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "document.uploaded",
+        entityType: "Case",
+        entityId: uuid,
+      }),
+    );
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith(`/case/${uuid}`);
+  });
+
+  it("rejects two parents on confirm", async () => {
+    setupAuth(sessionLawyer);
+
+    const result = await confirmDocumentUploadAction({
+      ...subtaskUploadArgs,
+      file_size: 10,
+      file_path: `subtasks/${uuid}/annex.pdf`,
+      task_id: uuid,
+    });
+
+    expect(result).toEqual(actionInvalid("upload confirmation"));
+    expect(createDocumentForSubtask).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversize subtask file before creating a row", async () => {
+    setupAuth(sessionLawyer);
+
+    const result = await confirmDocumentUploadAction({
+      ...subtaskUploadArgs,
+      file_size: DEFAULT_MAX_UPLOAD_BYTES + 1,
+      file_path: `subtasks/${uuid}/annex.pdf`,
+    });
+
+    expect(result).toEqual(actionInvalid("upload confirmation"));
+    expect(createDocumentForSubtask).not.toHaveBeenCalled();
+  });
+
+  it("rejects a key outside the subtask namespace", async () => {
+    setupAuth(sessionLawyer);
+
+    const result = await confirmDocumentUploadAction({
+      ...subtaskUploadArgs,
+      file_size: 10,
+      file_path: `tasks/${uuid}/annex.pdf`,
+    });
+
+    expect(result).toEqual(actionForbidden());
+    expect(createDocumentForSubtask).not.toHaveBeenCalled();
+  });
+
+  it("downloads a subtask document the caller may read", async () => {
+    setupAuth(sessionLawyer);
+    vi.mocked(objectExists).mockResolvedValue(true);
+    vi.mocked(getAuthorizedDocument).mockResolvedValue({
+      id: "d1",
+      file_path: `subtasks/${uuid}/annex.pdf`,
+      file_name: "annex.pdf",
+      file_type: "application/pdf",
+      file_size: 10,
+      uploadedBy: "Alice",
+      created_at: new Date(),
+      task: null,
+      case: null,
+      consultation: null,
+    });
+    vi.mocked(getPresignedFileUrl).mockResolvedValue("https://files/annex.pdf");
+
+    const result = await getDocumentDownloadUrlAction(uuid);
+
+    expect(result).toEqual({ url: "https://files/annex.pdf", file_name: "annex.pdf" });
+  });
+
+  it("deletes a subtask document with parent task update and purges storage", async () => {
+    setupAuth(sessionLawyer);
+    vi.mocked(getDocumentById).mockResolvedValue(subtaskDocRecord);
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(deleteDocumentForSubtask).mockResolvedValue({ id: "d1" });
+
+    const result = await deleteDocumentAction({ documentId: uuid });
+
+    expect(result).toEqual({ success: true });
+    expect(deleteDocumentForSubtask).toHaveBeenCalledWith(uuid, uuid);
+    expect(deleteDocumentFiles).toHaveBeenCalledWith([documentRecord.file_path]);
+    await flushAfterCallbacks();
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "document.deleted",
+        entityType: "Case",
+        entityId: uuid,
+      }),
+    );
+  });
+
+  it("denies deleting a subtask document without task update on the parent", async () => {
+    setupAuth(sessionParalegal);
+    vi.mocked(getDocumentById).mockResolvedValue(subtaskDocRecord);
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: false,
+    });
+
+    const result = await deleteDocumentAction({ documentId: uuid });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "forbidden",
+        title: "Access denied",
+        description: FORBIDDEN_MESSAGE,
+      },
+    });
+    expect(deleteDocumentForSubtask).not.toHaveBeenCalled();
+  });
+
+  it("allows upload, confirm, and delete when the parent task is Done", async () => {
+    setupAuth(sessionLawyer);
+    vi.mocked(createDocumentForSubtask).mockResolvedValue({ id: "d1" });
+    vi.mocked(deleteDocumentForSubtask).mockResolvedValue({ id: "d1" });
+    vi.mocked(getDocumentById).mockResolvedValue(subtaskDocRecord);
+    vi.mocked(getDocumentAccessContext).mockResolvedValue({ assigned: true, own: true });
+
+    const presigned = await getDocumentUploadUrlAction(subtaskUploadArgs);
+    expect(presigned).toHaveProperty("uploadUrl");
+
+    const confirmed = await confirmDocumentUploadAction({
+      ...subtaskUploadArgs,
+      file_size: 10,
+      file_path: `subtasks/${uuid}/annex.pdf`,
+    });
+    expect(confirmed).toEqual({ success: true, data: { id: "d1" } });
+
+    expect(await deleteDocumentAction({ documentId: uuid })).toEqual({ success: true });
   });
 });

@@ -372,6 +372,19 @@ describe("deleteTask", () => {
     expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: "t1" }, select: { id: true } });
   });
 
+  it("purges subtask files together with the task files on delete", async () => {
+    vi.mocked(prisma.task.delete).mockResolvedValue(mockTask());
+    vi.mocked(getDocumentFilePathsByTaskId).mockResolvedValue([
+      "tasks/t1/a.pdf",
+      "subtasks/st1/b.pdf",
+    ]);
+    vi.mocked(deleteDocumentFiles).mockResolvedValue(undefined);
+
+    await deleteTask("t1");
+
+    expect(deleteDocumentFiles).toHaveBeenCalledWith(["tasks/t1/a.pdf", "subtasks/st1/b.pdf"]);
+  });
+
   it("propagates error when deleting nonexistent task", async () => {
     const error = new Error("Record not found");
     vi.mocked(getDocumentFilePathsByTaskId).mockResolvedValue([]);

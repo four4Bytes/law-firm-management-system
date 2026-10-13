@@ -28,12 +28,34 @@ vi.mock("@/features/notes/actions", () => ({
   deleteNoteAction: vi.fn(),
 }));
 
+vi.mock("@/features/documents/actions", () => ({
+  getDocumentsPaginatedAction: vi.fn(),
+  getDocumentUploadUrlAction: vi.fn(),
+  confirmDocumentUploadAction: vi.fn(),
+  getDocumentDownloadUrlAction: vi.fn(),
+  deleteDocumentAction: vi.fn(),
+}));
+
 vi.mock("@/features/subtasks/hooks/useSubtaskNotes", () => ({
   useSubtaskNotes: vi.fn().mockReturnValue({
     notes: [],
     isLoading: false,
     isLoadingMore: false,
     nextCursor: null,
+    reload: vi.fn(),
+    loadMore: vi.fn(),
+  }),
+}));
+
+vi.mock("@/features/subtasks/hooks/useSubtaskDocuments", () => ({
+  useSubtaskDocuments: vi.fn().mockReturnValue({
+    documents: [],
+    isLoading: false,
+    isLoadingMore: false,
+    nextCursor: null,
+    detailsDocument: null,
+    setDetailsDocument: vi.fn(),
+    handleDownload: vi.fn(),
     reload: vi.fn(),
     loadMore: vi.fn(),
   }),

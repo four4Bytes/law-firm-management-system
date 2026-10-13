@@ -114,6 +114,7 @@ Plan: add more than one theme later
   --line-height-relaxed: 1.75;
 
   /* Typography */
+  --font-roboto: "Roboto", sans-serif;
   --font-family-sans:
     var(--font-roboto), Roboto, "Segoe UI", -apple-system, system-ui, BlinkMacSystemFont, Oxygen,
     Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;

@@ -1,16 +1,13 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
 
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/600.css";
+import "@fontsource/roboto/700.css";
 import "@/styles/globals.css";
 import "@/styles/variables.css";
-
-const roboto = Roboto({
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-roboto",
-});
 
 export const metadata: Metadata = {
   title: "Management System",
@@ -24,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={roboto.variable}>
+    <html lang="en">
       <body>
         {children}
         <SpeedInsights />

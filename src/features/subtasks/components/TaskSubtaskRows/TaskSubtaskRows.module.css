@@ -15,13 +15,24 @@
 }
 
 .subtaskRow {
-  background: var(--color-surface-bg-alt);
+  background: var(--color-app-bg);
 }
 
 .subtaskRow > td,
 .detailRow > td,
 .expandedParent > td {
   border-bottom: 0.5px solid var(--color-border-subtle);
+}
+
+.detailRow > td {
+  background: var(--color-app-bg);
+  border-left: 3px solid var(--color-brand-accent);
+  border-bottom: none;
+  padding: 0;
+}
+
+.subtaskRow > td:first-child {
+  border-left: 3px solid var(--color-brand-accent);
 }
 
 .expandedParent {
@@ -71,16 +82,47 @@
 }
 
 .addButton {
-  min-height: 44px;
+  min-height: 0;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semi-bold);
+  border-color: var(--color-brand-accent);
+  white-space: nowrap;
 }
 
 .expandedContent {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--color-app-bg);
+  padding: var(--space-md) var(--space-xl);
+}
+
+.expandedHeader {
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--space-md);
-  padding: var(--space-xs) var(--space-xl);
-  flex-wrap: wrap;
+}
+
+.expandedLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semi-bold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.expandedHeading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.completionSummary {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .emptyMessage {

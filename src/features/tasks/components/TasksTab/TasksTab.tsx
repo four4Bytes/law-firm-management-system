@@ -348,16 +348,13 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
           return <SubtaskTitleCell title={row.title} status={row.status} />;
         }
         return (
-          <span className={subtaskStyles.titleCell}>
-            <span
-              className={clsx(
-                subtaskStyles.titleText,
-                expanded.has(row.id) && subtaskStyles.expandedTitle,
-              )}
-            >
-              {row.title}
-            </span>
-            <SubtaskCountPill count={counts[row.id] ?? 0} />
+          <span
+            className={clsx(
+              subtaskStyles.titleText,
+              expanded.has(row.id) && subtaskStyles.expandedTitle,
+            )}
+          >
+            {row.title}
           </span>
         );
       },
@@ -382,6 +379,15 @@ export function TasksTab({ caseId, access, userRole, currentUserId }: Props) {
             {getTaskStatusLabel(row.status)}
           </StatusBadge>
         );
+      },
+    },
+    {
+      // Column id reuses "kind" (unique, non-sortable) to carry the per-task count cell.
+      id: "kind",
+      name: "Subtasks",
+      render: (_value, row) => {
+        if (row.kind !== "task") return "—";
+        return <SubtaskCountPill count={counts[row.id] ?? 0} />;
       },
     },
     {

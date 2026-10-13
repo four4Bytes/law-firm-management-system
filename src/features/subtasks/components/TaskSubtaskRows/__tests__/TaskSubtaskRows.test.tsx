@@ -119,9 +119,9 @@ describe("SubtaskCountPill", () => {
     expect(screen.getByText("1 subtask")).not.toBeNull();
   });
 
-  it("renders no pill element when there are no subtasks", () => {
-    const { container } = render(<SubtaskCountPill count={0} />);
-    expect(container.firstChild).toBeNull();
+  it("renders a muted zero when there are no subtasks", () => {
+    render(<SubtaskCountPill count={0} />);
+    expect(screen.getByText("0")).not.toBeNull();
   });
 });
 
@@ -173,6 +173,29 @@ describe("SubtaskExpandedContent", () => {
     expect(screen.getByText("No subtasks yet")).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Add subtask" }));
     expect(onAdd).toHaveBeenCalledWith("t1");
+  });
+
+  it("shows the count heading and completion summary when subtasks exist", () => {
+    const onAdd = vi.fn();
+    render(
+      <SubtaskExpandedContent
+        taskId="t1"
+        subtasks={[
+          subtask,
+          { ...subtask, id: "st2", title: "Verify records", status: SubtaskStatus.Done },
+        ]}
+        canAdd={false}
+        onAdd={onAdd}
+      />,
+    );
+    expect(screen.getByText("Subtasks (2)")).not.toBeNull();
+    expect(screen.getByText("1 of 2 completed")).not.toBeNull();
+  });
+
+  it("hides the completion summary when there are no subtasks", () => {
+    render(<SubtaskExpandedContent taskId="t1" subtasks={[]} canAdd onAdd={() => {}} />);
+    expect(screen.getByText("Subtasks (0)")).not.toBeNull();
+    expect(screen.queryByText(/completed/)).toBeNull();
   });
 
   it("shows only the trailing Add button when subtasks exist", () => {

@@ -71,7 +71,7 @@ export interface SubtaskCountPillProps {
 }
 
 export function SubtaskCountPill({ count, className }: SubtaskCountPillProps) {
-  if (count <= 0) return null;
+  if (count <= 0) return <span className={clsx(styles.muted, className)}>0</span>;
   return (
     <span className={clsx(styles.countPill, className)}>
       {`${count} subtask${count === 1 ? "" : "s"}`}
@@ -145,25 +145,37 @@ export function SubtaskExpandedContent({
   onAdd,
   className,
 }: SubtaskExpandedContentProps) {
+  if (subtasks === undefined) {
+    return (
+      <div className={clsx(styles.expandedContent, className)}>
+        <span className={styles.emptyMessage}>Loading subtasks...</span>
+      </div>
+    );
+  }
+  const doneCount = subtasks.filter((subtask) => subtask.status === SubtaskStatus.Done).length;
   return (
     <div className={clsx(styles.expandedContent, className)}>
-      {subtasks === undefined ? (
-        <span className={styles.emptyMessage}>Loading subtasks...</span>
-      ) : (
-        <>
-          {subtasks.length === 0 && <span className={styles.emptyMessage}>No subtasks yet</span>}
-          {canAdd && (
-            <Button
-              variant="secondary"
-              aria-label="Add subtask"
-              onPress={() => onAdd(taskId)}
-              className={styles.addButton}
-            >
-              <FaPlus /> Add subtask
-            </Button>
+      <div className={styles.expandedHeader}>
+        <div className={styles.expandedHeading}>
+          <span className={styles.expandedLabel}>{`Subtasks (${subtasks.length})`}</span>
+          {subtasks.length > 0 && (
+            <span
+              className={styles.completionSummary}
+            >{`${doneCount} of ${subtasks.length} completed`}</span>
           )}
-        </>
-      )}
+        </div>
+        {canAdd && (
+          <Button
+            variant="outline"
+            aria-label="Add subtask"
+            onPress={() => onAdd(taskId)}
+            className={styles.addButton}
+          >
+            <FaPlus /> Add subtask
+          </Button>
+        )}
+      </div>
+      {subtasks.length === 0 && <span className={styles.emptyMessage}>No subtasks yet</span>}
     </div>
   );
 }

@@ -99,6 +99,15 @@ describe("TasksTab subtask expansion", () => {
     expect(await screen.findByText("2 subtasks")).not.toBeNull();
   });
 
+  it("renders a dedicated Subtasks column and keeps the count out of the title cell", async () => {
+    renderTab();
+    expect(await screen.findByText("Subtasks")).not.toBeNull();
+    expect(await screen.findByText("2 subtasks")).not.toBeNull();
+    const parentRow = screen.getByText("Task 1").closest("tr");
+    const titleCell = parentRow?.querySelectorAll("td")[0];
+    expect(titleCell?.textContent).not.toMatch(/subtask/);
+  });
+
   it("expands a task to show its subtasks fetched exactly once", async () => {
     renderTab();
     const toggle = await screen.findByLabelText("Expand subtasks for Task 1");
@@ -110,7 +119,7 @@ describe("TasksTab subtask expansion", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("removes the count pill after deleting the last subtask but keeps the chevron and empty state", async () => {
+  it("shows a zero count after deleting the last subtask and keeps the chevron and empty state", async () => {
     vi.mocked(getSubtaskCountsByTaskIdsAction)
       .mockResolvedValueOnce({ t1: 2 })
       .mockResolvedValue({});
@@ -125,6 +134,7 @@ describe("TasksTab subtask expansion", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete subtask" }));
     await waitFor(() => expect(screen.queryByText("2 subtasks")).toBeNull());
     expect(screen.queryByText("1 subtask")).toBeNull();
+    expect(await screen.findByText("0")).not.toBeNull();
     expect(document.querySelector(`.${subtaskStyles.countPill}`)).toBeNull();
     const toggle = screen.getByLabelText("Expand subtasks for Task 1");
     expect(toggle.getAttribute("aria-expanded")).not.toBeNull();

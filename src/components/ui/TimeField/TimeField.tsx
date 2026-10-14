@@ -29,7 +29,7 @@ export function TimeField<T extends TimeValue>({
   ...props
 }: TimeFieldProps<T>) {
   return (
-    <AriaTimeField {...props} className={clsx(styles.field, className)}>
+    <AriaTimeField hourCycle={12} {...props} className={clsx(styles.field, className)}>
       {label && <AriaLabel className={styles.label}>{label}</AriaLabel>}
       <DateInput />
       {description && (

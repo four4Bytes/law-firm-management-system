@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   statusChangeTemplate,
@@ -7,6 +7,14 @@ import {
   taskAssignedTemplate,
   type TemplateContext,
 } from "@/lib/messaging/email-templates";
+
+beforeEach(() => {
+  vi.stubEnv("APP_ORIGIN", "https://app.example.test");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 function subtaskContext(): TemplateContext {
   return {

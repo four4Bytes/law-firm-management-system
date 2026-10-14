@@ -86,7 +86,6 @@
   padding: var(--space-xs) var(--space-md);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semi-bold);
-  border-color: var(--color-brand-accent);
   white-space: nowrap;
 }
 

@@ -76,16 +76,38 @@ describe("getDocumentsPaginated", () => {
     });
   });
 
-  it("filters by case_id and excludes subtask documents", async () => {
+  it("filters by case_id across case, task, and subtask documents", async () => {
     vi.mocked(prisma.document.findMany).mockResolvedValue([mockDocument()]);
+
+    const result = await getDocumentsPaginated({ caseId: "c1" });
+
+    expect(result.rows).toHaveLength(1);
+    expect(prisma.document.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { case_id: "c1" },
+            { task: { case_id: "c1" } },
+            { subtask: { task: { case_id: "c1" } } },
+          ],
+        },
+      }),
+    );
+  });
+
+  it("scopes every case-tab branch to the same case", async () => {
+    vi.mocked(prisma.document.findMany).mockResolvedValue([]);
 
     await getDocumentsPaginated({ caseId: "c1" });
 
     expect(prisma.document.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          OR: [{ case_id: "c1" }, { task: { case_id: "c1" } }],
-          subtask_id: null,
+          OR: [
+            { case_id: "c1" },
+            { task: { case_id: "c1" } },
+            { subtask: { task: { case_id: "c1" } } },
+          ],
         },
       }),
     );

@@ -166,7 +166,7 @@ export function SubtaskExpandedContent({
         </div>
         {canAdd && (
           <Button
-            variant="outline"
+            variant="secondary"
             aria-label="Add subtask"
             onPress={() => onAdd(taskId)}
             className={styles.addButton}

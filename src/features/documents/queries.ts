@@ -53,8 +53,13 @@ export const getDocumentsPaginated = cache(
   }> => {
     const where: Record<string, unknown> = {};
     if (caseId) {
-      where.OR = [{ case_id: caseId }, { task: { case_id: caseId } }];
-      where.subtask_id = null;
+      // The case Attachments tab lists case, task, and subtask files together.
+      // Branches are disjoint (exactly one parent per row), so no duplicates.
+      where.OR = [
+        { case_id: caseId },
+        { task: { case_id: caseId } },
+        { subtask: { task: { case_id: caseId } } },
+      ];
     } else {
       if (consultationId) where.consultation_id = consultationId;
       if (taskId) {

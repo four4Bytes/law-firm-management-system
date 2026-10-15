@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   combineDateTime,
+  formatDateTime,
   formatTodayLong,
   getAppTimeZone,
   getDaypartGreeting,
@@ -107,6 +108,29 @@ describe("picker round-trip", () => {
     const original = combineDateTime(new CalendarDate(2026, 8, 9), new Time(hour, minute));
 
     expect(combineDateTime(toCalendarDate(original), toTimeValue(original))).toEqual(original);
+  });
+});
+
+describe("formatDateTime", () => {
+  it.each([
+    [9, 0, "9:00 AM"],
+    [13, 30, "1:30 PM"],
+    [0, 0, "12:00 AM"],
+    [12, 0, "12:00 PM"],
+    [23, 59, "11:59 PM"],
+  ])("renders %s:%s with an explicit AM/PM identifier", (hour, minute, time) => {
+    process.env.APP_TIMEZONE = "Asia/Manila";
+    const instant = combineDateTime(new CalendarDate(2026, 8, 9), new Time(hour, minute));
+
+    expect(formatDateTime(instant)).toBe(`Aug 9, 2026 at ${time}`);
+  });
+
+  it("round-trips a PM selection through the picker helpers unchanged", () => {
+    process.env.APP_TIMEZONE = "Asia/Manila";
+    const selected = new Time(13, 30);
+    const saved = combineDateTime(new CalendarDate(2026, 8, 9), selected);
+
+    expect(toTimeValue(saved)).toEqual(new Time(13, 30));
   });
 });
 

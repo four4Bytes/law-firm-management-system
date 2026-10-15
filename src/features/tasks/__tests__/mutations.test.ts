@@ -172,6 +172,23 @@ describe("createTask", () => {
       }),
     ).rejects.toThrow(error);
   });
+
+  it("persists an optional due date", async () => {
+    vi.mocked(prisma.task.create).mockResolvedValue(mockTask());
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+
+    await createTask({
+      title: "Task with deadline",
+      case_id: "c1",
+      created_by_user_id: "u1",
+      due_date,
+    });
+
+    expect(prisma.task.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ due_date }),
+      select: { id: true },
+    });
+  });
 });
 
 describe("updateTask", () => {
@@ -234,6 +251,17 @@ describe("updateTask", () => {
       await expect(
         updateTask("t1", { title: "Fixed typo", removed_reviewer_ids: ["u2"] }),
       ).rejects.toThrow(TaskLockedError);
+    });
+
+    it("allows a due date change", async () => {
+      vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+
+      await expect(
+        updateTask("t1", {
+          title: "Fixed typo",
+          due_date: new Date("2026-12-01T09:00:00+08:00"),
+        }),
+      ).resolves.toEqual({ id: "t1", status: "Done" });
     });
   });
 
@@ -302,6 +330,20 @@ describe("updateTask", () => {
     vi.mocked(prisma.task.update).mockRejectedValue(error);
 
     await expect(updateTask("999", { title: "Updated title" })).rejects.toThrow(error);
+  });
+
+  it("persists a due date change", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTask());
+    vi.mocked(prisma.task.update).mockResolvedValue(mockTask());
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+
+    await updateTask("t1", { title: "Updated title", due_date });
+
+    expect(prisma.task.update).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { title: "Updated title", due_date },
+      select: { id: true, case_id: true },
+    });
   });
 });
 

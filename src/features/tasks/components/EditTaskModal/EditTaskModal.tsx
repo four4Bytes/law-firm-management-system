@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarDate, Time } from "@internationalized/date";
 import clsx from "clsx";
 import { useState } from "react";
 import { Form } from "react-aria-components";
@@ -21,6 +22,7 @@ import type { TaskDetailRow } from "@/features/tasks/queries";
 import { TaskCreatePayloadSchema, TaskUpdatePayloadSchema } from "@/features/tasks/schemas";
 import type { UserSummary } from "@/features/users/types";
 import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
+import { combineDateTime, toCalendarDate, toMinuteEpoch, toTimeValue } from "@/lib/primitives/date";
 import {
   createFieldValidator,
   firstIssueMessage,
@@ -42,6 +44,12 @@ interface EditTaskModalProps {
   currentUserId: string;
 }
 
+function dueDateChanged(existing: Date | null, next: Date | null): boolean {
+  if (next === null) return existing !== null;
+  if (existing === null) return true;
+  return toMinuteEpoch(existing) !== toMinuteEpoch(next);
+}
+
 export function EditTaskModal({
   isOpen,
   onOpenChange,
@@ -53,6 +61,12 @@ export function EditTaskModal({
 }: EditTaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
+  const [dueDate, setDueDate] = useState<CalendarDate | null>(
+    task.due_date ? toCalendarDate(task.due_date) : null,
+  );
+  const [dueTime, setDueTime] = useState<Time>(
+    task.due_date ? toTimeValue(task.due_date) : new Time(9, 0),
+  );
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(task.assignee_ids));
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(() =>
     withLockedReviewer(
@@ -76,7 +90,10 @@ export function EditTaskModal({
     new Set(task.reviewers.map((r) => r.reviewer_user_id)),
     task.created_by_user_id,
   );
-  const contentChanged = title !== task.title || description !== (task.description ?? "");
+  const contentChanged =
+    title !== task.title ||
+    description !== (task.description ?? "") ||
+    dueDateChanged(task.due_date, dueDate ? combineDateTime(dueDate, dueTime) : null);
   const rosterChanged =
     capabilities.canEditRoster &&
     (assigneeIds.size !== initialAssigneeIds.size ||
@@ -131,6 +148,7 @@ export function EditTaskModal({
           taskId: task.id,
           title: requiredString(title),
           description: optionalString(description),
+          due_date: dueDate ? combineDateTime(dueDate, dueTime) : undefined,
           assignee_ids: Array.from(assigneeIds),
           reviewer_ids: addedReviewers.length > 0 ? addedReviewers : undefined,
           removed_reviewer_ids: removedReviewers.length > 0 ? removedReviewers : undefined,
@@ -178,6 +196,10 @@ export function EditTaskModal({
               onTitleChange={setTitle}
               description={description}
               onDescriptionChange={setDescription}
+              dueDate={dueDate}
+              onDueDateChange={setDueDate}
+              dueTime={dueTime}
+              onDueTimeChange={setDueTime}
               assigneeIds={assigneeIds}
               onAssigneeIdsChange={setAssigneeIds}
               reviewerIds={reviewerIds}

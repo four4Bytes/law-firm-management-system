@@ -10,6 +10,7 @@ import { hasAssigneeReviewerOverlap, wouldLeaveNoReviewer } from "./validation";
 export interface TaskCreateData {
   title: string;
   description?: string | null;
+  due_date?: Date | null;
   case_id: string;
   created_by_user_id: string;
   assignee_ids?: string[];
@@ -18,6 +19,7 @@ export interface TaskCreateData {
 export interface TaskUpdateData {
   title?: string;
   description?: string | null;
+  due_date?: Date | null;
   assignee_ids?: string[];
   reviewer_ids?: string[];
   removed_reviewer_ids?: string[];

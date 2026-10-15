@@ -1,6 +1,10 @@
 "use client";
 
+import { CalendarDate, Time } from "@internationalized/date";
+
+import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { TextField } from "@/components/ui/TextField/TextField";
+import { TimeField } from "@/components/ui/TimeField/TimeField";
 import type { TaskCapabilities } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
 import type { TaskDetailRow } from "@/features/tasks/queries";
@@ -16,6 +20,10 @@ export interface TaskMetadataFieldsProps {
   onTitleChange: (value: string) => void;
   description: string;
   onDescriptionChange: (value: string) => void;
+  dueDate: CalendarDate | null;
+  onDueDateChange: (value: CalendarDate | null) => void;
+  dueTime: Time;
+  onDueTimeChange: (value: Time) => void;
   assigneeIds: Set<string>;
   onAssigneeIdsChange: (ids: Set<string>) => void;
   reviewerIds: Set<string>;
@@ -32,6 +40,10 @@ export function TaskMetadataFields({
   onTitleChange,
   description,
   onDescriptionChange,
+  dueDate,
+  onDueDateChange,
+  dueTime,
+  onDueTimeChange,
   assigneeIds,
   onAssigneeIdsChange,
   reviewerIds,
@@ -57,6 +69,18 @@ export function TaskMetadataFields({
         onChange={onDescriptionChange}
         placeholder="Optional description..."
         validate={createFieldValidator(TaskUpdatePayloadSchema.shape.description)}
+        isDisabled={isPending || !capabilities.canEdit}
+      />
+      <DatePicker
+        label="Due Date"
+        value={dueDate}
+        onChange={onDueDateChange}
+        isDisabled={isPending || !capabilities.canEdit}
+      />
+      <TimeField
+        label="Due Time"
+        value={dueTime}
+        onChange={(v) => v && onDueTimeChange(new Time(v.hour, v.minute))}
         isDisabled={isPending || !capabilities.canEdit}
       />
       <AssigneeReviewerPicker

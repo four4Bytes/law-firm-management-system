@@ -10,7 +10,7 @@ import { prisma } from "@/lib/infra/prisma";
 import type { PageQuery } from "@/lib/primitives/types";
 import type { AccessContext } from "@/lib/security/rbac";
 
-export type TaskRow = Pick<Task, "id" | "title" | "status" | "updated_at"> & {
+export type TaskRow = Pick<Task, "id" | "title" | "status" | "due_date" | "updated_at"> & {
   assignTo: string;
   reviewers: string;
 };
@@ -33,7 +33,7 @@ export type TaskReviewerRow = {
 };
 
 export type TaskDetailRow = Omit<TaskRow, "assignTo" | "reviewers"> &
-  Pick<Task, "description" | "created_at" | "created_by_user_id"> & {
+  Pick<Task, "description" | "due_date" | "created_at" | "created_by_user_id"> & {
     assignTo: { id: string; name: string; status: TaskAssignmentStatus }[];
     assignee_ids: string[];
     reviewers: TaskReviewerRow[];
@@ -66,9 +66,11 @@ export const getTasksPaginated = cache(
         ? [{ title: sort.direction }, { id: "asc" as const }]
         : sort?.column === "status"
           ? [{ status: sort.direction }, { id: "asc" as const }]
-          : sort?.column === "updated_at"
-            ? [{ updated_at: sort.direction }, { id: "asc" as const }]
-            : defaultOrderBy;
+          : sort?.column === "due_date"
+            ? [{ due_date: sort.direction }, { id: "asc" as const }]
+            : sort?.column === "updated_at"
+              ? [{ updated_at: sort.direction }, { id: "asc" as const }]
+              : defaultOrderBy;
 
     const tasks = await prisma.task.findMany({
       take: pageSize + 1,
@@ -93,6 +95,7 @@ export const getTasksPaginated = cache(
       id: t.id,
       title: t.title,
       status: t.status,
+      due_date: t.due_date,
       assignTo: t.taskAssignments.map((a) => a.user.name).join(", "),
       reviewers: t.taskReviewers.map((r) => r.reviewer.name).join(", "),
       updated_at: t.updated_at,
@@ -110,6 +113,7 @@ export const getTaskById = cache(async (id: string) => {
       title: true,
       description: true,
       status: true,
+      due_date: true,
       case_id: true,
       created_by_user_id: true,
       created_at: true,
@@ -159,6 +163,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
       title: true,
       description: true,
       status: true,
+      due_date: true,
       updated_at: true,
       created_at: true,
       created_by_user_id: true,
@@ -185,6 +190,7 @@ export const getTaskDetailRowById = cache(async (id: string): Promise<TaskDetail
     title: task.title,
     description: task.description,
     status: task.status,
+    due_date: task.due_date,
     assignTo: task.taskAssignments.map((a) => ({
       id: a.user_id,
       name: a.user.name,

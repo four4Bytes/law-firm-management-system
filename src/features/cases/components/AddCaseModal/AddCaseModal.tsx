@@ -6,16 +6,23 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { createCaseWithClientAction } from "@/features/cases/actions";
+import { CaseType, type CaseTypeValue } from "@/features/cases/constants";
 import { CaseWithClientCreatePayloadSchema } from "@/features/cases/schemas";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
 import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/hooks/useModalForm";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
+import {
+  createFieldValidator,
+  optionalString,
+  requiredString,
+  selectEnumHandler,
+} from "@/lib/validation/form-utils";
 
 import styles from "./AddCaseModal.module.css";
 
@@ -35,7 +42,7 @@ interface ClientFields {
 
 interface CaseFields {
   caseTitle: string;
-  caseType: string;
+  caseType: CaseTypeValue | null;
   partiesInvolved: string;
 }
 
@@ -46,7 +53,7 @@ function resetClient(): ClientFields {
 function resetCase(): CaseFields {
   return {
     caseTitle: "",
-    caseType: "",
+    caseType: null,
     partiesInvolved: "",
   };
 }
@@ -90,6 +97,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     if (isPending) return;
+    if (!caseType) return;
 
     await submitForm({
       client: {
@@ -100,7 +108,7 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
       },
       case: {
         case_title: requiredString(caseTitle),
-        case_type: requiredString(caseType),
+        case_type: caseType,
         status: CaseStatus.Open,
         parties_involved: optionalString(partiesInvolved),
         assignee_ids: Array.from(assigneeIds),
@@ -169,16 +177,22 @@ export function AddCaseModal({ isOpen, onOpenChange, onSuccess, users }: AddCase
               )}
               isDisabled={isPending}
             />
-            <TextField
+            <Select
               label="Case Type"
               value={caseType}
-              onChange={(v) => setCaseField("caseType", v)}
-              placeholder="e.g. Civil, Corporate"
+              onChange={selectEnumHandler(CaseType, (value) => setCaseField("caseType", value))}
+              placeholder="Select a case type"
               validate={createFieldValidator(
                 CaseWithClientCreatePayloadSchema.shape.case.shape.case_type,
               )}
               isDisabled={isPending}
-            />
+            >
+              {Object.values(CaseType).map((type) => (
+                <SelectItem key={type} id={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </Select>
             <UserSelect
               users={users}
               selectedIds={assigneeIds}

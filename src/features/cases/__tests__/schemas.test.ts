@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { CaseType } from "@/features/cases/constants";
+
 import {
   CaseCreatePayloadSchema,
   CaseDeletePayloadSchema,
@@ -25,18 +27,28 @@ describe("CaseCreatePayloadSchema", () => {
     expect(CaseCreatePayloadSchema.safeParse(base).success).toBe(true);
   });
 
-  it("accepts an arbitrary free-text case_type not in the old enum", () => {
+  it.each(Object.values(CaseType))("accepts the %s case type", (caseType) => {
+    expect(CaseCreatePayloadSchema.safeParse({ ...base, case_type: caseType }).success).toBe(true);
+  });
+
+  it("rejects an arbitrary free-text case_type not in the four categories", () => {
     const result = CaseCreatePayloadSchema.safeParse({
       ...base,
       case_type: "Arbitrary Custom Type 123",
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
-  it("trims surrounding whitespace from case_type", () => {
-    const result = CaseCreatePayloadSchema.safeParse({ ...base, case_type: "  Wills  " });
-    expect(result.success).toBe(true);
-    if (result.success) expect(result.data.case_type).toBe("Wills");
+  it("rejects a legacy case_type such as Family Law", () => {
+    expect(CaseCreatePayloadSchema.safeParse({ ...base, case_type: "Family Law" }).success).toBe(
+      false,
+    );
+  });
+
+  it("rejects a whitespace-padded case_type", () => {
+    expect(CaseCreatePayloadSchema.safeParse({ ...base, case_type: "  Civil  " }).success).toBe(
+      false,
+    );
   });
 
   it("rejects an empty case_type", () => {

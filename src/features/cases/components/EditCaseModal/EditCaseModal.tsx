@@ -6,9 +6,11 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
 import { updateCaseWithClientAction } from "@/features/cases/actions";
+import { CaseType } from "@/features/cases/constants";
 import type { CaseEditData } from "@/features/cases/queries";
 import { CaseWithClientUpdatePayloadSchema } from "@/features/cases/schemas";
 import type { ClientEditData } from "@/features/clients/queries";
@@ -17,7 +19,12 @@ import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import { mergeMissingUsers } from "@/features/users/display";
 import type { UserSummary } from "@/features/users/types";
 import { useModalForm } from "@/lib/hooks/useModalForm";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
+import {
+  createFieldValidator,
+  optionalString,
+  requiredString,
+  selectEnumHandler,
+} from "@/lib/validation/form-utils";
 
 import styles from "./EditCaseModal.module.css";
 
@@ -49,6 +56,12 @@ export function EditCaseModal({
   const [partiesInvolved, setPartiesInvolved] = useState(caseData.parties_involved ?? "");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set(caseData.assignee_ids));
 
+  // Rows predating the category list keep their free-text value; show it as a
+  // disabled option so the trigger is never blank, and make the schema force
+  // a re-pick before saving.
+  const selectedCaseType = Object.values(CaseType).find((type) => type === caseType);
+  const isLegacyCaseType = selectedCaseType === undefined;
+
   const assigneeOptions = useMemo(
     () =>
       mergeMissingUsers({
@@ -79,6 +92,7 @@ export function EditCaseModal({
   async function handleSave(event: React.SyntheticEvent) {
     event.preventDefault();
     if (isPending) return;
+    if (!selectedCaseType) return;
 
     await submitForm({
       case_id: caseData.id,
@@ -91,7 +105,7 @@ export function EditCaseModal({
       },
       case: {
         case_title: requiredString(caseTitle),
-        case_type: requiredString(caseType),
+        case_type: selectedCaseType,
         parties_involved: optionalString(partiesInvolved),
         assignee_ids: Array.from(assigneeIds),
       },
@@ -157,16 +171,27 @@ export function EditCaseModal({
               )}
               isDisabled={isPending}
             />
-            <TextField
+            <Select
               label="Case Type"
               value={caseType}
-              onChange={setCaseType}
-              placeholder="e.g. Civil, Corporate"
+              onChange={selectEnumHandler(CaseType, setCaseType)}
+              placeholder="Select a case type"
               validate={createFieldValidator(
                 CaseWithClientUpdatePayloadSchema.shape.case.shape.case_type,
               )}
               isDisabled={isPending}
-            />
+            >
+              {Object.values(CaseType).map((type) => (
+                <SelectItem key={type} id={type}>
+                  {type}
+                </SelectItem>
+              ))}
+              {isLegacyCaseType && (
+                <SelectItem id={caseType} isDisabled>
+                  {caseType} (legacy - pick a category)
+                </SelectItem>
+              )}
+            </Select>
             <UserSelect
               users={assigneeOptions}
               selectedIds={assigneeIds}

@@ -59,23 +59,28 @@ export async function updateConsultation(
   });
 }
 
+export interface ConsultationStatusUpdate {
+  expectedStatus?: ConsultationStatus;
+  booking_datetime?: Date;
+}
+
 export async function updateConsultationStatus(
   id: string,
   status: ConsultationStatus,
-  expectedStatus?: ConsultationStatus,
-  tx?: TransactionClient,
+  options: ConsultationStatusUpdate = {},
 ): Promise<{ id: string }> {
-  const client = tx || prisma;
+  const { expectedStatus, booking_datetime } = options;
+  const data = booking_datetime ? { status, booking_datetime } : { status };
   if (!expectedStatus) {
-    return client.consultation.update({
+    return prisma.consultation.update({
       where: { id },
-      data: { status },
+      data,
       select: { id: true },
     });
   }
-  const result = await client.consultation.updateMany({
+  const result = await prisma.consultation.updateMany({
     where: { id, status: expectedStatus },
-    data: { status },
+    data,
   });
   if (result.count !== 1) throw new StatusConflictError();
   return { id };

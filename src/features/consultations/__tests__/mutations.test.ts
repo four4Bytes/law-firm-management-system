@@ -221,12 +221,26 @@ it("updateConsultationStatus updates only the status", async () => {
 it("updateConsultationStatus with expectedStatus rejects when another transition won the race", async () => {
   vi.mocked(prisma.consultation.updateMany).mockResolvedValue({ count: 0 });
 
-  await expect(updateConsultationStatus(uuid, "Completed", "Scheduled")).rejects.toThrow(
-    "Record changed by another user",
-  );
+  await expect(
+    updateConsultationStatus(uuid, "Completed", { expectedStatus: "Scheduled" }),
+  ).rejects.toThrow("Record changed by another user");
   expect(prisma.consultation.updateMany).toHaveBeenCalledWith({
     where: { id: uuid, status: "Scheduled" },
     data: { status: "Completed" },
+  });
+});
+
+it("updateConsultationStatus stamps booking_datetime when provided", async () => {
+  vi.mocked(prisma.consultation.updateMany).mockResolvedValue({ count: 1 });
+
+  await updateConsultationStatus(uuid, "Completed", {
+    expectedStatus: "Scheduled",
+    booking_datetime: booking,
+  });
+
+  expect(prisma.consultation.updateMany).toHaveBeenCalledWith({
+    where: { id: uuid, status: "Scheduled" },
+    data: { status: "Completed", booking_datetime: booking },
   });
 });
 

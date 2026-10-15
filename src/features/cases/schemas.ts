@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { CaseType } from "@/features/cases/constants";
 import { ClientDataSchema } from "@/features/clients/schemas";
 import { CaseStatus } from "@/generated/prisma/browser";
 import {
@@ -29,7 +30,7 @@ export const CaseOverviewIdSchema = z.object({
 export const CaseCreatePayloadSchema = z.object({
   client_id: z.uuid(),
   case_title: requiredText(255, "Case title"),
-  case_type: requiredText(255, "Case type"),
+  case_type: requiredEnum(CaseType, "Case type"),
   status: requiredEnum(CaseStatus, "Status"),
   parties_involved: optionalText(2000, "Parties involved"),
   source_consultation_id: z.uuid().optional(),
@@ -52,7 +53,7 @@ export const CaseDeletePayloadSchema = z.object({
 
 const CaseCreateDataSchema = z.object({
   case_title: requiredText(255, "Case title"),
-  case_type: requiredText(255, "Case type"),
+  case_type: requiredEnum(CaseType, "Case type"),
   status: requiredEnum(CaseStatus, "Status"),
   parties_involved: optionalText(2000, "Parties involved"),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
@@ -60,7 +61,7 @@ const CaseCreateDataSchema = z.object({
 
 const CaseUpdateDataSchema = z.object({
   case_title: requiredText(255, "Case title"),
-  case_type: requiredText(255, "Case type"),
+  case_type: requiredEnum(CaseType, "Case type"),
   parties_involved: optionalText(2000, "Parties involved"),
   assignee_ids: uniqueUuidArray("Assignee").optional(),
 });

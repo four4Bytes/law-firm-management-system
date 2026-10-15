@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { CaseType } from "@/features/cases/constants";
 import {
   getConsultationAssigneeIds,
   getConsultationEditData,
@@ -1195,7 +1196,7 @@ describe("acceptConsultationWithCaseAction", () => {
   const acceptPayload = {
     consultationId: uuid,
     case_title: "Smith vs Jones",
-    case_type: "Civil",
+    case_type: CaseType.Civil,
     status: "Open" as const,
   };
 
@@ -1220,7 +1221,7 @@ describe("acceptConsultationWithCaseAction", () => {
     updated_at: new Date("2024-06-01"),
     source_consultation_id: uuid,
     case_title: "Smith vs Jones",
-    case_type: "Civil",
+    case_type: CaseType.Civil,
     parties_involved: null,
   };
 

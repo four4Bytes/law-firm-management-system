@@ -5,7 +5,9 @@ import { Form } from "react-aria-components";
 
 import { Button } from "@/components/ui/Button/Button";
 import { Modal } from "@/components/ui/Modal/Modal";
+import { Select, SelectItem } from "@/components/ui/Select/Select";
 import { TextField } from "@/components/ui/TextField/TextField";
+import { CaseType, type CaseTypeValue } from "@/features/cases/constants";
 import { CaseCreatePayloadSchema } from "@/features/cases/schemas";
 import { acceptConsultationWithCaseAction } from "@/features/consultations/actions";
 import { UserChips } from "@/features/users/components/UserChips/UserChips";
@@ -13,7 +15,12 @@ import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { CaseStatus } from "@/generated/prisma/browser";
 import { toastActionError, toastError, toastSuccess } from "@/lib/hooks/toast-utils";
-import { createFieldValidator, optionalString, requiredString } from "@/lib/validation/form-utils";
+import {
+  createFieldValidator,
+  optionalString,
+  requiredString,
+  selectEnumHandler,
+} from "@/lib/validation/form-utils";
 
 import styles from "./CreateCaseFromConsultationModal.module.css";
 
@@ -29,14 +36,14 @@ interface CreateCaseFromConsultationModalProps {
 
 interface Fields {
   caseTitle: string;
-  caseType: string;
+  caseType: CaseTypeValue | null;
   partiesInvolved: string;
 }
 
 function resetFields(defaultTitle: string): Fields {
   return {
     caseTitle: defaultTitle,
-    caseType: "",
+    caseType: null,
     partiesInvolved: "",
   };
 }
@@ -71,6 +78,7 @@ export function CreateCaseFromConsultationModal({
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     if (isPending) return;
+    if (!caseType) return;
 
     setIsPending(true);
 
@@ -78,7 +86,7 @@ export function CreateCaseFromConsultationModal({
       const result = await acceptConsultationWithCaseAction({
         consultationId,
         case_title: requiredString(caseTitle),
-        case_type: requiredString(caseType),
+        case_type: caseType,
         status: CaseStatus.Open,
         parties_involved: optionalString(partiesInvolved),
         assignee_ids: Array.from(assigneeIds),
@@ -117,14 +125,20 @@ export function CreateCaseFromConsultationModal({
             validate={createFieldValidator(CaseCreatePayloadSchema.shape.case_title)}
             isDisabled={isPending}
           />
-          <TextField
+          <Select
             label="Case Type"
             value={caseType}
-            onChange={(v) => setField("caseType", v)}
-            placeholder="e.g. Civil, Corporate"
+            onChange={selectEnumHandler(CaseType, (value) => setField("caseType", value))}
+            placeholder="Select a case type"
             validate={createFieldValidator(CaseCreatePayloadSchema.shape.case_type)}
             isDisabled={isPending}
-          />
+          >
+            {Object.values(CaseType).map((type) => (
+              <SelectItem key={type} id={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </Select>
           <UserSelect
             users={users}
             selectedIds={assigneeIds}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { CaseType } from "@/features/cases/constants";
 import { ClientDataSchema } from "@/features/clients/schemas";
 import { CaseStatus, ConsultationStatus } from "@/generated/prisma/browser";
 import {
@@ -75,7 +76,7 @@ export const ConsultationStatusChangePayloadSchema = z.object({
 export const AcceptConsultationWithCasePayloadSchema = z.object({
   consultationId: z.uuid(),
   case_title: requiredText(255, "Case title"),
-  case_type: requiredText(255, "Case type"),
+  case_type: requiredEnum(CaseType, "Case type"),
   status: requiredEnum(CaseStatus, "Status"),
   parties_involved: optionalText(2000, "Parties involved"),
   assignee_ids: uniqueUuidArray("Assignee").optional(),

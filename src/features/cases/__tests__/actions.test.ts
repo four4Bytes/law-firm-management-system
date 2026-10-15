@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { CaseType } from "@/features/cases/constants";
 import { getConsultationEditData } from "@/features/consultations/queries";
 import { dispatchNotifications } from "@/features/notifications/dispatch";
 import { NotificationType, Role, type Case } from "@/generated/prisma/browser";
@@ -126,7 +127,7 @@ const caseRecord: CaseWithAssignments = {
   id: "1",
   client_id: uuid,
   case_title: "Smith vs Jones",
-  case_type: "Civil",
+  case_type: CaseType.Civil,
   status: "Open",
   parties_involved: null,
   source_consultation_id: null,
@@ -143,7 +144,7 @@ beforeEach(() => {
     id: "1",
     client_id: uuid,
     case_title: "Smith vs Jones",
-    case_type: "Civil",
+    case_type: CaseType.Civil,
     status: "Open",
     parties_involved: null,
     source_consultation_id: null,
@@ -160,7 +161,7 @@ describe("getCaseForEditAction", () => {
       id: "1",
       client_id: uuid,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       status: "Open",
       parties_involved: null,
       source_consultation_id: null,
@@ -187,7 +188,7 @@ describe("createCaseAction", () => {
   const validPayload = {
     client_id: uuid,
     case_title: "Smith vs Jones",
-    case_type: "Civil",
+    case_type: CaseType.Civil,
     status: "Open" as const,
   };
 
@@ -211,7 +212,7 @@ describe("createCaseAction", () => {
     expect(result).toEqual({ success: true, data: { id: "1" } });
     expect(createCase).toHaveBeenCalledWith(
       expect.objectContaining({
-        case_type: "Civil",
+        case_type: CaseType.Civil,
         created_by_user_id: "u1",
       }),
     );
@@ -393,7 +394,7 @@ describe("updateCaseAction", () => {
     caseId: uuid,
     client_id: uuid,
     case_title: "Smith vs Jones",
-    case_type: "Civil",
+    case_type: CaseType.Civil,
   };
 
   it("returns an error for an invalid payload", async () => {
@@ -482,7 +483,7 @@ describe("deleteCaseAction", () => {
       client_id: uuid,
       source_consultation_id: null,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       parties_involved: null,
       status: "Open",
       assignee_ids: [],
@@ -506,7 +507,7 @@ describe("authorization guards for non-Admin users", () => {
     caseId: uuid,
     client_id: uuid,
     case_title: "Smith vs Jones",
-    case_type: "Civil",
+    case_type: CaseType.Civil,
   };
 
   const updateWithClientPayload = {
@@ -515,7 +516,7 @@ describe("authorization guards for non-Admin users", () => {
     client: { name: "John Doe", phone_number: "09170000001" },
     case: {
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
     },
   };
 
@@ -555,7 +556,7 @@ describe("authorization guards for non-Admin users", () => {
       id: "1",
       client_id: uuid,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       status: "Open",
       parties_involved: null,
       source_consultation_id: null,
@@ -575,7 +576,7 @@ describe("authorization guards for non-Admin users", () => {
       id: "1",
       client_id: uuid,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       status: "Open",
       parties_involved: null,
       source_consultation_id: null,
@@ -595,7 +596,7 @@ describe("authorization guards for non-Admin users", () => {
       id: "1",
       client_id: uuid,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       status: "Open",
       parties_involved: null,
       source_consultation_id: null,
@@ -615,7 +616,7 @@ describe("updateCaseAction notification split", () => {
     caseId: uuid,
     client_id: uuid,
     case_title: "Smith vs Jones",
-    case_type: "Civil",
+    case_type: CaseType.Civil,
   };
 
   const assignee1 = uuid;
@@ -628,7 +629,7 @@ describe("updateCaseAction notification split", () => {
       id: "1",
       client_id: uuid,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       status: "Open",
       parties_involved: null,
       source_consultation_id: null,
@@ -664,7 +665,7 @@ describe("updateCaseAction notification split", () => {
       id: "1",
       client_id: uuid,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       status: "Open",
       parties_involved: null,
       source_consultation_id: null,
@@ -689,7 +690,7 @@ describe("updateCaseAction notification split", () => {
       client: { name: "John Doe", phone_number: "09170000001" },
       case: {
         case_title: "Smith vs Jones",
-        case_type: "Civil",
+        case_type: CaseType.Civil,
         assignee_ids: [assignee1, assignee2, assignee3],
       },
     });
@@ -712,7 +713,7 @@ describe("changeCaseStatusAction", () => {
       id: "1",
       client_id: uuid,
       case_title: "Smith vs Jones",
-      case_type: "Civil",
+      case_type: CaseType.Civil,
       status: "Open" as const,
       parties_involved: null,
       source_consultation_id: null,

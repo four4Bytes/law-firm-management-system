@@ -1,3 +1,4 @@
+import { type CaseTypeValue } from "@/features/cases/constants";
 import { createCase } from "@/features/cases/mutations";
 import { createEmbeddedClient, updateEmbeddedClient } from "@/features/clients/mutations";
 import { getDocumentFilePathsByConsultationId } from "@/features/documents/queries";
@@ -141,7 +142,7 @@ export async function transitionConsultationWithNote(
 export interface AcceptConsultationWithCaseData {
   consultationId: string;
   caseTitle: string;
-  caseType: string;
+  caseType: CaseTypeValue;
   status: CaseStatus;
   partiesInvolved?: string;
   assigneeIds?: string[];

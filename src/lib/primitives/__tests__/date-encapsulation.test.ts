@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -63,7 +63,7 @@ function findViolations(): string[] {
   const violations: string[] = [];
 
   for (const file of walk(SRC_ROOT)) {
-    const rel = relative(process.cwd(), file);
+    const rel = relative(process.cwd(), file).split(sep).join("/");
     if (rel === DATE_MODULE) continue;
     if (/\.test\.tsx?$/.test(rel)) continue;
 

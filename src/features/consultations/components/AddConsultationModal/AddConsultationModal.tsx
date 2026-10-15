@@ -19,7 +19,13 @@ import { UserSelect } from "@/features/users/components/UserSelect/UserSelect";
 import type { UserSummary } from "@/features/users/types";
 import { ConsultationStatus } from "@/generated/prisma/browser";
 import { useModalForm } from "@/lib/hooks/useModalForm";
-import { combineDateTime, getToday, isAfterToday, isBeforeToday } from "@/lib/primitives/date";
+import {
+  combineDateTime,
+  getToday,
+  isAfterToday,
+  isBeforeToday,
+  toTimeValue,
+} from "@/lib/primitives/date";
 import {
   createFieldValidator,
   optionalString,
@@ -208,7 +214,7 @@ export function AddConsultationModal({
               label="Booking Date"
               value={date}
               onChange={(v) => v && setConsultation((p) => ({ ...p, date: v }))}
-              isDisabled={isPending}
+              isDisabled={isPending || status === ConsultationStatus.Completed}
               validate={validateBookingDate}
             />
             <TimeField
@@ -217,7 +223,7 @@ export function AddConsultationModal({
               onChange={(v) =>
                 v && setConsultation((p) => ({ ...p, time: new Time(v.hour, v.minute) }))
               }
-              isDisabled={isPending}
+              isDisabled={isPending || status === ConsultationStatus.Completed}
             />
             <Select
               label="Status"
@@ -227,7 +233,13 @@ export function AddConsultationModal({
                   value === ConsultationStatus.Scheduled ||
                   value === ConsultationStatus.Completed
                 ) {
-                  setConsultation((p) => ({ ...p, status: value }));
+                  setConsultation((p) => ({
+                    ...p,
+                    status: value,
+                    ...(value === ConsultationStatus.Completed
+                      ? { date: getToday(), time: toTimeValue(new Date()) }
+                      : {}),
+                  }));
                 }
               })}
               isDisabled={isPending}

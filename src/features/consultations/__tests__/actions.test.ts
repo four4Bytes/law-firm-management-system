@@ -15,7 +15,7 @@ import { getStartOfDay } from "@/lib/primitives/date";
 import { requireAuth, requirePermission } from "@/lib/security/auth-guards";
 import { ForbiddenError } from "@/lib/security/errors";
 import { can, FORBIDDEN_MESSAGE } from "@/lib/security/rbac";
-import { mockSessionUser } from "@/test-utils/fixtures";
+import { mockClient, mockSessionUser } from "@/test-utils/fixtures";
 import { setupAuth } from "@/test-utils/test-setup";
 
 import {
@@ -34,6 +34,13 @@ async function flushAfterCallbacks(): Promise<void> {
     __flushAfterCallbacks: () => Promise<void>;
   };
   await server.__flushAfterCallbacks();
+}
+
+function expectStampedNearNow(value: unknown): void {
+  expect(value).toBeInstanceOf(Date);
+  if (value instanceof Date) {
+    expect(Math.abs(value.getTime() - Date.now())).toBeLessThan(5000);
+  }
 }
 
 const sessionAdmin = mockSessionUser({ id: "u1", email: "e", name: "n" });
@@ -256,22 +263,30 @@ describe("createConsultationAction", () => {
     expect(prisma.consultation.create).not.toHaveBeenCalled();
   });
 
-  it("refuses a completed booking in the future", async () => {
+  it("stamps the current date and time when created as completed", async () => {
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
+
+    const result = await createConsultationAction({
+      ...validPayload,
+      status: "Completed" as const,
+    });
+
+    expect(result).toEqual({ success: true });
+    const createArgs = vi.mocked(prisma.consultation.create).mock.calls[0][0];
+    expectStampedNearNow(createArgs.data.booking_datetime);
+  });
+
+  it("keeps the submitted booking datetime when scheduled", async () => {
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
+
     expect(
       await createConsultationAction({
         ...validPayload,
-        status: "Completed" as const,
+        booking_datetime: "2099-06-01T10:00:00.000Z",
       }),
-    ).toEqual({
-      success: false,
-      error: {
-        code: "conflict",
-        title: "Booking date is in the future",
-        description:
-          "A completed consultation cannot be booked in the future. If the meeting has not happened yet, create it as Scheduled instead.",
-      },
-    });
-    expect(prisma.consultation.create).not.toHaveBeenCalled();
+    ).toEqual({ success: true });
+    const createArgs = vi.mocked(prisma.consultation.create).mock.calls[0][0];
+    expect(createArgs.data.booking_datetime).toEqual(new Date("2099-06-01T10:00:00.000Z"));
   });
 
   it("allows a completed booking in the past", async () => {
@@ -330,6 +345,25 @@ describe("createConsultationAction", () => {
           "A scheduled consultation cannot be booked in the past. If the meeting already happened, create it as Completed instead.",
       },
     });
+  });
+
+  it("stamps the current date and time when creating a completed consultation with a client", async () => {
+    vi.mocked(prisma.client.create).mockResolvedValue(mockClient({ id: "c1" }));
+    vi.mocked(prisma.consultation.create).mockResolvedValue(consultationRecord);
+
+    const result = await createConsultationWithClientAction({
+      client: { name: "John Doe", phone_number: "09170000001" },
+      consultation: {
+        concern: "Legal advice",
+        booking_datetime: "2099-06-01T10:00:00.000Z",
+        status: "Completed" as const,
+      },
+    });
+
+    expect(result).toEqual({ success: true, data: { id: "1" } });
+    expect(prisma.client.create).toHaveBeenCalledTimes(1);
+    const createArgs = vi.mocked(prisma.consultation.create).mock.calls[0][0];
+    expectStampedNearNow(createArgs.data.booking_datetime);
   });
 
   it("threads assignee_ids into the create mutation", async () => {
@@ -936,6 +970,19 @@ describe("changeConsultationStatusAction", () => {
       where: { id: uuid, status: "Cancelled" },
       data: { status: "Scheduled" },
     });
+  });
+
+  it("stamps the current date and time when marking a scheduled consultation completed", async () => {
+    vi.mocked(getConsultationEditData).mockResolvedValue({
+      ...existingEditData,
+      booking_datetime: new Date(Date.now() + 86400000),
+    });
+
+    expect(
+      await changeConsultationStatusAction({ consultationId: uuid, status: "Completed" }),
+    ).toEqual({ success: true });
+    const updateManyArgs = vi.mocked(prisma.consultation.updateMany).mock.calls[0][0];
+    expectStampedNearNow(updateManyArgs.data.booking_datetime);
   });
 
   it("names rebooking as the only move from a cancelled consultation", async () => {

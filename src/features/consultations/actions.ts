@@ -109,6 +109,12 @@ function checkBookingTiming(
   return null;
 }
 
+// A completed consultation records the moment it was completed, so the
+// submitted booking time is replaced with now; any other status keeps it.
+function resolveBookingDatetime(status: ConsultationStatus, booking: Date): Date {
+  return status === ConsultationStatus.Completed ? new Date() : booking;
+}
+
 function caseAlreadyExistsConflict(): ActionStatusResponse {
   return actionConflict(CASE_ALREADY_EXISTS_COPY.title, CASE_ALREADY_EXISTS_COPY.description);
 }
@@ -198,7 +204,8 @@ export async function createConsultationAction(
       return actionInvalid("consultation");
     }
 
-    const { client_id, concern, booking_datetime, status, assignee_ids } = parsed.data;
+    const { client_id, concern, status, assignee_ids } = parsed.data;
+    const booking_datetime = resolveBookingDatetime(status, parsed.data.booking_datetime);
 
     const timingError = checkBookingTiming(status, booking_datetime);
     if (timingError) return timingError;
@@ -253,14 +260,17 @@ export async function createConsultationWithClientAction(
       return actionInvalid("consultation");
     }
 
-    const timingError = checkBookingTiming(
+    const booking_datetime = resolveBookingDatetime(
       parsed.data.consultation.status,
       parsed.data.consultation.booking_datetime,
     );
+
+    const timingError = checkBookingTiming(parsed.data.consultation.status, booking_datetime);
     if (timingError) return timingError;
 
     const createdWithClient = await createConsultationWithClient({
       ...parsed.data,
+      consultation: { ...parsed.data.consultation, booking_datetime },
       created_by_user_id: session.id,
     });
 
@@ -549,7 +559,9 @@ export async function changeConsultationStatusAction(
       );
     }
 
-    const timingError = checkBookingTiming(status, existing.booking_datetime);
+    const booking_datetime = resolveBookingDatetime(status, existing.booking_datetime);
+
+    const timingError = checkBookingTiming(status, booking_datetime);
     if (timingError) return timingError;
 
     if (
@@ -564,7 +576,12 @@ export async function changeConsultationStatusAction(
         expectedStatus: existing.status as ConsultationStatus,
       });
     } else {
-      await updateConsultationStatus(consultationId, status, existing.status as ConsultationStatus);
+      // resolveBookingDatetime returns a fresh Date only for Completed; the
+      // reference check keeps every other write to the status field alone.
+      await updateConsultationStatus(consultationId, status, {
+        expectedStatus: existing.status as ConsultationStatus,
+        ...(booking_datetime !== existing.booking_datetime ? { booking_datetime } : {}),
+      });
     }
 
     after(async () => {

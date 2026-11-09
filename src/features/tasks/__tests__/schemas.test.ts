@@ -84,6 +84,28 @@ describe("TaskCreatePayloadSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts an optional due date", () => {
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      case_id: uuid,
+      assignee_ids: [uuid],
+      due_date,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.due_date).toEqual(due_date);
+  });
+
+  it("accepts a missing due date", () => {
+    const result = TaskCreatePayloadSchema.safeParse({
+      title: "Task",
+      case_id: uuid,
+      assignee_ids: [uuid],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.due_date).toBeUndefined();
+  });
 });
 
 describe("TaskUpdatePayloadSchema", () => {
@@ -120,6 +142,23 @@ describe("TaskUpdatePayloadSchema", () => {
       assignee_ids: [uuid, uuid],
     });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts an optional due date", () => {
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+    const result = TaskUpdatePayloadSchema.safeParse({
+      taskId: uuid,
+      title: "Task",
+      due_date,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.due_date).toEqual(due_date);
+  });
+
+  it("accepts a missing due date", () => {
+    const result = TaskUpdatePayloadSchema.safeParse({ taskId: uuid, title: "Task" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.due_date).toBeUndefined();
   });
 });
 

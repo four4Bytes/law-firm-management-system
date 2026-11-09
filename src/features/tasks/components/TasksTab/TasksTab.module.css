@@ -7,3 +7,13 @@
     height: auto;
   }
 }
+
+.dateCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.overdue {
+  color: var(--color-danger);
+}

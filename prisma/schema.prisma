@@ -272,6 +272,7 @@ model Task {
   title              String
   description        String?
   status             TaskStatus @default(Pending)
+  due_date           DateTime?
   created_by_user_id String     @db.Uuid
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt

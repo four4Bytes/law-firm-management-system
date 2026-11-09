@@ -24,6 +24,7 @@ const mockTaskData = (overrides: Record<string, unknown> = {}) => ({
   title: "Task title",
   description: "Task description",
   status: "Pending" as const,
+  due_date: null,
   case_id: "c1",
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
@@ -56,6 +57,7 @@ describe("getTaskById", () => {
         title: true,
         description: true,
         status: true,
+        due_date: true,
         case_id: true,
         created_by_user_id: true,
         created_at: true,
@@ -81,6 +83,18 @@ describe("getTaskById", () => {
     const result = await getTaskById("999");
 
     expect(result).toBeNull();
+  });
+
+  it("selects due_date", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(mockTaskData());
+
+    await getTaskById("t1");
+
+    expect(prisma.task.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ due_date: true }),
+      }),
+    );
   });
 
   it("propagates database errors", async () => {
@@ -114,6 +128,7 @@ describe("getTaskDetailRowById", () => {
       title: "Task title",
       description: "Task description",
       status: "Pending",
+      due_date: null,
       assignTo: [{ id: "u2", name: "Jane Assignee", status: "Todo" }],
       assignee_ids: ["u2"],
       reviewers: [
@@ -138,6 +153,28 @@ describe("getTaskDetailRowById", () => {
     const result = await getTaskDetailRowById("999");
 
     expect(result).toBeNull();
+  });
+
+  it("includes due_date in the row", async () => {
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(
+      mockTaskData({
+        due_date,
+        taskReviewers: [
+          {
+            id: "r1",
+            reviewer_user_id: "u3",
+            decision: "Approved",
+            reviewed_at: new Date("2024-06-03"),
+            reviewer: { name: "Carol Reviewer" },
+          },
+        ],
+      }),
+    );
+
+    const result = await getTaskDetailRowById("t1");
+
+    expect(result).toEqual(expect.objectContaining({ due_date }));
   });
 
   it("propagates database errors", async () => {
@@ -224,6 +261,7 @@ describe("getTasksPaginated", () => {
       id: "t1",
       title: "Draft complaint",
       status: "Pending",
+      due_date: tasks[0].due_date,
       assignTo: "Bob Lawyer",
       reviewers: "",
       updated_at: tasks[0].updated_at,
@@ -232,6 +270,7 @@ describe("getTasksPaginated", () => {
       id: "t2",
       title: "Review evidence",
       status: "Pending",
+      due_date: tasks[1].due_date,
       assignTo: "Carol Paralegal",
       reviewers: "Alice Reviewer, Bob Reviewer",
       updated_at: tasks[1].updated_at,
@@ -352,6 +391,14 @@ describe("getTasksPaginated", () => {
     await getTasksPaginated({ caseId: "1", sort: { column: "updated_at", direction: "desc" } });
     expect(prisma.task.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: [{ updated_at: "desc" }, { id: "asc" }] }),
+    );
+  });
+
+  it("sorts by due_date ascending", async () => {
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
+    await getTasksPaginated({ caseId: "1", sort: { column: "due_date", direction: "asc" } });
+    expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ due_date: "asc" }, { id: "asc" }] }),
     );
   });
 });

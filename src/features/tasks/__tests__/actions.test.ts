@@ -110,6 +110,7 @@ const taskRecord = {
   title: "Draft memo",
   description: null,
   status: "Pending" as const,
+  due_date: null as Date | null,
   case_id: uuid,
   created_by_user_id: "u1",
   created_at: new Date("2024-06-01"),
@@ -128,6 +129,7 @@ const taskRow = {
   title: "Draft memo",
   description: null,
   status: "Pending" as const,
+  due_date: null as Date | null,
   case_id: uuid,
   assignee_ids: [] as string[],
   reviewers: [] as {
@@ -311,6 +313,45 @@ describe("createTaskAction", () => {
     expect(payload.caseId).toBe(uuid);
     expect(payload.taskId).toBe("t1");
   });
+
+  it("persists an optional due date on creation", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+    vi.mocked(createTask).mockResolvedValue({ id: "t1" });
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+
+    const result = await createTaskAction({
+      title: "Draft memo",
+      description: undefined,
+      case_id: uuid,
+      assignee_ids: [uuid],
+      due_date,
+    });
+
+    expect(result).toEqual({ success: true, data: { id: "t1" } });
+    expect(createTask).toHaveBeenCalledWith(expect.objectContaining({ due_date }));
+  });
+
+  it("rejects a past due date on creation", async () => {
+    vi.mocked(getCaseAccessContext).mockResolvedValue({ assigned: true, own: false });
+
+    const result = await createTaskAction({
+      title: "Draft memo",
+      description: undefined,
+      case_id: uuid,
+      assignee_ids: [uuid],
+      due_date: new Date("2020-01-01T09:00:00+08:00"),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        code: "conflict",
+        title: "Due date is in the past",
+        description: "A new task cannot be due in the past. Choose today or a future date.",
+      },
+    });
+    expect(createTask).not.toHaveBeenCalled();
+  });
 });
 
 describe("updateTaskAction", () => {
@@ -372,6 +413,47 @@ describe("updateTaskAction", () => {
     });
 
     expect(result).toEqual({ success: true });
+  });
+
+  it("persists a changed due date", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid, status: "Pending" });
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+
+    const result = await updateTaskAction({
+      taskId: uuid,
+      title: "Draft memo",
+      description: undefined,
+      due_date,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateTask).toHaveBeenCalledWith(uuid, expect.objectContaining({ due_date }));
+  });
+
+  it("skips the write when only an unchanged due date is submitted", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: false,
+      taskOnly: true,
+    });
+    const due_date = new Date("2026-12-01T09:00:07+08:00");
+    vi.mocked(getTaskById).mockResolvedValue({ ...taskRecord, due_date });
+    vi.mocked(updateTask).mockResolvedValue({ id: uuid, status: "Pending" });
+
+    const result = await updateTaskAction({
+      taskId: uuid,
+      title: "Draft memo",
+      description: undefined,
+      due_date: new Date("2026-12-01T09:00:45+08:00"),
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateTask).not.toHaveBeenCalled();
   });
 });
 
@@ -542,6 +624,27 @@ describe("submitTaskAction", () => {
     expect(setAssignmentStatus).toHaveBeenCalledWith(uuid, "u2", "Done");
   });
 
+  it("keeps an existing deadline untouched when submitting", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...assigneeRecord,
+      status: "Pending" as const,
+      due_date: new Date("2026-12-01T09:00:00+08:00"),
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+      ],
+    });
+    vi.mocked(setAssignmentStatus).mockResolvedValue({ taskStatus: "InReview" });
+
+    await submitTaskAction({ taskId: uuid, status: "Done" });
+
+    expect(vi.mocked(setAssignmentStatus).mock.calls).toEqual([[uuid, "u2", "Done"]]);
+  });
+
   it("returns a locked envelope when the task is already Done", async () => {
     vi.mocked(getTaskAccessContext).mockResolvedValue({
       assigned: true,
@@ -690,6 +793,29 @@ describe("reviewTaskAction", () => {
       reviewerUserId: "u2",
       decision: "Approved",
     });
+  });
+
+  it("keeps an existing deadline untouched when reviewing", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    vi.mocked(getTaskById).mockResolvedValue({
+      ...taskRecord,
+      status: "InReview" as const,
+      due_date: new Date("2026-12-01T09:00:00+08:00"),
+      taskReviewers: [
+        { id: "tr1", reviewer_user_id: "u2", decision: "Pending", reviewed_at: null },
+      ],
+    });
+    vi.mocked(applyReviewDecision).mockResolvedValue({ taskStatus: "Done" });
+
+    await reviewTaskAction({ taskId: uuid, decision: "Approved" });
+
+    expect(vi.mocked(applyReviewDecision).mock.calls).toEqual([
+      [{ taskId: uuid, reviewerUserId: "u2", decision: "Approved" }],
+    ]);
   });
 
   it("audits a status change when the review moves the task out of InReview", async () => {
@@ -917,6 +1043,25 @@ describe("updateTaskAction on a Done task", () => {
     });
 
     expect(result).toEqual({ success: true });
+  });
+
+  it("allows a due date change", async () => {
+    vi.mocked(getTaskAccessContext).mockResolvedValue({
+      assigned: true,
+      own: true,
+      taskOnly: true,
+    });
+    const due_date = new Date("2026-12-01T09:00:00+08:00");
+
+    const result = await updateTaskAction({
+      taskId: uuid,
+      title: "Draft memo",
+      description: undefined,
+      due_date,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(updateTask).toHaveBeenCalledWith(uuid, expect.objectContaining({ due_date }));
   });
 
   it("refuses an assignee change", async () => {

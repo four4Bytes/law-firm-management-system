@@ -32,6 +32,7 @@ import {
   toastSuccess,
 } from "@/lib/hooks/toast-utils";
 import { usePendingFetch } from "@/lib/hooks/usePendingFetch";
+import { formatDateTime, isBeforeToday } from "@/lib/primitives/date";
 import { isForbiddenError } from "@/lib/security/errors";
 import { can, type AccessContext } from "@/lib/security/rbac";
 
@@ -67,6 +68,23 @@ const columns: ColumnDef<TaskRow>[] = [
         <StatusBadge variant={getTaskStatusVariant(status)}>
           {getTaskStatusLabel(status)}
         </StatusBadge>
+      );
+    },
+  },
+  {
+    id: "due_date",
+    name: "Due Date",
+    allowsSorting: true,
+    render: (value, row) => {
+      const date = value as Date | null;
+      if (!date) return "—";
+      const task = row as TaskRow;
+      const isOverdue = task.status !== TaskStatus.Done && isBeforeToday(date);
+      return (
+        <span className={styles.dateCell}>
+          {formatDateTime(date)}
+          {isOverdue && <span className={styles.overdue}>Overdue</span>}
+        </span>
       );
     },
   },

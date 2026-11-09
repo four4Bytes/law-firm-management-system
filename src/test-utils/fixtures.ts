@@ -129,6 +129,7 @@ export function mockTask(overrides: Partial<Task> = {}): Task {
     title: "Task title",
     description: null,
     status: TaskStatus.Pending,
+    due_date: null,
     created_by_user_id: "u1",
     created_at: new Date("2024-06-01"),
     updated_at: new Date("2024-06-01"),

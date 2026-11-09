@@ -1,13 +1,16 @@
 "use client";
 
+import { CalendarDate, Time } from "@internationalized/date";
 import { useState } from "react";
 import { Form } from "react-aria-components";
 
 import { Button } from "@/components/ui/Button/Button";
+import { DatePicker } from "@/components/ui/DatePicker/DatePicker";
 import { DropZone } from "@/components/ui/DropZone/DropZone";
 import { Modal } from "@/components/ui/Modal/Modal";
 import { Separator } from "@/components/ui/Separator/Separator";
 import { TextField } from "@/components/ui/TextField/TextField";
+import { TimeField } from "@/components/ui/TimeField/TimeField";
 import { UploadQueue } from "@/features/documents/components/UploadQueue/UploadQueue";
 import { addTaskReviewerAction, createTaskAction } from "@/features/tasks/actions";
 import { AssigneeReviewerPicker } from "@/features/tasks/components/AssigneeReviewerPicker/AssigneeReviewerPicker";
@@ -16,6 +19,7 @@ import type { UserSummary } from "@/features/users/types";
 import { ACCEPTED_FILE_EXTENSIONS } from "@/lib/files/file-types";
 import { toastActionError, toastError, toastInfo, toastSuccess } from "@/lib/hooks/toast-utils";
 import { useFileUpload } from "@/lib/hooks/useFileUpload";
+import { combineDateTime, isBeforeToday } from "@/lib/primitives/date";
 import {
   createFieldValidator,
   firstIssueMessage,
@@ -51,6 +55,8 @@ export function AddTaskModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeIds, setAssigneeIds] = useState<Set<string>>(new Set());
+  const [dueDate, setDueDate] = useState<CalendarDate | null>(null);
+  const [dueTime, setDueTime] = useState<Time>(new Time(9, 0));
   // Safe to seed at init: `currentUserId` arrives as a server prop on first
   // render, so there is no window where it is still null.
   const [reviewerIds, setReviewerIds] = useState<Set<string>>(() =>
@@ -67,6 +73,8 @@ export function AddTaskModal({
     setTitle("");
     setDescription("");
     setAssigneeIds(new Set());
+    setDueDate(null);
+    setDueTime(new Time(9, 0));
     setReviewerIds(defaultReviewerIds(currentUserId));
     setCreatedTaskId(null);
     setAddedReviewerIds(new Set());
@@ -79,6 +87,13 @@ export function AddTaskModal({
     onOpenChange(false);
   }
 
+  function validateDueDate(): string | null {
+    if (dueDate !== null && isBeforeToday(combineDateTime(dueDate, dueTime))) {
+      return "Due date cannot be in the past";
+    }
+    return null;
+  }
+
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     if (isPending || isLoading || !currentUserId) return;
@@ -86,6 +101,7 @@ export function AddTaskModal({
     const parsed = TaskCreatePayloadSchema.safeParse({
       title: requiredString(title),
       description: optionalString(description),
+      due_date: dueDate ? combineDateTime(dueDate, dueTime) : undefined,
       case_id: caseId,
       assignee_ids: Array.from(assigneeIds),
     });
@@ -202,6 +218,19 @@ export function AddTaskModal({
               isAssigneeLoading={isLoading}
               isReviewerLoading={isLoading}
               validate={createFieldValidator(TaskCreatePayloadSchema.shape.assignee_ids)}
+            />
+            <DatePicker
+              label="Due Date"
+              value={dueDate}
+              onChange={setDueDate}
+              isDisabled={isPending || isLoading}
+              validate={validateDueDate}
+            />
+            <TimeField
+              label="Due Time"
+              value={dueTime}
+              onChange={(v) => v && setDueTime(new Time(v.hour, v.minute))}
+              isDisabled={isPending || isLoading}
             />
           </div>
 

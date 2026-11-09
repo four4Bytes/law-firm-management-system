@@ -10,6 +10,7 @@ import { notifyRecipients } from "@/features/notifications/notify";
 import { diffNewAssigneeIds } from "@/features/notifications/recipients";
 import { NotificationType, TaskStatus, type Task } from "@/generated/prisma/browser";
 import { logError } from "@/lib/infra/logger";
+import { isBeforeToday, toMinuteEpoch } from "@/lib/primitives/date";
 import {
   actionConflict,
   actionForbidden,
@@ -80,6 +81,14 @@ interface TaskStatusChangePayload {
   actorUserId: string;
   task: Pick<Task, "case_id" | "title" | "status">;
   to: TaskStatus;
+}
+
+// Minute precision on both sides: pickers only capture hour and minute, so an
+// exact-millisecond compare would treat a stored value carrying seconds as changed.
+function dueDateChanged(existing: Date | null, next: Date | undefined): boolean {
+  if (next === undefined) return false;
+  if (existing === null) return true;
+  return toMinuteEpoch(existing) !== toMinuteEpoch(next);
 }
 
 // `Task.status` is derived and has no writer of its own, so this is the only
@@ -188,7 +197,7 @@ export async function createTaskAction(
   const parsed = TaskCreatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("task");
 
-  const { title, description, case_id, assignee_ids } = parsed.data;
+  const { title, description, due_date, case_id, assignee_ids } = parsed.data;
 
   try {
     const caseAccess = await getCaseAccessContext(session.id, case_id);
@@ -210,9 +219,17 @@ export async function createTaskAction(
       );
     }
 
+    if (due_date !== undefined && isBeforeToday(due_date)) {
+      return actionConflict(
+        "Due date is in the past",
+        "A new task cannot be due in the past. Choose today or a future date.",
+      );
+    }
+
     const task = await createTask({
       title,
       description,
+      due_date,
       case_id,
       created_by_user_id: session.id,
       assignee_ids,
@@ -254,7 +271,7 @@ export async function updateTaskAction(
   const parsed = TaskUpdatePayloadSchema.safeParse(payload);
   if (!parsed.success) return actionInvalid("task");
 
-  const { taskId, title, description, assignee_ids, reviewer_ids, removed_reviewer_ids } =
+  const { taskId, title, description, due_date, assignee_ids, reviewer_ids, removed_reviewer_ids } =
     parsed.data;
 
   try {
@@ -310,6 +327,7 @@ export async function updateTaskAction(
     if (
       existing.title === title &&
       existing.description === (description ?? null) &&
+      !dueDateChanged(existing.due_date, due_date) &&
       !assigneesChanged &&
       !reviewer_ids?.length &&
       !removed_reviewer_ids?.length
@@ -320,6 +338,7 @@ export async function updateTaskAction(
     const { status: taskStatus } = await updateTask(taskId, {
       title,
       description,
+      due_date,
       assignee_ids,
       reviewer_ids,
       removed_reviewer_ids,

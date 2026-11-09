@@ -10,6 +10,7 @@ import { TaskStatusBadge } from "@/features/tasks/components/TaskStatusBadge/Tas
 import { resolveAssigneeDisplayRows, resolveReviewerDisplayRows } from "@/features/tasks/display";
 import type { TaskDetailRow } from "@/features/tasks/queries";
 import { UserList } from "@/features/users/components/UserList/UserList";
+import { formatDateTime } from "@/lib/primitives/date";
 
 import styles from "./ViewTaskModal.module.css";
 
@@ -73,6 +74,12 @@ export function ViewTaskModal({ isOpen, onOpenChange, task }: ViewTaskModalProps
           <div className={clsx(styles.field, styles.fieldInline)}>
             <span className={styles.label}>Status</span>
             <TaskStatusBadge status={task.status} taskForHint={task} />
+          </div>
+          <div className={styles.field}>
+            <span className={styles.label}>Due date</span>
+            <span className={styles.value}>
+              {task.due_date ? formatDateTime(task.due_date) : "—"}
+            </span>
           </div>
         </div>
 
